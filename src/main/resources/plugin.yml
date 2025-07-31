@@ -1,0 +1,9 @@
+name: Dungeons
+version: '1.0-SNAPSHOT'
+main: fr.perrier.dungeons.Main
+api-version: '1.21'
+load: STARTUP
+authors: [ PerrierBottle ]
+website: https://cupcode.fr/
+
+depend: [ Parties, SlimeWorldManager ]
