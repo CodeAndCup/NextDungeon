@@ -15,6 +15,8 @@ public final class Main extends JavaPlugin {
 
     @Getter
     private static Main instance;
+    @Getter
+    private static String prefix = "[Dungeons] ";
 
     // Plugin API instance
     @Getter
@@ -29,6 +31,8 @@ public final class Main extends JavaPlugin {
     @Override
     public void onEnable() {
         instance = this;
+
+        saveDefaultConfig();
 
         // Enabling other plugins API
         CupCodeAPI.enable(this);

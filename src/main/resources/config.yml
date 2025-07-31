@@ -1,0 +1,5 @@
+PluginConfiguration:
+
+ASWMConfiguration:
+  # The loader be used to load and save the world (mysql, mongodb)
+  Loader: "mysql"

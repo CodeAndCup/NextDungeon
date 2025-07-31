@@ -1,0 +1,12 @@
+# Welcome to the Dungeons plugin configuration file
+# This file is an exemple of a configuration
+
+DungeonName: "DungeonExemple"
+
+WorldConfiguration:
+  WorldName: "DungeonExemple"
+  Difficulty: "normal"
+  Spawn:
+    X: 0
+    Y: 100
+    Z: 0
