@@ -4,7 +4,11 @@ import com.alessiodp.parties.api.Parties;
 import com.alessiodp.parties.api.interfaces.PartiesAPI;
 import com.grinderwolf.swm.api.SlimePlugin;
 import fr.perrier.cupcodeapi.CupCodeAPI;
+import fr.perrier.cupcodeapi.commands.CommandHandler;
+import fr.perrier.dungeons.commands.AdminCommands;
+import fr.perrier.dungeons.commands.PlayerCommands;
 import lombok.Getter;
+import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class Main extends JavaPlugin {
@@ -17,6 +21,10 @@ public final class Main extends JavaPlugin {
     private PartiesAPI partiesAPI;
     @Getter
     private SlimePlugin aswmAPI;
+
+    // Plugin commands
+    @Getter
+    private CommandHandler commandHandler;
 
     @Override
     public void onEnable() {
@@ -34,10 +42,27 @@ public final class Main extends JavaPlugin {
         } else {
             aswmAPI = (SlimePlugin) getServer().getPluginManager().getPlugin("SlimeWorldManager");
         }
+
+        // Loading commands
+        commandHandler = new CommandHandler(this);
+        loadCommands();
+
+        // Loading listeners
+        loadListeners();
+
     }
 
     @Override
     public void onDisable() {
         CupCodeAPI.disable();
+    }
+
+    private void loadCommands() {
+        commandHandler.registerCommands(AdminCommands.class);
+        commandHandler.registerCommands(PlayerCommands.class);
+    }
+
+    private void loadListeners() {
+        PluginManager pluginManager = getServer().getPluginManager();
     }
 }
