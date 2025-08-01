@@ -1,12 +1,63 @@
-# Welcome to the Dungeons plugin configuration file
-# This file is an exemple of a configuration
+# ╔════════════════════════════════════════════════════════════════════════╗
+# ║                       Dungeons Plugin Configuration                    ║
+# ║         This file defines one dungeon and its floors configuration.    ║
+# ╚════════════════════════════════════════════════════════════════════════╝
 
-DungeonName: "DungeonExemple"
+dungeon:
+  id: "dungeon_example"
+  name: "Dungeon Exemple"
+  floors:
+    - id: "floor1"
+      name: "Les Cryptes Oubliées"
+      difficulty: "normal"
 
-WorldConfiguration:
-  WorldName: "DungeonExemple"
-  Difficulty: "normal"
-  Spawn:
-    X: 0
-    Y: 100
-    Z: 0
+      world:
+        name: "dungeon_example_floor1"
+        spawn: { x: 0, y: 100, z: 0 }
+
+      requirements:
+        retry_cooldown: "15m" # Time before retrying
+        required_dungeons: ["dungeon_example_floor1"]
+        party:
+          min_size: 2
+          max_size: 25
+        required_items:
+          - "minecraft:diamond"
+        forbidden_items:
+          - "minecraft:stone"
+
+      rules:
+        death_ban: "15m"
+        gamemode: "SURVIVAL"
+        allow_flight: false
+
+      steps:
+        - id: "step1"
+          name: "Entrée des Catacombes"
+          region:
+            pos1: { x: 0, y: 0, z: 0 }
+            pos2: { x: 0, y: 0, z: 0 }
+
+        - id: "step2"
+          name: "Galerie Sombre"
+          region:
+            pos1: { x: 0, y: 0, z: 0 }
+            pos2: { x: 0, y: 0, z: 0 }
+
+        - id: "step3"
+          name: "Salle Piégée"
+          region:
+            pos1: { x: 0, y: 0, z: 0 }
+            pos2: { x: 0, y: 0, z: 0 }
+
+        - id: "step4"
+          name: "Boss Intermédiaire"
+          region:
+            pos1: { x: 0, y: 0, z: 0 }
+            pos2: { x: 0, y: 0, z: 0 }
+
+        - id: "step5"
+          name: "Salle du Seigneur Fantôme"
+          region:
+            pos1: { x: 0, y: 0, z: 0 }
+            pos2: { x: 0, y: 0, z: 0 }
