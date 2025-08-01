@@ -3,6 +3,7 @@ package fr.perrier.dungeons;
 import com.alessiodp.parties.api.Parties;
 import com.alessiodp.parties.api.interfaces.PartiesAPI;
 import com.grinderwolf.swm.api.SlimePlugin;
+import com.infernalsuite.asp.api.AdvancedSlimePaperAPI;
 import fr.perrier.cupcodeapi.CupCodeAPI;
 import fr.perrier.cupcodeapi.commands.CommandHandler;
 import fr.perrier.dungeons.commands.AdminCommands;
@@ -22,7 +23,7 @@ public final class Main extends JavaPlugin {
     @Getter
     private PartiesAPI partiesAPI;
     @Getter
-    private SlimePlugin aswmAPI;
+    private AdvancedSlimePaperAPI aswmAPI;
 
     // Plugin commands
     @Getter
@@ -44,7 +45,7 @@ public final class Main extends JavaPlugin {
         if(!getServer().getPluginManager().isPluginEnabled("SlimeWorldManager")) {
             throw new RuntimeException("You must have SlimeWorldManager plugin enabled to use this plugin, shuting down the plugin...");
         } else {
-            aswmAPI = (SlimePlugin) getServer().getPluginManager().getPlugin("SlimeWorldManager");
+            aswmAPI = AdvancedSlimePaperAPI.instance();
         }
 
         // Loading commands
