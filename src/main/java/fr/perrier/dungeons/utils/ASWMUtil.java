@@ -3,6 +3,7 @@ package fr.perrier.dungeons.utils;
 import com.infernalsuite.asp.api.world.SlimeWorld;
 import com.infernalsuite.asp.api.world.SlimeWorldInstance;
 import fr.perrier.dungeons.Main;
+import fr.perrier.dungeons.configuration.WorldConfig;
 import fr.perrier.dungeons.model.Floor;
 
 public class ASWMUtil {
@@ -26,7 +27,38 @@ public class ASWMUtil {
         }catch (Exception e) {
             e.printStackTrace();
         }
-        return null;
+        throw new RuntimeException("Unable to load world");
+    }
+
+    /**
+     * Create a new SlimeWorldInstance from a floor.
+     *
+     * @param floor The floor to make the SlimeWorldInstance from.
+     * @return A new SlimeWorldInstance.
+     * @throws RuntimeException If unable to load world.
+     */
+    public static SlimeWorldInstance createFloorInstance(String floorName) {
+
+        Floor floor = new Floor(floorName,floorName);
+
+        WorldConfig worldConfig = new WorldConfig(floorName);
+        worldConfig.setProperties("normal",new Position(0,64,0));
+
+        floor.setWorldConfig(worldConfig);
+
+        try {
+            SlimeWorld world = Main.getInstance().getAspAPI().createEmptyWorld(
+                    floor.getWorldConfig().getFolderName(),
+                    false,
+                    floor.getWorldConfig().getProperties(),
+                    Main.getInstance().getAspLoader()
+            );
+            Main.getInstance().getAspAPI().saveWorld(world);
+            return Main.getInstance().getAspAPI().loadWorld(world,true);
+        }catch (Exception e) {
+            e.printStackTrace();
+        }
+        throw new RuntimeException("Unable to load world");
     }
 
     /**
@@ -46,7 +78,7 @@ public class ASWMUtil {
             );
             return Main.getInstance().getAspAPI().loadWorld(world,false);
         }catch (Exception e) {
-            e.fillInStackTrace();
+            e.printStackTrace();
         }
         throw new RuntimeException("Unable to load world");
     }
@@ -60,7 +92,7 @@ public class ASWMUtil {
         try {
             Main.getInstance().getAspAPI().saveWorld(instance);
         }catch (Exception e) {
-            e.fillInStackTrace();
+            e.printStackTrace();
         }
     }
 }

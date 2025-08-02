@@ -6,6 +6,7 @@ import com.infernalsuite.asp.api.AdvancedSlimePaperAPI;
 import com.infernalsuite.asp.api.loaders.SlimeLoader;
 import com.infernalsuite.asp.loaders.file.FileLoader;
 //import com.infernalsuite.asp.loaders.mysql.MysqlLoader;
+import com.infernalsuite.asp.loaders.mysql.MysqlLoader;
 import fr.perrier.cupcodeapi.CupCodeAPI;
 import fr.perrier.cupcodeapi.commands.CommandHandler;
 import fr.perrier.dungeons.commands.AdminCommands;
@@ -48,18 +49,24 @@ public final class Main extends JavaPlugin {
         partiesAPI = Parties.getApi();
         aspAPI = AdvancedSlimePaperAPI.instance();
         try {
-            aspLoader = new FileLoader(new File(Main.getInstance().getDataFolder() + File.separator + "../../slime_worlds/"));
-            /*aspLoader = new MysqlLoader(
-                    "jdbc:mysql://" + getConfig().getString("ASWMConfiguration.LoaderConfiguration.host") + ":" + getConfig().getInt("ASWMConfiguration.LoaderConfiguration.port") + "/" + getConfig().getString("ASWMConfiguration.LoaderConfiguration.database") + "?autoReconnect=true&allowMultiQueries=true&useSSL=" + getConfig().getBoolean("ASWMConfiguration.LoaderConfiguration.useSSL"),
-                    Objects.requireNonNull(getConfig().getString("ASWMConfiguration.LoaderConfiguration.host")),
-                    getConfig().getInt("ASWMConfiguration.LoaderConfiguration.port"),
-                    Objects.requireNonNull(getConfig().getString("ASWMConfiguration.LoaderConfiguration.database")),
-                    getConfig().getBoolean("ASWMConfiguration.LoaderConfiguration.useSSL"),
-                    getConfig().getString("ASWMConfiguration.LoaderConfiguration.user"),
-                    getConfig().getString("ASWMConfiguration.LoaderConfiguration.password")
-            );*/
+            switch(Objects.requireNonNull(Main.getInstance().getConfig().getString("ASWMCOnfiguration.Loader"))) {
+                case "file": {
+                    aspLoader = new FileLoader(new File(Main.getInstance().getDataFolder() + File.separator + "../../slime_worlds/"));
+                }
+                case "mysql": {
+                    aspLoader = new MysqlLoader(
+                            "jdbc:mysql://" + getConfig().getString("ASWMConfiguration.LoaderConfiguration.host") + ":" + getConfig().getInt("ASWMConfiguration.LoaderConfiguration.port") + "/" + getConfig().getString("ASWMConfiguration.LoaderConfiguration.database") + "?autoReconnect=true&allowMultiQueries=true&useSSL=" + getConfig().getBoolean("ASWMConfiguration.LoaderConfiguration.useSSL"),
+                            Objects.requireNonNull(getConfig().getString("ASWMConfiguration.LoaderConfiguration.host")),
+                            getConfig().getInt("ASWMConfiguration.LoaderConfiguration.port"),
+                            Objects.requireNonNull(getConfig().getString("ASWMConfiguration.LoaderConfiguration.database")),
+                            getConfig().getBoolean("ASWMConfiguration.LoaderConfiguration.useSSL"),
+                            getConfig().getString("ASWMConfiguration.LoaderConfiguration.user"),
+                            getConfig().getString("ASWMConfiguration.LoaderConfiguration.password")
+                    );
+                }
+            }
         }catch (Exception e) {
-            e.fillInStackTrace();
+            e.printStackTrace();
         }
 
         // Loading commands

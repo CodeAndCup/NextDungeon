@@ -161,11 +161,11 @@
             <version>4.0.0-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
-        <!--<dependency>
+        <dependency>
             <groupId>com.infernalsuite.asp</groupId>
             <artifactId>mysql-loader</artifactId>
             <version>4.0.0-SNAPSHOT</version>
-        </dependency>-->
+        </dependency>
         <dependency>
             <groupId>com.infernalsuite.asp</groupId>
             <artifactId>file-loader</artifactId>
