@@ -2,15 +2,21 @@ package fr.perrier.dungeons;
 
 import com.alessiodp.parties.api.Parties;
 import com.alessiodp.parties.api.interfaces.PartiesAPI;
-import com.grinderwolf.swm.api.SlimePlugin;
 import com.infernalsuite.asp.api.AdvancedSlimePaperAPI;
+import com.infernalsuite.asp.api.loaders.SlimeLoader;
+import com.infernalsuite.asp.loaders.file.FileLoader;
+//import com.infernalsuite.asp.loaders.mysql.MysqlLoader;
 import fr.perrier.cupcodeapi.CupCodeAPI;
 import fr.perrier.cupcodeapi.commands.CommandHandler;
 import fr.perrier.dungeons.commands.AdminCommands;
 import fr.perrier.dungeons.commands.PlayerCommands;
 import lombok.Getter;
+import lombok.NonNull;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
+
+import java.io.File;
+import java.util.Objects;
 
 public final class Main extends JavaPlugin {
 
@@ -23,7 +29,9 @@ public final class Main extends JavaPlugin {
     @Getter
     private PartiesAPI partiesAPI;
     @Getter
-    private AdvancedSlimePaperAPI aswmAPI;
+    private AdvancedSlimePaperAPI aspAPI;
+    @Getter
+    private SlimeLoader aspLoader;
 
     // Plugin commands
     @Getter
@@ -37,15 +45,21 @@ public final class Main extends JavaPlugin {
 
         // Enabling other plugins API
         CupCodeAPI.enable(this);
-        if(!getServer().getPluginManager().isPluginEnabled("Parties")) {
-            throw new RuntimeException("You must have Parties plugin enabled to use this plugin, shuting down the plugin...");
-        } else {
-            partiesAPI = Parties.getApi();
-        }
-        if(!getServer().getPluginManager().isPluginEnabled("SlimeWorldManager")) {
-            throw new RuntimeException("You must have SlimeWorldManager plugin enabled to use this plugin, shuting down the plugin...");
-        } else {
-            aswmAPI = AdvancedSlimePaperAPI.instance();
+        partiesAPI = Parties.getApi();
+        aspAPI = AdvancedSlimePaperAPI.instance();
+        try {
+            aspLoader = new FileLoader(new File(Main.getInstance().getDataFolder() + File.separator + "../../slime_worlds/"));
+            /*aspLoader = new MysqlLoader(
+                    "jdbc:mysql://" + getConfig().getString("ASWMConfiguration.LoaderConfiguration.host") + ":" + getConfig().getInt("ASWMConfiguration.LoaderConfiguration.port") + "/" + getConfig().getString("ASWMConfiguration.LoaderConfiguration.database") + "?autoReconnect=true&allowMultiQueries=true&useSSL=" + getConfig().getBoolean("ASWMConfiguration.LoaderConfiguration.useSSL"),
+                    Objects.requireNonNull(getConfig().getString("ASWMConfiguration.LoaderConfiguration.host")),
+                    getConfig().getInt("ASWMConfiguration.LoaderConfiguration.port"),
+                    Objects.requireNonNull(getConfig().getString("ASWMConfiguration.LoaderConfiguration.database")),
+                    getConfig().getBoolean("ASWMConfiguration.LoaderConfiguration.useSSL"),
+                    getConfig().getString("ASWMConfiguration.LoaderConfiguration.user"),
+                    getConfig().getString("ASWMConfiguration.LoaderConfiguration.password")
+            );*/
+        }catch (Exception e) {
+            e.fillInStackTrace();
         }
 
         // Loading commands

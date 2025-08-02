@@ -1,9 +1,11 @@
 package fr.perrier.dungeons.model;
 
+import com.infernalsuite.asp.api.world.SlimeWorldInstance;
 import fr.perrier.dungeons.Main;
 import fr.perrier.dungeons.configuration.Requirements;
 import fr.perrier.dungeons.configuration.Rules;
 import fr.perrier.dungeons.configuration.WorldConfig;
+import fr.perrier.dungeons.utils.ASWMUtil;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Bukkit;
@@ -30,7 +32,8 @@ public class Floor {
     }
 
     public void play(Player leader) {
-        worldConfig.loadWorld();
-        Main.getInstance().getAswmAPI().generateWorld(worldConfig.getSlimeWorld());
+        SlimeWorldInstance instance = ASWMUtil.makeFloorInstance(this);
+        World world = instance.getBukkitWorld();
+        leader.teleport(world.getSpawnLocation());
     }
 }
