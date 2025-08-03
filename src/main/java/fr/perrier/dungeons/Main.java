@@ -10,6 +10,7 @@ import com.infernalsuite.asp.loaders.mysql.MysqlLoader;
 import fr.perrier.cupcodeapi.CupCodeAPI;
 import fr.perrier.cupcodeapi.commands.CommandHandler;
 import fr.perrier.dungeons.commands.AdminCommands;
+import fr.perrier.dungeons.commands.DebugCommands;
 import fr.perrier.dungeons.commands.EditorCommands;
 import fr.perrier.dungeons.commands.PlayerCommands;
 import lombok.Getter;
@@ -94,6 +95,7 @@ public final class Main extends JavaPlugin {
 
     private void loadCommands() {
         commandHandler.registerCommands(AdminCommands.class);
+        commandHandler.registerCommands(DebugCommands.class);
         commandHandler.registerCommands(EditorCommands.class);
         commandHandler.registerCommands(PlayerCommands.class);
     }

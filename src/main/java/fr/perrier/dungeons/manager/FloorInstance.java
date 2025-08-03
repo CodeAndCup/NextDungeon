@@ -6,11 +6,15 @@ import fr.perrier.dungeons.utils.ASWMUtil;
 import lombok.Getter;
 import org.bukkit.World;
 
+import java.util.HashMap;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
 @Getter
 public class FloorInstance {
+
+    @Getter
+    private static final HashMap<UUID, FloorInstance> instances = new HashMap<>();
 
     private final UUID instanceId;
     private final String floorId;
@@ -20,7 +24,7 @@ public class FloorInstance {
         this.instanceId = UUID.randomUUID();
         this.floorId = floorId;
         this.world = generateFloorWorld();
-
+        instances.put(instanceId, this);
     }
 
     private World generateFloorWorld() {
