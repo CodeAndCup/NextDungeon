@@ -3,10 +3,9 @@ package fr.perrier.dungeons.commands;
 import fr.perrier.cupcodeapi.commands.annotations.Command;
 import fr.perrier.cupcodeapi.commands.annotations.Param;
 import fr.perrier.cupcodeapi.utils.ChatUtil;
-import fr.perrier.dungeons.configuration.DungeonLoader;
+import fr.perrier.dungeons.configuration.ConfigLoader;
 import fr.perrier.dungeons.configuration.WorldConfig;
 import fr.perrier.dungeons.manager.FloorInstance;
-import fr.perrier.dungeons.model.Dungeon;
 import fr.perrier.dungeons.model.Floor;
 import fr.perrier.dungeons.utils.Position;
 import org.bukkit.entity.Player;
@@ -21,6 +20,7 @@ public class AdminCommands {
         player.sendMessage(ChatUtil.translate("/dungeon admin edit <dungeonName> <floorName>"));
         player.sendMessage(ChatUtil.translate("/dungeon admin test <dungeonName> <floorName>"));
         player.sendMessage(ChatUtil.translate("/dungeon admin import <world> <dungeonName> <floorName>"));
+        player.sendMessage(ChatUtil.translate("/dungeon admin load <dungeonNameConfig>"));
         player.sendMessage(ChatUtil.translate("/dungeon admin status <dungeonName> [floorName]"));
         player.sendMessage(ChatUtil.getBar());
     }
@@ -38,5 +38,10 @@ public class AdminCommands {
 
         FloorInstance floorInstance = new FloorInstance(floor.getId());
         player.teleport(floorInstance.getWorld().getSpawnLocation());
+    }
+
+    @Command(names = "dungeon admin load")
+    public static void adminDungeonLoadCommand(Player player, @Param(name = "Dungeon") String dungeonName) {
+        ConfigLoader.loadDungeon(dungeonName);
     }
 }

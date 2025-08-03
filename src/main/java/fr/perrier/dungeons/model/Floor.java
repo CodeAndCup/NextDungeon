@@ -39,4 +39,17 @@ public class Floor {
     public static Floor getFloor(String id) {
         return floors.get(id);
     }
+
+
+    @Override
+    public String toString() {
+        return "Floor{" +
+                "id='" + id + '\'' +
+                ", name='" + name + '\'' +
+                ", worldConfig=" + worldConfig +
+                ", requirements=" + requirements +
+                ", rules=" + rules +
+                ", steps=" + steps +
+                '}';
+    }
 }

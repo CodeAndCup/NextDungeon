@@ -38,4 +38,13 @@ public class Dungeon {
     public static void removeDungeon(String id) {
         dungeons.remove(id);
     }
+
+    @Override
+    public String toString() {
+        return "Dungeon{" +
+                "id='" + id + '\'' +
+                ", name='" + name + '\'' +
+                ", floors=" + floors +
+                '}';
+    }
 }

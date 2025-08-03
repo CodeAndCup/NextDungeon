@@ -21,4 +21,13 @@ public class WorldConfig {
         properties.setValue(SlimeProperties.SPAWN_Z,(int)spawn.getZ());
         this.properties = properties;
     }
+
+
+    @Override
+    public String toString() {
+        return "WorldConfig{" +
+                "folderName='" + folderName + '\'' +
+                ", properties=" + properties +
+                '}';
+    }
 }
