@@ -19,21 +19,30 @@ public class DebugCommands {
     @Command(names = "dungeon debug list instances")
     public static void debugDungeonListInstancesCommand(Player player) {
         player.sendMessage(ChatUtil.getBar());
-        player.sendMessage(FloorInstance.getInstances().toString());
+        player.sendMessage(ChatUtil.translate("&6Instances:"));
+        for (FloorInstance instance : FloorInstance.getInstances().values()) {
+            player.sendMessage(ChatUtil.translate("  &8- &e" + instance.getInstanceName() + " &8(&7&o" + instance.getInstanceId() + "&8)"));
+        }
         player.sendMessage(ChatUtil.getBar());
     }
 
     @Command(names = "dungeon debug list floors")
     public static void debugDungeonListFloorsCommand(Player player) {
         player.sendMessage(ChatUtil.getBar());
-        player.sendMessage(Floor.getFloors().toString());
+        player.sendMessage(ChatUtil.translate("&6Floors:"));
+        for (Floor floor : Floor.getFloors().values()) {
+            player.sendMessage(ChatUtil.translate("  &8- &e" + floor.getName() + " &8(&7&o" + floor.getId() + "&8)"));
+        }
         player.sendMessage(ChatUtil.getBar());
     }
 
     @Command(names = "dungeon debug list dungeons")
     public static void debugDungeonListDungeonsCommand(Player player) {
         player.sendMessage(ChatUtil.getBar());
-        player.sendMessage(Dungeon.getDungeons().toString());
+        player.sendMessage(ChatUtil.translate("&6Dungeons:"));
+        for (Dungeon dungeon : Dungeon.getDungeons().values()) {
+            player.sendMessage(ChatUtil.translate("  &8- &e" + dungeon.getName() + " &8(&7&o" + dungeon.getId() + "&8)"));
+        }
         player.sendMessage(ChatUtil.getBar());
     }
 }

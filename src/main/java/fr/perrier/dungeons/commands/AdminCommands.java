@@ -43,5 +43,9 @@ public class AdminCommands {
     @Command(names = "dungeon admin load")
     public static void adminDungeonLoadCommand(Player player, @Param(name = "Dungeon") String dungeonName) {
         ConfigLoader.loadDungeon(dungeonName);
+        
+        player.sendMessage(ChatUtil.getBar());
+        player.sendMessage(ChatUtil.translate("&a Dungeon " + dungeonName + " loaded"));
+        player.sendMessage(ChatUtil.getBar());
     }
 }

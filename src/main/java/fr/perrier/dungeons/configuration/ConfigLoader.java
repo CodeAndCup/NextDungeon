@@ -42,7 +42,7 @@ public class ConfigLoader {
             ConfigurationSection floorSection = mapToSection(rawFloor);
 
             // Basic floor info
-            String floorId = floorSection.getString("id");
+            String floorId = dungeonId + "_" + floorSection.getString("id");
             String floorName = floorSection.getString("name");
             Floor floor = new Floor(floorId, floorName);
 
@@ -51,15 +51,17 @@ public class ConfigLoader {
             if (worldSec != null) {
                 String worldFolderName = dungeonId + "_" + floorId;
                 Position worldSpawn = readPosition(worldSec.getConfigurationSection("spawn"));
-                Difficulty worldDifficulty = Difficulty.valueOf(worldSec.getString("difficulty").toUpperCase());
+                Difficulty worldDifficulty = Difficulty.valueOf(Objects.requireNonNull(worldSec.getString("difficulty")).toUpperCase());
                 floor.setWorldConfig(new WorldConfig(worldFolderName, worldDifficulty.name(), worldSpawn));
+            } else {
+                throw new RuntimeException("Floor " + floorName + " has no world config");
             }
 
             // Requirements
             ConfigurationSection reqSec = floorSection.getConfigurationSection("requirements");
             if (reqSec != null) {
                 Requirements requirements = new Requirements();
-                requirements.setRetryCooldown(TimeUtil.getDuration(reqSec.getString("retry_cooldown")));
+                requirements.setRetryCooldown(TimeUtil.getDuration(Objects.requireNonNull(reqSec.getString("retry_cooldown"))));
                 requirements.setRequiredDungeons(reqSec.getStringList("required_dungeons"));
                 requirements.setRequiredItems(reqSec.getStringList("required_items"));
                 requirements.setForbiddenItems(reqSec.getStringList("forbidden_items"));
@@ -105,6 +107,8 @@ public class ConfigLoader {
                 }
             }
             floor.setSteps(steps);
+            floor.updateMap();
+            floor.generateTemplateWorld();
 
             floors.add(floor);
         }
@@ -125,8 +129,34 @@ public class ConfigLoader {
     private static ConfigurationSection mapToSection(Map<?, ?> map) {
         ConfigurationSection section = new MemoryConfiguration();
         for (Map.Entry<?, ?> entry : map.entrySet()) {
-            section.set(entry.getKey().toString(), entry.getValue());
+            String key = entry.getKey().toString();
+            Object value = entry.getValue();
+
+            if (value instanceof Map<?, ?> nestedMap) {
+                section.set(key, mapToSection(nestedMap));
+            } else {
+                section.set(key, value);
+            }
         }
         return section;
+    }
+
+    public static void loadAllDungeons() {
+        File file = new File(Main.getInstance().getDataFolder() + "/dungeons/");
+        if(!file.isDirectory()) throw new RuntimeException("Dungeons folder not found");
+        File[] files = file.listFiles();
+        if (files != null) {
+            for (File f : files) {
+                if (f.isFile() && f.getName().endsWith(".yml")) {
+                    String name = f.getName().replace(".yml", "");
+                    Main.getInstance().getLogger().info("Loading dungeon " + name + "...");
+                    try {
+                        loadDungeon(name);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
     }
 }

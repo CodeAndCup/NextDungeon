@@ -13,9 +13,8 @@ import fr.perrier.dungeons.commands.AdminCommands;
 import fr.perrier.dungeons.commands.DebugCommands;
 import fr.perrier.dungeons.commands.EditorCommands;
 import fr.perrier.dungeons.commands.PlayerCommands;
+import fr.perrier.dungeons.configuration.ConfigLoader;
 import lombok.Getter;
-import lombok.NonNull;
-import org.bukkit.Bukkit;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -55,7 +54,7 @@ public final class Main extends JavaPlugin {
             switch(Objects.requireNonNull(Main.getInstance().getConfig().getString("ASWMConfiguration.Loader"))) {
                 case "file": {
                     aspLoader = new FileLoader(new File(Main.getInstance().getDataFolder() + File.separator + "../../slime_worlds/"));
-                    Bukkit.getLogger().info("File loader initialized");
+                    Main.getInstance().getLogger().info("File loader initialized");
                     break;
                 }
                 case "mysql": {
@@ -68,7 +67,7 @@ public final class Main extends JavaPlugin {
                             getConfig().getString("ASWMConfiguration.LoaderConfiguration.user"),
                             getConfig().getString("ASWMConfiguration.LoaderConfiguration.password")
                     );
-                    Bukkit.getLogger().info("Mysql loader initialized");
+                    Main.getInstance().getLogger().info("Mysql loader initialized");
                     break;
                 }
                 default: {
@@ -85,6 +84,9 @@ public final class Main extends JavaPlugin {
 
         // Loading listeners
         loadListeners();
+
+        // Load Dungeons
+        ConfigLoader.loadAllDungeons();
 
     }
 

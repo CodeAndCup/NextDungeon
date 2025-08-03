@@ -1,6 +1,6 @@
 package fr.perrier.dungeons.model;
 
-import com.infernalsuite.asp.api.world.SlimeWorldInstance;
+import com.infernalsuite.asp.api.world.SlimeWorld;
 import fr.perrier.dungeons.Main;
 import fr.perrier.dungeons.configuration.Requirements;
 import fr.perrier.dungeons.configuration.Rules;
@@ -9,9 +9,7 @@ import fr.perrier.dungeons.utils.ASWMUtil;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Bukkit;
-import org.bukkit.Difficulty;
 import org.bukkit.World;
-import org.bukkit.entity.Player;
 
 import java.util.HashMap;
 import java.util.List;
@@ -38,6 +36,29 @@ public class Floor {
 
     public static Floor getFloor(String id) {
         return floors.get(id);
+    }
+
+    public void updateMap() {
+        floors.put(id, this);
+    }
+
+    public void generateTemplateWorld() {
+        World world = Bukkit.getWorld(id);
+        if (world == null) {
+            if(ASWMUtil.isFloorWorldTemplateExists(this)) {
+                ASWMUtil.loadFloorWorldTemplate(this);
+            } else {
+                Main.getInstance().getLogger().info("Template world " + id + " not found, creating it now.");
+                SlimeWorld slimeWorld = Main.getInstance().getAspAPI().createEmptyWorld(
+                        id,
+                        false,
+                        worldConfig.getProperties(),
+                        Main.getInstance().getAspLoader()
+                );
+                ASWMUtil.saveFloorWorldTemplate(this, slimeWorld);
+                Main.getInstance().getAspAPI().loadWorld(slimeWorld, true);
+            }
+        }
     }
 
 
