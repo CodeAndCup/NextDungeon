@@ -4,20 +4,19 @@
 # ╚════════════════════════════════════════════════════════════════════════╝
 
 dungeon:
-  id: "dungeon_example"
+  id: "example"
   name: "Dungeon Exemple"
   floors:
     - id: "floor1"
       name: "Les Cryptes Oubliées"
-      difficulty: "normal"
 
       world:
-        name: "dungeon_example_floor1"
+        difficulty: "normal"
         spawn: { x: 0, y: 100, z: 0 }
 
       requirements:
         retry_cooldown: "15m" # Time before retrying
-        required_dungeons: ["dungeon_example_floor1"]
+        required_dungeons: [""] # List of required dungeons (id)
         party:
           min_size: 2
           max_size: 25

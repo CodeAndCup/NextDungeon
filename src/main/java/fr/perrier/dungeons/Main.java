@@ -10,9 +10,11 @@ import com.infernalsuite.asp.loaders.mysql.MysqlLoader;
 import fr.perrier.cupcodeapi.CupCodeAPI;
 import fr.perrier.cupcodeapi.commands.CommandHandler;
 import fr.perrier.dungeons.commands.AdminCommands;
+import fr.perrier.dungeons.commands.EditorCommands;
 import fr.perrier.dungeons.commands.PlayerCommands;
 import lombok.Getter;
 import lombok.NonNull;
+import org.bukkit.Bukkit;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -49,9 +51,11 @@ public final class Main extends JavaPlugin {
         partiesAPI = Parties.getApi();
         aspAPI = AdvancedSlimePaperAPI.instance();
         try {
-            switch(Objects.requireNonNull(Main.getInstance().getConfig().getString("ASWMCOnfiguration.Loader"))) {
+            switch(Objects.requireNonNull(Main.getInstance().getConfig().getString("ASWMConfiguration.Loader"))) {
                 case "file": {
                     aspLoader = new FileLoader(new File(Main.getInstance().getDataFolder() + File.separator + "../../slime_worlds/"));
+                    Bukkit.getLogger().info("File loader initialized");
+                    break;
                 }
                 case "mysql": {
                     aspLoader = new MysqlLoader(
@@ -63,6 +67,11 @@ public final class Main extends JavaPlugin {
                             getConfig().getString("ASWMConfiguration.LoaderConfiguration.user"),
                             getConfig().getString("ASWMConfiguration.LoaderConfiguration.password")
                     );
+                    Bukkit.getLogger().info("Mysql loader initialized");
+                    break;
+                }
+                default: {
+                    throw new RuntimeException("Unknown loader " + Main.getInstance().getConfig().getString("ASWMConfiguration.Loader"));
                 }
             }
         }catch (Exception e) {
@@ -85,6 +94,7 @@ public final class Main extends JavaPlugin {
 
     private void loadCommands() {
         commandHandler.registerCommands(AdminCommands.class);
+        commandHandler.registerCommands(EditorCommands.class);
         commandHandler.registerCommands(PlayerCommands.class);
     }
 

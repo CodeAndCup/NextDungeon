@@ -8,5 +8,5 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 public class Position {
-    private int x, y, z;
+    private double x, y, z;
 }

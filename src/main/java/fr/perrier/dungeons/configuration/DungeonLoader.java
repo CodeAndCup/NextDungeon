@@ -7,12 +7,14 @@ import fr.perrier.dungeons.model.Floor;
 import fr.perrier.dungeons.model.Step;
 import fr.perrier.dungeons.utils.CuboidRegion;
 import fr.perrier.dungeons.utils.Position;
+import org.bukkit.Difficulty;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class DungeonLoader {
 
@@ -27,28 +29,44 @@ public class DungeonLoader {
         ConfigurationSection dungeonSection = config.getConfigurationSection("dungeon");
         if (dungeonSection == null) return null;
 
-        Dungeon dungeon = new Dungeon(dungeonSection.getString("id"),dungeonSection.getString("name"));
+        // Dungeon parameters
+        String dungeonId = dungeonSection.getString("id");
+        String dungeonName = dungeonSection.getString("name");
+
+        Dungeon dungeon = new Dungeon(dungeonId,dungeonName);
 
         List<Floor> floors = new ArrayList<>();
         for (ConfigurationSection floorSection : getSections(dungeonSection, "floors")) {
-            Floor floor = new Floor(floorSection.getString("id"),floorSection.getString("name"));
-            floor.setDifficulty(floorSection.getString("difficulty"));
+
+            // Configuration sections
+            ConfigurationSection worldSec = floorSection.getConfigurationSection("world");
+            ConfigurationSection reqSec = floorSection.getConfigurationSection("requirements");
+            ConfigurationSection partySec = reqSec.getConfigurationSection("party");
+            ConfigurationSection rulesSec = floorSection.getConfigurationSection("rules");
+
+            // Floor parameters
+            String floorId = floorSection.getString("id");
+            String floorName = floorSection.getString("name");
+
+            // World parameters
+            String worldFolderName = dungeonId + "_" + floorId;
+            Position worldSpawn = readPosition(Objects.requireNonNull(worldSec.getConfigurationSection("spawn")));
+            Difficulty worldDifficulty = Difficulty.valueOf(worldSec.getString("difficulty"));
+
+            // Floor
+            Floor floor = new Floor(floorId,floorName);
 
             // World
-            ConfigurationSection worldSec = floorSection.getConfigurationSection("world");
-            WorldConfig world = new WorldConfig(worldSec.getString("name"));
-            world.setProperties(floorSection.getString("difficulty"),readPosition(worldSec.getConfigurationSection("spawn")));
+            WorldConfig world = new WorldConfig(worldFolderName,worldDifficulty.name(),worldSpawn);
             floor.setWorldConfig(world);
 
             // Requirements
-            ConfigurationSection reqSec = floorSection.getConfigurationSection("requirements");
             Requirements requirements = new Requirements();
             requirements.setRetryCooldown(TimeUtil.getDuration(reqSec.getString("retry_cooldown")));
             requirements.setRequiredDungeons(reqSec.getStringList("required_dungeons"));
             requirements.setRequiredItems(reqSec.getStringList("required_items"));
             requirements.setForbiddenItems(reqSec.getStringList("forbidden_items"));
 
-            ConfigurationSection partySec = reqSec.getConfigurationSection("party");
             Requirements.PartyRequirements party = new Requirements.PartyRequirements();
             party.setMinSize(partySec.getInt("min_size"));
             party.setMaxSize(partySec.getInt("max_size"));
@@ -56,7 +74,6 @@ public class DungeonLoader {
             floor.setRequirements(requirements);
 
             // Rules
-            ConfigurationSection rulesSec = floorSection.getConfigurationSection("rules");
             Rules rules = new Rules();
             rules.setDeathBanDuration(TimeUtil.getDuration(rulesSec.getString("death_ban")));
             rules.setGamemode(rulesSec.getString("gamemode"));
@@ -92,9 +109,9 @@ public class DungeonLoader {
 
     private static Position readPosition(ConfigurationSection section) {
         return new Position(
-                section.getInt("x"),
-                section.getInt("y"),
-                section.getInt("z")
+                section.getDouble("x"),
+                section.getDouble("y"),
+                section.getDouble("z")
         );
     }
 

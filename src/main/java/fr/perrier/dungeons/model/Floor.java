@@ -9,18 +9,22 @@ import fr.perrier.dungeons.utils.ASWMUtil;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Bukkit;
+import org.bukkit.Difficulty;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
+import java.util.HashMap;
 import java.util.List;
 
 @Getter
 @Setter
 public class Floor {
 
+    @Getter
+    private static final HashMap<String, Floor> floors = new HashMap<>();
+
     private String id;
     private String name;
-    private String difficulty;
     private WorldConfig worldConfig;
     private Requirements requirements;
     private Rules rules;
@@ -29,11 +33,10 @@ public class Floor {
     public Floor(String id, String name) {
         this.id = id;
         this.name = name;
+        floors.put(id, this);
     }
 
-    public void play(Player leader) {
-        SlimeWorldInstance instance = ASWMUtil.makeFloorInstance(this);
-        World world = instance.getBukkitWorld();
-        leader.teleport(world.getSpawnLocation());
+    public static Floor getFloor(String id) {
+        return floors.get(id);
     }
 }

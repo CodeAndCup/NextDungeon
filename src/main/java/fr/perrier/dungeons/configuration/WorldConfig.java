@@ -9,20 +9,16 @@ import java.util.UUID;
 @Getter
 public class WorldConfig {
 
-    private String folderName;
-    private UUID id;
+    private final String folderName;
     private SlimePropertyMap properties;
 
-    public WorldConfig(String folderName) {
+    public WorldConfig(String folderName, String difficulty, Position spawn) {
         this.folderName = folderName;
-    }
-
-    public void setProperties(String difficulty, Position spawn) {
         SlimePropertyMap properties = new SlimePropertyMap();
         properties.setValue(SlimeProperties.DIFFICULTY,difficulty);
-        properties.setValue(SlimeProperties.SPAWN_X,spawn.getX());
-        properties.setValue(SlimeProperties.SPAWN_Y,spawn.getY());
-        properties.setValue(SlimeProperties.SPAWN_Z,spawn.getZ());
+        properties.setValue(SlimeProperties.SPAWN_X,(int)spawn.getX());
+        properties.setValue(SlimeProperties.SPAWN_Y,(int)spawn.getY());
+        properties.setValue(SlimeProperties.SPAWN_Z,(int)spawn.getZ());
         this.properties = properties;
     }
 }
