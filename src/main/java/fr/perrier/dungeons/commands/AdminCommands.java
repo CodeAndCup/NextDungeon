@@ -37,7 +37,7 @@ public class AdminCommands {
         floor.setWorldConfig(worldConfig);
 
         FloorInstance floorInstance = new FloorInstance(floor.getId());
-        player.teleport(floorInstance.getWorld().getSpawnLocation());
+        //player.teleport(floorInstance.getWorld().getSpawnLocation());
     }
 
     @Command(names = "dungeon admin load")

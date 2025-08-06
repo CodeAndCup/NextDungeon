@@ -92,14 +92,14 @@
             <url>https://repo.alessiodp.com/releases/</url>
         </repository>
 
-        <!-- ASWM API -->
+        <!-- CloudNet API -->
         <repository>
-            <id>is-releases</id>
-            <url>https://repo.infernalsuite.com/repository/maven-releases/</url>
+            <id>cloudnet-releases</id>
+            <url>https://repo.cloudnetservice.eu/releases/</url>
         </repository>
         <repository>
-            <id>is-snapshots</id>
-            <url>https://repo.infernalsuite.com/repository/maven-snapshots/</url>
+            <id>cloudnet-snapshots</id>
+            <url>https://repo.cloudnetservice.eu/snapshots/</url>
         </repository>
     </repositories>
 
@@ -154,22 +154,21 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- ASWM API -->
+        <!-- CloudNet API -->
         <dependency>
-            <groupId>com.infernalsuite.asp</groupId>
-            <artifactId>api</artifactId>
-            <version>4.0.0-SNAPSHOT</version>
-            <scope>provided</scope>
+            <groupId>eu.cloudnetservice.cloudnet</groupId>
+            <artifactId>driver-api</artifactId>
+            <version>4.0.0-RC13</version>
         </dependency>
         <dependency>
-            <groupId>com.infernalsuite.asp</groupId>
-            <artifactId>mysql-loader</artifactId>
-            <version>4.0.0-SNAPSHOT</version>
+            <groupId>eu.cloudnetservice.cloudnet</groupId>
+            <artifactId>bridge-api</artifactId>
+            <version>4.0.0-RC13</version>
         </dependency>
         <dependency>
-            <groupId>com.infernalsuite.asp</groupId>
-            <artifactId>file-loader</artifactId>
-            <version>4.0.0-SNAPSHOT</version>
+            <groupId>eu.cloudnetservice.cloudnet</groupId>
+            <artifactId>wrapper-jvm-api</artifactId>
+            <version>4.0.0-RC13</version>
         </dependency>
     </dependencies>
 </project>

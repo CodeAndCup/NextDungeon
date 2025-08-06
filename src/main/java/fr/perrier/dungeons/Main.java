@@ -2,11 +2,6 @@ package fr.perrier.dungeons;
 
 import com.alessiodp.parties.api.Parties;
 import com.alessiodp.parties.api.interfaces.PartiesAPI;
-import com.infernalsuite.asp.api.AdvancedSlimePaperAPI;
-import com.infernalsuite.asp.api.loaders.SlimeLoader;
-import com.infernalsuite.asp.loaders.file.FileLoader;
-//import com.infernalsuite.asp.loaders.mysql.MysqlLoader;
-import com.infernalsuite.asp.loaders.mysql.MysqlLoader;
 import fr.perrier.cupcodeapi.CupCodeAPI;
 import fr.perrier.cupcodeapi.commands.CommandHandler;
 import fr.perrier.dungeons.commands.AdminCommands;
@@ -14,12 +9,10 @@ import fr.perrier.dungeons.commands.DebugCommands;
 import fr.perrier.dungeons.commands.EditorCommands;
 import fr.perrier.dungeons.commands.PlayerCommands;
 import fr.perrier.dungeons.configuration.ConfigLoader;
+import fr.perrier.dungeons.utils.ServerUtil;
 import lombok.Getter;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
-
-import java.io.File;
-import java.util.Objects;
 
 public final class Main extends JavaPlugin {
 
@@ -31,14 +24,13 @@ public final class Main extends JavaPlugin {
     // Plugin API instance
     @Getter
     private PartiesAPI partiesAPI;
-    @Getter
-    private AdvancedSlimePaperAPI aspAPI;
-    @Getter
-    private SlimeLoader aspLoader;
 
     // Plugin commands
     @Getter
     private CommandHandler commandHandler;
+
+    @Getter
+    private ServerUtil serverUtil;
 
     @Override
     public void onEnable() {
@@ -48,35 +40,7 @@ public final class Main extends JavaPlugin {
 
         // Enabling other plugins API
         CupCodeAPI.enable(this);
-        partiesAPI = Parties.getApi();
-        aspAPI = AdvancedSlimePaperAPI.instance();
-        try {
-            switch(Objects.requireNonNull(Main.getInstance().getConfig().getString("ASWMConfiguration.Loader"))) {
-                case "file": {
-                    aspLoader = new FileLoader(new File(Main.getInstance().getDataFolder() + File.separator + "../../slime_worlds/"));
-                    Main.getInstance().getLogger().info("File loader initialized");
-                    break;
-                }
-                case "mysql": {
-                    aspLoader = new MysqlLoader(
-                            "jdbc:mysql://" + getConfig().getString("ASWMConfiguration.LoaderConfiguration.host") + ":" + getConfig().getInt("ASWMConfiguration.LoaderConfiguration.port") + "/" + getConfig().getString("ASWMConfiguration.LoaderConfiguration.database") + "?autoReconnect=true&allowMultiQueries=true&useSSL=" + getConfig().getBoolean("ASWMConfiguration.LoaderConfiguration.useSSL"),
-                            Objects.requireNonNull(getConfig().getString("ASWMConfiguration.LoaderConfiguration.host")),
-                            getConfig().getInt("ASWMConfiguration.LoaderConfiguration.port"),
-                            Objects.requireNonNull(getConfig().getString("ASWMConfiguration.LoaderConfiguration.database")),
-                            getConfig().getBoolean("ASWMConfiguration.LoaderConfiguration.useSSL"),
-                            getConfig().getString("ASWMConfiguration.LoaderConfiguration.user"),
-                            getConfig().getString("ASWMConfiguration.LoaderConfiguration.password")
-                    );
-                    Main.getInstance().getLogger().info("Mysql loader initialized");
-                    break;
-                }
-                default: {
-                    throw new RuntimeException("Unknown loader " + Main.getInstance().getConfig().getString("ASWMConfiguration.Loader"));
-                }
-            }
-        }catch (Exception e) {
-            e.printStackTrace();
-        }
+        //partiesAPI = Parties.getApi();
 
         // Loading commands
         commandHandler = new CommandHandler(this);
@@ -86,7 +50,7 @@ public final class Main extends JavaPlugin {
         loadListeners();
 
         // Load Dungeons
-        ConfigLoader.loadAllDungeons();
+        //ConfigLoader.loadAllDungeons();
 
     }
 

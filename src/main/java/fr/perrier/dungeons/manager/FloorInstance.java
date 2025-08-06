@@ -1,14 +1,12 @@
 package fr.perrier.dungeons.manager;
 
-import fr.perrier.dungeons.Main;
 import fr.perrier.dungeons.model.Floor;
-import fr.perrier.dungeons.utils.ASWMUtil;
+import fr.perrier.dungeons.utils.ServerUtil;
 import lombok.Getter;
 import org.bukkit.World;
 
 import java.util.HashMap;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 
 @Getter
 public class FloorInstance {
@@ -18,17 +16,18 @@ public class FloorInstance {
 
     private final UUID instanceId;
     private final String floorId;
-    private final World world;
+    //private final World world;
 
     public FloorInstance(String floorId) {
         this.instanceId = UUID.randomUUID();
         this.floorId = floorId;
-        this.world = generateFloorWorld();
+        //this.world = generateFloorWorld();
         instances.put(instanceId, this);
+        generateFloorWorld();
     }
 
-    private World generateFloorWorld() {
-        return ASWMUtil.makeFloorInstance(this);
+    private void generateFloorWorld() {
+        ServerUtil.makeFloorInstance(this);
     }
 
     public String getInstanceName() {
