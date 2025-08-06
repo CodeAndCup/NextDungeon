@@ -9,37 +9,32 @@ import eu.cloudnetservice.driver.service.ServiceTask;
 import fr.perrier.dungeons.manager.FloorInstance;
 import fr.perrier.dungeons.model.Floor;
 
+import java.util.UUID;
+
 public class ServerUtil {
 
-    /**
-     * Make a new SlimeWorldInstance from a floor.
-     *
-     * @param floorInstance The floor to make the SlimeWorldInstance from.
-     * @return A new SlimeWorldInstance.
-     * @throws RuntimeException If unable to load world.
-     */
-    public static void makeFloorInstance(FloorInstance floorInstance) {
+
+    public static UUID makeFloorInstance(FloorInstance floorInstance) {
         Floor floor = floorInstance.getFloor();
         String templateName = floor.getId();
         String instanceName = floorInstance.getInstanceName();
-
-
 
         CloudServiceFactory cloudService = InjectionLayer.boot().instance(CloudServiceFactory.class);
         ServiceTask serviceTask = InjectionLayer.boot().instance(ServiceTaskProvider.class).serviceTask("Lobby");
         if(serviceTask == null) {
             System.out.println("Impossible to create service task for " + instanceName);
-            return;
+            return null;
         }
         ServiceConfiguration config = ServiceConfiguration.builder(serviceTask).build();
         ServiceCreateResult service = cloudService.createCloudService(config);
         if(service.state() != ServiceCreateResult.State.CREATED) {
             System.out.println("Impossible to create service for " + instanceName);
-            return;
+            return null;
         }
         service.serviceInfo().provider().startAsync();
         System.out.println("Started service for " + instanceName);
 
+        return service.serviceInfo().serviceId().uniqueId();
     }
 
     public static void saveFloorWorldTemplate(Floor floor) {

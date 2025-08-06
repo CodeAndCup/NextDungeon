@@ -32,7 +32,7 @@ public class AdminCommands {
 
     @Command(names = "dungeon admin test")
     public static void adminDungeonPlayCommand(Player player, @Param(name = "Dungeon") String dungeonName, @Param(name = "Floor") String floorName) {
-        Floor floor = new Floor("floor1","Floor 1");
+        Floor floor = new Floor("Example_Floor1","Floor 1");
         WorldConfig worldConfig = new WorldConfig("floor1","NORMAL",new Position(0,100,0));
         floor.setWorldConfig(worldConfig);
 

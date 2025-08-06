@@ -16,18 +16,15 @@ public class FloorInstance {
 
     private final UUID instanceId;
     private final String floorId;
-    //private final World world;
 
     public FloorInstance(String floorId) {
-        this.instanceId = UUID.randomUUID();
+        this.instanceId = generateFloorServer();
         this.floorId = floorId;
-        //this.world = generateFloorWorld();
         instances.put(instanceId, this);
-        generateFloorWorld();
     }
 
-    private void generateFloorWorld() {
-        ServerUtil.makeFloorInstance(this);
+    private UUID generateFloorServer() {
+        return ServerUtil.makeFloorInstance(this);
     }
 
     public String getInstanceName() {
