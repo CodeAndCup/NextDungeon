@@ -20,7 +20,7 @@ public class ServerUtil {
         String instanceName = floorInstance.getInstanceName();
 
         CloudServiceFactory cloudService = InjectionLayer.boot().instance(CloudServiceFactory.class);
-        ServiceTask serviceTask = InjectionLayer.boot().instance(ServiceTaskProvider.class).serviceTask("Lobby");
+        ServiceTask serviceTask = InjectionLayer.boot().instance(ServiceTaskProvider.class).serviceTask(templateName);
         if(serviceTask == null) {
             System.out.println("Impossible to create service task for " + instanceName);
             return null;
