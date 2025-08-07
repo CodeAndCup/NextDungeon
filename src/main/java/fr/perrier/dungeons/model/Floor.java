@@ -1,14 +1,11 @@
 package fr.perrier.dungeons.model;
 
-import fr.perrier.dungeons.Main;
 import fr.perrier.dungeons.configuration.Requirements;
 import fr.perrier.dungeons.configuration.Rules;
 import fr.perrier.dungeons.configuration.WorldConfig;
 import fr.perrier.dungeons.utils.ServerUtil;
 import lombok.Getter;
 import lombok.Setter;
-import org.bukkit.Bukkit;
-import org.bukkit.World;
 
 import java.util.HashMap;
 import java.util.List;
@@ -41,22 +38,9 @@ public class Floor {
         floors.put(id, this);
     }
 
-    public void generateTemplateWorld() {
-        World world = Bukkit.getWorld(id);
-        if (world == null) {
-            if(ServerUtil.isFloorWorldTemplateExists(this)) {
-                ServerUtil.loadFloorWorldTemplate(this);
-            } else {
-                /*Main.getInstance().getLogger().info("Template world " + id + " not found, creating it now.");
-                SlimeWorld slimeWorld = Main.getInstance().getAspAPI().createEmptyWorld(
-                        id,
-                        false,
-                        worldConfig.getProperties(),
-                        Main.getInstance().getAspLoader()
-                );
-                ServerUtil.saveFloorWorldTemplate(this, slimeWorld);
-                Main.getInstance().getAspAPI().loadWorld(slimeWorld, true);*/
-            }
+    public void generateTemplate() {
+        if(!ServerUtil.isFloorTemplateExists(this)) {
+            ServerUtil.createFloorTemplate(this);
         }
     }
 

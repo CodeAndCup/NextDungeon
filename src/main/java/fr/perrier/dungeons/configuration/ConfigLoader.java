@@ -108,7 +108,7 @@ public class ConfigLoader {
             }
             floor.setSteps(steps);
             floor.updateMap();
-            floor.generateTemplateWorld();
+            floor.generateTemplate();
 
             floors.add(floor);
         }

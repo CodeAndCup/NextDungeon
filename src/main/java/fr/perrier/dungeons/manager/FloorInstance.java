@@ -18,8 +18,8 @@ public class FloorInstance {
     private final String floorId;
 
     public FloorInstance(String floorId) {
-        this.instanceId = generateFloorServer();
         this.floorId = floorId;
+        this.instanceId = generateFloorServer();
         instances.put(instanceId, this);
     }
 
@@ -33,5 +33,14 @@ public class FloorInstance {
 
     public Floor getFloor() {
         return Floor.getFloor(floorId);
+    }
+
+
+    @Override
+    public String toString() {
+        return "FloorInstance{" +
+                "instanceId=" + instanceId +
+                ", floorId='" + floorId + '\'' +
+                '}';
     }
 }

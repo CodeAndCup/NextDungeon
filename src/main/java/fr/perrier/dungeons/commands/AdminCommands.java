@@ -27,7 +27,10 @@ public class AdminCommands {
 
     @Command(names = "dungeon admin create")
     public static void adminDungeonCreateCommand(Player player, @Param(name = "Dungeon") String dungeonName, @Param(name = "Floor") String floorName) {
+        Floor floor = new Floor("Example_Floor2","Floor 2");
+        floor.generateTemplate();
 
+        FloorInstance floorInstance = new FloorInstance(floor.getId());
     }
 
     @Command(names = "dungeon admin test")
