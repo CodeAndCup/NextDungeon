@@ -39,6 +39,7 @@ public class Floor {
     }
 
     public void generateTemplate() {
+        System.out.println("Is floor template exists : " + ServerUtil.isFloorTemplateExists(this));
         if(!ServerUtil.isFloorTemplateExists(this)) {
             ServerUtil.createFloorTemplate(this);
         }
