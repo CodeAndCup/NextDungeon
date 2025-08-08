@@ -104,31 +104,22 @@ public class ServerUtil {
                 return;
             }
 
-            // Debuging
-            /*List<String> fileNames = new ArrayList<>();
-            ZipEntry entry;
-            while ((entry = zipInputStream.getNextEntry()) != null) {
-                if (!entry.isDirectory()) {
-                    fileNames.add(entry.getName());
-                }
-                zipInputStream.closeEntry();
-            }
-            Main.getInstance().getLogger().warning(fileNames.toString());*/
-
-            // Work
             try {
 
                 var localStoragePath = Path.of("../../../local/templates/");
                 var templatePath = localStoragePath.resolve(targetTemplate.prefix()).resolve(targetTemplate.name());
 
-                //Main.getInstance().getLogger().info("Template path: " + templatePath.toAbsolutePath());
+                if(Main.isDebug())
+                    Main.getInstance().getLogger().info("Template path: " + templatePath.toAbsolutePath());
                 Files.createDirectories(templatePath);
 
                 ZipEntry entryDeploy;
                 while ((entryDeploy = zipInputStream.getNextEntry()) != null) {
                     var file = templatePath.resolve(entryDeploy.getName());
-                    //Main.getInstance().getLogger().info("Find " + entryDeploy.getName() + " will be copied to (" + file + ")");
-                    //Main.getInstance().getLogger().info("Entry is directory: " + entryDeploy.isDirectory());
+                    if(Main.isDebug()) {
+                        Main.getInstance().getLogger().info("Find " + entryDeploy.getName() + " will be copied to (" + file + ")");
+                        Main.getInstance().getLogger().info("Entry is directory: " + entryDeploy.isDirectory());
+                    }
                     if (entryDeploy.isDirectory()) {
                         if (file != null && Files.notExists(file)) {
                             try {
@@ -139,14 +130,18 @@ public class ServerUtil {
                         }
                     } else {
                         try {
-                            //Main.getInstance().getLogger().info("File: " + file);
-                            //Main.getInstance().getLogger().info("Parent: " + file.getParent());
+                            if(Main.isDebug()) {
+                                Main.getInstance().getLogger().info("File: " + file);
+                                Main.getInstance().getLogger().info("Parent: " + file.getParent());
+                            }
                             Files.createDirectories(file.getParent());
                             try (OutputStream out = Files.newOutputStream(file)) {
                                 if (zipInputStream != null && out != null) {
-                                    //Main.getInstance().getLogger().info("Copying " + entryDeploy.getName() + " to " + file);
+                                    if(Main.isDebug())
+                                        Main.getInstance().getLogger().info("Copying " + entryDeploy.getName() + " to " + file);
                                     long transferred = zipInputStream.transferTo(out);
-                                    //Main.getInstance().getLogger().info("Copied " + transferred + " bytes");
+                                    if(Main.isDebug())
+                                        Main.getInstance().getLogger().info("Copied " + transferred + " bytes");
                                 }
                             }
                         } catch (IOException e) {
@@ -159,28 +154,6 @@ public class ServerUtil {
                 e.printStackTrace();
             }
 
-            //From CloudNet
-            /*ZipEntry entryDeploy;
-            while ((entryDeploy = zipInputStream.getNextEntry()) != null) {
-                var file = templatePath.resolve(entryDeploy.getName());
-                if(entryDeploy.isDirectory()) {
-                    if(file != null && Files.notExists(file)) {
-                        Files.createDirectories(file);
-                    }
-                } else {
-                    Files.createDirectories(file.getParent());
-                    try (var out = Files.newOutputStream(file)) {
-                        if(zipInputStream != null && out != null) {
-                            zipInputStream.transferTo(out);
-                        }
-                    }
-                }
-                zipInputStream.closeEntry();
-            }*/
-
-            //Don't work ? or i don't find the bug from cloudnet
-            //targetTemplateStorage.deploy(targetTemplate,zipInputStream);
-            //Main.getInstance().getLogger().info("Deployed template " + sourceTemplate.name() + " to " + targetTemplate.name() + " in storage " + targetTemplate.storage());
             Main.getInstance().getLogger().info("Creating template " + targetTemplate.name() + " in storage " + targetTemplate.storage() + " took " + (System.currentTimeMillis() - startTime) + " ms");
             zipInputStream.close();
         } catch (IOException e) {

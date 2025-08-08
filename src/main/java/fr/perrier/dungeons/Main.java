@@ -11,6 +11,7 @@ import fr.perrier.dungeons.commands.PlayerCommands;
 import fr.perrier.dungeons.configuration.ConfigLoader;
 import fr.perrier.dungeons.utils.ServerUtil;
 import lombok.Getter;
+import lombok.Setter;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -20,6 +21,9 @@ public final class Main extends JavaPlugin {
     private static Main instance;
     @Getter
     private static String prefix = "[Dungeons] ";
+
+    @Getter@Setter
+    private static boolean debug = false;
 
     // Plugin API instance
     @Getter
