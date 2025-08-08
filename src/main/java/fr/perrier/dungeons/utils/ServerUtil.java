@@ -72,7 +72,8 @@ public class ServerUtil {
 
     public static void createFloorTemplate(@NonNull Floor floor) {
         //Copy the global template to the floor template
-        //TODO: Find a way to make copy work cause actualy that just copy default folder not files/folders inside. (Waiting answer from CloudNet Support)
+
+        long startTime = System.currentTimeMillis();
 
         ServiceTemplate sourceTemplate = new ServiceTemplate.Builder()
                 .prefix("Global")
@@ -120,14 +121,14 @@ public class ServerUtil {
                 var localStoragePath = Path.of("../../../local/templates/");
                 var templatePath = localStoragePath.resolve(targetTemplate.prefix()).resolve(targetTemplate.name());
 
-                Main.getInstance().getLogger().info("Template path: " + templatePath.toAbsolutePath());
+                //Main.getInstance().getLogger().info("Template path: " + templatePath.toAbsolutePath());
                 Files.createDirectories(templatePath);
 
                 ZipEntry entryDeploy;
                 while ((entryDeploy = zipInputStream.getNextEntry()) != null) {
                     var file = templatePath.resolve(entryDeploy.getName());
-                    Main.getInstance().getLogger().info("Find " + entryDeploy.getName() + " will be copied to (" + file + ")");
-                    Main.getInstance().getLogger().info("Entry is directory: " + entryDeploy.isDirectory());
+                    //Main.getInstance().getLogger().info("Find " + entryDeploy.getName() + " will be copied to (" + file + ")");
+                    //Main.getInstance().getLogger().info("Entry is directory: " + entryDeploy.isDirectory());
                     if (entryDeploy.isDirectory()) {
                         if (file != null && Files.notExists(file)) {
                             try {
@@ -138,14 +139,14 @@ public class ServerUtil {
                         }
                     } else {
                         try {
-                            Main.getInstance().getLogger().info("File: " + file);
-                            Main.getInstance().getLogger().info("Parent: " + file.getParent());
+                            //Main.getInstance().getLogger().info("File: " + file);
+                            //Main.getInstance().getLogger().info("Parent: " + file.getParent());
                             Files.createDirectories(file.getParent());
                             try (OutputStream out = Files.newOutputStream(file)) {
                                 if (zipInputStream != null && out != null) {
-                                    Main.getInstance().getLogger().info("Copying " + entryDeploy.getName() + " to " + file);
+                                    //Main.getInstance().getLogger().info("Copying " + entryDeploy.getName() + " to " + file);
                                     long transferred = zipInputStream.transferTo(out);
-                                    Main.getInstance().getLogger().info("Copied " + transferred + " bytes");
+                                    //Main.getInstance().getLogger().info("Copied " + transferred + " bytes");
                                 }
                             }
                         } catch (IOException e) {
@@ -179,7 +180,8 @@ public class ServerUtil {
 
             //Don't work ? or i don't find the bug from cloudnet
             //targetTemplateStorage.deploy(targetTemplate,zipInputStream);
-            Main.getInstance().getLogger().info("Deployed template " + sourceTemplate.name() + " to " + targetTemplate.name() + " in storage " + targetTemplate.storage());
+            //Main.getInstance().getLogger().info("Deployed template " + sourceTemplate.name() + " to " + targetTemplate.name() + " in storage " + targetTemplate.storage());
+            Main.getInstance().getLogger().info("Creating template " + targetTemplate.name() + " in storage " + targetTemplate.storage() + " took " + (System.currentTimeMillis() - startTime) + " ms");
             zipInputStream.close();
         } catch (IOException e) {
             throw new RuntimeException(e);
