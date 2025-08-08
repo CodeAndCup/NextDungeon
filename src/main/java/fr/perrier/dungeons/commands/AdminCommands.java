@@ -26,20 +26,23 @@ public class AdminCommands {
     }
 
     @Command(names = "dungeon admin create")
-    public static void adminDungeonCreateCommand(Player player, @Param(name = "Dungeon") String dungeonName, @Param(name = "Floor") String floorName) {
-        Floor floor = new Floor("Example_Floor2","Floor 2");
+    public static void adminDungeonCreateCommand(Player player, @Param(name = "Dungeon ID") String dungeonId, @Param(name = "Floor ID") String floorId) {
+
+        Floor floor = new Floor(dungeonId + "_" + floorId,floorId);
         floor.generateTemplate();
 
         FloorInstance floorInstance = new FloorInstance(floor.getId());
+
     }
 
     @Command(names = "dungeon admin test")
-    public static void adminDungeonPlayCommand(Player player, @Param(name = "Dungeon") String dungeonName, @Param(name = "Floor") String floorName) {
-        Floor floor = new Floor("Example_Floor1","Floor 1");
-        WorldConfig worldConfig = new WorldConfig("floor1","NORMAL",new Position(0,100,0));
-        floor.setWorldConfig(worldConfig);
+    public static void adminDungeonPlayCommand(Player player, @Param(name = "Dungeon ID") String dungeonId, @Param(name = "Floor ID") String floorId) {
+
+        Floor floor = Floor.getFloor(dungeonId + "_" + floorId);
 
         FloorInstance floorInstance = new FloorInstance(floor.getId());
+        //TODO: Teleport to the server with the instance id
+        //TODO: Need to sync instances between servers with Redis Pub/Sub
         //player.teleport(floorInstance.getWorld().getSpawnLocation());
     }
 
