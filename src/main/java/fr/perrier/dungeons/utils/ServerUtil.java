@@ -7,6 +7,7 @@ import eu.cloudnetservice.driver.module.ModuleWrapper;
 import eu.cloudnetservice.driver.provider.CloudServiceFactory;
 import eu.cloudnetservice.driver.provider.CloudServiceProvider;
 import eu.cloudnetservice.driver.provider.ServiceTaskProvider;
+import eu.cloudnetservice.driver.registry.ServiceRegistry;
 import eu.cloudnetservice.driver.service.*;
 import eu.cloudnetservice.driver.template.TemplateStorage;
 import eu.cloudnetservice.driver.template.TemplateStorageProvider;
@@ -34,6 +35,12 @@ import java.util.zip.ZipInputStream;
 public class ServerUtil {
 
 
+    /**
+     * Create a cloud service instance for the given floor instance and start it asynchronously.
+     *
+     * @param floorInstance the floor instance to create the service for
+     * @return the unique id of the created service or null if the creation failed
+     */
     public static UUID makeFloorInstance(FloorInstance floorInstance) {
         Floor floor = floorInstance.getFloor();
         String templateName = floor.getId();
@@ -73,6 +80,11 @@ public class ServerUtil {
         storage.deployDirectory(template, worldDir);*/
     }
 
+    /**
+     * Check if a template exists for the given floor in the local storage.
+     * @param floor the floor to check
+     * @return true if the template exists, false otherwise
+     */
     public static boolean isFloorTemplateExists(@NonNull Floor floor) {
         ServiceTaskProvider serviceTaskProvider = InjectionLayer.boot().instance(ServiceTaskProvider.class);
         return serviceTaskProvider.serviceTask(floor.getId()) != null;
@@ -224,25 +236,21 @@ public class ServerUtil {
      * @param server The name of the cloud service to connect to.
      */
     public static void sendToServer(Player player, String server) {
-        /*
-        [09.08 15:33:40.175] INFO : [Lobby-1] [15:33:40 WARN]: Caused by: java.lang.IllegalArgumentException: Cannot construct abstract type eu.cloudnetservice.modules.bridge.player.PlayerManager
-[09.08 15:33:40.175] INFO : [Lobby-1] [15:33:40 WARN]:  at dev.derklaro.aerogel.internal.binding.builder.ConcreteBindingBuilderImpl.toConstructingClass(ConcreteBindingBuilderImpl.java:258)
-[09.08 15:33:40.175] INFO : [Lobby-1] [15:33:40 WARN]:  at dev.derklaro.aerogel.internal.injector.JitBindingFactory.createJitBinding(JitBindingFactory.java:113)
-[09.08 15:33:40.175] INFO : [Lobby-1] [15:33:40 WARN]:  at dev.derklaro.aerogel.internal.injector.InjectorImpl.lambda$binding$0(InjectorImpl.java:204)
-[09.08 15:33:40.176] INFO : [Lobby-1] [15:33:40 WARN]:  at java.base/java.util.Optional.orElseGet(Optional.java:364)
-[09.08 15:33:40.176] INFO : [Lobby-1] [15:33:40 WARN]:  at dev.derklaro.aerogel.internal.injector.InjectorImpl.binding(InjectorImpl.java:202)
-[09.08 15:33:40.176] INFO : [Lobby-1] [15:33:40 WARN]:  at dev.derklaro.aerogel.internal.injector.InjectorImpl.createInjectionRequest(InjectorImpl.java:195)
-[09.08 15:33:40.176] INFO : [Lobby-1] [15:33:40 WARN]:  at dev.derklaro.aerogel.internal.injector.InjectorImpl.instance(InjectorImpl.java:183)
-[09.08 15:33:40.176] INFO : [Lobby-1] [15:33:40 WARN]:  at dev.derklaro.aerogel.internal.injector.InjectorImpl.instance(InjectorImpl.java:166)
-[09.08 15:33:40.176] INFO : [Lobby-1] [15:33:40 WARN]:  at eu.cloudnetservice.driver.inject.DefaultInjectionLayer.instance(DefaultInjectionLayer.java:61)
-[09.08 15:33:40.176] INFO : [Lobby-1] [15:33:40 WARN]:  at eu.cloudnetservice.driver.inject.UncloseableInjectionLayer.instance(UncloseableInjectionLayer.java:61)
-[09.08 15:33:40.176] INFO : [Lobby-1] [15:33:40 WARN]:  at dungeons-1.0-SNAPSHOT.jar//fr.perrier.dungeons.utils.ServerUtil.sendToServer(ServerUtil.java:228)
-[09.08 15:33:40.176] INFO : [Lobby-1] [15:33:40 WARN]:  at dungeons-1.0-SNAPSHOT.jar//fr.perrier.dungeons.commands.AdminCommands.adminDungeonPlayCommand(AdminCommands.java:46)
-[09.08 15:33:40.176] INFO : [Lobby-1] [15:33:40 WARN]:  at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
-[09.08 15:33:40.176] INFO : [Lobby-1] [15:33:40 WARN]:  ... 31 more
-         */
-        PlayerManager playerManager = InjectionLayer.boot().instance(PlayerManager.class);
+        ServiceRegistry serviceRegistry = InjectionLayer.ext().instance(ServiceRegistry.class);
+        PlayerManager playerManager = serviceRegistry.defaultInstance(PlayerManager.class);
         playerManager.playerExecutor(player.getUniqueId()).connect(server);
+    }
+
+    /**
+     * Connects a player to a cloud service using the specified service ID.
+     *
+     * @param player The player to connect to the cloud service.
+     * @param serviceId The UUID of the cloud service to connect to.
+     */
+    public static void sendToServer(Player player, UUID serviceId) {
+        CloudServiceProvider cloudServiceProvider = InjectionLayer.ext().instance(CloudServiceProvider.class);
+        String serverName= cloudServiceProvider.service(serviceId).name();
+        sendToServer(player,serverName);
     }
 
     /**

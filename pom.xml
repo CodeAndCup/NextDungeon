@@ -157,18 +157,21 @@
         <!-- CloudNet API -->
         <dependency>
             <groupId>eu.cloudnetservice.cloudnet</groupId>
-            <artifactId>driver-api</artifactId>
+            <artifactId>bridge-api</artifactId>
             <version>4.0.0-RC13</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>eu.cloudnetservice.cloudnet</groupId>
-            <artifactId>bridge-api</artifactId>
+            <artifactId>driver-api</artifactId>
             <version>4.0.0-RC13</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>eu.cloudnetservice.cloudnet</groupId>
             <artifactId>wrapper-jvm-api</artifactId>
             <version>4.0.0-RC13</version>
+            <scope>provided</scope>
         </dependency>
 
         <!-- Redis API -->

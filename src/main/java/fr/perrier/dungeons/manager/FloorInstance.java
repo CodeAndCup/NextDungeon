@@ -1,9 +1,13 @@
 package fr.perrier.dungeons.manager;
 
+import fr.perrier.dungeons.Main;
 import fr.perrier.dungeons.model.Floor;
 import fr.perrier.dungeons.utils.ServerUtil;
 import lombok.Getter;
+import lombok.Setter;
+import org.bukkit.Bukkit;
 import org.bukkit.World;
+import org.bukkit.entity.Player;
 
 import java.util.HashMap;
 import java.util.UUID;
@@ -16,10 +20,13 @@ public class FloorInstance {
 
     private final UUID instanceId;
     private final String floorId;
+    @Setter
+    private boolean ready;
 
     public FloorInstance(String floorId) {
         this.floorId = floorId;
         this.instanceId = generateFloorServer();
+        this.ready = false;
         instances.put(instanceId, this);
     }
 
@@ -33,6 +40,14 @@ public class FloorInstance {
 
     public Floor getFloor() {
         return Floor.getFloor(floorId);
+    }
+
+    public void sendToServer(Player player) {
+        Bukkit.getScheduler().runTaskTimerAsynchronously(Main.getInstance(), () -> {
+            if(isReady())
+                ServerUtil.sendToServer(player, instanceId);
+
+        },0,20L);
     }
 
 

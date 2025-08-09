@@ -43,7 +43,8 @@ public class AdminCommands {
         Floor floor = Floor.getFloor(dungeonId + "_" + floorId);
 
         FloorInstance floorInstance = new FloorInstance(floor.getId());
-        ServerUtil.sendToServer(player,floorInstance.getInstanceName());
+
+        ServerUtil.sendToServer(player,floorInstance.getInstanceId());
 
         //TODO: Need to sync instances between servers with Redis Pub/Sub
     }
@@ -55,5 +56,10 @@ public class AdminCommands {
         player.sendMessage(ChatUtil.getBar());
         player.sendMessage(ChatUtil.translate("&a Dungeon " + dungeonName + " loaded"));
         player.sendMessage(ChatUtil.getBar());
+    }
+
+    @Command(names = "dungeon admin goto")
+    public static void adminDungeonGotoCommand(Player player, @Param(name = "Dungeon Server Name") String server) {
+        ServerUtil.sendToServer(player,server);
     }
 }
