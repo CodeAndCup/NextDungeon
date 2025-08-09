@@ -1,12 +1,5 @@
-PluginConfiguration:
-
-ASWMConfiguration:
-  # The loader be used to load and save the world (file, mysql, mongodb)
-  Loader: "file"
-  LoaderConfiguration:
+RedisConfiguration:
     host: "localhost"
-    port: 3306
-    useSSL: false
-    user: "dungeons"
-    password: "dungeons"
-    database: "dungeons"
+    port: 6379
+    password: ""
+    topic: "sao_dungeons" #Don't change or know what you're doing

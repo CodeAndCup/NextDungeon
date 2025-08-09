@@ -9,6 +9,7 @@ import fr.perrier.dungeons.commands.DebugCommands;
 import fr.perrier.dungeons.commands.EditorCommands;
 import fr.perrier.dungeons.commands.PlayerCommands;
 import fr.perrier.dungeons.configuration.ConfigLoader;
+import fr.perrier.dungeons.messaging.Pidgin;
 import fr.perrier.dungeons.utils.ServerUtil;
 import lombok.Getter;
 import lombok.Setter;
@@ -33,6 +34,10 @@ public final class Main extends JavaPlugin {
     @Getter
     private CommandHandler commandHandler;
 
+    // Plugin packets pub/sub
+    @Getter
+    private Pidgin messaging;
+
     @Getter
     private ServerUtil serverUtil;
 
@@ -46,8 +51,11 @@ public final class Main extends JavaPlugin {
         CupCodeAPI.enable(this);
         //partiesAPI = Parties.getApi();
 
+        // Enabling messaging system
+        this.messaging = new Pidgin(Main.getInstance().getConfig().getString("MessagingConfiguration.topic"));
+
         // Loading commands
-        commandHandler = new CommandHandler(this);
+        this.commandHandler = new CommandHandler(this);
         loadCommands();
 
         // Loading listeners
@@ -61,6 +69,7 @@ public final class Main extends JavaPlugin {
     @Override
     public void onDisable() {
         CupCodeAPI.disable();
+        Pidgin.shutdown();
     }
 
     private void loadCommands() {
