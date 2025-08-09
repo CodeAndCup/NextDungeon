@@ -1,16 +1,24 @@
 package fr.perrier.dungeons.utils;
 
+import eu.cloudnetservice.driver.DriverEnvironment;
 import eu.cloudnetservice.driver.document.Document;
 import eu.cloudnetservice.driver.inject.InjectionLayer;
+import eu.cloudnetservice.driver.module.ModuleWrapper;
 import eu.cloudnetservice.driver.provider.CloudServiceFactory;
+import eu.cloudnetservice.driver.provider.CloudServiceProvider;
 import eu.cloudnetservice.driver.provider.ServiceTaskProvider;
 import eu.cloudnetservice.driver.service.*;
 import eu.cloudnetservice.driver.template.TemplateStorage;
 import eu.cloudnetservice.driver.template.TemplateStorageProvider;
+import eu.cloudnetservice.modules.bridge.player.CloudPlayer;
+import eu.cloudnetservice.modules.bridge.player.PlayerManager;
+import eu.cloudnetservice.modules.bridge.player.PlayerProvider;
+import eu.cloudnetservice.modules.bridge.player.executor.PlayerExecutor;
 import fr.perrier.dungeons.Main;
 import fr.perrier.dungeons.manager.FloorInstance;
 import fr.perrier.dungeons.model.Floor;
 import lombok.NonNull;
+import org.bukkit.entity.Player;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -70,6 +78,14 @@ public class ServerUtil {
         return serviceTaskProvider.serviceTask(floor.getId()) != null;
     }
 
+    /**
+     * Create a template for a floor in the local storage.
+     * The template is based on the global template and is copied to the local storage.
+     * The template is named after the floor ID and is given a priority of 0.
+     * The template is also added to the service task provider.
+     *
+     * @param floor the floor to create the template for
+     */
     public static void createFloorTemplate(@NonNull Floor floor) {
         //Copy the global template to the floor template
 
@@ -200,5 +216,46 @@ public class ServerUtil {
                 .build();
 
         serviceTaskProvider.addServiceTask(serviceTask);
+    }
+
+    /**
+     * Connects a player to a cloud service with the given name.
+     * @param player The player to connect to the cloud service.
+     * @param server The name of the cloud service to connect to.
+     */
+    public static void sendToServer(Player player, String server) {
+        /*
+        [09.08 15:33:40.175] INFO : [Lobby-1] [15:33:40 WARN]: Caused by: java.lang.IllegalArgumentException: Cannot construct abstract type eu.cloudnetservice.modules.bridge.player.PlayerManager
+[09.08 15:33:40.175] INFO : [Lobby-1] [15:33:40 WARN]:  at dev.derklaro.aerogel.internal.binding.builder.ConcreteBindingBuilderImpl.toConstructingClass(ConcreteBindingBuilderImpl.java:258)
+[09.08 15:33:40.175] INFO : [Lobby-1] [15:33:40 WARN]:  at dev.derklaro.aerogel.internal.injector.JitBindingFactory.createJitBinding(JitBindingFactory.java:113)
+[09.08 15:33:40.175] INFO : [Lobby-1] [15:33:40 WARN]:  at dev.derklaro.aerogel.internal.injector.InjectorImpl.lambda$binding$0(InjectorImpl.java:204)
+[09.08 15:33:40.176] INFO : [Lobby-1] [15:33:40 WARN]:  at java.base/java.util.Optional.orElseGet(Optional.java:364)
+[09.08 15:33:40.176] INFO : [Lobby-1] [15:33:40 WARN]:  at dev.derklaro.aerogel.internal.injector.InjectorImpl.binding(InjectorImpl.java:202)
+[09.08 15:33:40.176] INFO : [Lobby-1] [15:33:40 WARN]:  at dev.derklaro.aerogel.internal.injector.InjectorImpl.createInjectionRequest(InjectorImpl.java:195)
+[09.08 15:33:40.176] INFO : [Lobby-1] [15:33:40 WARN]:  at dev.derklaro.aerogel.internal.injector.InjectorImpl.instance(InjectorImpl.java:183)
+[09.08 15:33:40.176] INFO : [Lobby-1] [15:33:40 WARN]:  at dev.derklaro.aerogel.internal.injector.InjectorImpl.instance(InjectorImpl.java:166)
+[09.08 15:33:40.176] INFO : [Lobby-1] [15:33:40 WARN]:  at eu.cloudnetservice.driver.inject.DefaultInjectionLayer.instance(DefaultInjectionLayer.java:61)
+[09.08 15:33:40.176] INFO : [Lobby-1] [15:33:40 WARN]:  at eu.cloudnetservice.driver.inject.UncloseableInjectionLayer.instance(UncloseableInjectionLayer.java:61)
+[09.08 15:33:40.176] INFO : [Lobby-1] [15:33:40 WARN]:  at dungeons-1.0-SNAPSHOT.jar//fr.perrier.dungeons.utils.ServerUtil.sendToServer(ServerUtil.java:228)
+[09.08 15:33:40.176] INFO : [Lobby-1] [15:33:40 WARN]:  at dungeons-1.0-SNAPSHOT.jar//fr.perrier.dungeons.commands.AdminCommands.adminDungeonPlayCommand(AdminCommands.java:46)
+[09.08 15:33:40.176] INFO : [Lobby-1] [15:33:40 WARN]:  at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+[09.08 15:33:40.176] INFO : [Lobby-1] [15:33:40 WARN]:  ... 31 more
+         */
+        PlayerManager playerManager = InjectionLayer.boot().instance(PlayerManager.class);
+        playerManager.playerExecutor(player.getUniqueId()).connect(server);
+    }
+
+    /**
+     * Retrieves a ServiceInfoSnapshot for a cloud service with the specified port.
+     *
+     * @param port The port of the cloud service to retrieve.
+     * @return The ServiceInfoSnapshot of the cloud service with the given port,
+     *         or null if no such service is found.
+     */
+    public static ServiceInfoSnapshot getFactory(int port) {
+        CloudServiceProvider cloudServiceProvider = InjectionLayer.ext().instance(CloudServiceProvider.class);
+        return cloudServiceProvider.runningServices().stream()
+                .filter(service -> service.address().port() == port)
+                .findFirst().orElse(null);
     }
 }

@@ -34,14 +34,16 @@ public class Pidgin {
     private static final ExecutorService executorService = Executors.newFixedThreadPool(10);
 
     public Pidgin(String topic) {
-        Config config = new Config();
+        /*Config config = new Config();
         config.useSingleServer().setAddress("redis://"
                 + Main.getInstance().getConfig().getString("RedisConfiguration.host")
                 + ":"
                 + Main.getInstance().getConfig().getInt("RedisConfiguration.port"))
+                .setUsername(Main.getInstance().getConfig().getString("RedisConfiguration.username"))
                 .setPassword(Main.getInstance().getConfig().getString("RedisConfiguration.password"));
 
-        this.client = Redisson.create(config);
+        this.client = Redisson.create(config);*/
+        this.client = Redisson.create();
         this.topic = this.client.getTopic(topic);
 
         this.adapters = new HashMap<>();

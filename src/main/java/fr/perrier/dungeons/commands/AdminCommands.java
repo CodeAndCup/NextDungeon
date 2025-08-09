@@ -8,6 +8,7 @@ import fr.perrier.dungeons.configuration.WorldConfig;
 import fr.perrier.dungeons.manager.FloorInstance;
 import fr.perrier.dungeons.model.Floor;
 import fr.perrier.dungeons.utils.Position;
+import fr.perrier.dungeons.utils.ServerUtil;
 import org.bukkit.entity.Player;
 
 public class AdminCommands {
@@ -28,6 +29,7 @@ public class AdminCommands {
     @Command(names = "dungeon admin create")
     public static void adminDungeonCreateCommand(Player player, @Param(name = "Dungeon ID") String dungeonId, @Param(name = "Floor ID") String floorId) {
 
+        //TODO: Register new floors in db or something like ?
         Floor floor = new Floor(dungeonId + "_" + floorId,floorId);
         floor.generateTemplate();
 
@@ -41,9 +43,9 @@ public class AdminCommands {
         Floor floor = Floor.getFloor(dungeonId + "_" + floorId);
 
         FloorInstance floorInstance = new FloorInstance(floor.getId());
-        //TODO: Teleport to the server with the instance id
+        ServerUtil.sendToServer(player,floorInstance.getInstanceName());
+
         //TODO: Need to sync instances between servers with Redis Pub/Sub
-        //player.teleport(floorInstance.getWorld().getSpawnLocation());
     }
 
     @Command(names = "dungeon admin load")

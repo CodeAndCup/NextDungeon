@@ -1,5 +1,9 @@
 RedisConfiguration:
-    host: "localhost"
+    host: "127.0.0.1"
     port: 6379
+    username: "default"
     password: ""
     topic: "sao_dungeons" #Don't change or know what you're doing
+
+ServerConfiguration:
+    isLobby: true

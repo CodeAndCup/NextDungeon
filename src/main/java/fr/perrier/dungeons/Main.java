@@ -23,6 +23,8 @@ public final class Main extends JavaPlugin {
     @Getter
     private static String prefix = "[Dungeons] ";
 
+    @Getter
+    private static boolean lobbyServer;
     @Getter@Setter
     private static boolean debug = false;
 
@@ -47,12 +49,14 @@ public final class Main extends JavaPlugin {
 
         saveDefaultConfig();
 
+        lobbyServer = getConfig().getBoolean("ServerConfiguration.isLobby");
+
         // Enabling other plugins API
         CupCodeAPI.enable(this);
         //partiesAPI = Parties.getApi();
 
         // Enabling messaging system
-        this.messaging = new Pidgin(Main.getInstance().getConfig().getString("MessagingConfiguration.topic"));
+        this.messaging = new Pidgin(Main.getInstance().getConfig().getString("RedisConfiguration.topic"));
 
         // Loading commands
         this.commandHandler = new CommandHandler(this);
