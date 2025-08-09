@@ -14,6 +14,7 @@ import fr.perrier.dungeons.commands.PlayerCommands;
 import fr.perrier.dungeons.configuration.ConfigLoader;
 import fr.perrier.dungeons.messaging.Pidgin;
 import fr.perrier.dungeons.messaging.packets.InstanceReadyPacket;
+import fr.perrier.dungeons.storage.local.LocalStorage;
 import fr.perrier.dungeons.utils.ServerUtil;
 import lombok.Getter;
 import lombok.Setter;
@@ -29,7 +30,7 @@ public final class Main extends JavaPlugin {
     private static String prefix = "[Dungeons] ";
 
     @Getter
-    private static boolean lobbyServer;
+    private static LocalStorage localStorage;
     @Getter@Setter
     private static boolean debug = false;
 
@@ -54,7 +55,7 @@ public final class Main extends JavaPlugin {
 
         saveDefaultConfig();
 
-        lobbyServer = getConfig().getBoolean("ServerConfiguration.isLobby");
+        localStorage = new LocalStorage();
 
         // Enabling other plugins API
         CupCodeAPI.enable(this);
@@ -120,6 +121,7 @@ public final class Main extends JavaPlugin {
             @Override
             public void run(){
                 Bukkit.getScheduler().runTaskLaterAsynchronously(Main.getInstance(), () -> {
+                    localStorage.setReady(true);
                     //getMessaging().sendPacket(new InstanceReadyPacket());
                 }, 100L);
             }
