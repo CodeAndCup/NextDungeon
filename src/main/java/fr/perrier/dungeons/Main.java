@@ -14,6 +14,7 @@ import fr.perrier.dungeons.commands.PlayerCommands;
 import fr.perrier.dungeons.configuration.ConfigLoader;
 import fr.perrier.dungeons.messaging.Pidgin;
 import fr.perrier.dungeons.messaging.packets.InstanceReadyPacket;
+import fr.perrier.dungeons.storage.local.LocalInstanceStorage;
 import fr.perrier.dungeons.storage.local.LocalStorage;
 import fr.perrier.dungeons.utils.ServerUtil;
 import lombok.Getter;
@@ -31,6 +32,9 @@ public final class Main extends JavaPlugin {
 
     @Getter
     private static LocalStorage localStorage;
+    @Getter
+    private static LocalInstanceStorage localInstanceStorage;
+
     @Getter@Setter
     private static boolean debug = false;
 
@@ -122,7 +126,7 @@ public final class Main extends JavaPlugin {
             public void run(){
                 Bukkit.getScheduler().runTaskLaterAsynchronously(Main.getInstance(), () -> {
                     localStorage.setReady(true);
-                    //getMessaging().sendPacket(new InstanceReadyPacket());
+                    getMessaging().sendPacket(new InstanceReadyPacket(localInstanceStorage.getCurrentFloorInstance()));
                 }, 100L);
             }
         });
