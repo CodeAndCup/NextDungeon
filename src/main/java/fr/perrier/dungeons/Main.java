@@ -202,13 +202,17 @@ public final class Main extends JavaPlugin {
         // Lobby specific initialization if needed
     }
 
+
     /**
-     * Puts the server into a ready state.
+     * Puts the current instance server into a ready state.
      *
-     * <p>This method schedules a task to run 100 ticks (5 seconds) after
-     * the server has enabled, and sends an {@link InstanceReadyPacket} to
-     * all connected clients. This is used to signal to the clients that the
-     * server is ready to accept players.
+     * <p>This method is called during the enabling of the plugin and
+     * schedules the instance server to be marked as ready after a short delay.
+     * This method is necessary to ensure that the instance server is properly
+     * initialized before being marked as ready.</p>
+     *
+     * <p>This method is called after the instance server has been initialized
+     * in {@link #initializeInstanceServer()}.</p>
      */
     private void putDungeonServerReady() {
         Bukkit.getScheduler().scheduleSyncDelayedTask(this, new Runnable(){

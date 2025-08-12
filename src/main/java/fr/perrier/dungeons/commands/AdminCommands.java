@@ -11,6 +11,8 @@ import fr.perrier.dungeons.storage.RedisStorageService;
 import fr.perrier.dungeons.utils.ServerUtil;
 import org.bukkit.entity.Player;
 
+import java.util.UUID;
+
 public class AdminCommands {
 
     @Command(names = "dungeon admin help")
@@ -32,7 +34,9 @@ public class AdminCommands {
         //TODO: Register new floors in db or something like ?
         Floor floor = new Floor(dungeonId + "_" + floorId,floorId);
         floor.generateTemplate().thenRun(() -> {
+            //TODO: Need to sync instances between servers with Redis Pub/Sub or something like ?
             FloorInstance floorInstance = new FloorInstance(floor.getId());
+            floorInstance.sendToServer(player);
         });
     }
 
@@ -83,6 +87,24 @@ public class AdminCommands {
             player.sendMessage(ChatUtil.translate("&7Server Type: &aLobby"));
         }
 
+        player.sendMessage(ChatUtil.getBar());
+    }
+
+    @Command(names = "dungeon admin status")
+    public static void adminDungeonStatusParamCommand(Player player, @Param(name = "Instance ID") String instanceId) {
+        player.sendMessage(ChatUtil.getBar());
+        player.sendMessage(ChatUtil.translate("&6Dungeon Status"));
+        FloorInstance instance = Main.getInstance().getRedisStorageService().getInstance(UUID.fromString(instanceId));
+        if(instance == null) {
+            player.sendMessage(ChatUtil.translate("&cInstance not found"));
+            return;
+        }
+        ServerUtil.InstanceInfo info = ServerUtil.getInstanceInfo(instance.getInstanceId());
+        player.sendMessage(ChatUtil.translate("&7Server Type: &aDungeon Instance"));
+        player.sendMessage(ChatUtil.translate("&7Instance ID: &f" + info.instanceId()));
+        player.sendMessage(ChatUtil.translate("&7Floor ID: &f" + info.floorId()));
+        player.sendMessage(ChatUtil.translate("&7Created At: &f" + info.createdAt()));
+        player.sendMessage(ChatUtil.translate("&7Ready: &f" + instance.isReady()));
         player.sendMessage(ChatUtil.getBar());
     }
 }

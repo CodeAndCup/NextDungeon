@@ -135,7 +135,7 @@ public class RedisStorageService {
     public void syncInstance(FloorInstance instance) {
         RedisMessage<FloorInstance> message = RedisMessage.create(
                 SYNC_CHANNEL,
-                Bukkit.getServer().getName(),
+                Bukkit.getServer().getIp() + ":" + Bukkit.getServer().getPort(),
                 RedisMessage.MessageType.INSTANCE_UPDATE,
                 instance
         );
@@ -164,7 +164,8 @@ public class RedisStorageService {
      * @param message the message received
      */
     private void handleSyncMessage(RedisMessage<?> message) {
-        if (!message.getSender().equals(Bukkit.getServer().getName())) { // Don't handle own messages
+        String serverIdentity = Bukkit.getServer().getIp() + ":" + Bukkit.getServer().getPort();
+        if (!message.getSender().equals(serverIdentity)) { // Don't handle own messages
             switch (message.getType()) {
                 case FLOOR_UPDATE -> {
                     Floor floor = (Floor) message.getData();

@@ -102,6 +102,21 @@ public class ServerUtil {
     }
 
     /**
+     * Retrieves the instance information from the given instance ID.
+     * If the instance does not exist, it will return null.
+     * @param instanceId the unique ID of the instance to retrieve
+     * @return InstanceInfo containing the instance details, or null if not found
+     */
+    public static InstanceInfo getInstanceInfo(UUID instanceId) {
+        FloorInstance instance = Main.getInstance().getRedisStorageService().getInstance(instanceId);
+        return new InstanceInfo(
+                instance.getInstanceId(),
+                instance.getFloorId(),
+                "Unknown"
+        );
+    }
+
+    /**
      * Record to hold instance information
      */
     public record InstanceInfo(
