@@ -8,7 +8,6 @@ import fr.perrier.dungeons.commands.DebugCommands;
 import fr.perrier.dungeons.commands.EditorCommands;
 import fr.perrier.dungeons.commands.PlayerCommands;
 import fr.perrier.dungeons.messaging.Pidgin;
-import fr.perrier.dungeons.messaging.packets.InstanceReadyPacket;
 import fr.perrier.dungeons.model.FloorInstance;
 import fr.perrier.dungeons.storage.RedisStorageService;
 import fr.perrier.dungeons.utils.ServerUtil;
