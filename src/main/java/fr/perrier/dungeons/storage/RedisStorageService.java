@@ -189,6 +189,15 @@ public class RedisStorageService {
                         );
                     }
                 }
+                case INSTANCE_REMOVE -> {
+                    FloorInstance instance = (FloorInstance) message.getData();
+                    if (currentInstance.get() != null &&
+                            currentInstance.get().getInstanceId().equals(instance.getInstanceId())) {
+                        currentInstance.set(null);
+                        currentFloor.set(null);
+                        Main.getInstance().getLogger().info(String.format("[%s] Removed local instance: %s", Instant.now(), instance.getInstanceId()));
+                    }
+                }
             }
         }
     }
@@ -234,6 +243,52 @@ public class RedisStorageService {
         currentFloor.set(null);
         currentInstance.set(null);
         Main.getInstance().getLogger().info("Cleared local floor and instance references");
+    }
+
+    /**
+     * Remove an instance from Redis and notify other servers
+     * @param instanceId the ID of the instance to remove
+     */
+    public void removeInstance(UUID instanceId) {
+        FloorInstance instance = instancesMap.get(instanceId);
+        if (instance == null) {
+            Main.getInstance().getLogger().warning(String.format("[%s] Tried to remove non-existent instance: %s",
+                    "2025-08-12 14:26:45", instanceId));
+            return;
+        }
+
+        // Create removal message
+        RedisMessage<FloorInstance> message = RedisMessage.create(
+                SYNC_CHANNEL,
+                Bukkit.getServer().getName(),
+                RedisMessage.MessageType.INSTANCE_REMOVE,
+                instance
+        );
+
+        // Remove from Redis
+        instancesMap.remove(instanceId);
+
+        // Clear local reference if it's our instance
+        FloorInstance localInstance = currentInstance.get();
+        if (localInstance != null && localInstance.getInstanceId().equals(instanceId)) {
+            currentInstance.set(null);
+            currentFloor.set(null);
+        }
+
+        // Notify other servers
+        syncTopic.publish(message);
+
+        Main.getInstance().getLogger().info(String.format("[%s] Removed instance %s from Redis",
+                Instant.now(), instanceId));
+    }
+
+    /**
+     * Check if an instance exists in Redis
+     * @param instanceId the ID to check
+     * @return true if the instance exists
+     */
+    public boolean instanceExists(UUID instanceId) {
+        return instancesMap.containsKey(instanceId);
     }
 
     /**

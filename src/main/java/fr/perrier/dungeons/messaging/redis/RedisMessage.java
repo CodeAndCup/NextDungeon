@@ -16,6 +16,7 @@ public class RedisMessage<T> {
     public enum MessageType {
         FLOOR_UPDATE,
         INSTANCE_UPDATE,
+        INSTANCE_REMOVE,
         PLAYER_JOIN_DUNGEON,
         PLAYER_LEAVE_DUNGEON,
         DUNGEON_STATE_UPDATE

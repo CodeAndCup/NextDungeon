@@ -108,6 +108,21 @@ public final class Main extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        // If this is an instance server, cleanup the instance data
+        if (ServerUtil.isInstanceServer()) {
+            ServerUtil.InstanceInfo info = ServerUtil.getInstanceInfo();
+            if (info != null) {
+                // Remove instance from Redis
+                redisStorageService.removeInstance(info.instanceId());
+                getLogger().info(String.format("[%s] Cleaned up instance %s from Redis", Instant.now(), info.instanceId()));
+            }
+        }
+
+        // Clear local Redis data
+        if (redisStorageService != null) {
+            redisStorageService.clearLocal();
+        }
+
         CupCodeAPI.disable();
         Pidgin.shutdown();
     }
