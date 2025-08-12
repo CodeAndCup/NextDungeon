@@ -23,6 +23,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Collections;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.zip.ZipEntry;
@@ -71,8 +72,6 @@ public class ServerUtil {
      */
     public static boolean isInstanceServer() {
         ServiceInfoSnapshot currentService = InjectionLayer.ext().instance(ServiceInfoHolder.class).serviceInfo();
-        if (currentService == null) return false;
-
         return currentService.readProperty(DocProperty.property("isDungeonInstance", boolean.class).withDefault(false));
     }
 
@@ -276,7 +275,7 @@ public class ServerUtil {
                             Main.getInstance().getLogger().info("Entry is directory: " + entryDeploy.isDirectory());
                         }
                         if (entryDeploy.isDirectory()) {
-                            if (file != null && Files.notExists(file)) {
+                            if (Files.notExists(file)) {
                                 try {
                                     Files.createDirectories(file);
                                 } catch (IOException e) {
@@ -291,7 +290,7 @@ public class ServerUtil {
                                 }
                                 Files.createDirectories(file.getParent());
                                 try (OutputStream out = Files.newOutputStream(file)) {
-                                    if (zipInputStream != null && out != null) {
+                                    if (out != null) {
                                         if(Main.isDebug())
                                             Main.getInstance().getLogger().info("Copying " + entryDeploy.getName() + " to " + file);
                                         long transferred = zipInputStream.transferTo(out);
@@ -306,7 +305,7 @@ public class ServerUtil {
                         zipInputStream.closeEntry();
                     }
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    throw new RuntimeException(e);
                 }
 
                 Main.getInstance().getLogger().info("Creating template " + targetTemplate.name() + " in storage " + targetTemplate.storage() + " took " + (System.currentTimeMillis() - startTime) + " ms");
@@ -339,7 +338,7 @@ public class ServerUtil {
      */
     public static void sendToServer(Player player, UUID serviceId) {
         CloudServiceProvider cloudServiceProvider = InjectionLayer.ext().instance(CloudServiceProvider.class);
-        String serverName= cloudServiceProvider.service(serviceId).name();
+        String serverName = Objects.requireNonNull(cloudServiceProvider.service(serviceId)).name();
         sendToServer(player,serverName);
     }
 

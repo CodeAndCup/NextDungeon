@@ -27,7 +27,7 @@ public final class Main extends JavaPlugin {
     @Getter
     private static Main instance;
     @Getter
-    private static String prefix = "[Dungeons] ";
+    private static final String prefix = "[Dungeons] ";
 
     @Getter@Setter
     private static boolean debug = false;

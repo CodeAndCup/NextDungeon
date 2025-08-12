@@ -9,7 +9,6 @@ import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Bukkit;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -30,22 +29,35 @@ public class Floor {
         updateMap();
     }
 
+    /**
+     * Retrieves a floor from Redis by its unique ID.
+     *
+     * @param id the unique ID of the floor to retrieve
+     * @return the floor with the given ID, or null if not found
+     */
     public static Floor getFloor(String id) {
         return Main.getInstance().getRedisStorageService().getFloor(id);
     }
 
+    /**
+     * Synchronizes this floor to Redis, updating the local reference and
+     * notifying other servers of the update.
+     */
     public void updateMap() {
         Main.getInstance().getRedisStorageService().syncFloor(this);
     }
 
+    /**
+     * Asynchronously generates a floor template for this floor if it doesn't already exist.
+     *
+     * @return a future that completes with true if the template was successfully generated, or false if it already existed
+     */
     public CompletableFuture<Boolean> generateTemplate() {
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         Bukkit.getScheduler().runTaskAsynchronously(Main.getInstance(), () -> {
             System.out.println("Is floor template exists : " + ServerUtil.isFloorTemplateExists(this));
             if(!ServerUtil.isFloorTemplateExists(this)) {
-                ServerUtil.createFloorTemplate(this).thenAccept(success -> {
-                    future.complete(success);
-                });
+                ServerUtil.createFloorTemplate(this).thenAccept(future::complete);
             } else {
                 System.out.println("Floor template already exists");
                 future.complete(true);
@@ -55,6 +67,12 @@ public class Floor {
     }
 
 
+    /**
+     * A string representation of the floor, including its ID, name, world configuration,
+     * requirements, rules, and steps.
+     *
+     * @return a string representation of the floor
+     */
     @Override
     public String toString() {
         return "Floor{" +

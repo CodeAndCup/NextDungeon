@@ -34,7 +34,7 @@ public class Pidgin {
     private static final ExecutorService executorService = Executors.newFixedThreadPool(10);
 
     public Pidgin(String topic) {
-        /*Config config = new Config();
+        Config config = new Config();
         config.useSingleServer().setAddress("redis://"
                 + Main.getInstance().getConfig().getString("RedisConfiguration.host")
                 + ":"
@@ -42,8 +42,7 @@ public class Pidgin {
                 .setUsername(Main.getInstance().getConfig().getString("RedisConfiguration.username"))
                 .setPassword(Main.getInstance().getConfig().getString("RedisConfiguration.password"));
 
-        this.client = Redisson.create(config);*/
-        this.client = Redisson.create();
+        this.client = Redisson.create(config);
         this.topic = this.client.getTopic(topic);
 
         this.adapters = new HashMap<>();
@@ -54,6 +53,16 @@ public class Pidgin {
         //this.registerAdapater(Packet.class, new PacketSubscriber());
     }
 
+    /**
+     * Registers a packet adapter.
+     * <p>
+     * This method will link the given packet class to the given packet listener.
+     * When a packet is received and the packet's class matches the given packet
+     * class, the packet listener will be called with the packet as the argument.
+     *
+     * @param clazz the packet class to register
+     * @param listener the packet listener to register
+     */
     public void registerAdapter(Class<? extends Packet> clazz, PacketListener listener) {
         this.adapters.put(clazz, listener);
         String uuid = clazz.getSimpleName();
@@ -61,12 +70,33 @@ public class Pidgin {
         this.cTypes.put(uuid, clazz);
     }
 
+    /**
+     * Publishes the given packet to the messaging topic.
+     * <p>
+     * The packet is serialized to JSON and sent to the messaging topic.
+     * The packet's class name is prepended to the JSON string as a unique
+     * identifier for the packet type.
+     * <p>
+     * The call is asynchronous, meaning that the method will return immediately
+     * and the packet will be sent in a separate thread.
+     *
+     * @param packet the packet to send
+     */
     public void sendPacket(Packet packet) {
         executorService.submit(() ->
                 this.topic.publish(types.get(packet.getClass()) + ";" + gson.toJson(packet))
         );
     }
 
+    /**
+     * Shuts down the Pidgin executor service.
+     * <p>
+     * This method is used to shut down the messaging service.
+     * It is called automatically when the plugin is disabled.
+     * <p>
+     * The method will wait 60 seconds for any active tasks to complete.
+     * If any tasks are still active after that time, they will be interrupted.
+     */
     public static void shutdown() {
         executorService.shutdown();
         try {
@@ -79,6 +109,18 @@ public class Pidgin {
     }
 
     private class MessagingListener implements MessageListener<String> {
+        /**
+         * Handles incoming messages from the Redis topic.
+         * <p>
+         * This method is triggered when a message is received. It extracts the packet ID
+         * and deserializes the packet data. It then identifies the appropriate packet class
+         * and listener, and invokes methods annotated with {@link IncomingPacketHandler} on
+         * the listener, passing the packet as an argument.
+         * </p>
+         *
+         * @param charSequence the topic name as a character sequence
+         * @param s the message received, containing the packet ID and serialized packet data
+         */
         @Override
         public void onMessage(CharSequence charSequence, String s) {
             executorService.submit(() -> {
@@ -100,7 +142,7 @@ public class Pidgin {
                             try {
                                 m.invoke(listener, packet);
                             } catch (IllegalAccessException | InvocationTargetException e) {
-                                e.printStackTrace();
+                                throw new RuntimeException(e);
                             }
                         }
                     }

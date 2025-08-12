@@ -11,6 +11,7 @@ import fr.perrier.dungeons.storage.RedisStorageService;
 import fr.perrier.dungeons.utils.ServerUtil;
 import org.bukkit.entity.Player;
 
+import java.util.Objects;
 import java.util.UUID;
 
 public class AdminCommands {
@@ -74,7 +75,7 @@ public class AdminCommands {
         if (ServerUtil.isInstanceServer()) {
             ServerUtil.InstanceInfo info = ServerUtil.getInstanceInfo();
             player.sendMessage(ChatUtil.translate("&7Server Type: &aDungeon Instance"));
-            player.sendMessage(ChatUtil.translate("&7Instance ID: &f" + info.instanceId()));
+            player.sendMessage(ChatUtil.translate("&7Instance ID: &f" + Objects.requireNonNull(info).instanceId()));
             player.sendMessage(ChatUtil.translate("&7Floor ID: &f" + info.floorId()));
             player.sendMessage(ChatUtil.translate("&7Created At: &f" + info.createdAt()));
 

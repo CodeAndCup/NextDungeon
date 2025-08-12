@@ -6,8 +6,6 @@ import fr.perrier.dungeons.Main;
 import fr.perrier.dungeons.model.FloorInstance;
 import fr.perrier.dungeons.model.Dungeon;
 import fr.perrier.dungeons.model.Floor;
-import org.bukkit.Bukkit;
-import org.bukkit.craftbukkit.v1_21_R3.CraftServer;
 import org.bukkit.entity.Player;
 
 public class DebugCommands {

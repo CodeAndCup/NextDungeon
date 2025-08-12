@@ -156,7 +156,6 @@ public class RedisStorageService {
 
     /**
      * Handle a sync message received from Redis.
-     *
      * If the message is a floor or instance update, only update the local reference
      * if the message is not from this server and the message is about our current
      * floor or instance.
@@ -205,7 +204,6 @@ public class RedisStorageService {
 
     /**
      * Retrieve a floor by its unique ID.
-     *
      * This method first checks if the requested floor is the current local floor.
      * If it is, the local floor is returned. If not, the method retrieves the
      * floor from the Redis storage.
