@@ -3,11 +3,11 @@ package fr.perrier.dungeons.commands;
 import fr.perrier.cupcodeapi.commands.annotations.Command;
 import fr.perrier.cupcodeapi.commands.annotations.Param;
 import fr.perrier.cupcodeapi.utils.ChatUtil;
+import fr.perrier.dungeons.Main;
 import fr.perrier.dungeons.configuration.ConfigLoader;
-import fr.perrier.dungeons.configuration.WorldConfig;
-import fr.perrier.dungeons.manager.FloorInstance;
+import fr.perrier.dungeons.model.FloorInstance;
 import fr.perrier.dungeons.model.Floor;
-import fr.perrier.dungeons.utils.Position;
+import fr.perrier.dungeons.storage.RedisStorageService;
 import fr.perrier.dungeons.utils.ServerUtil;
 import org.bukkit.entity.Player;
 
@@ -61,5 +61,23 @@ public class AdminCommands {
     @Command(names = "dungeon admin goto")
     public static void adminDungeonGotoCommand(Player player, @Param(name = "Dungeon Server Name") String server) {
         ServerUtil.sendToServer(player,server);
+    }
+
+    @Command(names = "dungeon admin status")
+    public static void adminDungeonStatusCommand(Player player) {
+        RedisStorageService storage = Main.getInstance().getRedisStorageService();
+        RedisStorageService.FloorInstanceState state = storage.getInstanceState();
+
+        player.sendMessage(ChatUtil.getBar());
+        player.sendMessage(ChatUtil.translate("&6Dungeon Status"));
+        player.sendMessage(ChatUtil.translate("&7Instance State: &f" + state));
+
+        FloorInstance instance = storage.getCurrentInstance().get();
+        if (instance != null) {
+            player.sendMessage(ChatUtil.translate("&7Instance ID: &f" + instance.getInstanceId()));
+            player.sendMessage(ChatUtil.translate("&7Floor ID: &f" + instance.getFloorId()));
+            player.sendMessage(ChatUtil.translate("&7Ready: &f" + instance.isReady()));
+        }
+        player.sendMessage(ChatUtil.getBar());
     }
 }

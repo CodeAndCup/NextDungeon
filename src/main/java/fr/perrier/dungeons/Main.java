@@ -1,27 +1,25 @@
 package fr.perrier.dungeons;
 
-import com.alessiodp.parties.api.Parties;
 import com.alessiodp.parties.api.interfaces.PartiesAPI;
-import com.google.gson.JsonObject;
-import eu.cloudnetservice.driver.inject.InjectionLayer;
-import eu.cloudnetservice.driver.provider.ServiceTaskProvider;
 import fr.perrier.cupcodeapi.CupCodeAPI;
 import fr.perrier.cupcodeapi.commands.CommandHandler;
 import fr.perrier.dungeons.commands.AdminCommands;
 import fr.perrier.dungeons.commands.DebugCommands;
 import fr.perrier.dungeons.commands.EditorCommands;
 import fr.perrier.dungeons.commands.PlayerCommands;
-import fr.perrier.dungeons.configuration.ConfigLoader;
 import fr.perrier.dungeons.messaging.Pidgin;
 import fr.perrier.dungeons.messaging.packets.InstanceReadyPacket;
-import fr.perrier.dungeons.storage.local.LocalInstanceStorage;
-import fr.perrier.dungeons.storage.local.LocalStorage;
+import fr.perrier.dungeons.model.FloorInstance;
+import fr.perrier.dungeons.storage.RedisStorageService;
 import fr.perrier.dungeons.utils.ServerUtil;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.redisson.Redisson;
+import org.redisson.api.RedissonClient;
+import org.redisson.config.Config;
 
 public final class Main extends JavaPlugin {
 
@@ -29,11 +27,6 @@ public final class Main extends JavaPlugin {
     private static Main instance;
     @Getter
     private static String prefix = "[Dungeons] ";
-
-    @Getter
-    private static LocalStorage localStorage;
-    @Getter
-    private static LocalInstanceStorage localInstanceStorage;
 
     @Getter@Setter
     private static boolean debug = false;
@@ -46,9 +39,11 @@ public final class Main extends JavaPlugin {
     @Getter
     private CommandHandler commandHandler;
 
-    // Plugin packets pub/sub
+    // Plugin packets pub/sub and sync storage
     @Getter
     private Pidgin messaging;
+    @Getter
+    private RedisStorageService redisStorageService;
 
     @Getter
     private ServerUtil serverUtil;
@@ -57,9 +52,32 @@ public final class Main extends JavaPlugin {
     public void onEnable() {
         instance = this;
 
+        // Save default config
         saveDefaultConfig();
 
-        localStorage = new LocalStorage();
+        // Initialize Redis Configuration
+        Config config = new Config();
+        config.useSingleServer().setAddress("redis://"
+                        + Main.getInstance().getConfig().getString("RedisConfiguration.host")
+                        + ":"
+                        + Main.getInstance().getConfig().getInt("RedisConfiguration.port"))
+                .setUsername(Main.getInstance().getConfig().getString("RedisConfiguration.username"))
+                .setPassword(Main.getInstance().getConfig().getString("RedisConfiguration.password"));
+
+        try {
+            // Create Redis client
+            RedissonClient redissonClient = Redisson.create(config);
+
+            // Initialize Redis storage service
+            redisStorageService = new RedisStorageService(redissonClient);
+            redisStorageService.initialize();
+
+            getLogger().info("Redis storage service initialized successfully");
+        } catch (Exception e) {
+            getLogger().severe("Failed to initialize Redis storage service: " + e.getMessage());
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
 
         // Enabling other plugins API
         CupCodeAPI.enable(this);
@@ -125,8 +143,13 @@ public final class Main extends JavaPlugin {
             @Override
             public void run(){
                 Bukkit.getScheduler().runTaskLaterAsynchronously(Main.getInstance(), () -> {
-                    localStorage.setReady(true);
-                    getMessaging().sendPacket(new InstanceReadyPacket(localInstanceStorage.getCurrentFloorInstance()));
+                    FloorInstance instance = Main.getInstance().getRedisStorageService().getCurrentInstance().get();
+                    if (instance != null) {
+                        instance.setReady(true);
+                        Main.getInstance().getLogger().info("Instance " + instance.getInstanceId() + " is now ready!");
+                    } else {
+                        Main.getInstance().getLogger().severe("No instance found!");
+                    }
                 }, 100L);
             }
         });

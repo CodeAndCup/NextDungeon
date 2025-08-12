@@ -1,5 +1,6 @@
 package fr.perrier.dungeons.model;
 
+import fr.perrier.dungeons.Main;
 import fr.perrier.dungeons.configuration.Requirements;
 import fr.perrier.dungeons.configuration.Rules;
 import fr.perrier.dungeons.configuration.WorldConfig;
@@ -14,9 +15,6 @@ import java.util.List;
 @Setter
 public class Floor {
 
-    @Getter
-    private static final HashMap<String, Floor> floors = new HashMap<>();
-
     private String id;
     private String name;
     private WorldConfig worldConfig;
@@ -27,15 +25,15 @@ public class Floor {
     public Floor(String id, String name) {
         this.id = id;
         this.name = name;
-        floors.put(id, this);
+        updateMap();
     }
 
     public static Floor getFloor(String id) {
-        return floors.get(id);
+        return Main.getInstance().getRedisStorageService().getFloor(id);
     }
 
     public void updateMap() {
-        floors.put(id, this);
+        Main.getInstance().getRedisStorageService().syncFloor(this);
     }
 
     public void generateTemplate() {

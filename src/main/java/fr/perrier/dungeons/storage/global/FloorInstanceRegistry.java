@@ -1,6 +1,6 @@
 package fr.perrier.dungeons.storage.global;
 
-import fr.perrier.dungeons.manager.FloorInstance;
+import fr.perrier.dungeons.model.FloorInstance;
 
 import java.util.Collection;
 import java.util.Collections;

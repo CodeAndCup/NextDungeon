@@ -1,6 +1,5 @@
 package fr.perrier.dungeons.messaging.subscribers;
 
-import fr.perrier.dungeons.manager.FloorInstance;
 import fr.perrier.dungeons.messaging.packets.InstanceReadyPacket;
 import fr.perrier.dungeons.messaging.pidgin.IncomingPacketHandler;
 import fr.perrier.dungeons.messaging.pidgin.PacketListener;

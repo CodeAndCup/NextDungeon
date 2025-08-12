@@ -1,5 +1,6 @@
 package fr.perrier.dungeons.manager;
 
+import fr.perrier.dungeons.model.FloorInstance;
 import lombok.Getter;
 import org.bukkit.entity.Player;
 

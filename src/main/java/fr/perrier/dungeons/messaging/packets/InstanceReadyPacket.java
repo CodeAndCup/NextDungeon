@@ -1,11 +1,9 @@
 package fr.perrier.dungeons.messaging.packets;
 
-import fr.perrier.dungeons.manager.FloorInstance;
+import fr.perrier.dungeons.model.FloorInstance;
 import fr.perrier.dungeons.messaging.pidgin.Packet;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-
-import java.util.UUID;
 
 @Getter
 @RequiredArgsConstructor
