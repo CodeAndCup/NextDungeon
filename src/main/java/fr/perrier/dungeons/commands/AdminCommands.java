@@ -65,19 +65,25 @@ public class AdminCommands {
 
     @Command(names = "dungeon admin status")
     public static void adminDungeonStatusCommand(Player player) {
-        RedisStorageService storage = Main.getInstance().getRedisStorageService();
-        RedisStorageService.FloorInstanceState state = storage.getInstanceState();
-
         player.sendMessage(ChatUtil.getBar());
         player.sendMessage(ChatUtil.translate("&6Dungeon Status"));
-        player.sendMessage(ChatUtil.translate("&7Instance State: &f" + state));
 
-        FloorInstance instance = storage.getCurrentInstance().get();
-        if (instance != null) {
-            player.sendMessage(ChatUtil.translate("&7Instance ID: &f" + instance.getInstanceId()));
-            player.sendMessage(ChatUtil.translate("&7Floor ID: &f" + instance.getFloorId()));
-            player.sendMessage(ChatUtil.translate("&7Ready: &f" + instance.isReady()));
+        if (ServerUtil.isInstanceServer()) {
+            ServerUtil.InstanceInfo info = ServerUtil.getInstanceInfo();
+            player.sendMessage(ChatUtil.translate("&7Server Type: &aDungeon Instance"));
+            player.sendMessage(ChatUtil.translate("&7Instance ID: &f" + info.instanceId()));
+            player.sendMessage(ChatUtil.translate("&7Floor ID: &f" + info.floorId()));
+            player.sendMessage(ChatUtil.translate("&7Created At: &f" + info.createdAt()));
+
+            RedisStorageService storage = Main.getInstance().getRedisStorageService();
+            FloorInstance instance = storage.getCurrentInstance().get();
+            if (instance != null) {
+                player.sendMessage(ChatUtil.translate("&7Ready: &f" + instance.isReady()));
+            }
+        } else {
+            player.sendMessage(ChatUtil.translate("&7Server Type: &aLobby"));
         }
+
         player.sendMessage(ChatUtil.getBar());
     }
 }

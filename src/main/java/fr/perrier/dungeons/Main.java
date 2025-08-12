@@ -21,6 +21,8 @@ import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
 
+import java.time.Instant;
+
 public final class Main extends JavaPlugin {
 
     @Getter
@@ -79,6 +81,13 @@ public final class Main extends JavaPlugin {
             return;
         }
 
+        // Initialize server based on type
+        if (ServerUtil.isInstanceServer()) {
+            initializeInstanceServer();
+        } else {
+            initializeLobbyServer();
+        }
+
         // Enabling other plugins API
         CupCodeAPI.enable(this);
         //partiesAPI = Parties.getApi();
@@ -95,7 +104,6 @@ public final class Main extends JavaPlugin {
 
         // Load Dungeons
         //ConfigLoader.loadAllDungeons();
-        putDungeonServerReady();
     }
 
     @Override
@@ -105,7 +113,7 @@ public final class Main extends JavaPlugin {
     }
 
     /**
-     * Loads all commands using {@link CommandHandler#registerCommands(Class...)}.
+     * Loads all commands using {@link CommandHandler#registerCommands(Class)}.
      *
      * <p>This method is called in {@link #onEnable()} and loads all commands
      * from {@link AdminCommands}, {@link DebugCommands}, {@link EditorCommands},
@@ -128,6 +136,56 @@ public final class Main extends JavaPlugin {
      */
     private void loadListeners() {
         PluginManager pluginManager = getServer().getPluginManager();
+    }
+
+    /**
+     * Initializes the dungeon instance server.
+     *
+     * <p>This method retrieves the instance information using {@link ServerUtil#getInstanceInfo()}.
+     * If the information is not available, it logs an error and disables the plugin.
+     * Otherwise, it logs the initialization details, initializes the instance in Redis,
+     * and schedules the server to be marked as ready.</p>
+     *
+     * <p>Note: The instance information includes the instance ID, floor ID,
+     * and creation timestamp.</p>
+     */
+    private void initializeInstanceServer() {
+        ServerUtil.InstanceInfo info = ServerUtil.getInstanceInfo();
+        if (info == null) {
+            getLogger().severe(String.format("[%s] Failed to get instance information", Instant.now()));
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+
+        getLogger().info(String.format(
+                "[%s] Initializing dungeon instance server (ID: %s, Floor: %s, Created at: %s)",
+                Instant.now(),
+                info.instanceId(),
+                info.floorId(),
+                info.createdAt()
+        ));
+
+        // Initialize instance in Redis
+        redisStorageService.initializeInstance(info.instanceId(), info.floorId());
+
+        // Schedule ready state
+        putDungeonServerReady();
+    }
+
+    /**
+     * Initializes the lobby server.
+     *
+     * <p>This method is called during the enabling of the plugin and
+     * initializes the lobby server. This method is a stub and can be
+     * overridden in subclasses to provide custom initialization for the
+     * lobby server.</p>
+     *
+     * <p>This method is called after the instance server has been initialized
+     * in {@link #initializeInstanceServer()}.</p>
+     */
+    private void initializeLobbyServer() {
+        getLogger().info(String.format("[%s] Initializing lobby server", "2025-08-12 13:49:06"));
+        // Lobby specific initialization if needed
     }
 
     /**

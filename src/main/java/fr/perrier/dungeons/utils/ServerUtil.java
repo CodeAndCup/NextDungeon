@@ -1,5 +1,6 @@
 package fr.perrier.dungeons.utils;
 
+import eu.cloudnetservice.driver.document.property.DocProperty;
 import eu.cloudnetservice.driver.inject.InjectionLayer;
 import eu.cloudnetservice.driver.provider.CloudServiceFactory;
 import eu.cloudnetservice.driver.provider.CloudServiceProvider;
@@ -8,6 +9,7 @@ import eu.cloudnetservice.driver.registry.ServiceRegistry;
 import eu.cloudnetservice.driver.service.*;
 import eu.cloudnetservice.driver.template.TemplateStorage;
 import eu.cloudnetservice.modules.bridge.player.PlayerManager;
+import eu.cloudnetservice.wrapper.holder.ServiceInfoHolder;
 import fr.perrier.dungeons.Main;
 import fr.perrier.dungeons.model.FloorInstance;
 import fr.perrier.dungeons.model.Floor;
@@ -18,6 +20,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.UUID;
 import java.util.zip.ZipEntry;
@@ -42,7 +45,13 @@ public class ServerUtil {
             System.out.println("Impossible to create service task for " + templateName);
             return null;
         }
-        ServiceConfiguration config = ServiceConfiguration.builder(serviceTask).build();
+
+        ServiceConfiguration config = ServiceConfiguration.builder(serviceTask)
+                .writeProperty(DocProperty.property("isDungeonInstance", boolean.class), true)
+                .writeProperty(DocProperty.property("floorId", String.class), floorInstance.getFloorId())
+                .writeProperty(DocProperty.property("createdAt", String.class), Instant.now().toString())
+                .build();
+
         ServiceCreateResult service = cloudService.createCloudService(config);
         if(service.state() != ServiceCreateResult.State.CREATED) {
             System.out.println("Impossible to create service for " + templateName);
@@ -53,6 +62,51 @@ public class ServerUtil {
 
         return service.serviceInfo().serviceId().uniqueId();
     }
+
+    /**
+     * Checks if the current server is a dungeon instance
+     * @return true if this is a dungeon instance server
+     */
+    public static boolean isInstanceServer() {
+        ServiceInfoSnapshot currentService = InjectionLayer.ext().instance(ServiceInfoHolder.class).serviceInfo();
+        if (currentService == null) return false;
+
+        return currentService.readProperty(DocProperty.property("isDungeonInstance", boolean.class).withDefault(false));
+    }
+
+    /**
+     * Gets the instance information for this server if it's an instance
+     * @return InstanceInfo containing the instance details, or null if not an instance
+     */
+    public static InstanceInfo getInstanceInfo() {
+        ServiceInfoSnapshot currentService = InjectionLayer.ext().instance(ServiceInfoHolder.class).serviceInfo();
+        if (!isInstanceServer()) return null;
+        String instanceId, floorId, createdAt;
+        try {
+            instanceId = currentService.serviceId().uniqueId().toString();
+            floorId = currentService.readProperty(DocProperty.property("floorId", String.class));
+            createdAt = currentService.readProperty(DocProperty.property("createdAt", String.class));
+        }catch (Exception e) {
+            return null;
+        }
+
+        if (instanceId == null || floorId == null) return null;
+
+        return new InstanceInfo(
+                UUID.fromString(instanceId),
+                floorId,
+                createdAt
+        );
+    }
+
+    /**
+     * Record to hold instance information
+     */
+    public record InstanceInfo(
+            UUID instanceId,
+            String floorId,
+            String createdAt
+    ) {}
 
     public static void saveFloorWorldTemplate(Floor floor) {
         /*ServiceInfoSnapshot serviceInfo = Wrapper.getInstance().getCurrentServiceInfoSnapshot();

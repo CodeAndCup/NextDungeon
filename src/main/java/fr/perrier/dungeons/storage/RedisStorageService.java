@@ -52,6 +52,51 @@ public class RedisStorageService {
     }
 
     /**
+     * Initializes the current instance and floor from Redis.
+     * This method should be called when the plugin is enabled, and the instance
+     * and floor should be retrieved from Redis.
+     * If the instance or floor is not found, it will log an error and return.
+     *
+     * @param instanceId the unique ID of the instance to initialize
+     * @param floorId    the ID of the floor to initialize
+     */
+    public void initializeInstance(UUID instanceId, String floorId) {
+        // Get instance from Redis
+        FloorInstance instance = instancesMap.get(instanceId);
+        if (instance == null) {
+            Main.getInstance().getLogger().severe(String.format(
+                    "[%s] Could not find instance %s in Redis",
+                    Instant.now(),
+                    instanceId
+            ));
+            return;
+        }
+
+        // Set current instance
+        currentInstance.set(instance);
+
+        // Get and set floor
+        Floor floor = floorsMap.get(floorId);
+        if (floor == null) {
+            Main.getInstance().getLogger().severe(String.format(
+                    "[%s] Could not find floor %s in Redis",
+                    Instant.now(),
+                    floorId
+            ));
+            return;
+        }
+
+        currentFloor.set(floor);
+
+        Main.getInstance().getLogger().info(String.format(
+                "[%s] Successfully initialized instance server (Instance: %s, Floor: %s)",
+                Instant.now(),
+                instanceId,
+                floorId
+        ));
+    }
+
+    /**
      * Synchronizes the given floor to Redis and notifies other servers.
      * This method will update the local reference, update the Redis floor map,
      * and notify other servers of the update.
