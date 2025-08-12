@@ -7,9 +7,11 @@ import fr.perrier.dungeons.configuration.WorldConfig;
 import fr.perrier.dungeons.utils.ServerUtil;
 import lombok.Getter;
 import lombok.Setter;
+import org.bukkit.Bukkit;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @Getter
 @Setter
@@ -36,11 +38,20 @@ public class Floor {
         Main.getInstance().getRedisStorageService().syncFloor(this);
     }
 
-    public void generateTemplate() {
-        System.out.println("Is floor template exists : " + ServerUtil.isFloorTemplateExists(this));
-        if(!ServerUtil.isFloorTemplateExists(this)) {
-            ServerUtil.createFloorTemplate(this);
-        }
+    public CompletableFuture<Boolean> generateTemplate() {
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        Bukkit.getScheduler().runTaskAsynchronously(Main.getInstance(), () -> {
+            System.out.println("Is floor template exists : " + ServerUtil.isFloorTemplateExists(this));
+            if(!ServerUtil.isFloorTemplateExists(this)) {
+                ServerUtil.createFloorTemplate(this).thenAccept(success -> {
+                    future.complete(success);
+                });
+            } else {
+                System.out.println("Floor template already exists");
+                future.complete(true);
+            }
+        });
+        return future;
     }
 
 

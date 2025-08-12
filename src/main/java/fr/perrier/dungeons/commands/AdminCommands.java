@@ -31,10 +31,9 @@ public class AdminCommands {
 
         //TODO: Register new floors in db or something like ?
         Floor floor = new Floor(dungeonId + "_" + floorId,floorId);
-        floor.generateTemplate();
-
-        FloorInstance floorInstance = new FloorInstance(floor.getId());
-
+        floor.generateTemplate().thenRun(() -> {
+            FloorInstance floorInstance = new FloorInstance(floor.getId());
+        });
     }
 
     @Command(names = "dungeon admin test")

@@ -14,6 +14,7 @@ import fr.perrier.dungeons.Main;
 import fr.perrier.dungeons.model.FloorInstance;
 import fr.perrier.dungeons.model.Floor;
 import lombok.NonNull;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.io.IOException;
@@ -23,6 +24,7 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -135,6 +137,8 @@ public class ServerUtil {
         return serviceTaskProvider.serviceTask(floor.getId()) != null;
     }
 
+
+
     /**
      * Create a template for a floor in the local storage.
      * The template is based on the global template and is copied to the local storage.
@@ -143,10 +147,9 @@ public class ServerUtil {
      *
      * @param floor the floor to create the template for
      */
-    public static void createFloorTemplate(@NonNull Floor floor) {
+    public static CompletableFuture<Boolean> createFloorTemplate(@NonNull Floor floor) {
         //Copy the global template to the floor template
-
-        long startTime = System.currentTimeMillis();
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
 
         ServiceTemplate sourceTemplate = new ServiceTemplate.Builder()
                 .prefix("Global")
@@ -164,115 +167,142 @@ public class ServerUtil {
                 .alwaysCopyToStaticServices(false)
                 .build();
 
-        TemplateStorage sourceTemplateStorage = sourceTemplate.storage();
-        TemplateStorage targetTemplateStorage = targetTemplate.storage();
+        copyTemplateFiles(sourceTemplate, targetTemplate)
+                .thenAccept(success -> {
+                    if (success) {
+                        System.out.println("Template copied successfully");
 
-        targetTemplateStorage.delete(targetTemplate);
-        targetTemplateStorage.create(targetTemplate);
+                        //Create the task
+                        ServiceTaskProvider serviceTaskProvider = InjectionLayer.boot().instance(ServiceTaskProvider.class);
+                        ServiceTask serviceTask = new ServiceTask.Builder()
+                                .name(floor.getId())
+                                .runtime("jvm")
+                                .hostAddress(null)
+                                .javaCommand("java")
+                                .nameSplitter("-")
+                                .disableIpRewrite(false)
+                                .maintenance(false)
+                                .autoDeleteOnStop(true)
+                                .staticServices(false)
+                                .associatedNodes(Collections.emptyList())
+                                .deletedFilesAfterStop(Collections.emptyList())
+                                .processConfiguration(
+                                        new ProcessConfiguration.Builder()
+                                                .environment("MINECRAFT_SERVER")
+                                                .maxHeapMemorySize(4096)
+                                                .jvmOptions(Collections.emptyList())
+                                                .processParameters(Collections.emptyList())
+                                                .environmentVariables(Collections.emptyMap())
+                                )
+                                .startPort(44955)
+                                .minServiceCount(0)
+                                .templates(
+                                        Collections.singletonList(
+                                                new ServiceTemplate.Builder()
+                                                        .prefix(floor.getId())
+                                                        .name("default")
+                                                        .storage("local")
+                                                        .priority(0)
+                                                        .alwaysCopyToStaticServices(false)
+                                                        .build()
+                                        )
+                                )
+                                .deployments(Collections.emptyList())
+                                .inclusions(Collections.emptyList())
+                                .build();
 
-        try {
-            ZipInputStream zipInputStream = sourceTemplateStorage.openZipInputStream(sourceTemplate);
-            if(zipInputStream == null) {
-                Main.getInstance().getLogger().severe("Unable to get zip input stream for template " + sourceTemplate.name() + " in storage " + sourceTemplate.storage());
-                return;
-            }
+                        serviceTaskProvider.addServiceTask(serviceTask);
+                        future.complete(true);
+                    } else {
+                        System.out.println("Template could not be copied");
+                        future.complete(false);
+                    }
+                })
+                .exceptionally(throwable -> {
+                    System.out.println("Template could not be copied");
+                    future.complete(false);
+                    return null;
+                });
+        return future;
+    }
+
+    private static CompletableFuture<Boolean> copyTemplateFiles(ServiceTemplate sourceTemplate, ServiceTemplate targetTemplate) {
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        long startTime = System.currentTimeMillis();
+
+        Bukkit.getScheduler().runTaskAsynchronously(Main.getInstance(), () -> {
+            TemplateStorage sourceTemplateStorage = sourceTemplate.storage();
+            TemplateStorage targetTemplateStorage = targetTemplate.storage();
+
+            targetTemplateStorage.delete(targetTemplate);
+            targetTemplateStorage.create(targetTemplate);
 
             try {
+                ZipInputStream zipInputStream = sourceTemplateStorage.openZipInputStream(sourceTemplate);
+                if(zipInputStream == null) {
+                    Main.getInstance().getLogger().severe("Unable to get zip input stream for template " + sourceTemplate.name() + " in storage " + sourceTemplate.storage());
+                    return;
+                }
 
-                var localStoragePath = Path.of("../../../local/templates/");
-                var templatePath = localStoragePath.resolve(targetTemplate.prefix()).resolve(targetTemplate.name());
+                try {
 
-                if(Main.isDebug())
-                    Main.getInstance().getLogger().info("Template path: " + templatePath.toAbsolutePath());
-                Files.createDirectories(templatePath);
+                    var localStoragePath = Path.of("../../../local/templates/");
+                    var templatePath = localStoragePath.resolve(targetTemplate.prefix()).resolve(targetTemplate.name());
 
-                ZipEntry entryDeploy;
-                while ((entryDeploy = zipInputStream.getNextEntry()) != null) {
-                    var file = templatePath.resolve(entryDeploy.getName());
-                    if(Main.isDebug()) {
-                        Main.getInstance().getLogger().info("Find " + entryDeploy.getName() + " will be copied to (" + file + ")");
-                        Main.getInstance().getLogger().info("Entry is directory: " + entryDeploy.isDirectory());
-                    }
-                    if (entryDeploy.isDirectory()) {
-                        if (file != null && Files.notExists(file)) {
-                            try {
-                                Files.createDirectories(file);
-                            } catch (IOException e) {
-                                Main.getInstance().getLogger().severe("Unable to create directory " + file);
-                            }
+                    if(Main.isDebug())
+                        Main.getInstance().getLogger().info("Template path: " + templatePath.toAbsolutePath());
+                    Files.createDirectories(templatePath);
+
+                    ZipEntry entryDeploy;
+                    while ((entryDeploy = zipInputStream.getNextEntry()) != null) {
+                        var file = templatePath.resolve(entryDeploy.getName());
+                        if(Main.isDebug()) {
+                            Main.getInstance().getLogger().info("Find " + entryDeploy.getName() + " will be copied to (" + file + ")");
+                            Main.getInstance().getLogger().info("Entry is directory: " + entryDeploy.isDirectory());
                         }
-                    } else {
-                        try {
-                            if(Main.isDebug()) {
-                                Main.getInstance().getLogger().info("File: " + file);
-                                Main.getInstance().getLogger().info("Parent: " + file.getParent());
-                            }
-                            Files.createDirectories(file.getParent());
-                            try (OutputStream out = Files.newOutputStream(file)) {
-                                if (zipInputStream != null && out != null) {
-                                    if(Main.isDebug())
-                                        Main.getInstance().getLogger().info("Copying " + entryDeploy.getName() + " to " + file);
-                                    long transferred = zipInputStream.transferTo(out);
-                                    if(Main.isDebug())
-                                        Main.getInstance().getLogger().info("Copied " + transferred + " bytes");
+                        if (entryDeploy.isDirectory()) {
+                            if (file != null && Files.notExists(file)) {
+                                try {
+                                    Files.createDirectories(file);
+                                } catch (IOException e) {
+                                    Main.getInstance().getLogger().severe("Unable to create directory " + file);
                                 }
                             }
-                        } catch (IOException e) {
-                            Main.getInstance().getLogger().severe("Unable to copy file " + entryDeploy.getName());
+                        } else {
+                            try {
+                                if(Main.isDebug()) {
+                                    Main.getInstance().getLogger().info("File: " + file);
+                                    Main.getInstance().getLogger().info("Parent: " + file.getParent());
+                                }
+                                Files.createDirectories(file.getParent());
+                                try (OutputStream out = Files.newOutputStream(file)) {
+                                    if (zipInputStream != null && out != null) {
+                                        if(Main.isDebug())
+                                            Main.getInstance().getLogger().info("Copying " + entryDeploy.getName() + " to " + file);
+                                        long transferred = zipInputStream.transferTo(out);
+                                        if(Main.isDebug())
+                                            Main.getInstance().getLogger().info("Copied " + transferred + " bytes");
+                                    }
+                                }
+                            } catch (IOException e) {
+                                Main.getInstance().getLogger().severe("Unable to copy file " + entryDeploy.getName());
+                            }
                         }
+                        zipInputStream.closeEntry();
                     }
-                    zipInputStream.closeEntry();
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
+
+                Main.getInstance().getLogger().info("Creating template " + targetTemplate.name() + " in storage " + targetTemplate.storage() + " took " + (System.currentTimeMillis() - startTime) + " ms");
+                zipInputStream.close();
+                future.complete(true);
+            } catch (IOException e) {
+                future.complete(false);
+                throw new RuntimeException(e);
             }
-
-            Main.getInstance().getLogger().info("Creating template " + targetTemplate.name() + " in storage " + targetTemplate.storage() + " took " + (System.currentTimeMillis() - startTime) + " ms");
-            zipInputStream.close();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
-        //Create the task
-        ServiceTaskProvider serviceTaskProvider = InjectionLayer.boot().instance(ServiceTaskProvider.class);
-        ServiceTask serviceTask = new ServiceTask.Builder()
-                .name(floor.getId())
-                .runtime("jvm")
-                .hostAddress(null)
-                .javaCommand("java")
-                .nameSplitter("-")
-                .disableIpRewrite(false)
-                .maintenance(false)
-                .autoDeleteOnStop(true)
-                .staticServices(false)
-                .associatedNodes(Collections.emptyList())
-                .deletedFilesAfterStop(Collections.emptyList())
-                .processConfiguration(
-                        new ProcessConfiguration.Builder()
-                                .environment("MINECRAFT_SERVER")
-                                .maxHeapMemorySize(4096)
-                                .jvmOptions(Collections.emptyList())
-                                .processParameters(Collections.emptyList())
-                                .environmentVariables(Collections.emptyMap())
-                )
-                .startPort(44955)
-                .minServiceCount(0)
-                .templates(
-                        Collections.singletonList(
-                                new ServiceTemplate.Builder()
-                                        .prefix(floor.getId())
-                                        .name("default")
-                                        .storage("local")
-                                        .priority(0)
-                                        .alwaysCopyToStaticServices(false)
-                                        .build()
-                        )
-                )
-                .deployments(Collections.emptyList())
-                .inclusions(Collections.emptyList())
-                .build();
-
-        serviceTaskProvider.addServiceTask(serviceTask);
+        });
+        return future;
     }
 
     /**
