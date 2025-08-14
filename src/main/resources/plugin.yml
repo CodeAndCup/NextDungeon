@@ -4,3 +4,5 @@ main: fr.perrier.dungeons.Main
 api-version: '1.21'
 authors: [ PerrierBottle ]
 website: https://cupcode.fr/
+
+depend: [ Parties ]

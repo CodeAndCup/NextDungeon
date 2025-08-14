@@ -1,8 +1,10 @@
 package fr.perrier.dungeons;
 
+import com.alessiodp.parties.api.Parties;
 import com.alessiodp.parties.api.interfaces.PartiesAPI;
 import fr.perrier.cupcodeapi.CupCodeAPI;
 import fr.perrier.cupcodeapi.commands.CommandHandler;
+import fr.perrier.cupcodeapi.menuapi.MenuAPI;
 import fr.perrier.dungeons.commands.AdminCommands;
 import fr.perrier.dungeons.commands.DebugCommands;
 import fr.perrier.dungeons.commands.EditorCommands;
@@ -39,6 +41,10 @@ public final class Main extends JavaPlugin {
     // Plugin commands
     @Getter
     private CommandHandler commandHandler;
+
+    // Plugin menu
+    @Getter
+    private MenuAPI menuAPI;
 
     // Plugin packets pub/sub and sync storage
     @Getter
@@ -89,7 +95,8 @@ public final class Main extends JavaPlugin {
 
         // Enabling other plugins API
         CupCodeAPI.enable(this);
-        //partiesAPI = Parties.getApi();
+        menuAPI = new MenuAPI(this);
+        partiesAPI = Parties.getApi();
 
         // Enabling messaging system
         this.messaging = new Pidgin(Main.getInstance().getConfig().getString("RedisConfiguration.topic"));
