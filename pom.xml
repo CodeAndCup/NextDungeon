@@ -114,7 +114,7 @@
         <dependency>
             <groupId>fr.perrier</groupId>
             <artifactId>cupcodeapi</artifactId>
-            <version>1.21.3-v1.1.0</version>
+            <version>1.21.3-v1.1.1</version>
         </dependency>
 
         <!-- Spigot API -->

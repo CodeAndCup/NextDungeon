@@ -3,6 +3,7 @@ package fr.perrier.dungeons.model;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -20,6 +21,7 @@ public class Dungeon {
     public Dungeon(String id, String name) {
         this.id = id;
         this.name = name;
+        this.floors = new ArrayList<>();
         dungeons.put(id, this);
     }
 

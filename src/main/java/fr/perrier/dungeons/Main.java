@@ -9,6 +9,7 @@ import fr.perrier.dungeons.commands.AdminCommands;
 import fr.perrier.dungeons.commands.DebugCommands;
 import fr.perrier.dungeons.commands.EditorCommands;
 import fr.perrier.dungeons.commands.PlayerCommands;
+import fr.perrier.dungeons.listener.PartyListener;
 import fr.perrier.dungeons.messaging.Pidgin;
 import fr.perrier.dungeons.model.FloorInstance;
 import fr.perrier.dungeons.storage.RedisStorageService;
@@ -157,6 +158,7 @@ public final class Main extends JavaPlugin {
      */
     private void loadListeners() {
         PluginManager pluginManager = getServer().getPluginManager();
+        pluginManager.registerEvents(new PartyListener(), this);
     }
 
     /**
