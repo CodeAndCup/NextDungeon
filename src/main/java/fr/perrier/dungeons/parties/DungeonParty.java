@@ -6,6 +6,7 @@ import fr.perrier.dungeons.Main;
 import fr.perrier.dungeons.manager.PartyManager;
 import lombok.Getter;
 import lombok.Setter;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.util.*;
@@ -101,7 +102,13 @@ public class DungeonParty {
      * @return the set of online members of the party
      */
     public Set<PartyPlayer> getMembers() {
-        return party.getOnlineMembers();
+        HashSet<PartyPlayer> onlineMembers = new HashSet<>();
+        for (UUID uuid : party.getMembers()) {
+            if (Bukkit.getPlayer(uuid) != null) {
+                onlineMembers.add(Main.getInstance().getPartiesAPI().getPartyPlayer(uuid));
+            }
+        }
+        return onlineMembers;
     }
 
     /**
@@ -109,8 +116,17 @@ public class DungeonParty {
      *
      * @return {@code true} if all members of the party are online, {@code false} otherwise
      */
-    public boolean hasAllMembersOnline() {
+    // Shity thing due to the party api
+    /*public boolean hasAllMembersOnline() {
         return party.getMembers().size() == party.getOnlineMembers().size();
+    }*/
+
+    public boolean hasAllMembersOnline() {
+        for(UUID uuid : party.getMembers()) {
+            if(Bukkit.getPlayer(uuid) == null)
+                return false;
+        }
+        return true;
     }
 
     public UUID getLeader() {
@@ -205,6 +221,22 @@ public class DungeonParty {
             }
             return new DungeonParty(dungeonId, floorId, minLevel, description, party);
         }
+    }
+
+    public static boolean hasLeadParty(Player player) {
+        return hasLeadParty(player.getUniqueId());
+    }
+
+    public static boolean hasLeadParty(UUID uuid) {
+        return parties.containsKey(uuid);
+    }
+
+    public static DungeonParty getDungeonPartyOf(Player leader) {
+        return getDungeonPartyOf(leader.getUniqueId());
+    }
+
+    public static DungeonParty getDungeonPartyOf(UUID leaderId) {
+        return parties.get(leaderId);
     }
 
     /**

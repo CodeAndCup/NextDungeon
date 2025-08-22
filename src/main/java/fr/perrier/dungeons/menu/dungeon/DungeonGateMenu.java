@@ -4,14 +4,19 @@ import fr.perrier.cupcodeapi.menuapi.Button;
 import fr.perrier.cupcodeapi.menuapi.GlassMenu;
 import fr.perrier.cupcodeapi.utils.ChatUtil;
 import fr.perrier.cupcodeapi.utils.ItemBuilder;
+import fr.perrier.dungeons.Main;
 import fr.perrier.dungeons.model.Dungeon;
 import fr.perrier.dungeons.model.Floor;
+import fr.perrier.dungeons.model.FloorInstance;
+import fr.perrier.dungeons.parties.DungeonParty;
+import fr.perrier.dungeons.utils.ServerUtil;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -84,7 +89,10 @@ public class DungeonGateMenu extends GlassMenu {
 
         @Override
         public void clicked(Player player, int slot, ClickType clickType, int hotbarButton) {
-
+            if(DungeonParty.hasLeadParty(player)) {
+                FloorInstance floorInstance = new FloorInstance(floor.getId());
+                floorInstance.sendToServer(DungeonParty.getDungeonPartyOf(player));
+            }
         }
     }
 
@@ -92,7 +100,7 @@ public class DungeonGateMenu extends GlassMenu {
         @Override
         public ItemStack getButtonItem(Player player) {
             return new ItemBuilder(Material.SPYGLASS)
-                    .setName("&#FF8336&l" + ChatUtil.toSmallCaps("Party Finder"))
+                    .setName("&#FF8336&l" + ChatUtil.toSmallCaps("party finder"))
                     .setLore(
                             "&7Use the party finder to join a party",
                             "&7queued in the dungeon.",

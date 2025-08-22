@@ -49,8 +49,6 @@ public class AdminCommands {
         FloorInstance floorInstance = new FloorInstance(floor.getId());
 
         ServerUtil.sendToServer(player,floorInstance.getInstanceId());
-
-        //TODO: Need to sync instances between servers with Redis Pub/Sub
     }
 
     @Command(names = "dungeon admin load")

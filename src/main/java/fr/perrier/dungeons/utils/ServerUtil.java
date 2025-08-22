@@ -1,5 +1,6 @@
 package fr.perrier.dungeons.utils;
 
+import com.alessiodp.parties.api.interfaces.Party;
 import eu.cloudnetservice.driver.document.property.DocProperty;
 import eu.cloudnetservice.driver.inject.InjectionLayer;
 import eu.cloudnetservice.driver.provider.CloudServiceFactory;
@@ -45,7 +46,7 @@ public class ServerUtil {
         CloudServiceFactory cloudService = InjectionLayer.boot().instance(CloudServiceFactory.class);
         ServiceTask serviceTask = InjectionLayer.boot().instance(ServiceTaskProvider.class).serviceTask(templateName);
         if(serviceTask == null) {
-            System.out.println("Impossible to create service task for " + templateName);
+            System.out.println("Impossible to create service task for " + templateName + ". Error 1.");
             return null;
         }
 
@@ -57,7 +58,7 @@ public class ServerUtil {
 
         ServiceCreateResult service = cloudService.createCloudService(config);
         if(service.state() != ServiceCreateResult.State.CREATED) {
-            System.out.println("Impossible to create service for " + templateName);
+            System.out.println("Impossible to create service for " + templateName + ". Error 2.");
             return null;
         }
         service.serviceInfo().provider().startAsync();
@@ -317,6 +318,29 @@ public class ServerUtil {
             }
         });
         return future;
+    }
+
+    /**
+     * Connects a party to a cloud service with the given name.
+     * @param party The party to connect to the cloud service.
+     * @param server The name of the cloud service to connect to.
+     */
+    public static void sendToServer(Party party, String server) {
+        ServiceRegistry serviceRegistry = InjectionLayer.ext().instance(ServiceRegistry.class);
+        PlayerManager playerManager = serviceRegistry.defaultInstance(PlayerManager.class);
+        for(UUID uuid :party.getMembers())
+            playerManager.playerExecutor(uuid).connect(server);
+    }
+
+    /**
+     * Connects a party to a cloud service with the given name.
+     * @param party The party to connect to the cloud service.
+     * @param serviceId The UUID of the cloud service to connect to.
+     */
+    public static void sendToServer(Party party, UUID serviceId) {
+        CloudServiceProvider cloudServiceProvider = InjectionLayer.ext().instance(CloudServiceProvider.class);
+        String serverName = Objects.requireNonNull(cloudServiceProvider.service(serviceId)).name();
+        sendToServer(party,serverName);
     }
 
     /**

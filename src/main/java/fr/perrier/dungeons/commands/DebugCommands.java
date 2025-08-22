@@ -1,5 +1,6 @@
 package fr.perrier.dungeons.commands;
 
+import com.alessiodp.parties.api.interfaces.Party;
 import fr.perrier.cupcodeapi.commands.annotations.Command;
 import fr.perrier.cupcodeapi.commands.annotations.Param;
 import fr.perrier.cupcodeapi.utils.ChatUtil;
@@ -66,15 +67,5 @@ public class DebugCommands {
             case "PartyBuilderMenu" -> new PartyBuilderMenu(null,"example").openMenu(player);
             case "PartyFinderMenu" -> new PartyFinderMenu(dungeon).openMenu(player);
         }
-    }
-
-    @Command(names = "dungeon debug loreparty")
-    public static void debugDungeonLorePartyCommand(Player player) {
-        player.sendMessage(ChatUtil.getBar());
-        DungeonParty dungeonParty = DungeonParty.getParties().get(player.getUniqueId());
-        for(String lore : PartyFinderMenu.PartyButton.getLore(dungeonParty)) {
-            player.sendMessage(ChatUtil.translate(lore));
-        }
-        player.sendMessage(ChatUtil.getBar());
     }
 }

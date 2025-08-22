@@ -1,17 +1,42 @@
 package fr.perrier.dungeons.model;
 
+import com.alessiodp.parties.api.interfaces.Party;
+import com.cryptomorin.xseries.messages.Titles;
 import fr.perrier.cupcodeapi.utils.ChatUtil;
 import fr.perrier.dungeons.Main;
+import fr.perrier.dungeons.parties.DungeonParty;
 import fr.perrier.dungeons.utils.ServerUtil;
 import lombok.Getter;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Getter
 public class FloorInstance {
+
+    private static final List<String> LOADING = Arrays.asList(
+            "▁▂▃▄▅▆▇▉▉▇▆▅▄▃▂▁",
+            "▁▁▂▃▄▅▆▇▉▉▇▆▅▄▃▂",
+            "▂▁▁▂▃▄▅▆▇▉▉▇▆▅▄▃",
+            "▃▂▁▁▂▃▄▅▆▇▉▉▇▆▅▄",
+            "▄▃▂▁▁▂▃▄▅▆▇▉▉▇▆▅",
+            "▅▄▃▂▁▁▂▃▄▅▆▇▉▉▇▆",
+            "▆▅▄▃▂▁▁▂▃▄▅▆▇▉▉▇",
+            "▇▆▅▄▃▂▁▁▂▃▄▅▆▇▉▉",
+            "▉▇▆▅▄▃▂▁▁▂▃▄▅▆▇▉",
+            "▉▉▇▆▅▄▃▂▁▁▂▃▄▅▆▇",
+            "▇▉▉▇▆▅▄▃▂▁▁▂▃▄▅▆",
+            "▅▆▇▉▉▇▆▅▄▃▂▁▁▂▃▄",
+            "▄▅▆▇▉▉▇▆▅▄▃▂▁▁▂▃",
+            "▂▃▄▅▆▇▉▉▇▆▅▄▃▂▁▁"
+    );
 
     private final UUID instanceId;
     private final String floorId;
@@ -24,6 +49,7 @@ public class FloorInstance {
 
         Main.getInstance().getRedisStorageService().syncInstance(this);
     }
+
 
     /**
      * Generates a unique server instance for the current floor.
@@ -74,6 +100,20 @@ public class FloorInstance {
         Main.getInstance().getRedisStorageService().syncInstance(this);
     }
 
+    public void sendToServer(DungeonParty dungeonParty) {
+        if(dungeonParty.hasAllMembersOnline()) {
+            for (UUID uuid : dungeonParty.getParty().getMembers()) {
+                Player player = Bukkit.getPlayer(uuid);
+                if (player != null)
+                    sendToServer(player);
+            }
+        }else {
+            Player leader = Bukkit.getPlayer(Objects.requireNonNull(dungeonParty.getLeader()));
+            if (leader != null)
+                leader.sendMessage(ChatUtil.translate("&cAll your party members must be online to join the instance!"));
+        }
+    }
+
 
     /**
      * Sends the given player to the cloud service associated with this instance.
@@ -90,35 +130,52 @@ public class FloorInstance {
         Main.getInstance().getLogger().info(String.format("[%s] Attempting to send %s to instance %s",
                 Instant.now(), player.getName(), instanceId));
 
+        AtomicInteger timerDelay = new AtomicInteger(0);
+        AtomicInteger currentLoad = new AtomicInteger(0);
+
         new BukkitRunnable() {
             private final long startTime = System.currentTimeMillis();
             private static final long TIMEOUT = 60000;
 
             @Override
             public void run() {
-                FloorInstance instance = Main.getInstance().getRedisStorageService().getInstance(instanceId);
-
-                if (instance == null) {
-                    Main.getInstance().getLogger().warning(String.format("[%s] Instance %s no longer exists",
-                            Instant.now(), instanceId));
-                    player.sendMessage(ChatUtil.translate("&cThis dungeon instance no longer exists!"));
-                    this.cancel();
-                    return;
-                }
-
-                if (instance.isReady()) {
-                    ServerUtil.sendToServer(player, instanceId);
-                    this.cancel();
-                } else {
-                    if (System.currentTimeMillis() - startTime > TIMEOUT) {
-                        Main.getInstance().getLogger().warning(String.format("[%s] Timed out waiting for instance %s to be ready",
-                                Instant.now(), instanceId));
-                        player.sendMessage(ChatUtil.translate("&cTimed out waiting for dungeon instance to be ready!"));
-                        this.cancel();
+                Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
+                    Titles.sendTitle(player, 0, 3, 0, " ", LOADING.get(currentLoad.get()));
+                    if(currentLoad.get() +1 >= LOADING.size()) {
+                        currentLoad.set(0);
+                        return;
                     }
+                    currentLoad.incrementAndGet();
+                });
+
+                if (timerDelay.get() == 9) {
+                    FloorInstance instance = Main.getInstance().getRedisStorageService().getInstance(instanceId);
+
+                    if (instance == null) {
+                        Main.getInstance().getLogger().warning(String.format("[%s] Instance %s no longer exists",
+                                Instant.now(), instanceId));
+                        player.sendMessage(ChatUtil.translate("&cThis dungeon instance no longer exists!"));
+                        this.cancel();
+                        return;
+                    }
+
+                    if (instance.isReady()) {
+                        ServerUtil.sendToServer(player, instanceId);
+                        this.cancel();
+                    } else {
+                        if (System.currentTimeMillis() - startTime > TIMEOUT) {
+                            Main.getInstance().getLogger().warning(String.format("[%s] Timed out waiting for instance %s to be ready",
+                                    Instant.now(), instanceId));
+                            player.sendMessage(ChatUtil.translate("&cTimed out waiting for dungeon instance to be ready!"));
+                            this.cancel();
+                        }
+                    }
+                    timerDelay.set(0);
+                } else {
+                    timerDelay.incrementAndGet();
                 }
             }
-        }.runTaskTimerAsynchronously(Main.getInstance(), 0L, 20L);
+        }.runTaskTimerAsynchronously(Main.getInstance(), 0L, 2L);
     }
 
 
