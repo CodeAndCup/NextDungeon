@@ -26,7 +26,7 @@ public class PartyBuilderMenu extends GlassMenu {
     private final Menu oldMenu;
     private final String dungeonId;
     private String floorId;
-    private int minLevel = 0;
+    private int minLevel;
     private String description = "";
 
     public PartyBuilderMenu(Menu oldMenu, String dungeonId) {
@@ -35,6 +35,8 @@ public class PartyBuilderMenu extends GlassMenu {
 
         // Set by default the first floor of the dungeon
         this.floorId = Dungeon.getDungeon(dungeonId).getFloors().getFirst().getId();
+
+        this.minLevel = Floor.getFloor(floorId).getRequirements().getMinLevel();
     }
 
     @Override
@@ -120,8 +122,7 @@ public class PartyBuilderMenu extends GlassMenu {
                                 "&7to join your party so only players with",
                                 "&7at least this level are able to join.",
                                 "",
-                                "&bCurrent minimum player level:",
-                                "&f" + (minLevel == -1 ? "&cNone" : minLevel),
+                                "&bCurrent minimum level: &f" + minLevel,
                                 "",
                                 "&eClick to edit the minimum player level."
                         )
@@ -134,6 +135,10 @@ public class PartyBuilderMenu extends GlassMenu {
                         int minLevelInt = Integer.parseInt(minLevel);
                         if(minLevelInt < 0) {
                             player.sendRawMessage(ChatUtil.translate("&cYou can not have a negative minimum player level."));
+                            return;
+                        }
+                        if(minLevelInt < Floor.getFloor(floorId).getRequirements().getMinLevel()) {
+                            player.sendRawMessage(ChatUtil.translate("&cYou can not have a minimum player level lower than the floor minimum level: &f" + Floor.getFloor(floorId).getRequirements().getMinLevel()));
                             return;
                         }
                         this.minLevel = Integer.parseInt(minLevel);
@@ -263,6 +268,9 @@ public class PartyBuilderMenu extends GlassMenu {
             @Override
             public void clicked(Player player, int slot, ClickType clickType, int hotbarButton) {
                 PartyBuilderMenu.this.floorId = floor.getId();
+                if(PartyBuilderMenu.this.minLevel < floor.getRequirements().getMinLevel()) {
+                    PartyBuilderMenu.this.minLevel = floor.getRequirements().getMinLevel();
+                }
                 oldMenu.openMenu(player);
             }
         }

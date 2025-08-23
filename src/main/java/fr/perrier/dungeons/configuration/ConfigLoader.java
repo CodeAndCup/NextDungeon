@@ -66,6 +66,7 @@ public class ConfigLoader {
                 requirements.setRequiredFloorsId(reqSec.getStringList("required_floor"));
                 requirements.setRequiredItems(reqSec.getStringList("required_items"));
                 requirements.setForbiddenItems(reqSec.getStringList("forbidden_items"));
+                requirements.setMinLevel(reqSec.getInt("minimum_level"));
 
                 ConfigurationSection partySec = reqSec.getConfigurationSection("party");
                 if (partySec != null) {
