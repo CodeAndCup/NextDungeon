@@ -9,6 +9,7 @@ dungeon:
   floors:
     - id: "floor1"
       name: "Les Cryptes Oubliées"
+      description: "Explorez les anciennes cryptes\nremplies de mystères et de dangers."
 
       world:
         difficulty: "normal"
@@ -16,14 +17,14 @@ dungeon:
 
       requirements:
         retry_cooldown: "15m" # Time before retrying
-        required_dungeons: [""] # List of required dungeons (id)
+        required_floor: [] # List of required floor(s) (id)
         party:
           min_size: 2
           max_size: 25
         required_items:
-          - "minecraft:diamond"
+          - "Old Key"
         forbidden_items:
-          - "minecraft:stone"
+          - "Magic Wand"
 
       rules:
         death_ban: "15m"

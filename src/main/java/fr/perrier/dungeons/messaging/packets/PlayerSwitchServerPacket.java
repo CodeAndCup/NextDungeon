@@ -5,6 +5,5 @@ import lombok.Getter;
 
 import java.util.UUID;
 
-@Getter
 public record PlayerSwitchServerPacket(UUID uuid) implements Packet {
 }

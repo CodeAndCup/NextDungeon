@@ -4,19 +4,21 @@ import fr.perrier.cupcodeapi.menuapi.Button;
 import fr.perrier.cupcodeapi.menuapi.GlassMenu;
 import fr.perrier.cupcodeapi.utils.ChatUtil;
 import fr.perrier.cupcodeapi.utils.ItemBuilder;
+import fr.perrier.dungeons.Main;
 import fr.perrier.dungeons.model.Dungeon;
 import fr.perrier.dungeons.model.Floor;
 import fr.perrier.dungeons.model.FloorInstance;
+import fr.perrier.dungeons.model.ProfileData;
 import fr.perrier.dungeons.parties.DungeonParty;
+import io.lumine.mythic.lib.api.player.MMOPlayerData;
 import lombok.RequiredArgsConstructor;
+import net.Indyuce.mmocore.api.player.PlayerData;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @RequiredArgsConstructor
 public class DungeonGateMenu extends GlassMenu {
@@ -76,16 +78,16 @@ public class DungeonGateMenu extends GlassMenu {
         public ItemStack getButtonItem(Player player) {
             return new ItemBuilder(Material.OMINOUS_TRIAL_KEY)
                     .setName("&f" + floor.getName())
-                    .setLore(
-                            "&7Dungeon Floor",
-                            "",
-                            "&eClick to enter the floor."
-                    )
+                    .setLore(getFloorLore(floor, player))
                     .toItemStack();
         }
 
         @Override
         public void clicked(Player player, int slot, ClickType clickType, int hotbarButton) {
+            if(Objects.requireNonNull(Objects.requireNonNull(getButtonItem(player).getItemMeta()).getLore()).contains("✘")) {
+                player.sendMessage(ChatUtil.translate("&cYou do not meet the requirements to enter this floor."));
+                return;
+            }
             if(DungeonParty.hasLeadParty(player)) {
                 FloorInstance floorInstance = new FloorInstance(floor.getId());
                 floorInstance.sendToServer(DungeonParty.getDungeonPartyOf(player));
@@ -111,5 +113,61 @@ public class DungeonGateMenu extends GlassMenu {
         public void clicked(Player player, int slot, ClickType clickType, int hotbarButton) {
             new PartyFinderMenu(dungeon).openMenu(player);
         }
+    }
+
+    private static List<String> getFloorLore(Floor floor, Player player) {
+        PlayerData playerData = PlayerData.get(player);
+        ProfileData profileData = Main.getInstance().getProfileService().getProfileData(player.getUniqueId());
+
+        ArrayList<String> lore = new ArrayList<>();
+
+        lore.add("&7Party size: &e" + floor.getRequirements().getPartyRequirements().getMinSize() + " - " + floor.getRequirements().getPartyRequirements().getMaxSize());
+        lore.add("");
+
+        String[] description = floor.getDescription().split("\n");
+        for(String line : description)
+            lore.add("&7" + ChatUtil.translate(line));
+        lore.add("");
+        lore.add("&7Requirements:");
+        if(floor.getRequirements().getMinLevel() > 0) {
+            if(playerData.getLevel() >= floor.getRequirements().getMinLevel()) {
+                lore.add("&a✔ Level: " + floor.getRequirements().getMinLevel());
+            } else {
+                lore.add("&c✘ Level: " + floor.getRequirements().getMinLevel());
+            }
+        }
+        if(floor.getRequirements().getRequiredFloorsId() != null && !floor.getRequirements().getRequiredFloorsId().isEmpty()) {
+            for(String requiredFloorId : floor.getRequirements().getRequiredFloorsId()) {
+                Floor requiredFloor = Floor.getFloor(requiredFloorId);
+                if(profileData.getCompletedFloors().contains(requiredFloorId)) {
+                    lore.add("&a✔ " + requiredFloor.getName() + " Completion.");
+                } else {
+                    lore.add("&c✘ " + requiredFloor.getName() + " Completion.");
+                }
+            }
+        }
+        if(floor.getRequirements().getRequiredItems() != null && !floor.getRequirements().getRequiredItems().isEmpty()) {
+            for(String requiredItem : floor.getRequirements().getRequiredItems()) {
+                boolean hasItem = Arrays.stream(player.getInventory().getContents()).anyMatch(itemStack -> itemStack != null && Objects.requireNonNull(itemStack.getItemMeta()).getDisplayName().equals(requiredItem));
+                if(hasItem) {
+                    lore.add("&a✔ Possess " + requiredItem);
+                } else {
+                    lore.add("&c✘ Possess " + requiredItem);
+                }
+            }
+        }
+        if(floor.getRequirements().getForbiddenItems() != null && !floor.getRequirements().getForbiddenItems().isEmpty()) {
+            for(String forbiddenItem : floor.getRequirements().getForbiddenItems()) {
+                boolean hasItem = Arrays.stream(player.getInventory().getContents()).anyMatch(itemStack -> itemStack != null && Objects.requireNonNull(itemStack.getItemMeta()).getDisplayName().equals(forbiddenItem));
+                if(hasItem) {
+                    lore.add("&c✘ Do not possess " + forbiddenItem);
+                } else {
+                    lore.add("&a✔ Do not possess " + forbiddenItem);
+                }
+            }
+        }
+        lore.add("");
+        lore.add("&eClick to enter the floor.");
+        return lore;
     }
 }

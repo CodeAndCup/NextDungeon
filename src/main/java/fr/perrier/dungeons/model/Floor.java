@@ -17,7 +17,10 @@ import java.util.concurrent.CompletableFuture;
 public class Floor {
 
     private String id;
+
     private String name;
+    private String description;
+
     private WorldConfig worldConfig;
     private Requirements requirements;
     private Rules rules;
@@ -26,6 +29,14 @@ public class Floor {
     public Floor(String id, String name) {
         this.id = id;
         this.name = name;
+        this.description = "&cNo description";
+        updateMap();
+    }
+
+    public Floor(String id, String name, String description) {
+        this.id = id;
+        this.name = name;
+        this.description = description;
         updateMap();
     }
 

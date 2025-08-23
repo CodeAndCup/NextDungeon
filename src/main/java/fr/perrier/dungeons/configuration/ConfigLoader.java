@@ -44,7 +44,8 @@ public class ConfigLoader {
             // Basic floor info
             String floorId = dungeonId + "_" + floorSection.getString("id");
             String floorName = floorSection.getString("name");
-            Floor floor = new Floor(floorId, floorName);
+            String floorDescription = floorSection.getString("description");
+            Floor floor = new Floor(floorId, floorName, floorDescription);
 
             // World config
             ConfigurationSection worldSec = floorSection.getConfigurationSection("world");
@@ -62,7 +63,7 @@ public class ConfigLoader {
             if (reqSec != null) {
                 Requirements requirements = new Requirements();
                 requirements.setRetryCooldown(TimeUtil.getDuration(Objects.requireNonNull(reqSec.getString("retry_cooldown"))));
-                requirements.setRequiredDungeons(reqSec.getStringList("required_dungeons"));
+                requirements.setRequiredFloorsId(reqSec.getStringList("required_floor"));
                 requirements.setRequiredItems(reqSec.getStringList("required_items"));
                 requirements.setForbiddenItems(reqSec.getStringList("forbidden_items"));
 
