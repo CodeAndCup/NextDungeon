@@ -125,6 +125,9 @@ public class MySQLManager implements DatabaseManager {
         }
     }
 
+    /**
+     * Méthode dépréciée. Utilisez les méthodes spécifiques de chargement.
+     */
     @Deprecated
     @Override
     public void loadData() {
@@ -216,6 +219,10 @@ public class MySQLManager implements DatabaseManager {
         }
     }
 
+    /**
+     * Interface fonctionnelle pour traiter un ResultSet.
+     * @param <T> type de retour du traitement
+     */
     @FunctionalInterface
     private interface ResultSetProcessor<T> {
         T process(ResultSet rs) throws SQLException;

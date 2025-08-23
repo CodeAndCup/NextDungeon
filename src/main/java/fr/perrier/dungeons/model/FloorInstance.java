@@ -100,6 +100,17 @@ public class FloorInstance {
         Main.getInstance().getRedisStorageService().syncInstance(this);
     }
 
+    /**
+     * Sends all members of the given dungeon party to the cloud service associated with this instance.
+     * <p>
+     * This method first checks if all members of the party are online using {@link DungeonParty#hasAllMembersOnline()}.
+     * If they are, it iterates through each member's UUID, retrieves the corresponding Player object using
+     * {@link Bukkit#getPlayer(UUID)}, and sends them to the instance using {@link #sendToServer(Player)}.
+     * If not all members are online, it sends a message to the party leader informing them that all members
+     * must be online to join the instance.
+     * </p>
+     * @param dungeonParty the dungeon party whose members are to be sent to the cloud service
+     */
     public void sendToServer(DungeonParty dungeonParty) {
         if(dungeonParty.hasAllMembersOnline()) {
             for (UUID uuid : dungeonParty.getParty().getMembers()) {

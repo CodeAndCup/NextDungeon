@@ -1,8 +1,6 @@
 package fr.perrier.dungeons.listener;
 
-import com.alessiodp.parties.api.enums.DeleteCause;
 import com.alessiodp.parties.api.events.bukkit.party.BukkitPartiesPartyPreDeleteEvent;
-import com.alessiodp.parties.api.events.bukkit.player.BukkitPartiesPlayerPostLeaveEvent;
 import com.alessiodp.parties.api.events.bukkit.player.BukkitPartiesPlayerPreLeaveEvent;
 import com.alessiodp.parties.api.interfaces.Party;
 import fr.perrier.cupcodeapi.utils.ChatUtil;
@@ -16,6 +14,12 @@ import java.util.Objects;
 
 public class PartyListener implements Listener {
 
+    /**
+     * Called when a party is disbanded.
+     * Removes the party from the DungeonParty registry and notifies members.
+     *
+     * @param event The event triggered when a party is about to be deleted.
+     */
     @EventHandler
     public void onPartyDisband(BukkitPartiesPartyPreDeleteEvent event) {
         Party party = event.getParty();
@@ -27,6 +31,13 @@ public class PartyListener implements Listener {
         DungeonParty.getParties().remove(party.getLeader());
     }
 
+    /**
+     * Called when a party leader leaves the party.
+     * If the leader leaves, the party is removed from
+     * the DungeonParty registry and members are notified.
+     *
+     * @param event The event triggered when a player is about to leave a party.
+     */
     @EventHandler
     public void onPartyLeaderLeave(BukkitPartiesPlayerPreLeaveEvent event) {
         Party party = event.getParty();

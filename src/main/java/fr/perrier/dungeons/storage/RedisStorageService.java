@@ -5,7 +5,6 @@ import fr.perrier.dungeons.model.Dungeon;
 import fr.perrier.dungeons.model.FloorInstance;
 import fr.perrier.dungeons.messaging.redis.RedisMessage;
 import fr.perrier.dungeons.model.Floor;
-import fr.perrier.dungeons.model.ProfileData;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.Bukkit;
@@ -13,7 +12,6 @@ import org.redisson.api.RMap;
 import org.redisson.api.RTopic;
 import org.redisson.api.RedissonClient;
 
-import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 

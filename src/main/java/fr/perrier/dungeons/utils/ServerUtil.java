@@ -241,6 +241,13 @@ public class ServerUtil {
         return future;
     }
 
+    /**
+     * Copies template files from a source template to a target template asynchronously.
+     *
+     * @param sourceTemplate the source template to copy files from
+     * @param targetTemplate the target template to copy files to
+     * @return a CompletableFuture that completes with true if the copy was successful, false otherwise
+     */
     private static CompletableFuture<Boolean> copyTemplateFiles(ServiceTemplate sourceTemplate, ServiceTemplate targetTemplate) {
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         long startTime = System.currentTimeMillis();

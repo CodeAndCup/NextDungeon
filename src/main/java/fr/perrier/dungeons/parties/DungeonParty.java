@@ -5,7 +5,6 @@ import com.alessiodp.parties.api.interfaces.PartyPlayer;
 import fr.perrier.dungeons.Main;
 import fr.perrier.dungeons.manager.PartyManager;
 import lombok.Getter;
-import lombok.Setter;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -116,11 +115,6 @@ public class DungeonParty {
      *
      * @return {@code true} if all members of the party are online, {@code false} otherwise
      */
-    // Shity thing due to the party api
-    /*public boolean hasAllMembersOnline() {
-        return party.getMembers().size() == party.getOnlineMembers().size();
-    }*/
-
     public boolean hasAllMembersOnline() {
         for(UUID uuid : party.getMembers()) {
             if(Bukkit.getPlayer(uuid) == null)
@@ -129,6 +123,11 @@ public class DungeonParty {
         return true;
     }
 
+    /**
+     * Returns the UUID of the leader of the party.
+     *
+     * @return the UUID of the party leader
+     */
     public UUID getLeader() {
         return party.getLeader();
     }
@@ -223,18 +222,42 @@ public class DungeonParty {
         }
     }
 
+    /**
+     * Checks if a player has a lead party.
+     *
+     * @param player the player to check
+     * @return {@code true} if the player has a lead party, {@code false} otherwise
+     */
     public static boolean hasLeadParty(Player player) {
         return hasLeadParty(player.getUniqueId());
     }
 
+    /**
+     * Checks if a UUID has a lead party.
+     *
+     * @param uuid the UUID to check
+     * @return {@code true} if the UUID has a lead party, {@code false} otherwise
+     */
     public static boolean hasLeadParty(UUID uuid) {
         return parties.containsKey(uuid);
     }
 
+    /**
+     * Returns the DungeonParty associated with the given player.
+     *
+     * @param leader the player whose DungeonParty is to be retrieved
+     * @return the DungeonParty associated with the player, or {@code null} if the player does not have a DungeonParty
+     */
     public static DungeonParty getDungeonPartyOf(Player leader) {
         return getDungeonPartyOf(leader.getUniqueId());
     }
 
+    /**
+     * Returns the DungeonParty associated with the given UUID.
+     *
+     * @param leaderId the UUID whose DungeonParty is to be retrieved
+     * @return the DungeonParty associated with the UUID, or {@code null} if the UUID does not have a DungeonParty
+     */
     public static DungeonParty getDungeonPartyOf(UUID leaderId) {
         return parties.get(leaderId);
     }

@@ -7,7 +7,6 @@ import lombok.RequiredArgsConstructor;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
 
-import java.time.Instant;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -21,6 +20,10 @@ public class ProfileService {
     @Getter
     private RMap<UUID, ProfileData> profilesMap;
 
+    /**
+     * Initializes the ProfileService by setting up the Redis map for profile data.
+     * This method should be called during the plugin's initialization phase.
+     */
     public void initialize() {
         this.profilesMap = redissonClient.getMap(PROFILE_MAP);
     }
@@ -67,6 +70,11 @@ public class ProfileService {
         return profilesMap.get(playerId);
     }
 
+    /**
+     * Save a player's profile data to the database and remove it from Redis cache.
+     *
+     * @param playerId the unique ID of the player whose profile data is being saved
+     */
     public void saveProfileData(UUID playerId) {
         ProfileData profileData = profilesMap.get(playerId);
         if(profileData != null) {

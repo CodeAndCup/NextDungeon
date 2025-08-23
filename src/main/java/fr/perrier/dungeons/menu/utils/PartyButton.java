@@ -50,7 +50,11 @@ public class PartyButton extends Button {
         player.closeInventory();
     }
 
-
+    /**
+     * Generate the lore of the party button
+     * @param dungeonParty The dungeon party
+     * @return The lore
+     */
     public static List<String> getLore(DungeonParty dungeonParty) {
         List<String> lore = new ArrayList<>();
         lore.add("&7Dungeon: &#90FFFF" + dungeonParty.getDungeonId());

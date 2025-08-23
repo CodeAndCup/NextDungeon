@@ -57,6 +57,10 @@ public class ProfileData {
             this.totalDeaths = totalDeaths;
         }
 
+        /**
+         * Get a summary of the floor stats for display purposes.
+         * @return A list of strings representing the stats summary.
+         */
         public List<String> getStatsSummary() {
             return List.of(
                 "&7Fastest Time: &a" + TimeUtil.getDuration(fastestCompletionTime),
@@ -65,6 +69,7 @@ public class ProfileData {
             );
         }
 
+        /** Serialization / Deserialization */
         private @NotNull Map<String, Object> serialize() {
             Map<String, Object> data = new HashMap<>();
 
@@ -87,6 +92,7 @@ public class ProfileData {
         }
     }
 
+    /** Serialization / Deserialization */
     public String toJson() {
         Map<String, Object> data = this.serialize();
         return GsonProvider.GSON.toJson(data);

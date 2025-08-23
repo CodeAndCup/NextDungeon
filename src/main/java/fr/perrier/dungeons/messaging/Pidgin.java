@@ -2,9 +2,11 @@ package fr.perrier.dungeons.messaging;
 
 import com.google.gson.Gson;
 import fr.perrier.dungeons.Main;
+import fr.perrier.dungeons.messaging.packets.PlayerSwitchServerPacket;
 import fr.perrier.dungeons.messaging.pidgin.IncomingPacketHandler;
 import fr.perrier.dungeons.messaging.pidgin.Packet;
 import fr.perrier.dungeons.messaging.pidgin.PacketListener;
+import fr.perrier.dungeons.messaging.subscribers.PlayerSwitchServerSubscriber;
 import lombok.Getter;
 import org.redisson.Redisson;
 import org.redisson.api.RTopic;
@@ -50,7 +52,7 @@ public class Pidgin {
         this.cTypes = new HashMap<>();
         this.topic.addListener(String.class, new MessagingListener());
 
-        //this.registerAdapater(Packet.class, new PacketSubscriber());
+        this.registerAdapter(PlayerSwitchServerPacket.class, new PlayerSwitchServerSubscriber());
     }
 
     /**
