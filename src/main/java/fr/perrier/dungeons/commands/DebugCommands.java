@@ -48,24 +48,20 @@ public class DebugCommands {
     public static void debugDungeonListDungeonsCommand(Player player) {
         player.sendMessage(ChatUtil.getBar());
         player.sendMessage(ChatUtil.translate("&6Dungeons:"));
-        for (Dungeon dungeon : Dungeon.getDungeons().values()) {
+        for (Dungeon dungeon : Dungeon.getDungeons()) {
             player.sendMessage(ChatUtil.translate("  &8- &e" + dungeon.getName() + " &8(&7&o" + dungeon.getId() + "&8)"));
         }
         player.sendMessage(ChatUtil.getBar());
     }
 
-    @SneakyThrows
     @Command(names = "dungeon debug openmenu")
-    public static void debugDungeonOpenMenuCommand(Player player, @Param(name = "class name")String className) {
+    public static void debugDungeonOpenMenuCommand(Player player) {
 
-        Dungeon dungeon = new Dungeon("example","Example");
-        dungeon.addFloor(new Floor("example_floor1","Floor 1"));
-        dungeon.addFloor(new Floor("example_floor2","Floor 2"));
-
-        switch (className) {
-            case "DungeonGateMenu" -> new DungeonGateMenu(dungeon).openMenu(player);
-            case "PartyBuilderMenu" -> new PartyBuilderMenu(null,"example").openMenu(player);
-            case "PartyFinderMenu" -> new PartyFinderMenu(dungeon).openMenu(player);
+        Dungeon dungeon = Dungeon.getDungeon("example");
+        if(dungeon == null) {
+            player.sendMessage(ChatUtil.translate("&cDungeon 'example' not found."));
+            return;
         }
+        new DungeonGateMenu(dungeon).openMenu(player);
     }
 }

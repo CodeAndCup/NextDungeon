@@ -5,5 +5,20 @@ RedisConfiguration:
     password: ""
     topic: "dungeons:packets" #Don't change or know what you're doing
 
+DatabaseConfiguration:
+    type: "mysql" #Supported types: mongodb, mysql
+
+    mysql:
+        host: "localhost"
+        port: 3306
+        database: "dungeons"
+        username: "root"
+        password: "root"
+
+    mongodb:
+        host: "localhost"
+        port: 27017
+        database: "dungeons"
+
 ServerConfiguration:
     isLobby: true

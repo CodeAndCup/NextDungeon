@@ -1,4 +1,4 @@
-package fr.perrier.dungeons.menu.dungeon.utils;
+package fr.perrier.dungeons.menu.utils;
 
 import com.alessiodp.parties.api.interfaces.Party;
 import fr.perrier.cupcodeapi.menuapi.Button;

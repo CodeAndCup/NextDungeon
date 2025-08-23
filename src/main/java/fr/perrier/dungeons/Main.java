@@ -9,9 +9,15 @@ import fr.perrier.dungeons.commands.AdminCommands;
 import fr.perrier.dungeons.commands.DebugCommands;
 import fr.perrier.dungeons.commands.EditorCommands;
 import fr.perrier.dungeons.commands.PlayerCommands;
+import fr.perrier.dungeons.configuration.ConfigLoader;
+import fr.perrier.dungeons.database.DatabaseFactory;
+import fr.perrier.dungeons.database.DatabaseManager;
+import fr.perrier.dungeons.listener.JoinListener;
+import fr.perrier.dungeons.listener.LeaveListener;
 import fr.perrier.dungeons.listener.PartyListener;
 import fr.perrier.dungeons.messaging.Pidgin;
 import fr.perrier.dungeons.model.FloorInstance;
+import fr.perrier.dungeons.storage.ProfileService;
 import fr.perrier.dungeons.storage.RedisStorageService;
 import fr.perrier.dungeons.utils.ServerUtil;
 import lombok.Getter;
@@ -52,6 +58,10 @@ public final class Main extends JavaPlugin {
     private Pidgin messaging;
     @Getter
     private RedisStorageService redisStorageService;
+    @Getter
+    private ProfileService profileService;
+    @Getter
+    private DatabaseManager databaseManager;
 
     @Getter
     private ServerUtil serverUtil;
@@ -79,13 +89,21 @@ public final class Main extends JavaPlugin {
             // Initialize Redis storage service
             redisStorageService = new RedisStorageService(redissonClient);
             redisStorageService.initialize();
-
             getLogger().info("Redis storage service initialized successfully");
+
+
+            // Initialize Profile service
+            profileService = new ProfileService(redissonClient);
+            profileService.initialize();
+            getLogger().info("Profile service initialized successfully");
+
         } catch (Exception e) {
-            getLogger().severe("Failed to initialize Redis storage service: " + e.getMessage());
+            getLogger().severe("Failed to initialize Redis services: " + e.getMessage());
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
+
+        databaseManager = DatabaseFactory.createDatabase();
 
         // Initialize server based on type
         if (ServerUtil.isInstanceServer()) {
@@ -110,7 +128,7 @@ public final class Main extends JavaPlugin {
         loadListeners();
 
         // Load Dungeons
-        //ConfigLoader.loadAllDungeons();
+        ConfigLoader.loadAllDungeons();
     }
 
     @Override
@@ -121,7 +139,7 @@ public final class Main extends JavaPlugin {
             if (info != null) {
                 // Remove instance from Redis
                 redisStorageService.removeInstance(info.instanceId());
-                getLogger().info(String.format("[%s] Cleaned up instance %s from Redis", Instant.now(), info.instanceId()));
+                getLogger().info(String.format("Cleaned up instance %s from Redis", info.instanceId()));
             }
         }
 
@@ -159,6 +177,8 @@ public final class Main extends JavaPlugin {
     private void loadListeners() {
         PluginManager pluginManager = getServer().getPluginManager();
         pluginManager.registerEvents(new PartyListener(), this);
+        pluginManager.registerEvents(new JoinListener(), this);
+        pluginManager.registerEvents(new LeaveListener(), this);
     }
 
     /**
@@ -175,14 +195,13 @@ public final class Main extends JavaPlugin {
     private void initializeInstanceServer() {
         ServerUtil.InstanceInfo info = ServerUtil.getInstanceInfo();
         if (info == null) {
-            getLogger().severe(String.format("[%s] Failed to get instance information", Instant.now()));
+            getLogger().severe("Failed to get instance information");
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
 
         getLogger().info(String.format(
-                "[%s] Initializing dungeon instance server (ID: %s, Floor: %s, Created at: %s)",
-                Instant.now(),
+                "Initializing dungeon instance server (ID: %s, Floor: %s, Created at: %s)",
                 info.instanceId(),
                 info.floorId(),
                 info.createdAt()
@@ -207,7 +226,7 @@ public final class Main extends JavaPlugin {
      * in {@link #initializeInstanceServer()}.</p>
      */
     private void initializeLobbyServer() {
-        getLogger().info(String.format("[%s] Initializing lobby server", "2025-08-12 13:49:06"));
+        getLogger().info(String.format("Initializing lobby server"));
         // Lobby specific initialization if needed
     }
 

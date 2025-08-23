@@ -1,9 +1,11 @@
 package fr.perrier.dungeons.storage;
 
 import fr.perrier.dungeons.Main;
+import fr.perrier.dungeons.model.Dungeon;
 import fr.perrier.dungeons.model.FloorInstance;
 import fr.perrier.dungeons.messaging.redis.RedisMessage;
 import fr.perrier.dungeons.model.Floor;
+import fr.perrier.dungeons.model.ProfileData;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.Bukkit;
@@ -18,19 +20,27 @@ import java.util.concurrent.atomic.AtomicReference;
 @RequiredArgsConstructor
 public class RedisStorageService {
     private final RedissonClient redissonClient;
+
+    // Redis Maps and Topics
+    private static final String DUNGEON_MAP = "dungeons:dungeons";
     private static final String FLOOR_MAP = "dungeons:floors";
     private static final String INSTANCE_MAP = "dungeons:instances";
     private static final String SYNC_CHANNEL = "dungeons:sync";
 
+    // Local references to current floor and instance
     @Getter
     private final AtomicReference<Floor> currentFloor = new AtomicReference<>();
     @Getter
     private final AtomicReference<FloorInstance> currentInstance = new AtomicReference<>();
 
+    // Redis Maps
+    @Getter
+    private RMap<String, Dungeon> dungeonsMap;
     @Getter
     private RMap<String, Floor> floorsMap;
     @Getter
     private RMap<UUID, FloorInstance> instancesMap;
+
     private RTopic syncTopic;
 
     /**
@@ -41,6 +51,7 @@ public class RedisStorageService {
      * of floor and instance updates.
      */
     public void initialize() {
+        this.dungeonsMap = redissonClient.getMap(DUNGEON_MAP);
         this.floorsMap = redissonClient.getMap(FLOOR_MAP);
         this.instancesMap = redissonClient.getMap(INSTANCE_MAP);
         this.syncTopic = redissonClient.getTopic(SYNC_CHANNEL);
@@ -65,8 +76,7 @@ public class RedisStorageService {
         FloorInstance instance = instancesMap.get(instanceId);
         if (instance == null) {
             Main.getInstance().getLogger().severe(String.format(
-                    "[%s] Could not find instance %s in Redis",
-                    Instant.now(),
+                    "Could not find instance %s in Redis",
                     instanceId
             ));
             return;
@@ -79,8 +89,7 @@ public class RedisStorageService {
         Floor floor = floorsMap.get(floorId);
         if (floor == null) {
             Main.getInstance().getLogger().severe(String.format(
-                    "[%s] Could not find floor %s in Redis",
-                    Instant.now(),
+                    "Could not find floor %s in Redis",
                     floorId
             ));
             return;
@@ -89,11 +98,26 @@ public class RedisStorageService {
         currentFloor.set(floor);
 
         Main.getInstance().getLogger().info(String.format(
-                "[%s] Successfully initialized instance server (Instance: %s, Floor: %s)",
-                Instant.now(),
+                "Successfully initialized instance server (Instance: %s, Floor: %s)",
                 instanceId,
                 floorId
         ));
+    }
+
+    /**
+     * Synchronizes the given dungeon to Redis and notifies other servers.
+     * This method will update the Redis dungeon map and notify other servers
+     * of the update.
+     *
+     * @param dungeon the dungeon to synchronize.
+     */
+    public void syncDungeon(Dungeon dungeon) {
+        // Update Redis
+        dungeonsMap.fastPut(dungeon.getId(),dungeon);
+
+        Main.getInstance().getLogger().info(
+                String.format("Synced dungeon %s to Redis", dungeon.getId())
+        );
     }
 
     /**
@@ -121,7 +145,7 @@ public class RedisStorageService {
         syncTopic.publish(message);
 
         Main.getInstance().getLogger().info(
-                String.format("[%s] Synced floor %s to Redis", Instant.now(), floor.getId())
+                String.format("Synced floor %s to Redis", floor.getId())
         );
     }
 
@@ -150,7 +174,7 @@ public class RedisStorageService {
         syncTopic.publish(message);
 
         Main.getInstance().getLogger().info(
-                String.format("[%s] Synced instance %s to Redis", Instant.now(), instance.getInstanceId())
+                String.format("Synced instance %s to Redis", instance.getInstanceId())
         );
     }
 
@@ -195,11 +219,21 @@ public class RedisStorageService {
                             currentInstance.get().getInstanceId().equals(instance.getInstanceId())) {
                         currentInstance.set(null);
                         currentFloor.set(null);
-                        Main.getInstance().getLogger().info(String.format("[%s] Removed local instance: %s", Instant.now(), instance.getInstanceId()));
+                        Main.getInstance().getLogger().info(String.format("Removed local instance: %s", instance.getInstanceId()));
                     }
                 }
             }
         }
+    }
+
+    /**
+     * Retrieve a dungeon by its unique ID.
+     *
+     * @param id the unique ID of the dungeon to retrieve
+     * @return the Dungeon object with the given ID, or null if not found
+     */
+    public Dungeon getDungeon(String id) {
+        return dungeonsMap.get(id);
     }
 
     /**
@@ -244,6 +278,12 @@ public class RedisStorageService {
         Main.getInstance().getLogger().info("Cleared local floor and instance references");
     }
 
+    public void removeDungeon(String id) {
+        // Remove from Redis
+        dungeonsMap.remove(id);
+        Main.getInstance().getLogger().info(String.format("Removed dungeon %s from Redis", id));
+    }
+
     /**
      * Remove an instance from Redis and notify other servers
      * @param instanceId the ID of the instance to remove
@@ -251,8 +291,7 @@ public class RedisStorageService {
     public void removeInstance(UUID instanceId) {
         FloorInstance instance = instancesMap.get(instanceId);
         if (instance == null) {
-            Main.getInstance().getLogger().warning(String.format("[%s] Tried to remove non-existent instance: %s",
-                    "2025-08-12 14:26:45", instanceId));
+            Main.getInstance().getLogger().warning(String.format("Tried to remove non-existent instance: %s", instanceId));
             return;
         }
 
@@ -277,8 +316,7 @@ public class RedisStorageService {
         // Notify other servers
         syncTopic.publish(message);
 
-        Main.getInstance().getLogger().info(String.format("[%s] Removed instance %s from Redis",
-                Instant.now(), instanceId));
+        Main.getInstance().getLogger().info(String.format("Removed instance %s from Redis", instanceId));
     }
 
     /**

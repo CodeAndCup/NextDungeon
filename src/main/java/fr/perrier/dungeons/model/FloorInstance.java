@@ -127,8 +127,7 @@ public class FloorInstance {
      * @param player the player to send to the cloud service
      */
     public void sendToServer(Player player) {
-        Main.getInstance().getLogger().info(String.format("[%s] Attempting to send %s to instance %s",
-                Instant.now(), player.getName(), instanceId));
+        Main.getInstance().getLogger().info(String.format("Attempting to send %s to instance %s", player.getName(), instanceId));
 
         AtomicInteger timerDelay = new AtomicInteger(0);
         AtomicInteger currentLoad = new AtomicInteger(0);
@@ -152,8 +151,7 @@ public class FloorInstance {
                     FloorInstance instance = Main.getInstance().getRedisStorageService().getInstance(instanceId);
 
                     if (instance == null) {
-                        Main.getInstance().getLogger().warning(String.format("[%s] Instance %s no longer exists",
-                                Instant.now(), instanceId));
+                        Main.getInstance().getLogger().warning(String.format("Instance %s no longer exists", instanceId));
                         player.sendMessage(ChatUtil.translate("&cThis dungeon instance no longer exists!"));
                         this.cancel();
                         return;
@@ -164,8 +162,7 @@ public class FloorInstance {
                         this.cancel();
                     } else {
                         if (System.currentTimeMillis() - startTime > TIMEOUT) {
-                            Main.getInstance().getLogger().warning(String.format("[%s] Timed out waiting for instance %s to be ready",
-                                    Instant.now(), instanceId));
+                            Main.getInstance().getLogger().warning(String.format("Timed out waiting for instance %s to be ready", instanceId));
                             player.sendMessage(ChatUtil.translate("&cTimed out waiting for dungeon instance to be ready!"));
                             this.cancel();
                         }

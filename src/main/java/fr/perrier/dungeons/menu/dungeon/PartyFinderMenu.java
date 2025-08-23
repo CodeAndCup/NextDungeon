@@ -5,7 +5,7 @@ import fr.perrier.cupcodeapi.menuapi.pagination.PaginatedMenu;
 import fr.perrier.cupcodeapi.utils.ChatUtil;
 import fr.perrier.cupcodeapi.utils.ItemBuilder;
 import fr.perrier.dungeons.Main;
-import fr.perrier.dungeons.menu.dungeon.utils.PartyButton;
+import fr.perrier.dungeons.menu.utils.PartyButton;
 import fr.perrier.dungeons.model.Dungeon;
 import fr.perrier.dungeons.parties.DungeonParty;
 import lombok.RequiredArgsConstructor;
