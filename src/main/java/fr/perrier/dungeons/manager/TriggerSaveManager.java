@@ -3,6 +3,8 @@ package fr.perrier.dungeons.manager;
 import fr.perrier.cupcodeapi.utils.ChatUtil;
 import fr.perrier.dungeons.model.Floor;
 import fr.perrier.dungeons.model.FloorInstance;
+import fr.perrier.dungeons.workflow.action.Action;
+import fr.perrier.dungeons.workflow.action.impl.SendMessageAction;
 import fr.perrier.dungeons.workflow.trigger.Trigger;
 import fr.perrier.dungeons.workflow.trigger.factory.TriggerFactory;
 import fr.perrier.dungeons.Main;
@@ -104,16 +106,19 @@ public class TriggerSaveManager {
                 triggerObj.addProperty("name", trigger.getName());
                 triggerObj.addProperty("enabled", trigger.isEnabled());
 
-                // Ajout des propriétés spécifiques selon le type
-                if(trigger instanceof RegionTrigger regionTrigger) {
-                    triggerObj.addProperty("pos1X", regionTrigger.getPos1X());
-                    triggerObj.addProperty("pos1Y", regionTrigger.getPos1Y());
-                    triggerObj.addProperty("pos1Z", regionTrigger.getPos1Z());
-                    triggerObj.addProperty("pos2X", regionTrigger.getPos2X());
-                    triggerObj.addProperty("pos2Y", regionTrigger.getPos2Y());
-                    triggerObj.addProperty("pos2Z", regionTrigger.getPos2Z());
-                    triggerObj.addProperty("worldName", regionTrigger.getWorldName());
+                addPropertyOfTrigger(triggerObj, trigger);
+
+                JsonArray actionsArray = new JsonArray();
+                for (Action action : trigger.getActions()) {
+                    JsonObject actionObj = new JsonObject();
+                    actionObj.addProperty("type", action.getType());
+                    actionObj.addProperty("name", action.getName());
+
+                    addPropertyOfAction(actionObj, action);
+
+                    actionsArray.add(actionObj);
                 }
+                triggerObj.add("actions", actionsArray);
 
                 triggersArray.add(triggerObj);
             }
@@ -134,5 +139,26 @@ public class TriggerSaveManager {
             error.addProperty("error", e.getMessage());
             return gson.toJson(error);
         }
+    }
+
+    private void addPropertyOfTrigger(JsonObject triggerObj, Trigger trigger) {
+        if(trigger instanceof RegionTrigger regionTrigger) {
+            triggerObj.addProperty("pos1X", regionTrigger.getPos1X());
+            triggerObj.addProperty("pos1Y", regionTrigger.getPos1Y());
+            triggerObj.addProperty("pos1Z", regionTrigger.getPos1Z());
+            triggerObj.addProperty("pos2X", regionTrigger.getPos2X());
+            triggerObj.addProperty("pos2Y", regionTrigger.getPos2Y());
+            triggerObj.addProperty("pos2Z", regionTrigger.getPos2Z());
+            triggerObj.addProperty("worldName", regionTrigger.getWorldName());
+        }
+        // Ajouter d'autres types de triggers ici
+    }
+
+    private void addPropertyOfAction(JsonObject actionObj, Action action) {
+        if(action instanceof SendMessageAction sendAction) {
+            actionObj.addProperty("targetPlayer", sendAction.getTargetPlayer());
+            actionObj.addProperty("message", sendAction.getMessage());
+        }
+        // Ajouter d'autres types d'actions ici
     }
 }

@@ -71,7 +71,6 @@ public abstract class Trigger implements Serializable {
      * Exécute toutes les actions du trigger
      */
     protected boolean executeActions(Player player, Location location, Map<String, Object> data) {
-        Bukkit.broadcastMessage("1");
 
         if (actions == null || actions.isEmpty()) {
             return true; // Pas d'actions = succès
@@ -79,8 +78,6 @@ public abstract class Trigger implements Serializable {
 
         boolean success = true;
         data.put("trigger_name", this.name); // Ajouter le nom du trigger aux données
-
-        Bukkit.broadcastMessage("2");
 
         for (Action action : actions) {
             try {
@@ -98,10 +95,6 @@ public abstract class Trigger implements Serializable {
                 success = false;
             }
         }
-
-        Bukkit.broadcastMessage("3");
-
-        Bukkit.broadcastMessage(success ? "Succès" : "Échec");
 
         return success;
     }

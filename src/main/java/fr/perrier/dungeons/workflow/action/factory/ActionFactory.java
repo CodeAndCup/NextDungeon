@@ -20,9 +20,9 @@ public class ActionFactory {
             String type = actionData.get("type").getAsString();
 
             return switch (type) {
-                case "send_message" -> {
-                    String targetPlayer = actionData.has("targetPlayer") ?
-                            actionData.get("targetPlayer").getAsString() : "player";
+                case "sendmessage" -> {
+                    String targetPlayer = actionData.has("targetplayer") ?
+                            actionData.get("targetplayer").getAsString() : "player";
                     String message = actionData.has("message") ?
                             actionData.get("message").getAsString() : "";
                     yield new SendMessageAction(targetPlayer, message);
