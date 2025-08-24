@@ -4,7 +4,8 @@ import fr.perrier.dungeons.Main;
 import fr.perrier.dungeons.configuration.Requirements;
 import fr.perrier.dungeons.configuration.Rules;
 import fr.perrier.dungeons.configuration.WorldConfig;
-import fr.perrier.dungeons.trigger.Trigger;
+import fr.perrier.dungeons.manager.DungeonFileManager;
+import fr.perrier.dungeons.workflow.trigger.Trigger;
 import fr.perrier.dungeons.utils.ServerUtil;
 import lombok.Getter;
 import lombok.Setter;
@@ -33,6 +34,7 @@ public class Floor {
         this.id = id;
         this.name = name;
         this.description = "&cNo description";
+        this.triggers = DungeonFileManager.loadTriggers(id);
         updateMap();
     }
 
@@ -40,6 +42,7 @@ public class Floor {
         this.id = id;
         this.name = name;
         this.description = description;
+        this.triggers = DungeonFileManager.loadTriggers(id);
         updateMap();
     }
 

@@ -3,40 +3,37 @@ package fr.perrier.dungeons.webserver;
 import com.sun.net.httpserver.HttpServer;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpExchange;
+import fr.perrier.dungeons.manager.TriggerSaveManager;
 import fr.perrier.dungeons.Main;
-import fr.perrier.dungeons.manager.DungeonFileManager;
-import fr.perrier.dungeons.trigger.Trigger;
-import fr.perrier.dungeons.trigger.impl.DebugTrigger;
-import fr.perrier.dungeons.trigger.impl.MythicMobKillTrigger;
-import fr.perrier.dungeons.trigger.impl.LocationTrigger;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
+import fr.perrier.dungeons.workflow.trigger.impl.RegionTrigger;
+import org.bukkit.entity.Player;
 
 import java.io.*;
 import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
-import java.util.logging.Logger;
 
 public class WebEditorServer {
     private static final int PORT = 8080;
 
     private HttpServer server;
     private final Gson gson;
+    private final TriggerSaveManager triggerSaveManager;
     private String currentDungeon;
     private String currentFloor;
+    private Player currentEditor;
 
-    public WebEditorServer() {
-        this.gson = new GsonBuilder()
-                .setPrettyPrinting()
-                .create();
+    public WebEditorServer(Player editor) {
+        this.gson = new GsonBuilder().setPrettyPrinting().create();
+        this.triggerSaveManager = new TriggerSaveManager();
+        this.currentEditor = editor;
     }
 
-    /**
-     * Démarre le serveur web pour éditer un donjon spécifique
-     */
     public boolean startServer(String dungeonName, String floorId) {
         try {
             this.currentDungeon = dungeonName;
@@ -48,6 +45,7 @@ public class WebEditorServer {
             server.createContext("/api/triggers", new TriggersHandler());
             server.createContext("/api/save", new SaveHandler());
             server.createContext("/api/trigger-types", new TriggerTypesHandler());
+            server.createContext("/api/blockly.js", new BlocklyGeneratorHandler());
 
             // Interface web statique
             server.createContext("/", new StaticFileHandler());
@@ -65,52 +63,10 @@ public class WebEditorServer {
         }
     }
 
-    /**
-     * Arrête le serveur web
-     */
     public void stopServer() {
         if (server != null) {
             server.stop(0);
             Main.getInstance().getLogger().info("Serveur web arrêté");
-        }
-    }
-
-    /**
-     * Handler pour les triggers API
-     */
-    private class TriggersHandler implements HttpHandler {
-        @Override
-        public void handle(HttpExchange exchange) throws IOException {
-            if ("GET".equals(exchange.getRequestMethod())) {
-                handleGetTriggers(exchange);
-            } else {
-                sendMethodNotAllowed(exchange);
-            }
-        }
-
-        private void handleGetTriggers(HttpExchange exchange) throws IOException {
-            try {
-                List<Trigger> triggers = DungeonFileManager.loadTriggers(currentDungeon, currentFloor);
-                String json = gson.toJson(triggers);
-                byte[] jsonBytes = json.getBytes("UTF-8");
-
-                exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
-                exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
-                exchange.sendResponseHeaders(200, jsonBytes.length);
-
-                try (OutputStream os = exchange.getResponseBody()) {
-                    os.write(jsonBytes);
-                    os.flush();
-                }
-
-                Main.getInstance().getLogger().info("Triggers envoyés: " + triggers.size() + " triggers (" + jsonBytes.length + " bytes)");
-
-            } catch (Exception e) {
-                Main.getInstance().getLogger().severe("Erreur lors de la récupération des triggers: " + e.getMessage());
-                e.printStackTrace();
-
-                sendErrorResponse(exchange, 500, "Erreur serveur lors de la récupération des triggers");
-            }
         }
     }
 
@@ -130,26 +86,47 @@ public class WebEditorServer {
         }
 
         private void handleSaveTriggers(HttpExchange exchange) throws IOException {
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(exchange.getRequestBody(), "UTF-8"))) {
+            try {
+                // Lire le contenu de la requête
+                String body;
+                try (BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(exchange.getRequestBody(), StandardCharsets.UTF_8))) {
 
-                StringBuilder body = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    body.append(line);
+                    StringBuilder bodyBuilder = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        bodyBuilder.append(line);
+                    }
+                    body = bodyBuilder.toString();
                 }
 
-                Main.getInstance().getLogger().info("Données reçues pour sauvegarde: " + body.toString());
+                Main.getInstance().getLogger().info("Données reçues pour sauvegarde (" + body.length() + " caractères): " +
+                        body.substring(0, Math.min(body.length(), 200)) + "...");
 
-                // TODO: Parser le JSON des triggers depuis Blockly
-                // et les convertir en objets Trigger
+                // Sauvegarder via le service
+                boolean success = triggerSaveManager.saveTriggers(currentDungeon, currentFloor, body, currentEditor);
 
-                String successJson = "{\"status\":\"success\",\"message\":\"Triggers sauvegardés\"}";
-                byte[] responseBytes = successJson.getBytes("UTF-8");
+                // Préparer la réponse
+                JsonObject response = new JsonObject();
+                response.addProperty("success", success);
+                response.addProperty("timestamp", System.currentTimeMillis());
+                response.addProperty("dungeon", currentDungeon);
+                response.addProperty("floor", currentFloor);
+
+                if (success) {
+                    response.addProperty("message", "Triggers sauvegardés avec succès");
+                    Main.getInstance().getLogger().info("Sauvegarde réussie pour " + currentDungeon + " floor " + currentFloor);
+                } else {
+                    response.addProperty("message", "Erreur lors de la sauvegarde");
+                    Main.getInstance().getLogger().warning("Échec de la sauvegarde pour " + currentDungeon + " floor " + currentFloor);
+                }
+
+                String jsonResponse = gson.toJson(response);
+                byte[] responseBytes = jsonResponse.getBytes(StandardCharsets.UTF_8);
 
                 exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
                 exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
-                exchange.sendResponseHeaders(200, responseBytes.length);
+                exchange.sendResponseHeaders(success ? 200 : 500, responseBytes.length);
 
                 try (OutputStream os = exchange.getResponseBody()) {
                     os.write(responseBytes);
@@ -159,7 +136,7 @@ public class WebEditorServer {
             } catch (Exception e) {
                 Main.getInstance().getLogger().severe("Erreur lors de la sauvegarde: " + e.getMessage());
                 e.printStackTrace();
-                sendErrorResponse(exchange, 500, "Erreur lors de la sauvegarde");
+                sendErrorResponse(exchange, "Erreur serveur lors de la sauvegarde: " + e.getMessage());
             }
         }
 
@@ -173,152 +150,101 @@ public class WebEditorServer {
     }
 
     /**
-     * Méthodes utilitaires pour les réponses HTTP
+     * Handler pour charger les triggers
      */
-    private void sendErrorResponse(HttpExchange exchange, int statusCode, String message) throws IOException {
-        String errorJson = "{\"error\":\"" + message.replace("\"", "'") + "\"}";
-        byte[] errorBytes = errorJson.getBytes("UTF-8");
-
-        try {
-            exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
-            exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
-            exchange.sendResponseHeaders(statusCode, errorBytes.length);
-
-            try (OutputStream os = exchange.getResponseBody()) {
-                os.write(errorBytes);
-                os.flush();
-            }
-        } catch (IOException e) {
-            Main.getInstance().getLogger().severe("Erreur lors de l'envoi de la réponse d'erreur: " + e.getMessage());
-        }
-    }
-
-    private void sendMethodNotAllowed(HttpExchange exchange) throws IOException {
-        exchange.sendResponseHeaders(405, 0);
-        exchange.getResponseBody().close();
-    }
-
-    /**
-     * Handler pour les types de triggers disponibles
-     */
-    /**
-     * Handler pour les types de triggers disponibles
-     */
-    private class TriggerTypesHandler implements HttpHandler {
+    private class TriggersHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            if ("GET".equals(exchange.getRequestMethod())) {
+                handleGetTriggers(exchange);
+            } else {
+                sendMethodNotAllowed(exchange);
+            }
+        }
+
+        private void handleGetTriggers(HttpExchange exchange) throws IOException {
             try {
-                Main.getInstance().getLogger().info("Demande des types de triggers recue");
+                // Charger les triggers via le service
+                String jsonData = triggerSaveManager.loadTriggersAsJson(currentDungeon, String.valueOf(currentFloor));
+                byte[] jsonBytes = jsonData.getBytes(StandardCharsets.UTF_8);
 
-                // Création manuelle des configurations pour éviter les problèmes de sérialisation
-                Map<String, Object> triggerTypes = new HashMap<>();
-
-                // MythicMob Kill Trigger
-                Map<String, Object> mythicMobConfig = new HashMap<>();
-                mythicMobConfig.put("type", "mythicmob_kill");
-                mythicMobConfig.put("color", "#FF6B6B");
-                mythicMobConfig.put("icon", "skull");
-
-                Map<String, Object> mythicMobFields = new HashMap<>();
-                mythicMobFields.put("mob_internal_name", Map.of("type", "text", "label", "Nom interne du mob"));
-                mythicMobFields.put("required_kills", Map.of("type", "number", "label", "Nombre de kills requis", "default", 1));
-                mythicMobFields.put("boss_name", Map.of("type", "text", "label", "Nom du boss (optionnel)"));
-                mythicMobConfig.put("fields", mythicMobFields);
-
-                triggerTypes.put("mythicmob_kill", mythicMobConfig);
-
-                // Location Trigger
-                Map<String, Object> locationConfig = new HashMap<>();
-                locationConfig.put("type", "location");
-                locationConfig.put("color", "#4ECDC4");
-                locationConfig.put("icon", "map-marker");
-
-                Map<String, Object> locationFields = new HashMap<>();
-                locationFields.put("x", Map.of("type", "number", "label", "Coordonnée X"));
-                locationFields.put("y", Map.of("type", "number", "label", "Coordonnée Y"));
-                locationFields.put("z", Map.of("type", "number", "label", "Coordonnée Z"));
-                locationFields.put("radius", Map.of("type", "number", "label", "Rayon", "default", 2.0));
-                locationConfig.put("fields", locationFields);
-
-                triggerTypes.put("location", locationConfig);
-
-                // Debug Chat Trigger
-                Map<String, Object> debugConfig = new HashMap<>();
-                debugConfig.put("type", "debug_chat");
-                debugConfig.put("color", "#9B59B6");
-                debugConfig.put("icon", "bug");
-                debugConfig.put("category", "debug");
-
-                Map<String, Object> debugFields = new HashMap<>();
-                debugFields.put("trigger_message", Map.of(
-                        "type", "text",
-                        "label", "Message déclencheur",
-                        "default", "test"
-                ));
-                debugFields.put("case_sensitive", Map.of(
-                        "type", "checkbox",
-                        "label", "Sensible à la casse",
-                        "default", false
-                ));
-                debugFields.put("exact_match", Map.of(
-                        "type", "checkbox",
-                        "label", "Correspondance exacte",
-                        "default", true
-                ));
-                debugConfig.put("fields", debugFields);
-
-                triggerTypes.put("debug_chat", debugConfig);
-
-                // Sérialisation en JSON
-                String json = gson.toJson(triggerTypes);
-                byte[] jsonBytes = json.getBytes("UTF-8");
-
-                Main.getInstance().getLogger().info("JSON généré (" + jsonBytes.length + " bytes): " +
-                        json.substring(0, Math.min(json.length(), 200)) + "...");
-
-                // Configuration des headers HTTP
                 exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
                 exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
-                exchange.getResponseHeaders().set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-                exchange.getResponseHeaders().set("Access-Control-Allow-Headers", "Content-Type");
-
-                // Envoi de la réponse avec la taille correcte
                 exchange.sendResponseHeaders(200, jsonBytes.length);
 
-                // Écriture des données
                 try (OutputStream os = exchange.getResponseBody()) {
                     os.write(jsonBytes);
                     os.flush();
                 }
 
-                Main.getInstance().getLogger().info("Types de triggers envoyés avec succès (" + jsonBytes.length + " bytes)");
+                Main.getInstance().getLogger().info("Triggers envoyés (" + jsonBytes.length + " bytes)");
 
             } catch (Exception e) {
-                Main.getInstance().getLogger().severe("Erreur lors de la génération des types de triggers: " + e.getMessage());
+                Main.getInstance().getLogger().severe("Erreur lors de la récupération des triggers: " + e.getMessage());
                 e.printStackTrace();
-
-                // Réponse d'erreur simple
-                String errorJson = "{\"error\":\"" + e.getMessage().replace("\"", "'") + "\"}";
-                byte[] errorBytes = errorJson.getBytes("UTF-8");
-
-                try {
-                    exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
-                    exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
-                    exchange.sendResponseHeaders(500, errorBytes.length);
-
-                    try (OutputStream os = exchange.getResponseBody()) {
-                        os.write(errorBytes);
-                        os.flush();
-                    }
-                } catch (IOException ioException) {
-                    Main.getInstance().getLogger().severe("Erreur lors de l'envoi de la réponse d'erreur: " + ioException.getMessage());
-                }
+                sendErrorResponse(exchange, "Erreur serveur lors de la récupération des triggers");
             }
         }
     }
 
     /**
-     * Handler pour les fichiers statiques (HTML, CSS, JS)
+     * Handler pour les types de triggers
+     */
+    // Dans la classe TriggerTypesHandler, remplacer le contenu par :
+    private class TriggerTypesHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            try {
+                Main.getInstance().getLogger().info("Demande des types de triggers reçue");
+
+                // Utiliser les configurations Blockly de vos triggers existants
+                Map<String, Object> triggerTypes = new HashMap<>();
+
+                // Region Trigger
+                triggerTypes.put("region", new RegionTrigger("temp").getBlocklyConfig());
+
+                // Ajouter les types d'actions
+                Map<String, Object> actionTypes = new HashMap<>();
+                Map<String, Object> sendMessageConfig = new HashMap<>();
+                sendMessageConfig.put("type", "send_message");
+                sendMessageConfig.put("color", "#2196F3");
+                sendMessageConfig.put("icon", "message");
+
+                Map<String, Object> sendMessageFields = new HashMap<>();
+                sendMessageFields.put("targetPlayer", Map.of("type", "text", "label", "Joueur cible", "default", "player"));
+                sendMessageFields.put("message", Map.of("type", "text", "label", "Message", "default", "Hello {player}!"));
+                sendMessageConfig.put("fields", sendMessageFields);
+
+                actionTypes.put("send_message", sendMessageConfig);
+
+                Map<String, Object> response = new HashMap<>();
+                response.put("triggers", triggerTypes);
+                response.put("actions", actionTypes);
+
+                String json = gson.toJson(response);
+                byte[] jsonBytes = json.getBytes(StandardCharsets.UTF_8);
+
+                Main.getInstance().getLogger().info("Types de triggers et actions générés (" + jsonBytes.length + " bytes)");
+
+                exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
+                exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+                exchange.sendResponseHeaders(200, jsonBytes.length);
+
+                try (OutputStream os = exchange.getResponseBody()) {
+                    os.write(jsonBytes);
+                    os.flush();
+                }
+
+            } catch (Exception e) {
+                Main.getInstance().getLogger().severe("Erreur lors de la génération des types: " + e.getMessage());
+                e.printStackTrace();
+                sendErrorResponse(exchange,"Erreur serveur");
+            }
+        }
+    }
+
+    /**
+     * Handler pour les fichiers statiques - UTILISE VOS FICHIERS EXISTANTS
      */
     private class StaticFileHandler implements HttpHandler {
         @Override
@@ -330,7 +256,7 @@ public class WebEditorServer {
                 path = "/index.html";
             }
 
-            // Essayer de lire depuis les resources
+            // Charger depuis resources/webserver/ au lieu de /web/
             InputStream is = getClass().getResourceAsStream("/webserver" + path);
             if (is != null) {
                 try {
@@ -349,10 +275,13 @@ public class WebEditorServer {
                     is.close();
                 }
             } else {
-                // Fichier non trouvé, servir l'HTML par défaut
+                // Si le fichier n'est pas trouvé, essayer de créer un fallback basique
+                Main.getInstance().getLogger().warning("Fichier non trouvé: /webserver" + path);
+
                 if (path.equals("/index.html")) {
-                    String defaultHtml = getDefaultHtml();
-                    byte[] htmlBytes = defaultHtml.getBytes("UTF-8");
+                    // Créer un HTML minimal si le fichier n'existe pas
+                    String fallbackHtml = createFallbackHtml();
+                    byte[] htmlBytes = fallbackHtml.getBytes(StandardCharsets.UTF_8);
 
                     exchange.getResponseHeaders().set("Content-Type", "text/html; charset=UTF-8");
                     exchange.sendResponseHeaders(200, htmlBytes.length);
@@ -361,9 +290,8 @@ public class WebEditorServer {
                         os.write(htmlBytes);
                         os.flush();
                     }
-                    Main.getInstance().getLogger().info("HTML par défaut servi (" + htmlBytes.length + " bytes)");
+                    Main.getInstance().getLogger().info("Fallback HTML servi (" + htmlBytes.length + " bytes)");
                 } else {
-                    Main.getInstance().getLogger().warning("Fichier non trouvé: " + path);
                     exchange.sendResponseHeaders(404, 0);
                     exchange.getResponseBody().close();
                 }
@@ -374,41 +302,388 @@ public class WebEditorServer {
             if (path.endsWith(".html")) return "text/html";
             if (path.endsWith(".css")) return "text/css";
             if (path.endsWith(".js")) return "application/javascript";
+            if (path.endsWith(".json")) return "application/json";
             return "text/plain";
         }
 
-        private String getDefaultHtml() {
+        /**
+         * HTML de fallback au cas où le fichier resources/webserver/index.html n'existe pas
+         */
+        private String createFallbackHtml() {
             return """
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Éditeur de Triggers - Chargement...</title>
-                <meta charset="UTF-8">
-                <style>
-                    body { font-family: Arial; text-align: center; padding: 50px; }
-                    .loading { color: #666; }
-                </style>
-            </head>
-            <body>
-                <h1>🏰 Éditeur de Triggers</h1>
-                <p class="loading">Interface en cours de chargement...</p>
-                <p>Si cette page ne se charge pas, vérifiez que les fichiers web sont présents dans les resources.</p>
-                <script>
-                    // Test de l'API
-                    fetch('/api/trigger-types')
-                        .then(response => response.json())
-                        .then(data => {
-                            console.log('API fonctionnelle:', data);
-                            document.querySelector('.loading').innerHTML = '✅ Serveur API opérationnel!';
-                        })
-                        .catch(error => {
-                            console.error('Erreur API:', error);
-                            document.querySelector('.loading').innerHTML = '❌ Erreur API: ' + error.message;
-                        });
-                </script>
-            </body>
-            </html>
-            """;
+                <!DOCTYPE html>
+                <html lang="fr">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Éditeur de Triggers - Dungeons</title>
+                    <style>
+                        body { font-family: Arial; text-align: center; padding: 50px; background: #f0f2f5; }
+                        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+                        .error { color: #d32f2f; background: #ffebee; padding: 15px; border-radius: 5px; margin: 20px 0; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <h1>🏰 Éditeur de Triggers - Dungeons</h1>
+                        <div class="error">
+                            <h3>⚠️ Fichier HTML non trouvé</h3>
+                            <p>Le fichier <code>resources/webserver/index.html</code> n'a pas été trouvé.</p>
+                            <p>Veuillez créer ce fichier avec votre interface Blockly.</p>
+                        </div>
+
+                        <h3>🔧 API Disponibles :</h3>
+                        <ul style="text-align: left;">
+                            <li><strong>GET /api/triggers</strong> - Charger les triggers existants</li>
+                            <li><strong>POST /api/save</strong> - Sauvegarder les triggers</li>
+                            <li><strong>GET /api/trigger-types</strong> - Obtenir les types de triggers</li>
+                        </ul>
+
+                        <p>
+                            <strong>Donjon actuel:</strong>""" + currentDungeon + """
+                        </p>
+                        <p>
+                            <strong>Floor actuel:</strong>""" + currentFloor + """
+                        </p>
+
+                        <script>
+                            // Test des APIs
+                            console.log('=== TEST DES APIs ===');
+
+                            fetch('/api/trigger-types')
+                                .then(response => response.json())
+                                .then(data => {
+                                    console.log('Types de triggers:', data);
+                                    document.querySelector('.container').innerHTML += '<div style="background: #e8f5e8; padding: 10px; margin: 10px 0; border-radius: 5px;">✅ API trigger-types OK</div>';
+                                })
+                                .catch(error => {
+                                    console.error('Erreur API trigger-types:', error);
+                                    document.querySelector('.container').innerHTML += '<div style="background: #ffebee; padding: 10px; margin: 10px 0; border-radius: 5px;">❌ API trigger-types ERROR</div>';
+                                });
+
+                            fetch('/api/triggers')
+                                .then(response => response.json())
+                                .then(data => {
+                                    console.log('Triggers:', data);
+                                    document.querySelector('.container').innerHTML += '<div style="background: #e8f5e8; padding: 10px; margin: 10px 0; border-radius: 5px;">✅ API triggers OK</div>';
+                                })
+                                .catch(error => {
+                                    console.error('Erreur API triggers:', error);
+                                    document.querySelector('.container').innerHTML += '<div style="background: #ffebee; padding: 10px; margin: 10px 0; border-radius: 5px;">❌ API triggers ERROR</div>';
+                                });
+                        </script>
+                    </div>
+                </body>
+                </html>
+                """;
         }
+    }
+
+    // Méthodes utilitaires
+    private void sendErrorResponse(HttpExchange exchange, String message) throws IOException {
+        String errorJson = "{\"error\":\"" + message.replace("\"", "'") + "\"}";
+        byte[] errorBytes = errorJson.getBytes(StandardCharsets.UTF_8);
+
+        try {
+            exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
+            exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+            exchange.sendResponseHeaders(500, errorBytes.length);
+
+            try (OutputStream os = exchange.getResponseBody()) {
+                os.write(errorBytes);
+                os.flush();
+            }
+        } catch (IOException e) {
+            Main.getInstance().getLogger().severe("Erreur lors de l'envoi de la réponse d'erreur: " + e.getMessage());
+        }
+    }
+
+    private void sendMethodNotAllowed(HttpExchange exchange) throws IOException {
+        exchange.sendResponseHeaders(405, 0);
+        exchange.getResponseBody().close();
+    }
+
+    // Ajouter cette méthode à votre WebEditorServer existant
+
+    /**
+     * Handler pour générer le JavaScript Blockly dynamiquement
+     */
+    private class BlocklyGeneratorHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            try {
+                Main.getInstance().getLogger().info("Génération du JavaScript Blockly...");
+
+                String blocklyJs = generateBlocklyJavaScript();
+                byte[] jsBytes = blocklyJs.getBytes(StandardCharsets.UTF_8);
+
+                exchange.getResponseHeaders().set("Content-Type", "application/javascript; charset=UTF-8");
+                exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+                exchange.sendResponseHeaders(200, jsBytes.length);
+
+                try (OutputStream os = exchange.getResponseBody()) {
+                    os.write(jsBytes);
+                    os.flush();
+                }
+
+                Main.getInstance().getLogger().info("JavaScript Blockly généré (" + jsBytes.length + " bytes)");
+
+            } catch (Exception e) {
+                Main.getInstance().getLogger().severe("Erreur lors de la génération du JavaScript: " + e.getMessage());
+                e.printStackTrace();
+                sendErrorResponse(exchange, "Erreur serveur");
+            }
+        }
+    }
+
+    /**
+     * Génère dynamiquement le JavaScript pour Blockly
+     */
+    private String generateBlocklyJavaScript() {
+        StringBuilder js = new StringBuilder();
+
+        js.append("// Auto-généré par le serveur Java\n");
+        js.append("console.log('🔧 Chargement des blocs auto-générés...');\n\n");
+
+        // Générer les blocs de triggers
+        generateTriggerBlocks(js);
+
+        // Générer les blocs d'actions
+        generateActionBlocks(js);
+
+        // Générer la toolbox
+        generateToolbox(js);
+
+        // Générer les fonctions utilitaires
+        generateUtilityFunctions(js);
+
+        return js.toString();
+    }
+
+    private void generateTriggerBlocks(StringBuilder js) {
+        js.append("// ===== BLOCS TRIGGERS =====\n");
+
+        // Region Trigger
+        js.append("""
+        Blockly.Blocks['region_trigger'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("📍 Quand le joueur entre en région")
+                    .appendField("Pos1:");
+                this.appendDummyInput()
+                    .appendField("X:")
+                    .appendField(new Blockly.FieldNumber(0), "POS1_X")
+                    .appendField("Y:")
+                    .appendField(new Blockly.FieldNumber(64), "POS1_Y")  
+                    .appendField("Z:")
+                    .appendField(new Blockly.FieldNumber(0), "POS1_Z");
+                this.appendDummyInput()
+                    .appendField("Pos2:")
+                    .appendField("X:")
+                    .appendField(new Blockly.FieldNumber(10), "POS2_X")
+                    .appendField("Y:")
+                    .appendField(new Blockly.FieldNumber(74), "POS2_Y")
+                    .appendField("Z:")
+                    .appendField(new Blockly.FieldNumber(10), "POS2_Z");
+                this.appendDummyInput()
+                    .appendField("Monde:")
+                    .appendField(new Blockly.FieldTextInput("world"), "WORLD");
+                this.appendStatementInput("ACTIONS")
+                    .setCheck("Action")
+                    .appendField("Faire:");
+                this.setColour('#4CAF50');
+                this.setTooltip("Déclenche quand un joueur entre dans une région définie");
+            }
+        };
+        
+        """);
+
+        // Debug Trigger (pour les tests)
+        js.append("""
+        Blockly.Blocks['debug_chat_trigger'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("🐛 Quand le message")
+                    .appendField(new Blockly.FieldTextInput("test"), "MESSAGE")
+                    .appendField("est écrit");
+                this.appendValueInput("CASE_SENSITIVE")
+                    .setCheck("Boolean")
+                    .appendField("Sensible à la casse:");
+                this.appendValueInput("EXACT_MATCH")
+                    .setCheck("Boolean")
+                    .appendField("Correspondance exacte:");
+                this.appendStatementInput("ACTIONS")
+                    .setCheck("Action")
+                    .appendField("Faire:");
+                this.setColour('#9B59B6');
+                this.setTooltip("Trigger de debug pour tester les messages");
+            }
+        };
+        
+        """);
+    }
+
+    private void generateActionBlocks(StringBuilder js) {
+        js.append("// ===== BLOCS ACTIONS =====\n");
+
+        // Send Message Action
+        js.append("""
+        Blockly.Blocks['send_message_action'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("💬 Envoyer message à")
+                    .appendField(new Blockly.FieldTextInput("player"), "TARGET_PLAYER")
+                    .appendField(":");
+                this.appendDummyInput()
+                    .appendField("Message:")
+                    .appendField(new Blockly.FieldTextInput("&aBonjour {player}!"), "MESSAGE");
+                this.setPreviousStatement(true, "Action");
+                this.setNextStatement(true, "Action");
+                this.setColour('#2196F3');
+                this.setTooltip("Envoie un message à un joueur spécifique\\n{player} = joueur déclencheur\\n{target} = joueur cible\\n& = codes couleur");
+            }
+        };
+        
+        """);
+
+        // Boolean blocks for conditions
+        js.append("""
+        Blockly.Blocks['boolean_true'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("✅ Vrai");
+                this.setOutput(true, "Boolean");
+                this.setColour('#4CAF50');
+            }
+        };
+        
+        Blockly.Blocks['boolean_false'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("❌ Faux");
+                this.setOutput(true, "Boolean");
+                this.setColour('#F44336');
+            }
+        };
+        
+        """);
+    }
+
+    private void generateToolbox(StringBuilder js) {
+        js.append("""
+        // ===== TOOLBOX CONFIGURATION =====
+        const DUNGEON_TOOLBOX = {
+            "kind": "categoryToolbox",
+            "contents": [
+                {
+                    "kind": "category",
+                    "name": "🎯 Triggers",
+                    "colour": "#FF6B6B",
+                    "contents": [
+                        {"kind": "block", "type": "region_trigger"}
+                    ]
+                },
+                {
+                    "kind": "category", 
+                    "name": "⚡ Actions",
+                    "colour": "#2196F3",
+                    "contents": [
+                        {"kind": "block", "type": "send_message_action"}
+                    ]
+                },
+                {
+                    "kind": "category",
+                    "name": "🔧 Utilitaires", 
+                    "colour": "#9E9E9E",
+                    "contents": [
+                        {"kind": "block", "type": "boolean_true"},
+                        {"kind": "block", "type": "boolean_false"}
+                    ]
+                },
+                {
+                    "kind": "category",
+                    "name": "🐛 Debug",
+                    "colour": "#9B59B6", 
+                    "contents": [
+                        {"kind": "block", "type": "debug_chat_trigger"}
+                    ]
+                }
+            ]
+        };
+        
+        """);
+    }
+
+    private void generateUtilityFunctions(StringBuilder js) {
+        js.append("""
+        // ===== FONCTIONS UTILITAIRES =====
+        
+        // Génération des triggers depuis l'espace de travail
+        function generateTriggersFromWorkspace() {
+            console.log('🔄 Génération des triggers...');
+            const triggers = [];
+            const blocks = workspace.getTopBlocks();
+            
+            blocks.forEach(block => {
+                console.log('Bloc trouvé:', block.type);
+                
+                if (block.type === 'region_trigger') {
+                    triggers.push({
+                        type: 'region',
+                        name: 'Region_' + Date.now(),
+                        pos1X: parseFloat(block.getFieldValue('POS1_X')) || 0,
+                        pos1Y: parseFloat(block.getFieldValue('POS1_Y')) || 64,
+                        pos1Z: parseFloat(block.getFieldValue('POS1_Z')) || 0,
+                        pos2X: parseFloat(block.getFieldValue('POS2_X')) || 10,
+                        pos2Y: parseFloat(block.getFieldValue('POS2_Y')) || 74,
+                        pos2Z: parseFloat(block.getFieldValue('POS2_Z')) || 10,
+                        world: block.getFieldValue('WORLD') || 'world',
+                        actions: getActionsFromBlock(block)
+                    });
+                } else if (block.type === 'debug_chat_trigger') {
+                    const caseSensitiveBlock = block.getInputTargetBlock('CASE_SENSITIVE');
+                    const exactMatchBlock = block.getInputTargetBlock('EXACT_MATCH');
+                    
+                    triggers.push({
+                        type: 'debug_chat',
+                        name: 'Debug_' + Date.now(),
+                        message: block.getFieldValue('MESSAGE') || 'test',
+                        caseSensitive: caseSensitiveBlock ? caseSensitiveBlock.type === 'boolean_true' : false,
+                        exactMatch: exactMatchBlock ? exactMatchBlock.type === 'boolean_true' : true,
+                        actions: getActionsFromBlock(block)
+                    });
+                }
+            });
+            
+            console.log('Triggers générés:', triggers);
+            return triggers;
+        }
+        
+        // Extraction des actions d'un bloc
+        function getActionsFromBlock(block) {
+            const actions = [];
+            let actionBlock = block.getInputTargetBlock('ACTIONS');
+            
+            while (actionBlock) {
+                console.log('Action trouvée:', actionBlock.type);
+                
+                if (actionBlock.type === 'send_message_action') {
+                    actions.push({
+                        type: 'send_message',
+                        targetPlayer: actionBlock.getFieldValue('TARGET_PLAYER') || 'player',
+                        message: actionBlock.getFieldValue('MESSAGE') || 'Hello!'
+                    });
+                }
+                
+                actionBlock = actionBlock.getNextBlock();
+            }
+            
+            console.log('Actions extraites:', actions);
+            return actions;
+        }
+        
+        // Initialisation automatique
+        console.log('✅ Blocs auto-générés chargés!');
+        
+        """);
     }
 }

@@ -12,11 +12,9 @@ import fr.perrier.dungeons.commands.PlayerCommands;
 import fr.perrier.dungeons.configuration.ConfigLoader;
 import fr.perrier.dungeons.database.DatabaseFactory;
 import fr.perrier.dungeons.database.DatabaseManager;
-import fr.perrier.dungeons.listener.global.DebugChatListener;
 import fr.perrier.dungeons.listener.global.GlobalJoinListener;
 import fr.perrier.dungeons.listener.global.GlobalLeaveListener;
 import fr.perrier.dungeons.listener.global.GlobalPartyListener;
-import fr.perrier.dungeons.manager.DungeonFileManager;
 import fr.perrier.dungeons.messaging.Pidgin;
 import fr.perrier.dungeons.model.FloorInstance;
 import fr.perrier.dungeons.storage.ProfileService;
@@ -191,8 +189,6 @@ public final class Main extends JavaPlugin {
         pluginManager.registerEvents(new GlobalPartyListener(), this);
         pluginManager.registerEvents(new GlobalJoinListener(), this);
         pluginManager.registerEvents(new GlobalLeaveListener(), this);
-
-        pluginManager.registerEvents(new DebugChatListener(), this);
     }
 
     /**

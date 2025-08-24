@@ -34,7 +34,7 @@ public class DungeonWebEditorManager {
         // }
 
         try {
-            WebEditorServer server = new WebEditorServer();
+            WebEditorServer server = new WebEditorServer(player);
             if (server.startServer(dungeonName, floorId)) {
                 activeServers.put(playerId, server);
 

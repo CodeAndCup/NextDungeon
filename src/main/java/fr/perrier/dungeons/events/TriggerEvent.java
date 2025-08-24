@@ -1,6 +1,6 @@
 package fr.perrier.dungeons.events;
 
-import fr.perrier.dungeons.trigger.Trigger;
+import fr.perrier.dungeons.workflow.trigger.Trigger;
 import org.bukkit.event.Event;
 
 public abstract class TriggerEvent extends Event {
