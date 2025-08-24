@@ -1,5 +1,8 @@
 package fr.perrier.dungeons.workflow.trigger.impl;
 
+import fr.perrier.dungeons.webserver.blockly.BlocklyTrigger;
+import fr.perrier.dungeons.webserver.blockly.annotations.BlocklyField;
+import fr.perrier.dungeons.webserver.blockly.annotations.BlocklyInfo;
 import fr.perrier.dungeons.workflow.trigger.Trigger;
 import lombok.Getter;
 import lombok.Setter;
@@ -14,14 +17,58 @@ import java.util.Map;
  */
 @Getter
 @Setter
-public class RegionTrigger extends Trigger {
-    private double pos1X, pos1Y, pos1Z;
-    private double pos2X, pos2Y, pos2Z;
+@BlocklyInfo(
+        name = "region_trigger",
+        color = "#4CAF50",
+        displayText = "📍 Quand le joueur entre en région",
+        tooltip = "Déclenche quand un joueur entre dans une région définie",
+        category = "Régions"
+)
+public class RegionTrigger extends Trigger implements BlocklyTrigger {
+    @BlocklyField(type = BlocklyField.FieldType.NUMBER_INPUT, label = "X1:", defaultValue = "0", order = 1)
+    private double pos1X;
+
+    @BlocklyField(type = BlocklyField.FieldType.NUMBER_INPUT, label = "Y1:", defaultValue = "64", order = 2)
+    private double pos1Y;
+
+    @BlocklyField(type = BlocklyField.FieldType.NUMBER_INPUT, label = "Z1:", defaultValue = "0", order = 3)
+    private double pos1Z;
+
+    @BlocklyField(type = BlocklyField.FieldType.NUMBER_INPUT, label = "X2:", defaultValue = "10", order = 4)
+    private double pos2X;
+
+    @BlocklyField(type = BlocklyField.FieldType.NUMBER_INPUT, label = "Y2:", defaultValue = "74", order = 5)
+    private double pos2Y;
+
+    @BlocklyField(type = BlocklyField.FieldType.NUMBER_INPUT, label = "Z2:", defaultValue = "10", order = 6)
+    private double pos2Z;
+
+    @BlocklyField(type = BlocklyField.FieldType.TEXT_INPUT, label = "Monde:", defaultValue = "world", order = 7)
     private String worldName;
 
     public RegionTrigger(String name) {
         super(name);
         this.worldName = "world"; // Monde par défaut
+    }
+
+    @Override
+    public String getBlockName() {
+        return "region_trigger";
+    }
+
+    @Override
+    public String getColor() {
+        return "#4CAF50";
+    }
+
+    @Override
+    public String getTooltip() {
+        return "Déclenche quand un joueur entre dans une région définie";
+    }
+
+    @Override
+    public String getDisplayText() {
+        return "📍 Quand le joueur entre en région";
     }
 
     @Override

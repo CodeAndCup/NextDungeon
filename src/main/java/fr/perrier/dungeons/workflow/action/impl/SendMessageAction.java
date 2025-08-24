@@ -1,6 +1,9 @@
 package fr.perrier.dungeons.workflow.action.impl;
 
 import fr.perrier.cupcodeapi.utils.ChatUtil;
+import fr.perrier.dungeons.webserver.blockly.BlocklyAction;
+import fr.perrier.dungeons.webserver.blockly.annotations.BlocklyField;
+import fr.perrier.dungeons.webserver.blockly.annotations.BlocklyInfo;
 import fr.perrier.dungeons.workflow.action.Action;
 import lombok.Getter;
 import lombok.Setter;
@@ -15,17 +18,48 @@ import java.util.Map;
  */
 @Setter
 @Getter
-public class SendMessageAction extends Action {
+@BlocklyInfo(
+        name = "send_message_action",
+        color = "#2196F3",
+        displayText = "💬 Envoyer message",
+        tooltip = "Envoie un message à un joueur spécifique\n{player} = joueur déclencheur\n{target} = joueur cible\n& = codes couleur",
+        category = "Messages"
+)
+public class SendMessageAction extends Action implements BlocklyAction {
     private static final long serialVersionUID = 1L;
 
-    // Getters/Setters
+    @BlocklyField(type = BlocklyField.FieldType.DROPDOWN, label = "À:",
+            options = "player,@all,@nearest", defaultValue = "player", order = 1)
     private String targetPlayer;
+
+    @BlocklyField(type = BlocklyField.FieldType.TEXT_INPUT, label = "Message:",
+            defaultValue = "&aBonjour {player}!", order = 2)
     private String message;
 
     public SendMessageAction(String targetPlayer, String message) {
         super("SendMessage", "send_message");
         this.targetPlayer = targetPlayer;
         this.message = message;
+    }
+
+    @Override
+    public String getBlockName() {
+        return "send_message_action";
+    }
+
+    @Override
+    public String getColor() {
+        return "#2196F3";
+    }
+
+    @Override
+    public String getTooltip() {
+        return "Envoie un message à un joueur spécifique";
+    }
+
+    @Override
+    public String getDisplayText() {
+        return "💬 Envoyer message";
     }
 
     @Override
