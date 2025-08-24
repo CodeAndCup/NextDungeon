@@ -4,6 +4,7 @@ import fr.perrier.dungeons.workflow.action.Action;
 import fr.perrier.dungeons.Main;
 import lombok.Getter;
 import lombok.Setter;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
@@ -70,6 +71,8 @@ public abstract class Trigger implements Serializable {
      * Exécute toutes les actions du trigger
      */
     protected boolean executeActions(Player player, Location location, Map<String, Object> data) {
+        Bukkit.broadcastMessage("1");
+
         if (actions == null || actions.isEmpty()) {
             return true; // Pas d'actions = succès
         }
@@ -77,12 +80,17 @@ public abstract class Trigger implements Serializable {
         boolean success = true;
         data.put("trigger_name", this.name); // Ajouter le nom du trigger aux données
 
+        Bukkit.broadcastMessage("2");
+
         for (Action action : actions) {
             try {
                 boolean actionSuccess = action.execute(player, location, data);
                 if (!actionSuccess) {
                     Main.getInstance().getLogger().warning("Échec de l'action " + action.getName() + " du trigger " + this.name);
                     success = false;
+                } else {
+                    //TODO: TEST
+                    Main.getInstance().getLogger().info("Action " + action.getName() + " du trigger " + this.name + " exécutée avec succès");
                 }
             } catch (Exception e) {
                 Main.getInstance().getLogger().severe("Erreur lors de l'exécution de l'action " + action.getName() + ": " + e.getMessage());
@@ -90,6 +98,10 @@ public abstract class Trigger implements Serializable {
                 success = false;
             }
         }
+
+        Bukkit.broadcastMessage("3");
+
+        Bukkit.broadcastMessage(success ? "Succès" : "Échec");
 
         return success;
     }

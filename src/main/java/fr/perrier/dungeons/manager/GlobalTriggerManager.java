@@ -9,8 +9,11 @@ import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.plugin.EventExecutor;
+import org.reflections.Reflections;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -41,12 +44,27 @@ public class GlobalTriggerManager implements Listener {
      */
     public void initialize() {
         // Enregistrer ce manager comme listener principal
-        Bukkit.getPluginManager().registerEvents(this, Main.getInstance());
+        Listener dummyListener = new Listener() {};
+        EventExecutor executor = (listener, event) -> processEvent(event);
+
+        // Use Reflections library to scan org.bukkit.event package
+        Reflections reflections = new Reflections("org.bukkit.event");
+        Set<Class<? extends Event>> eventClasses = reflections.getSubTypesOf(Event.class);
+
+        for (Class<? extends Event> eventClass : eventClasses) {
+            if (!Modifier.isAbstract(eventClass.getModifiers())) {
+                try {
+                    Bukkit.getPluginManager().registerEvent(eventClass, dummyListener, EventPriority.NORMAL, executor, Main.getInstance());
+                } catch (Exception ignored) {
+                    // Some events may fail to register (no HandlerList)
+                }
+            }
+        }
 
         // Enregistrer tous les handlers spécifiques
-        for (TriggerEventHandler<?> handler : handlers.values()) {
+        /*for (TriggerEventHandler<?> handler : handlers.values()) {
             Bukkit.getPluginManager().registerEvents(handler, Main.getInstance());
-        }
+        }*/
 
         Main.getInstance().getLogger().info("GlobalTriggerManager initialisé avec " + handlers.size() + " handlers");
     }

@@ -26,20 +26,15 @@ public class RegionTriggerHandler implements TriggerEventHandler<PlayerMoveEvent
         return Arrays.asList("region");
     }
 
-    @EventHandler
-    public void onPlayerMove(PlayerMoveEvent event) {
-        // Le GlobalTriggerManager appellera handleEvent automatiquement
-    }
-
     @Override
     public void handleEvent(PlayerMoveEvent event, List<Trigger> triggers) {
         Player player = event.getPlayer();
         Location from = event.getFrom();
         Location to = event.getTo();
 
-        if (to == null || isSameBlock(from, to)) {
+        /*if (to == null || isSameBlock(from, to)) {
             return; // Pas de changement de block
-        }
+        }*/
 
         for (Trigger trigger : triggers) {
             if (trigger instanceof RegionTrigger regionTrigger) {
@@ -77,7 +72,6 @@ public class RegionTriggerHandler implements TriggerEventHandler<PlayerMoveEvent
     }
 
     private boolean isPlayerInRegion(Player player, RegionTrigger regionTrigger) {
-        Bukkit.broadcastMessage("Vérification de la région pour le joueur " + player.getName()); //TODO: TEST
         return regionTrigger.isPlayerInRegion(player);
     }
 

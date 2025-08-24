@@ -6,6 +6,7 @@ import fr.perrier.dungeons.webserver.blockly.annotations.BlocklyInfo;
 import fr.perrier.dungeons.workflow.trigger.Trigger;
 import lombok.Getter;
 import lombok.Setter;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 

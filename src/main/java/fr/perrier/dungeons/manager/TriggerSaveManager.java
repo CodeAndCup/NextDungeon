@@ -1,6 +1,7 @@
 package fr.perrier.dungeons.manager;
 
 import fr.perrier.cupcodeapi.utils.ChatUtil;
+import fr.perrier.dungeons.model.Floor;
 import fr.perrier.dungeons.model.FloorInstance;
 import fr.perrier.dungeons.workflow.trigger.Trigger;
 import fr.perrier.dungeons.workflow.trigger.factory.TriggerFactory;
@@ -43,9 +44,12 @@ public class TriggerSaveManager {
             Main.getInstance().getLogger().info("Triggers convertis: " + triggers.size() + " triggers");
 
             // Sauvegarder les triggers dans la mémoire
-            FloorInstance instance = Main.getInstance().getRedisStorageService().getCurrentInstance().get();
-            instance.getFloor().setTriggers(triggers);
+            Floor floor = Main.getInstance().getRedisStorageService().getCurrentFloor().get();
+            floor.setTriggers(triggers);
+            Main.getInstance().getRedisStorageService().syncFloor(floor);
             Main.getInstance().getLogger().info("Triggers assignés à l'instance en mémoire");
+
+            Main.getInstance().getGlobalTriggerManager().refreshTriggerCache();
 
             // Sauvegarder dans le fichier .dungeon en utilisant votre DungeonFileManager
             boolean fileSaved = DungeonFileManager.saveTriggers(floorId, triggers);

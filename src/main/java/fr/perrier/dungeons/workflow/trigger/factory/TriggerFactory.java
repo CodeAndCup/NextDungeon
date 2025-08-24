@@ -58,13 +58,16 @@ public class TriggerFactory {
     private static RegionTrigger createRegionTrigger(JsonObject data, String name) {
         RegionTrigger trigger = new RegionTrigger(name);
 
-        if (data.has("pos1X")) trigger.setPos1X(data.get("pos1X").getAsDouble());
-        if (data.has("pos1Y")) trigger.setPos1Y(data.get("pos1Y").getAsDouble());
-        if (data.has("pos1Z")) trigger.setPos1Z(data.get("pos1Z").getAsDouble());
-        if (data.has("pos2X")) trigger.setPos2X(data.get("pos2X").getAsDouble());
-        if (data.has("pos2Y")) trigger.setPos2Y(data.get("pos2Y").getAsDouble());
-        if (data.has("pos2Z")) trigger.setPos2Z(data.get("pos2Z").getAsDouble());
-        if (data.has("world")) trigger.setWorldName(data.get("world").getAsString());
+        if (data.has("pos1x")) trigger.setPos1X(data.get("pos1x").getAsDouble());
+        if (data.has("pos1y")) trigger.setPos1Y(data.get("pos1y").getAsDouble());
+        if (data.has("pos1z")) trigger.setPos1Z(data.get("pos1z").getAsDouble());
+        if (data.has("pos2x")) trigger.setPos2X(data.get("pos2x").getAsDouble());
+        if (data.has("pos2y")) trigger.setPos2Y(data.get("pos2y").getAsDouble());
+        if (data.has("pos2z")) trigger.setPos2Z(data.get("pos2z").getAsDouble());
+        if (data.has("worldname")) trigger.setWorldName(data.get("worldname").getAsString());
+        if (data.has("regionevent")) trigger.setRegionEvent(data.get("regionevent").getAsString());
+        if (data.has("onlyonce")) trigger.setOnlyOnce(data.get("onlyonce").getAsBoolean());
+        if (data.has("cooldownseconds")) trigger.setCooldownSeconds(data.get("cooldownseconds").getAsInt());
 
         return trigger;
     }
