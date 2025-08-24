@@ -226,6 +226,11 @@ public class BlocklyJavaScriptGenerator {
                         .append(field.defaultValue().isEmpty() ? "#ff0000" : field.defaultValue())
                         .append("\"), \"").append(field.fieldName().toUpperCase()).append("\");\n");
                 break;
+            case CHECKBOX:
+                js.append("            .appendField(new Blockly.FieldCheckbox(")
+                        .append(field.defaultValue().equalsIgnoreCase("true") ? "true" : "false")
+                        .append("), \"").append(field.fieldName().toUpperCase()).append("\");\n");
+                break;
         }
     }
 
@@ -321,9 +326,315 @@ public class BlocklyJavaScriptGenerator {
     }
 
     private void generateUtilityFunctions(StringBuilder js) {
-        // Ici vous pourrez ajouter vos fonctions utilitaires existantes
-        js.append("// ===== FONCTIONS UTILITAIRES =====\n");
-        // ... votre code existant pour generateTriggersFromWorkspace, etc.
+        js.append("// ===== FONCTIONS UTILITAIRES AUTO-GÉNÉRÉES =====\n");
+
+        js.append("""
+        // Génération des triggers depuis l'espace de travail
+        function generateTriggersFromWorkspace() {
+            console.log('🔄 Génération des triggers...');
+            const triggers = [];
+            const blocks = workspace.getTopBlocks();
+            
+            blocks.forEach(block => {
+                console.log('Bloc trouvé:', block.type);
+                
+        """);
+
+        // Générer dynamiquement les cas pour chaque type de trigger
+        for (Map.Entry<String, List<Class<? extends BlocklyTrigger>>> entry : triggersByCategory.entrySet()) {
+            for (Class<? extends BlocklyTrigger> triggerClass : entry.getValue()) {
+                generateTriggerCase(js, triggerClass);
+            }
+        }
+
+        js.append("""
+            });
+            
+            console.log('Triggers générés:', triggers);
+            return triggers;
+        }
+        
+        // Extraction des actions d'un bloc
+        function getActionsFromBlock(block) {
+            const actions = [];
+            let actionBlock = block.getInputTargetBlock('ACTIONS');
+            
+            while (actionBlock) {
+                console.log('Action trouvée:', actionBlock.type);
+                
+        """);
+
+        // Générer dynamiquement les cas pour chaque type d'action
+        for (Map.Entry<String, List<Class<? extends BlocklyAction>>> entry : actionsByCategory.entrySet()) {
+            for (Class<? extends BlocklyAction> actionClass : entry.getValue()) {
+                generateActionCase(js, actionClass);
+            }
+        }
+
+        js.append("""
+                actionBlock = actionBlock.getNextBlock();
+            }
+            
+            return actions;
+        }
+        
+        // Fonction pour charger les triggers dans l'espace de travail
+        function loadTriggersIntoWorkspace(triggersData) {
+            console.log('🔄 Chargement des triggers dans l\\'espace de travail...');
+            workspace.clear();
+            
+            if (!triggersData || !triggersData.triggers) {
+                console.log('Aucun trigger à charger');
+                return;
+            }
+            
+            triggersData.triggers.forEach((trigger, index) => {
+                console.log('Chargement du trigger:', trigger);
+                
+        """);
+
+        // Générer dynamiquement les cas de chargement pour chaque trigger
+        for (Map.Entry<String, List<Class<? extends BlocklyTrigger>>> entry : triggersByCategory.entrySet()) {
+            for (Class<? extends BlocklyTrigger> triggerClass : entry.getValue()) {
+                generateTriggerLoadingCase(js, triggerClass);
+            }
+        }
+
+        js.append("""
+            });
+            
+            console.log('✅ Triggers chargés dans l\\'espace de travail');
+        }
+        
+        // Fonction pour charger les actions dans un bloc
+        function loadActionsIntoBlock(triggerBlock, actions) {
+            if (!actions || actions.length === 0) return;
+            
+            let previousActionBlock = null;
+            const actionsInput = triggerBlock.getInput('ACTIONS');
+            
+            actions.forEach((action, index) => {
+        """);
+
+        // Générer dynamiquement les cas de chargement pour chaque action
+        for (Map.Entry<String, List<Class<? extends BlocklyAction>>> entry : actionsByCategory.entrySet()) {
+            for (Class<? extends BlocklyAction> actionClass : entry.getValue()) {
+                generateActionLoadingCase(js, actionClass);
+            }
+        }
+
+        js.append("""
+            });
+        }
+        
+        console.log('✅ Fonctions utilitaires auto-générées chargées');
+        
+        """);
+    }
+
+    private void generateTriggerCase(StringBuilder js, Class<? extends BlocklyTrigger> triggerClass) {
+        BlocklyInfo info = triggerClass.getAnnotation(BlocklyInfo.class);
+        String blockName = info.name().isEmpty() ?
+                triggerClass.getSimpleName().toLowerCase().replace("trigger", "_trigger") :
+                info.name();
+
+        String triggerType = triggerClass.getSimpleName().toLowerCase().replace("trigger", "");
+
+        List<BlocklyFieldExtractor.BlocklyFieldInfo> fields = BlocklyFieldExtractor.extractFields(triggerClass);
+
+        js.append("                if (block.type === '").append(blockName).append("') {\n");
+        js.append("                    triggers.push({\n");
+        js.append("                        type: '").append(triggerType).append("',\n");
+        js.append("                        name: '").append(triggerClass.getSimpleName()).append("_' + Date.now(),\n");
+
+        // Générer les champs dynamiquement
+        for (BlocklyFieldExtractor.BlocklyFieldInfo field : fields) {
+            js.append("                        ");
+            generateFieldExtraction(js, field);
+            js.append(",\n");
+        }
+
+        // Ajouter les actions si le trigger les supporte
+        try {
+            BlocklyTrigger instance = triggerClass.getDeclaredConstructor().newInstance();
+            if (instance.hasActions()) {
+                js.append("                        actions: getActionsFromBlock(block)\n");
+            } else {
+                js.append("                        actions: []\n");
+            }
+        } catch (Exception e) {
+            js.append("                        actions: getActionsFromBlock(block)\n");
+        }
+
+        js.append("                    });\n");
+        js.append("                }\n");
+    }
+
+    private void generateActionCase(StringBuilder js, Class<? extends BlocklyAction> actionClass) {
+        BlocklyInfo info = actionClass.getAnnotation(BlocklyInfo.class);
+        String blockName = info.name().isEmpty() ?
+                actionClass.getSimpleName().toLowerCase().replace("action", "_action") :
+                info.name();
+
+        String actionType = actionClass.getSimpleName().toLowerCase().replace("action", "");
+
+        List<BlocklyFieldExtractor.BlocklyFieldInfo> fields = BlocklyFieldExtractor.extractFields(actionClass);
+
+        js.append("                if (actionBlock.type === '").append(blockName).append("') {\n");
+        js.append("                    actions.push({\n");
+        js.append("                        type: '").append(actionType).append("'");
+
+        // Générer les champs dynamiquement
+        for (BlocklyFieldExtractor.BlocklyFieldInfo field : fields) {
+            js.append(",\n                        ");
+            generateFieldExtraction(js, field);
+        }
+
+        js.append("\n                    });\n");
+        js.append("                }\n");
+    }
+
+    private void generateTriggerLoadingCase(StringBuilder js, Class<? extends BlocklyTrigger> triggerClass) {
+        BlocklyInfo info = triggerClass.getAnnotation(BlocklyInfo.class);
+        String blockName = info.name().isEmpty() ?
+                triggerClass.getSimpleName().toLowerCase().replace("trigger", "_trigger") :
+                info.name();
+
+        String triggerType = triggerClass.getSimpleName().toLowerCase().replace("trigger", "");
+
+        List<BlocklyFieldExtractor.BlocklyFieldInfo> fields = BlocklyFieldExtractor.extractFields(triggerClass);
+
+        js.append("                if (trigger.type === '").append(triggerType).append("') {\n");
+        js.append("                    const block = workspace.newBlock('").append(blockName).append("');\n");
+
+        // Générer le chargement des champs dynamiquement
+        for (BlocklyFieldExtractor.BlocklyFieldInfo field : fields) {
+            generateFieldLoading(js, field);
+        }
+
+        js.append("                    \n");
+        js.append("                    // Charger les actions\n");
+        js.append("                    loadActionsIntoBlock(block, trigger.actions);\n");
+        js.append("                    \n");
+        js.append("                    block.initSvg();\n");
+        js.append("                    block.render();\n");
+        js.append("                    block.moveBy(20 + (index * 300), 20);\n");
+        js.append("                }\n");
+    }
+
+    private void generateActionLoadingCase(StringBuilder js, Class<? extends BlocklyAction> actionClass) {
+        BlocklyInfo info = actionClass.getAnnotation(BlocklyInfo.class);
+        String blockName = info.name().isEmpty() ?
+                actionClass.getSimpleName().toLowerCase().replace("action", "_action") :
+                info.name();
+
+        String actionType = actionClass.getSimpleName().toLowerCase().replace("action", "");
+
+        List<BlocklyFieldExtractor.BlocklyFieldInfo> fields = BlocklyFieldExtractor.extractFields(actionClass);
+
+        js.append("                if (action.type === '").append(actionType).append("') {\n");
+        js.append("                    const actionBlock = workspace.newBlock('").append(blockName).append("');\n");
+
+        // Générer le chargement des champs dynamiquement
+        for (BlocklyFieldExtractor.BlocklyFieldInfo field : fields) {
+            generateFieldLoading(js, field);
+        }
+
+        js.append("                    \n");
+        js.append("                    actionBlock.initSvg();\n");
+        js.append("                    actionBlock.render();\n");
+        js.append("                    \n");
+        js.append("                    if (index === 0) {\n");
+        js.append("                        // Premier bloc d'action, connecter au trigger\n");
+        js.append("                        actionsInput.connection.connect(actionBlock.previousConnection);\n");
+        js.append("                    } else {\n");
+        js.append("                        // Blocs suivants, connecter au bloc précédent\n");
+        js.append("                        if (previousActionBlock) {\n");
+        js.append("                            previousActionBlock.nextConnection.connect(actionBlock.previousConnection);\n");
+        js.append("                        }\n");
+        js.append("                    }\n");
+        js.append("                    \n");
+        js.append("                    previousActionBlock = actionBlock;\n");
+        js.append("                }\n");
+    }
+
+    private void generateFieldExtraction(StringBuilder js, BlocklyFieldExtractor.BlocklyFieldInfo field) {
+        String fieldName = field.fieldName().toUpperCase();
+
+        switch (field.type()) {
+            case TEXT_INPUT:
+                js.append(field.fieldName().toLowerCase())
+                        .append(": block.getFieldValue('").append(fieldName).append("') || '")
+                        .append(escapeJavaScript(field.defaultValue())).append("'");
+                break;
+
+            case NUMBER_INPUT:
+                js.append(field.fieldName().toLowerCase())
+                        .append(": parseFloat(block.getFieldValue('").append(fieldName).append("')) || ")
+                        .append(field.defaultValue().isEmpty() ? "0" : field.defaultValue());
+                break;
+
+            case DROPDOWN:
+                js.append(field.fieldName().toLowerCase())
+                        .append(": block.getFieldValue('").append(fieldName).append("') || '")
+                        .append(field.options().split(",")[0].trim()).append("'");
+                break;
+
+            case BOOLEAN_INPUT:
+                js.append(field.fieldName().toLowerCase())
+                        .append(": (() => {\n");
+                js.append("                            const boolBlock = block.getInputTargetBlock('").append(fieldName).append("');\n");
+                js.append("                            return boolBlock ? boolBlock.type === 'boolean_true' : ")
+                        .append(field.defaultValue().equals("true") ? "true" : "false").append(";\n");
+                js.append("                        })()");
+                break;
+
+            case COLOR_INPUT:
+                js.append(field.fieldName().toLowerCase())
+                        .append(": block.getFieldValue('").append(fieldName).append("') || '")
+                        .append(field.defaultValue().isEmpty() ? "#ff0000" : field.defaultValue()).append("'");
+                break;
+            case CHECKBOX:
+                js.append(field.fieldName().toLowerCase())
+                        .append(": block.getFieldValue('").append(fieldName).append("') === 'true'");
+                break;
+        }
+    }
+
+    private void generateFieldLoading(StringBuilder js, BlocklyFieldExtractor.BlocklyFieldInfo field) {
+        String fieldName = field.fieldName().toUpperCase();
+        String objectField = field.fieldName().toLowerCase();
+
+        switch (field.type()) {
+            case TEXT_INPUT:
+            case DROPDOWN:
+            case COLOR_INPUT:
+                js.append("                    block.setFieldValue((trigger.").append(objectField)
+                        .append(" || '").append(escapeJavaScript(field.defaultValue()))
+                        .append("').toString(), '").append(fieldName).append("');\n");
+                break;
+
+            case NUMBER_INPUT:
+                js.append("                    block.setFieldValue((trigger.").append(objectField)
+                        .append(" || ").append(field.defaultValue().isEmpty() ? "0" : field.defaultValue())
+                        .append(").toString(), '").append(fieldName).append("');\n");
+                break;
+
+            case BOOLEAN_INPUT:
+                js.append("                    if (trigger.").append(objectField).append(" !== undefined) {\n");
+                js.append("                        const boolBlock = workspace.newBlock(trigger.")
+                        .append(objectField).append(" ? 'boolean_true' : 'boolean_false');\n");
+                js.append("                        boolBlock.initSvg();\n");
+                js.append("                        boolBlock.render();\n");
+                js.append("                        block.getInput('").append(fieldName)
+                        .append("').connection.connect(boolBlock.outputConnection);\n");
+                js.append("                    }\n");
+                break;
+            case CHECKBOX:
+                js.append("                    block.setFieldValue(trigger.").append(objectField)
+                        .append(" ? 'true' : 'false', '").append(fieldName).append("');\n");
+                break;
+        }
     }
 
     private String escapeJavaScript(String text) {

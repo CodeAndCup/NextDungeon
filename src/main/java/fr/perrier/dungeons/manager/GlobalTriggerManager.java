@@ -1,0 +1,144 @@
+package fr.perrier.dungeons.manager;
+
+import fr.perrier.dungeons.Main;
+import fr.perrier.dungeons.workflow.trigger.Trigger;
+import fr.perrier.dungeons.workflow.trigger.handler.TriggerEventHandler;
+import fr.perrier.dungeons.workflow.trigger.handler.impl.*;
+import org.bukkit.Bukkit;
+import org.bukkit.event.Event;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
+
+import java.lang.reflect.Method;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+
+/**
+ * Gestionnaire global pour tous les types de triggers
+ */
+public class GlobalTriggerManager implements Listener {
+
+    // Cache des triggers par type
+    private final Map<String, List<Trigger>> triggersByType = new ConcurrentHashMap<>();
+
+    // Cache des triggers par type d'événement
+    private final Map<Class<? extends Event>, List<Trigger>> triggersByEventType = new ConcurrentHashMap<>();
+
+    // Handlers enregistrés
+    private final Map<Class<? extends Event>, TriggerEventHandler<?>> handlers = new HashMap<>();
+
+    // Instance singleton
+    private static GlobalTriggerManager instance;
+
+    public GlobalTriggerManager() {
+        registerDefaultHandlers();
+    }
+
+    /**
+     * Initialise le gestionnaire global
+     */
+    public void initialize() {
+        // Enregistrer ce manager comme listener principal
+        Bukkit.getPluginManager().registerEvents(this, Main.getInstance());
+
+        // Enregistrer tous les handlers spécifiques
+        for (TriggerEventHandler<?> handler : handlers.values()) {
+            Bukkit.getPluginManager().registerEvents(handler, Main.getInstance());
+        }
+
+        Main.getInstance().getLogger().info("GlobalTriggerManager initialisé avec " + handlers.size() + " handlers");
+    }
+
+    /**
+     * Enregistre les handlers par défaut
+     */
+    private void registerDefaultHandlers() {
+        registerHandler(new RegionTriggerHandler());
+        /*registerHandler(new ActionTriggerHandler());
+        registerHandler(new EntityKillTriggerHandler());
+        registerHandler(new ItemTriggerHandler());
+        registerHandler(new ChatTriggerHandler());
+        registerHandler(new TimeTriggerHandler());*/
+    }
+
+    /**
+     * Enregistre un nouveau handler
+     */
+    public <T extends Event> void registerHandler(TriggerEventHandler<T> handler) {
+        handlers.put(handler.getEventType(), handler);
+        Main.getInstance().getLogger().info("Handler enregistré pour: " + handler.getEventType().getSimpleName());
+    }
+
+    /**
+     * Rafraîchit le cache des triggers
+     */
+    public void refreshTriggerCache() {
+        triggersByType.clear();
+        triggersByEventType.clear();
+
+        try {
+            List<Trigger> allTriggers = Main.getInstance().getRedisStorageService().getCurrentFloor().get().getTriggers();
+
+            for (Trigger trigger : allTriggers) {
+                if (!trigger.isEnabled()) continue;
+
+                // Cache par type de trigger
+                triggersByType.computeIfAbsent(trigger.getType(), k -> new ArrayList<>()).add(trigger);
+
+                // Cache par type d'événement
+                for (Map.Entry<Class<? extends Event>, TriggerEventHandler<?>> entry : handlers.entrySet()) {
+                    if (entry.getValue().getSupportedTriggerTypes().contains(trigger.getType())) {
+                        triggersByEventType.computeIfAbsent(entry.getKey(), k -> new ArrayList<>()).add(trigger);
+                    }
+                }
+            }
+
+            Main.getInstance().getLogger().info("Cache des triggers rafraîchi: " + allTriggers.size() + " triggers");
+
+        } catch (Exception e) {
+            Main.getInstance().getLogger().severe("Erreur lors du rafraîchissement du cache: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Obtient les triggers d'un type spécifique
+     */
+    public List<Trigger> getTriggersByType(String type) {
+        return triggersByType.getOrDefault(type, Collections.emptyList());
+    }
+
+    /**
+     * Obtient les triggers pour un type d'événement
+     */
+    public List<Trigger> getTriggersForEventType(Class<? extends Event> eventType) {
+        return triggersByEventType.getOrDefault(eventType, Collections.emptyList());
+    }
+
+    /**
+     * Traite un événement générique - appelé automatiquement par les handlers
+     */
+    @SuppressWarnings("unchecked")
+    public <T extends Event> void processEvent(T event) {
+        TriggerEventHandler<T> handler = (TriggerEventHandler<T>) handlers.get(event.getClass());
+        if (handler != null) {
+            List<Trigger> triggers = getTriggersForEventType(event.getClass());
+            if (!triggers.isEmpty()) {
+                handler.handleEvent(event, triggers);
+            }
+        }
+    }
+
+    /**
+     * Statistiques du cache
+     */
+    public Map<String, Integer> getCacheStats() {
+        Map<String, Integer> stats = new HashMap<>();
+        stats.put("total_triggers", triggersByType.values().stream().mapToInt(List::size).sum());
+        stats.put("trigger_types", triggersByType.size());
+        stats.put("event_types", triggersByEventType.size());
+        stats.put("handlers", handlers.size());
+        return stats;
+    }
+}

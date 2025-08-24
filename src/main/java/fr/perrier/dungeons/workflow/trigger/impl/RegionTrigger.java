@@ -13,18 +13,20 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Trigger qui se déclenche quand un joueur entre dans une région définie par deux positions
+ * Trigger qui se déclenche quand un joueur entre/sort d'une région définie par deux positions
+ * Mis à jour pour fonctionner avec le système global de triggers
  */
 @Getter
 @Setter
 @BlocklyInfo(
         name = "region_trigger",
         color = "#4CAF50",
-        displayText = "📍 Quand le joueur entre en région",
-        tooltip = "Déclenche quand un joueur entre dans une région définie",
+        displayText = "📍 Quand le joueur entre/sort de région",
+        tooltip = "Déclenche quand un joueur entre ou sort d'une région définie",
         category = "Régions"
 )
 public class RegionTrigger extends Trigger implements BlocklyTrigger {
+
     @BlocklyField(type = BlocklyField.FieldType.NUMBER_INPUT, label = "X1:", defaultValue = "0", order = 1)
     private double pos1X;
 
@@ -46,6 +48,19 @@ public class RegionTrigger extends Trigger implements BlocklyTrigger {
     @BlocklyField(type = BlocklyField.FieldType.TEXT_INPUT, label = "Monde:", defaultValue = "world", order = 7)
     private String worldName;
 
+    // Nouvelles options pour le système global
+    @BlocklyField(type = BlocklyField.FieldType.DROPDOWN, label = "Événement:", order = 8, options = "enter,exit,both")
+    private String regionEvent = "enter"; // "enter", "exit", "both"
+
+    @BlocklyField(type = BlocklyField.FieldType.CHECKBOX, label = "Une seule fois:", order = 9)
+    private boolean onlyOnce = false; // Déclenche seulement une fois par joueur
+
+    @BlocklyField(type = BlocklyField.FieldType.NUMBER_INPUT, label = "Cooldown (sec):", defaultValue = "0", order = 10)
+    private int cooldownSeconds = 0; // Cooldown entre les déclenchements
+
+    // Cache pour le système "une seule fois" et les cooldowns
+    private final Map<String, Long> playerTriggerHistory = new HashMap<>();
+
     public RegionTrigger(String name) {
         super(name);
         this.worldName = "world"; // Monde par défaut
@@ -63,21 +78,54 @@ public class RegionTrigger extends Trigger implements BlocklyTrigger {
 
     @Override
     public String getTooltip() {
-        return "Déclenche quand un joueur entre dans une région définie";
+        return "Déclenche quand un joueur entre ou sort d'une région définie";
     }
 
     @Override
     public String getDisplayText() {
-        return "📍 Quand le joueur entre en région";
+        return "📍 Quand le joueur " + getRegionEventText() + " région";
+    }
+
+    private String getRegionEventText() {
+        return switch (regionEvent.toLowerCase()) {
+            case "enter" -> "entre en";
+            case "exit" -> "sort de";
+            case "both" -> "entre/sort de";
+            default -> "entre en";
+        };
     }
 
     @Override
     public boolean execute(Player player, Location location, Map<String, Object> data) {
-        if (checkConditions(player, data)) {
-            // Exécuter toutes les actions définies
-            return executeActions(player, location, data);
+        if (!checkConditions(player, data)) {
+            return false;
         }
-        return false;
+
+        // Vérifier le cooldown si activé
+        if (cooldownSeconds > 0) {
+            String playerId = player.getUniqueId().toString();
+            long currentTime = System.currentTimeMillis();
+            Long lastTrigger = playerTriggerHistory.get(playerId);
+
+            if (lastTrigger != null && (currentTime - lastTrigger) < (cooldownSeconds * 1000L)) {
+                return false; // Encore en cooldown
+            }
+
+            playerTriggerHistory.put(playerId, currentTime);
+        }
+
+        // Vérifier "une seule fois" si activé
+        if (onlyOnce) {
+            String playerId = player.getUniqueId().toString() + "_once";
+            if (playerTriggerHistory.containsKey(playerId)) {
+                return false; // Déjà déclenché pour ce joueur
+            }
+
+            playerTriggerHistory.put(playerId, System.currentTimeMillis());
+        }
+
+        // Exécuter toutes les actions définies
+        return executeActions(player, location, data);
     }
 
     @Override
@@ -85,6 +133,34 @@ public class RegionTrigger extends Trigger implements BlocklyTrigger {
         if (!enabled || player == null) {
             return false;
         }
+
+        // Vérifier le type d'événement de région si spécifié dans les données
+        String currentRegionEvent = (String) data.get("region_event");
+        if (currentRegionEvent != null && !regionEvent.equals("both")) {
+            if (!regionEvent.equals(currentRegionEvent)) {
+                return false; // L'événement ne correspond pas
+            }
+        }
+
+        Location playerLoc = player.getLocation();
+
+        // Vérifier le monde si spécifié
+        if (worldName != null && !worldName.isEmpty() && !playerLoc.getWorld().getName().equals(worldName)) {
+            return false;
+        }
+
+        // Le RegionTriggerHandler s'occupe déjà de vérifier si le joueur est dans la région
+        // Ici on peut ajouter des conditions supplémentaires si nécessaire
+
+        return true; // Les conditions de base sont remplies
+    }
+
+    /**
+     * Vérification manuelle si un joueur est dans la région
+     * (utilisée par le RegionTriggerHandler)
+     */
+    public boolean isPlayerInRegion(Player player) {
+        if (player == null) return false;
 
         Location playerLoc = player.getLocation();
 
@@ -125,6 +201,8 @@ public class RegionTrigger extends Trigger implements BlocklyTrigger {
         config.put("category", "location");
 
         Map<String, Object> fields = new HashMap<>();
+
+        // Coordonnées de la région
         fields.put("pos1_x", Map.of("type", "number", "label", "Position 1 - X", "default", 0));
         fields.put("pos1_y", Map.of("type", "number", "label", "Position 1 - Y", "default", 64));
         fields.put("pos1_z", Map.of("type", "number", "label", "Position 1 - Z", "default", 0));
@@ -132,8 +210,89 @@ public class RegionTrigger extends Trigger implements BlocklyTrigger {
         fields.put("pos2_y", Map.of("type", "number", "label", "Position 2 - Y", "default", 74));
         fields.put("pos2_z", Map.of("type", "number", "label", "Position 2 - Z", "default", 10));
         fields.put("world", Map.of("type", "text", "label", "Monde", "default", "world"));
+
+        // Nouvelles options
+        fields.put("region_event", Map.of(
+                "type", "dropdown",
+                "label", "Événement",
+                "default", "enter",
+                "options", new String[]{"enter", "exit", "both"}
+        ));
+
+        fields.put("only_once", Map.of(
+                "type", "checkbox",
+                "label", "Une seule fois par joueur",
+                "default", false
+        ));
+
+        fields.put("cooldown_seconds", Map.of(
+                "type", "number",
+                "label", "Cooldown (secondes)",
+                "default", 0,
+                "min", 0
+        ));
+
         config.put("fields", fields);
 
         return config;
+    }
+
+    /**
+     * Remet à zéro l'historique d'un joueur (utile pour les tests ou reset)
+     */
+    public void resetPlayerHistory(Player player) {
+        String playerId = player.getUniqueId().toString();
+        playerTriggerHistory.remove(playerId);
+        playerTriggerHistory.remove(playerId + "_once");
+    }
+
+    /**
+     * Remet à zéro tout l'historique du trigger
+     */
+    public void resetAllHistory() {
+        playerTriggerHistory.clear();
+    }
+
+    /**
+     * Vérifie si un joueur a déjà déclenché ce trigger (pour "une seule fois")
+     */
+    public boolean hasPlayerTriggeredOnce(Player player) {
+        return playerTriggerHistory.containsKey(player.getUniqueId().toString() + "_once");
+    }
+
+    /**
+     * Obtient le temps restant du cooldown pour un joueur (en millisecondes)
+     */
+    public long getRemainingCooldown(Player player) {
+        if (cooldownSeconds <= 0) return 0;
+
+        String playerId = player.getUniqueId().toString();
+        Long lastTrigger = playerTriggerHistory.get(playerId);
+
+        if (lastTrigger == null) return 0;
+
+        long elapsed = System.currentTimeMillis() - lastTrigger;
+        long cooldownMs = cooldownSeconds * 1000L;
+
+        return Math.max(0, cooldownMs - elapsed);
+    }
+
+    /**
+     * Informations de debug pour ce trigger
+     */
+    public Map<String, Object> getDebugInfo() {
+        Map<String, Object> info = new HashMap<>();
+        info.put("trigger_id", getTriggerId().toString());
+        info.put("name", getName());
+        info.put("enabled", isEnabled());
+        info.put("region_event", regionEvent);
+        info.put("only_once", onlyOnce);
+        info.put("cooldown_seconds", cooldownSeconds);
+        info.put("world", worldName);
+        info.put("region_bounds", String.format("(%,.1f,%,.1f,%,.1f) -> (%,.1f,%,.1f,%,.1f)",
+                pos1X, pos1Y, pos1Z, pos2X, pos2Y, pos2Z));
+        info.put("players_in_history", playerTriggerHistory.size());
+        info.put("actions_count", getActions().size());
+        return info;
     }
 }
