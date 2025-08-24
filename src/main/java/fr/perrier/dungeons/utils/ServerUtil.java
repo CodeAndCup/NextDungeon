@@ -39,7 +39,7 @@ public class ServerUtil {
      * @param floorInstance the floor instance to create the service for
      * @return the unique id of the created service or null if the creation failed
      */
-    public static UUID makeFloorInstance(FloorInstance floorInstance) {
+    public static UUID makeFloorInstance(FloorInstance floorInstance, boolean editMode) {
         Floor floor = floorInstance.getFloor();
         String templateName = floor.getId();
 
@@ -51,6 +51,7 @@ public class ServerUtil {
         }
 
         ServiceConfiguration config = ServiceConfiguration.builder(serviceTask)
+                .writeProperty(DocProperty.property("editMode", boolean.class), editMode)
                 .writeProperty(DocProperty.property("isDungeonInstance", boolean.class), true)
                 .writeProperty(DocProperty.property("floorId", String.class), floorInstance.getFloorId())
                 .writeProperty(DocProperty.property("createdAt", String.class), Instant.now().toString())
@@ -77,12 +78,21 @@ public class ServerUtil {
     }
 
     /**
+     * Checks if the current server is in edit mode
+     * @return true if this server is in edit mode
+     */
+    public static boolean isInEditMode() {
+        ServiceInfoSnapshot currentService = InjectionLayer.ext().instance(ServiceInfoHolder.class).serviceInfo();
+        return currentService.readProperty(DocProperty.property("editMode", boolean.class).withDefault(false));
+    }
+
+    /**
      * Gets the instance information for this server if it's an instance
      * @return InstanceInfo containing the instance details, or null if not an instance
      */
     public static InstanceInfo getInstanceInfo() {
         ServiceInfoSnapshot currentService = InjectionLayer.ext().instance(ServiceInfoHolder.class).serviceInfo();
-        if (!isInstanceServer()) return null;
+        if (!isInstanceServer() && !isInEditMode()) return null;
         String instanceId, floorId, createdAt;
         try {
             instanceId = currentService.serviceId().uniqueId().toString();

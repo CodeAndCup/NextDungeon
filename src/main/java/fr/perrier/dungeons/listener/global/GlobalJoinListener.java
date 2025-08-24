@@ -1,4 +1,4 @@
-package fr.perrier.dungeons.listener;
+package fr.perrier.dungeons.listener.global;
 
 import fr.perrier.dungeons.Main;
 import fr.perrier.dungeons.messaging.packets.PlayerSwitchServerPacket;
@@ -8,7 +8,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 
-public class JoinListener implements Listener {
+public class GlobalJoinListener implements Listener {
 
     /**
      * When a player joins, we check if we have cached profile data for them.

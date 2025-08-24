@@ -12,14 +12,17 @@ import fr.perrier.dungeons.commands.PlayerCommands;
 import fr.perrier.dungeons.configuration.ConfigLoader;
 import fr.perrier.dungeons.database.DatabaseFactory;
 import fr.perrier.dungeons.database.DatabaseManager;
-import fr.perrier.dungeons.listener.JoinListener;
-import fr.perrier.dungeons.listener.LeaveListener;
-import fr.perrier.dungeons.listener.PartyListener;
+import fr.perrier.dungeons.listener.global.DebugChatListener;
+import fr.perrier.dungeons.listener.global.GlobalJoinListener;
+import fr.perrier.dungeons.listener.global.GlobalLeaveListener;
+import fr.perrier.dungeons.listener.global.GlobalPartyListener;
+import fr.perrier.dungeons.manager.DungeonFileManager;
 import fr.perrier.dungeons.messaging.Pidgin;
 import fr.perrier.dungeons.model.FloorInstance;
 import fr.perrier.dungeons.storage.ProfileService;
 import fr.perrier.dungeons.storage.RedisStorageService;
 import fr.perrier.dungeons.utils.ServerUtil;
+import fr.perrier.dungeons.webserver.DungeonWebEditorManager;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Bukkit;
@@ -28,8 +31,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
-
-import java.time.Instant;
 
 public final class Main extends JavaPlugin {
 
@@ -63,8 +64,13 @@ public final class Main extends JavaPlugin {
     @Getter
     private DatabaseManager databaseManager;
 
+    // Server utility class
     @Getter
     private ServerUtil serverUtil;
+
+    // Web editor manager
+    @Getter
+    private DungeonWebEditorManager webEditorManager;
 
     @Override
     public void onEnable() {
@@ -107,6 +113,9 @@ public final class Main extends JavaPlugin {
 
         // Initialize server based on type
         if (ServerUtil.isInstanceServer()) {
+            if(ServerUtil.isInEditMode()) {
+                getLogger().info("Server is in EDIT mode");
+            }
             initializeInstanceServer();
         } else {
             initializeLobbyServer();
@@ -125,10 +134,12 @@ public final class Main extends JavaPlugin {
         loadCommands();
 
         // Loading listeners
-        loadListeners();
+        loadGlobalListeners();
 
         // Load Dungeons
         ConfigLoader.loadAllDungeons();
+
+        webEditorManager = new DungeonWebEditorManager();
     }
 
     @Override
@@ -150,6 +161,7 @@ public final class Main extends JavaPlugin {
 
         CupCodeAPI.disable();
         Pidgin.shutdown();
+        webEditorManager.shutdownAllEditors();
     }
 
     /**
@@ -174,11 +186,39 @@ public final class Main extends JavaPlugin {
      * server's plugin manager, allowing the plugin to respond to various
      * events occurring within the game environment.</p>
      */
-    private void loadListeners() {
+    private void loadGlobalListeners() {
         PluginManager pluginManager = getServer().getPluginManager();
-        pluginManager.registerEvents(new PartyListener(), this);
-        pluginManager.registerEvents(new JoinListener(), this);
-        pluginManager.registerEvents(new LeaveListener(), this);
+        pluginManager.registerEvents(new GlobalPartyListener(), this);
+        pluginManager.registerEvents(new GlobalJoinListener(), this);
+        pluginManager.registerEvents(new GlobalLeaveListener(), this);
+
+        pluginManager.registerEvents(new DebugChatListener(), this);
+    }
+
+    /**
+     * Loads event listeners specific to dungeon instances.
+     *
+     * <p>This method registers event listeners that are relevant only
+     * when the server is operating as a dungeon instance. It is called
+     * during the initialization of an instance server in
+     * {@link #initializeInstanceServer()}.</p>
+     */
+    private void loadInstanceListeners() {
+        PluginManager pluginManager = getServer().getPluginManager();
+        // Register instance-specific listeners here
+    }
+
+    /**
+     * Loads event listeners specific to the editor server.
+     *
+     * <p>This method registers event listeners that are relevant only
+     * when the server is operating in editor mode. It is called during
+     * the initialization of an editor server in
+     * {@link #initializeEditorServer()}.</p>
+     */
+    private void loadEditorListeners() {
+        PluginManager pluginManager = getServer().getPluginManager();
+        // Register editor-specific listeners here
     }
 
     /**
@@ -207,11 +247,30 @@ public final class Main extends JavaPlugin {
                 info.createdAt()
         ));
 
+        loadInstanceListeners();
+
         // Initialize instance in Redis
         redisStorageService.initializeInstance(info.instanceId(), info.floorId());
 
         // Schedule ready state
         putDungeonServerReady();
+    }
+
+    /**
+     * Initializes the editor server.
+     *
+     * <p>This method is called during the enabling of the plugin and
+     * initializes the editor server. This method is a stub and can be
+     * overridden in subclasses to provide custom initialization for the
+     * editor server.</p>
+     *
+     * <p>This method is called after the instance server has been initialized
+     * in {@link #initializeInstanceServer()}.</p>
+     */
+    private void initializeEditorServer() {
+        getLogger().info("Initializing editor server");
+        loadEditorListeners();
+        // Editor specific initialization if needed
     }
 
     /**

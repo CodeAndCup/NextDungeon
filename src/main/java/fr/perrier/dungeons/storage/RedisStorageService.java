@@ -8,6 +8,7 @@ import fr.perrier.dungeons.model.Floor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.Bukkit;
+import org.jetbrains.annotations.Nullable;
 import org.redisson.api.RMap;
 import org.redisson.api.RTopic;
 import org.redisson.api.RedissonClient;
@@ -243,7 +244,7 @@ public class RedisStorageService {
      * @param id the unique ID of the floor to retrieve
      * @return the Floor object with the given ID, or null if not found
      */
-    public Floor getFloor(String id) {
+    public @Nullable Floor getFloor(String id) {
         Floor localFloor = currentFloor.get();
         if (localFloor != null && localFloor.getId().equals(id)) {
             return localFloor;

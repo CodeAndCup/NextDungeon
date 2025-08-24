@@ -4,10 +4,12 @@ import fr.perrier.dungeons.Main;
 import fr.perrier.dungeons.configuration.Requirements;
 import fr.perrier.dungeons.configuration.Rules;
 import fr.perrier.dungeons.configuration.WorldConfig;
+import fr.perrier.dungeons.trigger.Trigger;
 import fr.perrier.dungeons.utils.ServerUtil;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Bukkit;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -25,6 +27,7 @@ public class Floor {
     private Requirements requirements;
     private Rules rules;
     private List<Step> steps;
+    private List<Trigger> triggers;
 
     public Floor(String id, String name) {
         this.id = id;
@@ -46,7 +49,7 @@ public class Floor {
      * @param id the unique ID of the floor to retrieve
      * @return the floor with the given ID, or null if not found
      */
-    public static Floor getFloor(String id) {
+    public static @Nullable Floor getFloor(String id) {
         return Main.getInstance().getRedisStorageService().getFloor(id);
     }
 

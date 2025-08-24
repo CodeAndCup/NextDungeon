@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Éditeur de Triggers - Dungeons</title>
+    <script src="https://unpkg.com/blockly/blockly_compressed.js"></script>
+    <script src="https://unpkg.com/blockly/blocks_compressed.js"></script>
+    <script src="https://unpkg.com/blockly/javascript_compressed.js"></script>
+    <script src="https://unpkg.com/blockly/msg/js/fr.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            color: #4a5568;
+            font-size: 2.5em;
+        }
+
+        .header p {
+            margin: 10px 0 0 0;
+            color: #718096;
+            font-size: 1.1em;
+        }
+
+        .debug-info {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            margin: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .controls {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            text-align: center;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .btn {
+            background: #4299e1;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 0 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            background: #3182ce;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(66, 153, 225, 0.4);
+        }
+
+        .btn.success {
+            background: #48bb78;
+        }
+
+        .btn.success:hover {
+            background: #38a169;
+            box-shadow: 0 4px 12px rgba(72, 187, 120, 0.4);
+        }
+
+        .btn.danger {
+            background: #f56565;
+        }
+
+        .btn.danger:hover {
+            background: #e53e3e;
+            box-shadow: 0 4px 12px rgba(245, 101, 101, 0.4);
+        }
+
+        .editor-container {
+            height: calc(100vh - 250px);
+            background: white;
+            margin: 20px;
+            border-radius: 10px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            overflow: hidden;
+        }
+
+        #blocklyDiv {
+            height: 100%;
+            width: 100%;
+        }
+
+        .status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 1000;
+        }
+
+        .status.success {
+            background: #48bb78;
+        }
+
+        .status.error {
+            background: #f56565;
+        }
+
+        .status.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+<div class="header">
+    <h1>🏰 Éditeur de Triggers</h1>
+    <p>Créez et modifiez les triggers de votre donjon avec des blocs visuels</p>
+    <div class="debug-info" id="debugInfo">
+        🔄 Chargement de l'éditeur...
+    </div>
+</div>
+
+<div class="controls">
+    <button class="btn success" onclick="loadTriggers()">📥 Charger</button>
+    <button class="btn" onclick="saveTriggers()">💾 Sauvegarder</button>
+    <button class="btn danger" onclick="clearWorkspace()">🗑️ Vider</button>
+    <button class="btn" onclick="generateCode()">⚡ Générer Code</button>
+    <button class="btn" onclick="testAPI()">🧪 Test API</button>
+</div>
+
+<div class="editor-container">
+    <div id="blocklyDiv"></div>
+</div>
+
+<div id="status" class="status"></div>
+
+<script>
+    let workspace;
+    let triggerTypesLoaded = false;
+
+    // Configuration des blocs Blockly
+    const toolbox = {
+        "kind": "categoryToolbox",
+        "contents": [
+            {
+                "kind": "category",
+                "name": "🎯 Triggers",
+                "colour": "#FF6B6B",
+                "contents": [
+                    {
+                        "kind": "block",
+                        "type": "mythicmob_kill_trigger"
+                    },
+                    {
+                        "kind": "block",
+                        "type": "location_trigger"
+                    }
+                ]
+            },
+            {
+                "kind": "category",
+                "name": "🐛 Debug",
+                "colour": "#9B59B6",
+                "contents": [
+                    {
+                        "kind": "block",
+                        "type": "debug_chat_trigger"
+                    }
+                ]
+            },
+            {
+                "kind": "category",
+                "name": "⚡ Actions",
+                "colour": "#4ECDC4",
+                "contents": [
+                    {
+                        "kind": "block",
+                        "type": "spawn_mob"
+                    },
+                    {
+                        "kind": "block",
+                        "type": "send_message"
+                    },
+                    {
+                        "kind": "block",
+                        "type": "debug_log"
+                    }
+                ]
+            },
+            {
+                "kind": "category",
+                "name": "🔧 Logique",
+                "colour": "#45B7D1",
+                "contents": [
+                    {
+                        "kind": "block",
+                        "type": "controls_if"
+                    },
+                    {
+                        "kind": "block",
+                        "type": "logic_compare"
+                    }
+                ]
+            }
+        ]
+    };
+
+    // Initialisation de Blockly
+    function initBlockly() {
+        updateDebugInfo("🔧 Initialisation de Blockly...");
+
+        workspace = Blockly.inject('blocklyDiv', {
+            toolbox: toolbox,
+            theme: Blockly.Themes.Classic,
+            grid: {
+                spacing: 25,
+                length: 3,
+                colour: '#ccc',
+                snap: true
+            },
+            zoom: {
+                controls: true,
+                wheel: true,
+                startScale: 1.0,
+                maxScale: 3,
+                minScale: 0.3,
+                scaleSpeed: 1.2
+            },
+            trashcan: true
+        });
+
+        defineTriggerBlocks();
+        loadTriggerTypes();
+    }
+
+    // Définition des blocs personnalisés
+    function defineTriggerBlocks() {
+        updateDebugInfo("📦 Définition des blocs...");
+
+        // Bloc MythicMob Kill Trigger
+        Blockly.Blocks['mythicmob_kill_trigger'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("💀 Quand")
+                    .appendField(new Blockly.FieldTextInput(""), "MOB_NAME")
+                    .appendField("est tué");
+                this.appendStatementInput("ACTIONS")
+                    .setCheck(null)
+                    .appendField("Faire:");
+                this.setColour('#FF6B6B');
+                this.setTooltip("Déclenche quand un mob MythicMobs spécifique est tué");
+            }
+        };
+
+        // Bloc Location Trigger
+        Blockly.Blocks['location_trigger'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("📍 Quand le joueur entre en")
+                    .appendField(new Blockly.FieldNumber(0), "X")
+                    .appendField(new Blockly.FieldNumber(0), "Y")
+                    .appendField(new Blockly.FieldNumber(0), "Z");
+                this.appendDummyInput()
+                    .appendField("Rayon:")
+                    .appendField(new Blockly.FieldNumber(2), "RADIUS");
+                this.appendStatementInput("ACTIONS")
+                    .setCheck(null)
+                    .appendField("Faire:");
+                this.setColour('#4ECDC4');
+                this.setTooltip("Déclenche quand le joueur entre dans une zone");
+            }
+        };
+
+        // Bloc Debug Chat Trigger
+        Blockly.Blocks['debug_chat_trigger'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("🐛 Quand le message")
+                    .appendField(new Blockly.FieldTextInput("test"), "MESSAGE")
+                    .appendField("est écrit");
+                this.appendDummyInput()
+                    .appendField("Sensible à la casse:")
+                    .appendField(new Blockly.FieldCheckbox(false), "CASE_SENSITIVE")
+                    .appendField("Correspondance exacte:")
+                    .appendField(new Blockly.FieldCheckbox(true), "EXACT_MATCH");
+                this.appendStatementInput("ACTIONS")
+                    .setCheck(null)
+                    .appendField("Faire:");
+                this.setColour('#9B59B6');
+                this.setTooltip("Déclenche quand un message spécifique est écrit dans le chat");
+            }
+        };
+
+        // Bloc Spawn Mob
+        Blockly.Blocks['spawn_mob'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("👹 Faire apparaître")
+                    .appendField(new Blockly.FieldTextInput(""), "MOB_TYPE");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour('#FFA07A');
+                this.setTooltip("Fait apparaître un mob");
+            }
+        };
+
+        // Bloc Send Message
+        Blockly.Blocks['send_message'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("💬 Envoyer message:")
+                    .appendField(new Blockly.FieldTextInput(""), "MESSAGE");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour('#98D8C8');
+                this.setTooltip("Envoie un message au joueur");
+            }
+        };
+
+        // Bloc Debug Log
+        Blockly.Blocks['debug_log'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("📝 Log debug:")
+                    .appendField(new Blockly.FieldTextInput("Debug info"), "LOG_MESSAGE");
+                this.setPreviousStatement(true, null);
+                this.setNextStatement(true, null);
+                this.setColour('#E67E22');
+                this.setTooltip("Affiche un message de debug dans la console et au joueur");
+            }
+        };
+    }
+
+    // Test de l'API
+    async function testAPI() {
+        updateDebugInfo("🧪 Test de l'API en cours...");
+
+        try {
+            const response = await fetch('/api/trigger-types');
+            const responseText = await response.text();
+
+            console.log('Réponse brute:', responseText);
+            updateDebugInfo(`📡 Réponse API: ${response.status} - ${responseText.substring(0, 100)}...`);
+
+            if (response.ok) {
+                const data = JSON.parse(responseText);
+                console.log('Types de triggers:', data);
+                showStatus('✅ API opérationnelle!', 'success');
+            } else {
+                showStatus(`❌ Erreur API: ${response.status}`, 'error');
+            }
+        } catch (error) {
+            console.error('Erreur:', error);
+            updateDebugInfo(`❌ Erreur: ${error.message}`);
+            showStatus('Erreur de connexion API', 'error');
+        }
+    }
+
+    // Chargement des types de triggers depuis l'API
+    async function loadTriggerTypes() {
+        updateDebugInfo("📡 Chargement des types de triggers...");
+
+        try {
+            const response = await fetch('/api/trigger-types');
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const triggerTypes = await response.json();
+            console.log('Types de triggers chargés:', triggerTypes);
+
+            triggerTypesLoaded = true;
+            updateDebugInfo("✅ Types de triggers chargés avec succès!");
+            showStatus('Types de triggers chargés!', 'success');
+
+        } catch (error) {
+            console.error('Erreur lors du chargement des types de triggers:', error);
+            updateDebugInfo(`❌ Erreur: ${error.message}`);
+            showStatus('Erreur lors du chargement des types de triggers', 'error');
+        }
+    }
+
+    // Mise à jour des informations de debug
+    function updateDebugInfo(message) {
+        const debugElement = document.getElementById('debugInfo');
+        if (debugElement) {
+            const timestamp = new Date().toLocaleTimeString();
+            debugElement.innerHTML = `[${timestamp}] ${message}`;
+        }
+    }
+
+    // Chargement des triggers
+    async function loadTriggers() {
+        try {
+            updateDebugInfo("📥 Chargement des triggers...");
+            const response = await fetch('/api/triggers');
+            const triggers = await response.json();
+
+            // Conversion des triggers en blocs Blockly
+            workspace.clear();
+
+            console.log('Triggers chargés:', triggers);
+            updateDebugInfo(`✅ ${triggers.length} trigger(s) chargé(s)`);
+            showStatus('Triggers chargés avec succès!', 'success');
+        } catch (error) {
+            console.error('Erreur:', error);
+            updateDebugInfo(`❌ Erreur chargement: ${error.message}`);
+            showStatus('Erreur lors du chargement', 'error');
+        }
+    }
+
+    // Sauvegarde des triggers
+    async function saveTriggers() {
+        try {
+            updateDebugInfo("💾 Sauvegarde en cours...");
+            const xml = Blockly.Xml.workspaceToDom(workspace);
+            const xmlText = Blockly.Xml.domToText(xml);
+
+            const response = await fetch('/api/save', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    workspace: xmlText,
+                    triggers: generateTriggersFromWorkspace()
+                })
+            });
+
+            if (response.ok) {
+                updateDebugInfo("✅ Sauvegarde réussie!");
+                showStatus('Sauvegarde réussie!', 'success');
+            } else {
+                throw new Error(`HTTP ${response.status}`);
+            }
+        } catch (error) {
+            console.error('Erreur:', error);
+            updateDebugInfo(`❌ Erreur sauvegarde: ${error.message}`);
+            showStatus('Erreur lors de la sauvegarde', 'error');
+        }
+    }
+
+    // Génération des triggers depuis l'espace de travail
+    function generateTriggersFromWorkspace() {
+        const triggers = [];
+        const blocks = workspace.getTopBlocks();
+
+        blocks.forEach(block => {
+            if (block.type === 'mythicmob_kill_trigger') {
+                triggers.push({
+                    type: 'mythicmob_kill',
+                    mobName: block.getFieldValue('MOB_NAME'),
+                    actions: getActionsFromBlock(block)
+                });
+            } else if (block.type === 'location_trigger') {
+                triggers.push({
+                    type: 'location',
+                    x: block.getFieldValue('X'),
+                    y: block.getFieldValue('Y'),
+                    z: block.getFieldValue('Z'),
+                    radius: block.getFieldValue('RADIUS'),
+                    actions: getActionsFromBlock(block)
+                });
+            } else if (block.type === 'debug_chat_trigger') {
+                triggers.push({
+                    type: 'debug_chat',
+                    message: block.getFieldValue('MESSAGE'),
+                    caseSensitive: block.getFieldValue('CASE_SENSITIVE') === 'TRUE',
+                    exactMatch: block.getFieldValue('EXACT_MATCH') === 'TRUE',
+                    actions: getActionsFromBlock(block)
+                });
+            }
+        });
+
+        return triggers;
+    }
+
+    // Extraction des actions d'un bloc
+    function getActionsFromBlock(block) {
+        const actions = [];
+        let actionBlock = block.getInputTargetBlock('ACTIONS');
+
+        while (actionBlock) {
+            if (actionBlock.type === 'spawn_mob') {
+                actions.push({
+                    type: 'spawn_mob',
+                    mobType: actionBlock.getFieldValue('MOB_TYPE')
+                });
+            } else if (actionBlock.type === 'send_message') {
+                actions.push({
+                    type: 'send_message',
+                    message: actionBlock.getFieldValue('MESSAGE')
+                });
+            } else if (actionBlock.type === 'debug_log') {
+                actions.push({
+                    type: 'debug_log',
+                    logMessage: actionBlock.getFieldValue('LOG_MESSAGE')
+                });
+            }
+            actionBlock = actionBlock.getNextBlock();
+        }
+
+        return actions;
+    }
+
+    // Vidage de l'espace de travail
+    function clearWorkspace() {
+        if (confirm('Êtes-vous sûr de vouloir vider l\'espace de travail ?')) {
+            workspace.clear();
+            updateDebugInfo("🗑️ Espace de travail vidé");
+            showStatus('Espace de travail vidé', 'success');
+        }
+    }
+
+    // Génération du code (pour debug)
+    function generateCode() {
+        const code = Blockly.JavaScript.workspaceToCode(workspace);
+        const triggers = generateTriggersFromWorkspace();
+        console.log('Code généré:', code);
+        console.log('Triggers générés:', triggers);
+        updateDebugInfo(`⚡ Code généré (${triggers.length} trigger(s))`);
+        showStatus('Code généré (voir console)', 'success');
+    }
+
+    // Affichage des messages de statut
+    function showStatus(message, type) {
+        const statusElement = document.getElementById('status');
+        statusElement.textContent = message;
+        statusElement.className = `status ${type} show`;
+
+        setTimeout(() => {
+            statusElement.classList.remove('show');
+        }, 3000);
+    }
+
+    // Initialisation au chargement de la page
+    document.addEventListener('DOMContentLoaded', function() {
+        updateDebugInfo("🚀 Démarrage de l'application...");
+        initBlockly();
+    });
+</script>
+</body>
+</html>

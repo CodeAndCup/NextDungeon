@@ -5,6 +5,7 @@ import fr.perrier.cupcodeapi.commands.annotations.Param;
 import fr.perrier.cupcodeapi.utils.ChatUtil;
 import fr.perrier.dungeons.Main;
 import fr.perrier.dungeons.configuration.ConfigLoader;
+import fr.perrier.dungeons.model.Dungeon;
 import fr.perrier.dungeons.model.FloorInstance;
 import fr.perrier.dungeons.model.Floor;
 import fr.perrier.dungeons.storage.RedisStorageService;
@@ -20,8 +21,10 @@ public class AdminCommands {
     public static void adminDungeonCommand(Player player) {
         player.sendMessage(ChatUtil.getBar());
         player.sendMessage(ChatUtil.translate("/dungeon admin help"));
-        player.sendMessage(ChatUtil.translate("/dungeon admin create <dungeonName> <floorName>"));
         player.sendMessage(ChatUtil.translate("/dungeon admin edit <dungeonName> <floorName>"));
+        player.sendMessage(ChatUtil.translate("/dungeon admin webeditor start"));
+        player.sendMessage(ChatUtil.translate("/dungeon admin webeditor stop"));
+
         player.sendMessage(ChatUtil.translate("/dungeon admin test <dungeonName> <floorName>"));
         player.sendMessage(ChatUtil.translate("/dungeon admin import <world> <dungeonName> <floorName>"));
         player.sendMessage(ChatUtil.translate("/dungeon admin load <dungeonNameConfig>"));
@@ -29,7 +32,8 @@ public class AdminCommands {
         player.sendMessage(ChatUtil.getBar());
     }
 
-    @Command(names = "dungeon admin create")
+    // Removed cause for now we will create floors manually and not in-game by using the yaml config files
+    /*@Command(names = "dungeon admin create")
     public static void adminDungeonCreateCommand(Player player, @Param(name = "Dungeon ID") String dungeonId, @Param(name = "Floor ID") String floorId) {
 
         //TODO: Register new floors in db or something like ?
@@ -39,12 +43,76 @@ public class AdminCommands {
             FloorInstance floorInstance = new FloorInstance(floor.getId());
             floorInstance.sendToServer(player);
         });
+    }*/
+
+    @Command(names = "dungeon admin edit")
+    public static void adminDungeonEditCommand(Player player, @Param(name = "Dungeon ID") String dungeonId, @Param(name = "Floor ID") String floorId) {
+        Floor floor = Floor.getFloor(dungeonId + "_" + floorId);
+        if (floor == null) {
+            player.sendMessage(ChatUtil.translate("&cFloor not found."));
+            return;
+        }
+
+        FloorInstance floorInstance = new FloorInstance(floor.getId(),true);
+
+        ServerUtil.sendToServer(player,floorInstance.getInstanceId());
+    }
+
+    @Command(names = "dungeon admin webeditor start")
+    public static void adminDungeonWebEditorStartCommand(Player player) {
+        if(Main.getInstance().getWebEditorManager().hasActiveEditor(player)) {
+            player.sendMessage(ChatUtil.translate("&cYou already have an active web editor session."));
+            return;
+        }
+
+        if(!ServerUtil.isInEditMode()) {
+            player.sendMessage(ChatUtil.translate("&cThis server is not in edit mode."));
+            return;
+        }
+
+        ServerUtil.InstanceInfo info = ServerUtil.getInstanceInfo();
+        if(info == null || info.floorId() == null) {
+            player.sendMessage(ChatUtil.translate("&cYou are not in a floor instance."));
+            return;
+        }
+
+        Dungeon currentDungeon = Dungeon.getDungeon(info.floorId().split("_")[0]);
+        Floor currentFloor = Floor.getFloor(info.floorId());
+
+        if (currentFloor == null) {
+            player.sendMessage(ChatUtil.translate("&cFloor not found."));
+            return;
+        }
+
+        boolean success = Main.getInstance().getWebEditorManager().startWebEditor(player, currentDungeon.getName(), currentFloor.getId());
+
+        if (success) {
+            player.sendMessage("");
+            player.sendMessage(ChatUtil.getBar());
+            player.sendMessage(ChatUtil.translate("&6🏰 &lÉDITEUR WEB DÉMARRÉ"));
+            player.sendMessage(ChatUtil.translate("&7Donjon: &e" + currentDungeon.getName()));
+            player.sendMessage(ChatUtil.translate("&7Floor: &e" + currentFloor.getId() + " &8(" + currentFloor.getName() + ")"));
+            player.sendMessage(ChatUtil.translate("&7URL: &b&nhttp://localhost:8080"));
+            player.sendMessage(ChatUtil.translate("&7Arrêt: &c/dungeon admin webeditor stop"));
+            player.sendMessage(ChatUtil.getBar());
+        }
+    }
+
+    @Command(names = "dungeon admin webeditor stop")
+    public static void adminDungeonWebEditorStopCommand(Player player) {
+        boolean success = Main.getInstance().getWebEditorManager().stopWebEditor(player);
+        if (success) {
+            player.sendMessage(ChatUtil.translate("&a✓ Web editor stopped."));
+        }
     }
 
     @Command(names = "dungeon admin test")
     public static void adminDungeonPlayCommand(Player player, @Param(name = "Dungeon ID") String dungeonId, @Param(name = "Floor ID") String floorId) {
-
         Floor floor = Floor.getFloor(dungeonId + "_" + floorId);
+        if (floor == null) {
+            player.sendMessage(ChatUtil.translate("&cFloor not found."));
+            return;
+        }
 
         FloorInstance floorInstance = new FloorInstance(floor.getId());
 

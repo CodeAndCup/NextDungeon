@@ -1,4 +1,4 @@
-package fr.perrier.dungeons.listener;
+package fr.perrier.dungeons.listener.global;
 
 import fr.perrier.dungeons.Main;
 import lombok.Getter;
@@ -12,7 +12,7 @@ import org.bukkit.scheduler.BukkitTask;
 import java.util.HashMap;
 import java.util.UUID;
 
-public class LeaveListener implements Listener {
+public class GlobalLeaveListener implements Listener {
 
     @Getter
     private static final HashMap<UUID, BukkitTask> waitingApprovalSaveTasks = new HashMap<>();

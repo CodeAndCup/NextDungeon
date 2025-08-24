@@ -44,8 +44,16 @@ public class FloorInstance {
 
     public FloorInstance(String floorId) {
         this.floorId = floorId;
-        this.instanceId = generateFloorServer();
+        this.instanceId = generateFloorServer(false);
         this.ready = false;
+
+        Main.getInstance().getRedisStorageService().syncInstance(this);
+    }
+
+    public FloorInstance(String floorId, boolean editMode) {
+        this.floorId = floorId;
+        this.instanceId = generateFloorServer(editMode);
+        this.ready = editMode;
 
         Main.getInstance().getRedisStorageService().syncInstance(this);
     }
@@ -60,8 +68,8 @@ public class FloorInstance {
      *
      * @return the unique UUID of the generated server instance
      */
-    private UUID generateFloorServer() {
-        return ServerUtil.makeFloorInstance(this);
+    private UUID generateFloorServer(boolean editMode) {
+        return ServerUtil.makeFloorInstance(this,editMode);
     }
 
     /**

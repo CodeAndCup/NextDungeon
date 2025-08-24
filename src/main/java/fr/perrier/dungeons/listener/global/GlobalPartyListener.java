@@ -1,4 +1,4 @@
-package fr.perrier.dungeons.listener;
+package fr.perrier.dungeons.listener.global;
 
 import com.alessiodp.parties.api.events.bukkit.party.BukkitPartiesPartyPreDeleteEvent;
 import com.alessiodp.parties.api.events.bukkit.player.BukkitPartiesPlayerPreLeaveEvent;
@@ -12,7 +12,7 @@ import org.bukkit.event.Listener;
 
 import java.util.Objects;
 
-public class PartyListener implements Listener {
+public class GlobalPartyListener implements Listener {
 
     /**
      * Called when a party is disbanded.
