@@ -450,7 +450,7 @@ public class BlocklyJavaScriptGenerator {
         // Générer les champs dynamiquement
         for (BlocklyFieldExtractor.BlocklyFieldInfo field : fields) {
             js.append("                        ");
-            generateFieldExtraction(js, field);
+            generateFieldExtraction(js, field,"block");
             js.append(",\n");
         }
 
@@ -487,7 +487,7 @@ public class BlocklyJavaScriptGenerator {
         // Générer les champs dynamiquement
         for (BlocklyFieldExtractor.BlocklyFieldInfo field : fields) {
             js.append(",\n                        ");
-            generateFieldExtraction(js, field);
+            generateFieldExtraction(js, field,"actionBlock");
         }
 
         js.append("\n                    });\n");
@@ -558,32 +558,32 @@ public class BlocklyJavaScriptGenerator {
         js.append("                }\n");
     }
 
-    private void generateFieldExtraction(StringBuilder js, BlocklyFieldExtractor.BlocklyFieldInfo field) {
+    private void generateFieldExtraction(StringBuilder js, BlocklyFieldExtractor.BlocklyFieldInfo field, String blockVariable) {
         String fieldName = field.fieldName().toUpperCase();
 
         switch (field.type()) {
             case TEXT_INPUT:
                 js.append(field.fieldName().toLowerCase())
-                        .append(": block.getFieldValue('").append(fieldName).append("') || '")
+                        .append(": ").append(blockVariable).append(".getFieldValue('").append(fieldName).append("') || '")
                         .append(escapeJavaScript(field.defaultValue())).append("'");
                 break;
 
             case NUMBER_INPUT:
                 js.append(field.fieldName().toLowerCase())
-                        .append(": parseFloat(block.getFieldValue('").append(fieldName).append("')) || ")
+                        .append(": parseFloat(").append(blockVariable).append(".getFieldValue('").append(fieldName).append("')) || ")
                         .append(field.defaultValue().isEmpty() ? "0" : field.defaultValue());
                 break;
 
             case DROPDOWN:
                 js.append(field.fieldName().toLowerCase())
-                        .append(": block.getFieldValue('").append(fieldName).append("') || '")
+                        .append(": ").append(blockVariable).append(".getFieldValue('").append(fieldName).append("') || '")
                         .append(field.options().split(",")[0].trim()).append("'");
                 break;
 
             case BOOLEAN_INPUT:
                 js.append(field.fieldName().toLowerCase())
                         .append(": (() => {\n");
-                js.append("                            const boolBlock = block.getInputTargetBlock('").append(fieldName).append("');\n");
+                js.append("                            const boolBlock = ").append(blockVariable).append(".getInputTargetBlock('").append(fieldName).append("');\n");
                 js.append("                            return boolBlock ? boolBlock.type === 'boolean_true' : ")
                         .append(field.defaultValue().equals("true") ? "true" : "false").append(";\n");
                 js.append("                        })()");
@@ -591,12 +591,12 @@ public class BlocklyJavaScriptGenerator {
 
             case COLOR_INPUT:
                 js.append(field.fieldName().toLowerCase())
-                        .append(": block.getFieldValue('").append(fieldName).append("') || '")
+                        .append(": ").append(blockVariable).append(".getFieldValue('").append(fieldName).append("') || '")
                         .append(field.defaultValue().isEmpty() ? "#ff0000" : field.defaultValue()).append("'");
                 break;
             case CHECKBOX:
                 js.append(field.fieldName().toLowerCase())
-                        .append(": block.getFieldValue('").append(fieldName).append("') === 'true'");
+                        .append(": ").append(blockVariable).append(".getFieldValue('").append(fieldName).append("') === 'true'");
                 break;
         }
     }
