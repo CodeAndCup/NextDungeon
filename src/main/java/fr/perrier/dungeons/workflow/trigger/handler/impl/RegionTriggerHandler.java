@@ -3,10 +3,8 @@ package fr.perrier.dungeons.workflow.trigger.handler.impl;
 import fr.perrier.dungeons.workflow.trigger.Trigger;
 import fr.perrier.dungeons.workflow.trigger.handler.TriggerEventHandler;
 import fr.perrier.dungeons.workflow.trigger.impl.RegionTrigger;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
 import org.bukkit.event.player.PlayerMoveEvent;
 
 import java.util.*;
@@ -29,12 +27,6 @@ public class RegionTriggerHandler implements TriggerEventHandler<PlayerMoveEvent
     @Override
     public void handleEvent(PlayerMoveEvent event, List<Trigger> triggers) {
         Player player = event.getPlayer();
-        Location from = event.getFrom();
-        Location to = event.getTo();
-
-        /*if (to == null || isSameBlock(from, to)) {
-            return; // Pas de changement de block
-        }*/
 
         for (Trigger trigger : triggers) {
             if (trigger instanceof RegionTrigger regionTrigger) {
@@ -88,13 +80,6 @@ public class RegionTriggerHandler implements TriggerEventHandler<PlayerMoveEvent
     @Override
     public Player getPlayerFromEvent(PlayerMoveEvent event) {
         return event.getPlayer();
-    }
-
-    // Méthodes utilitaires pour le cache
-    private boolean isSameBlock(Location loc1, Location loc2) {
-        return loc1.getBlockX() == loc2.getBlockX() &&
-                loc1.getBlockY() == loc2.getBlockY() &&
-                loc1.getBlockZ() == loc2.getBlockZ();
     }
 
     private boolean isPlayerInRegionCache(UUID playerId, UUID regionId) {

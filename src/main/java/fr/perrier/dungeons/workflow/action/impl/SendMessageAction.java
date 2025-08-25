@@ -29,7 +29,7 @@ public class SendMessageAction extends Action implements BlocklyAction {
     private static final long serialVersionUID = 1L;
 
     @BlocklyField(type = BlocklyField.FieldType.DROPDOWN, label = "À:",
-            options = "player,@all,@nearest", defaultValue = "player", order = 1)
+            options = "player,@all", defaultValue = "player", order = 1)
     private String targetPlayer;
 
     @BlocklyField(type = BlocklyField.FieldType.TEXT_INPUT, label = "Message:",
@@ -73,8 +73,18 @@ public class SendMessageAction extends Action implements BlocklyAction {
         // Déterminer le joueur cible
         if (targetPlayer == null || targetPlayer.isEmpty() || "player".equals(targetPlayer)) {
             target = triggerPlayer; // Le joueur qui a déclenché le trigger
+        } else if("@all".equals(targetPlayer)) {
+            // Envoyer à tous les joueurs en ligne
+            String finalMessage = message
+                    .replace("{player}", triggerPlayer != null ? triggerPlayer.getName() : "Unknown")
+                    .replace("{target}", "Tous")
+                    .replace("{trigger}", data.getOrDefault("trigger_name", "Unknown").toString());
+            String translatedMessage = ChatUtil.translate(finalMessage);
+            Bukkit.broadcastMessage(translatedMessage);
+            return true;
         } else {
-            target = Bukkit.getPlayer(targetPlayer); // Joueur spécifique
+            // Chercher un joueur par nom exact
+            target = Bukkit.getPlayerExact(targetPlayer);
         }
 
         if (target != null && target.isOnline()) {
