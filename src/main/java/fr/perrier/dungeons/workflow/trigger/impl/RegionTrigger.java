@@ -190,7 +190,7 @@ public class RegionTrigger extends Trigger implements BlocklyTrigger {
 
     @Override
     public String getType() {
-        return "region";
+        return "region_trigger";
     }
 
     @Override

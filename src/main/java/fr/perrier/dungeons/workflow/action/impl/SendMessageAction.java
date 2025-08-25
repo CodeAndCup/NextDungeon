@@ -37,7 +37,7 @@ public class SendMessageAction extends Action implements BlocklyAction {
     private String message;
 
     public SendMessageAction(String targetPlayer, String message) {
-        super("SendMessage", "send_message");
+        super("SendMessage", "send_message_action");
         this.targetPlayer = targetPlayer;
         this.message = message;
     }

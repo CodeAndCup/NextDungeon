@@ -218,7 +218,7 @@ public class WebEditorServer {
                     "success": true,
                     "types": [
                         {
-                            "id": "region",
+                            "id": "region_trigger",
                             "name": "Region Trigger",
                             "description": "Se déclenche quand un joueur entre dans une région",
                             "category": "Location"

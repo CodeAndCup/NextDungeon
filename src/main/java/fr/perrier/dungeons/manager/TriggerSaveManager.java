@@ -143,20 +143,23 @@ public class TriggerSaveManager {
 
     private void addPropertyOfTrigger(JsonObject triggerObj, Trigger trigger) {
         if(trigger instanceof RegionTrigger regionTrigger) {
-            triggerObj.addProperty("pos1X", regionTrigger.getPos1X());
-            triggerObj.addProperty("pos1Y", regionTrigger.getPos1Y());
-            triggerObj.addProperty("pos1Z", regionTrigger.getPos1Z());
-            triggerObj.addProperty("pos2X", regionTrigger.getPos2X());
-            triggerObj.addProperty("pos2Y", regionTrigger.getPos2Y());
-            triggerObj.addProperty("pos2Z", regionTrigger.getPos2Z());
-            triggerObj.addProperty("worldName", regionTrigger.getWorldName());
+            triggerObj.addProperty("pos1x", regionTrigger.getPos1X());
+            triggerObj.addProperty("pos1y", regionTrigger.getPos1Y());
+            triggerObj.addProperty("pos1z", regionTrigger.getPos1Z());
+            triggerObj.addProperty("pos2x", regionTrigger.getPos2X());
+            triggerObj.addProperty("pos2y", regionTrigger.getPos2Y());
+            triggerObj.addProperty("pos2z", regionTrigger.getPos2Z());
+            triggerObj.addProperty("worldname", regionTrigger.getWorldName());
+            triggerObj.addProperty("regionevent", regionTrigger.getRegionEvent());
+            triggerObj.addProperty("onlyonce", regionTrigger.isOnlyOnce());
+            triggerObj.addProperty("cooldownseconds", regionTrigger.getCooldownSeconds());
         }
         // Ajouter d'autres types de triggers ici
     }
 
     private void addPropertyOfAction(JsonObject actionObj, Action action) {
         if(action instanceof SendMessageAction sendAction) {
-            actionObj.addProperty("targetPlayer", sendAction.getTargetPlayer());
+            actionObj.addProperty("targetplayer", sendAction.getTargetPlayer());
             actionObj.addProperty("message", sendAction.getMessage());
         }
         // Ajouter d'autres types d'actions ici

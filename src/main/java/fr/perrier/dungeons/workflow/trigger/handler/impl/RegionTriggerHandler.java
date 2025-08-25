@@ -21,7 +21,7 @@ public class RegionTriggerHandler implements TriggerEventHandler<PlayerMoveEvent
 
     @Override
     public List<String> getSupportedTriggerTypes() {
-        return Arrays.asList("region");
+        return Arrays.asList("region_trigger");
     }
 
     @Override

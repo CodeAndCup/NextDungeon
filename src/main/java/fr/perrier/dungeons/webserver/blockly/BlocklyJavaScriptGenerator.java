@@ -446,6 +446,9 @@ public class BlocklyJavaScriptGenerator {
         // Fonction pour charger les triggers dans l'espace de travail
         function loadTriggersIntoWorkspace(triggersData) {
             console.log('🔄 Chargement des triggers dans l\\'espace de travail...');
+            console.log('Données reçues:', triggersData);
+            
+            // Vider l'espace de travail avant de charger
             workspace.clear();
             
             if (!triggersData || !triggersData.triggers) {
@@ -453,8 +456,10 @@ public class BlocklyJavaScriptGenerator {
                 return;
             }
             
+            console.log('Nombre de triggers à charger:', triggersData.triggers.length);
+                    
             triggersData.triggers.forEach((trigger, index) => {
-                console.log('Chargement du trigger:', trigger);
+                console.log('Chargement du trigger #' + (index + 1) + ':', trigger);
                 
         """);
 
@@ -508,18 +513,15 @@ public class BlocklyJavaScriptGenerator {
     private void generateTriggerCase(StringBuilder js, Class<? extends BlocklyTrigger> triggerClass) {
         // Récupère les informations de l'annotation @BlocklyInfo de la classe du trigger
         BlocklyInfo info = triggerClass.getAnnotation(BlocklyInfo.class);
-        String blockName = info.name().isEmpty() ?
-                triggerClass.getSimpleName().toLowerCase().replace("trigger", "_trigger") :
-                info.name();
 
         // Détermine le type du trigger en convertissant le nom de la classe
-        String triggerType = triggerClass.getSimpleName().toLowerCase().replace("trigger", "");
+        String triggerType = info.name();
 
         // Extrait les champs définis dans la classe du trigger
         List<BlocklyFieldExtractor.BlocklyFieldInfo> fields = BlocklyFieldExtractor.extractFields(triggerClass);
 
         // Génère le code JavaScript pour vérifier le type du bloc
-        js.append("                if (block.type === '").append(blockName).append("') {\n");
+        js.append("                if (block.type === '").append(triggerType).append("') {\n");
         js.append("                    triggers.push({\n");
         js.append("                        type: '").append(triggerType).append("',\n");
         js.append("                        name: '").append(triggerClass.getSimpleName()).append("_' + Date.now(),\n");
@@ -559,18 +561,15 @@ public class BlocklyJavaScriptGenerator {
     private void generateActionCase(StringBuilder js, Class<? extends BlocklyAction> actionClass) {
         // Récupère les informations de l'annotation @BlocklyInfo de la classe de l'action
         BlocklyInfo info = actionClass.getAnnotation(BlocklyInfo.class);
-        String blockName = info.name().isEmpty() ?
-                actionClass.getSimpleName().toLowerCase().replace("action", "_action") :
-                info.name();
 
         // Détermine le type de l'action en convertissant le nom de la classe
-        String actionType = actionClass.getSimpleName().toLowerCase().replace("action", "");
+        String actionType = info.name();
 
         // Extrait les champs définis dans la classe de l'action
         List<BlocklyFieldExtractor.BlocklyFieldInfo> fields = BlocklyFieldExtractor.extractFields(actionClass);
 
         // Génère le code JavaScript pour vérifier le type du bloc
-        js.append("                if (actionBlock.type === '").append(blockName).append("') {\n");
+        js.append("                if (actionBlock.type === '").append(actionType).append("') {\n");
         js.append("                    actions.push({\n");
         js.append("                        type: '").append(actionType).append("'");
 
@@ -596,33 +595,29 @@ public class BlocklyJavaScriptGenerator {
         // Récupère les informations de l'annotation @BlocklyInfo de la classe du trigger
         BlocklyInfo info = triggerClass.getAnnotation(BlocklyInfo.class);
 
-        // Détermine le nom du bloc Blockly à partir de l'annotation ou du nom de la classe
-        String blockName = info.name().isEmpty() ?
-                triggerClass.getSimpleName().toLowerCase().replace("trigger", "_trigger") :
-                info.name();
-
         // Détermine le type du trigger en convertissant le nom de la classe
-        String triggerType = triggerClass.getSimpleName().toLowerCase().replace("trigger", "");
+        String triggerType = info.name();
 
         // Extrait les champs définis dans la classe du trigger
         List<BlocklyFieldExtractor.BlocklyFieldInfo> fields = BlocklyFieldExtractor.extractFields(triggerClass);
 
         // Génère le code JavaScript pour charger un trigger spécifique
         js.append("                if (trigger.type === '").append(triggerType).append("') {\n");
-        js.append("                    const block = workspace.newBlock('").append(blockName).append("');\n");
+        js.append("                    const triggerBlock = workspace.newBlock('").append(triggerType).append("');\n");
 
         // Génère dynamiquement le chargement des champs associés au trigger
         for (BlocklyFieldExtractor.BlocklyFieldInfo field : fields) {
-            generateFieldLoading(js, field);
+            generateFieldLoading(js, field,"trigger");
         }
 
         js.append("                    \n");
+        js.append("                    triggerBlock.initSvg();\n");
+        js.append("                    triggerBlock.render();\n");
+        js.append("                    \n"); // Try to put it after initSvg and render
         js.append("                    // Charger les actions\n");
-        js.append("                    loadActionsIntoBlock(block, trigger.actions);\n");
-        js.append("                    \n");
-        js.append("                    block.initSvg();\n");
-        js.append("                    block.render();\n");
-        js.append("                    block.moveBy(20 + (index * 300), 20);\n");
+        js.append("                    loadActionsIntoBlock(triggerBlock, trigger.actions);\n");
+        js.append("                    \n"); // Added
+        js.append("                    triggerBlock.moveBy(20 + (index * 300), 20);\n");
         js.append("                }\n");
     }
 
@@ -637,28 +632,22 @@ public class BlocklyJavaScriptGenerator {
     private void generateActionLoadingCase(StringBuilder js, Class<? extends BlocklyAction> actionClass) {
         // Récupère les informations de l'annotation @BlocklyInfo de la classe de l'action
         BlocklyInfo info = actionClass.getAnnotation(BlocklyInfo.class);
-        String blockName = info.name().isEmpty() ?
-                actionClass.getSimpleName().toLowerCase().replace("action", "_action") :
-                info.name();
 
         // Détermine le type de l'action en convertissant le nom de la classe
-        String actionType = actionClass.getSimpleName().toLowerCase().replace("action", "");
+        String actionType = info.name();
 
         // Extrait les champs définis dans la classe de l'action
         List<BlocklyFieldExtractor.BlocklyFieldInfo> fields = BlocklyFieldExtractor.extractFields(actionClass);
 
         // Génère le code JavaScript pour charger une action spécifique
         js.append("                if (action.type === '").append(actionType).append("') {\n");
-        js.append("                    const actionBlock = workspace.newBlock('").append(blockName).append("');\n");
+        js.append("                    const actionBlock = workspace.newBlock('").append(actionType).append("');\n");
 
         // Génère dynamiquement le chargement des champs associés à l'action
         for (BlocklyFieldExtractor.BlocklyFieldInfo field : fields) {
-            generateFieldLoading(js, field);
+            generateFieldLoading(js, field,"action");
         }
 
-        js.append("                    \n");
-        js.append("                    actionBlock.initSvg();\n");
-        js.append("                    actionBlock.render();\n");
         js.append("                    \n");
         js.append("                    if (index === 0) {\n");
         js.append("                        // Premier bloc d'action, connecter au trigger\n");
@@ -669,6 +658,9 @@ public class BlocklyJavaScriptGenerator {
         js.append("                            previousActionBlock.nextConnection.connect(actionBlock.previousConnection);\n");
         js.append("                        }\n");
         js.append("                    }\n");
+        js.append("                    \n"); // Try to put it after the connections
+        js.append("                    actionBlock.initSvg();\n");
+        js.append("                    actionBlock.render();\n");
         js.append("                    \n");
         js.append("                    previousActionBlock = actionBlock;\n");
         js.append("                }\n");
@@ -729,7 +721,7 @@ public class BlocklyJavaScriptGenerator {
             case CHECKBOX:
                 // Extraction d'un champ de type case à cocher avec conversion en booléen
                 js.append(field.fieldName().toLowerCase())
-                        .append(": ").append(blockVariable).append(".getFieldValue('").append(fieldName).append("') === 'true'");
+                        .append(": ").append(blockVariable).append(".getFieldValue('").append(fieldName).append("') === 'TRUE'");
                 break;
         }
     }
@@ -741,7 +733,7 @@ public class BlocklyJavaScriptGenerator {
      * @param field Une instance de `BlocklyFieldExtractor.BlocklyFieldInfo` contenant les informations
      *              sur le champ à charger (type, nom, valeur par défaut, etc.).
      */
-    private void generateFieldLoading(StringBuilder js, BlocklyFieldExtractor.BlocklyFieldInfo field) {
+    private void generateFieldLoading(StringBuilder js, BlocklyFieldExtractor.BlocklyFieldInfo field, String blockType) {
         // Convertit le nom du champ en majuscules pour l'utiliser comme identifiant dans Blockly
         String fieldName = field.fieldName().toUpperCase();
         // Convertit le nom du champ en minuscules pour l'utiliser comme clé dans l'objet de données
@@ -753,34 +745,34 @@ public class BlocklyJavaScriptGenerator {
             case DROPDOWN:
             case COLOR_INPUT:
                 // Charge une valeur de type texte, menu déroulant ou couleur
-                js.append("                    block.setFieldValue((trigger.").append(objectField)
+                js.append("                    ").append(blockType).append("Block.setFieldValue((").append(blockType).append(".").append(objectField)
                         .append(" || '").append(escapeJavaScript(field.defaultValue()))
                         .append("').toString(), '").append(fieldName).append("');\n");
                 break;
 
             case NUMBER_INPUT:
                 // Charge une valeur de type nombre avec une valeur par défaut
-                js.append("                    block.setFieldValue((trigger.").append(objectField)
+                js.append("                    ").append(blockType).append("Block.setFieldValue((").append(blockType).append(".").append(objectField)
                         .append(" || ").append(field.defaultValue().isEmpty() ? "0" : field.defaultValue())
                         .append(").toString(), '").append(fieldName).append("');\n");
                 break;
 
             case BOOLEAN_INPUT:
                 // Charge une valeur de type booléen en créant un bloc correspondant
-                js.append("                    if (trigger.").append(objectField).append(" !== undefined) {\n");
-                js.append("                        const boolBlock = workspace.newBlock(trigger.")
+                js.append("                    if (").append(blockType).append(".").append(objectField).append(" !== undefined) {\n");
+                js.append("                        const boolBlock = workspace.newBlock(").append(blockType).append(".")
                         .append(objectField).append(" ? 'boolean_true' : 'boolean_false');\n");
                 js.append("                        boolBlock.initSvg();\n");
                 js.append("                        boolBlock.render();\n");
-                js.append("                        block.getInput('").append(fieldName)
+                js.append("                        ").append(blockType).append("Block.getInput('").append(fieldName)
                         .append("').connection.connect(boolBlock.outputConnection);\n");
                 js.append("                    }\n");
                 break;
 
             case CHECKBOX:
                 // Charge une valeur de type case à cocher (vrai/faux)
-                js.append("                    block.setFieldValue(trigger.").append(objectField)
-                        .append(" ? 'true' : 'false', '").append(fieldName).append("');\n");
+                js.append("                    ").append(blockType).append("Block.setFieldValue(").append(blockType).append(".").append(objectField)
+                        .append(" ? 'TRUE' : 'FALSE', '").append(fieldName).append("');\n");
                 break;
         }
     }

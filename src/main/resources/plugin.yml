@@ -1,8 +1,9 @@
-name: Dungeons
-version: '1.0-SNAPSHOT'
+name: NextDungeon
+version: ${project.version}
+description: The NextDungeon is a comprehensive Minecraft server plugin designed to bring dynamic, customizable dungeon experiences to your server.
 main: fr.perrier.dungeons.Main
 api-version: '1.21'
 authors: [ PerrierBottle ]
 website: https://cupcode.fr/
 
-depend: [ Parties ]
+depend: [ Parties, MMOCore, CloudNet-Bridge ]

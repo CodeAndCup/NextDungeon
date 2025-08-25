@@ -24,7 +24,7 @@ public class TriggerFactory {
             Main.getInstance().getLogger().info("Création du trigger: " + type + " - " + name);
 
             Trigger trigger = switch (type) {
-                case "region" -> createRegionTrigger(triggerData, name);
+                case "region_trigger" -> createRegionTrigger(triggerData, name);
                 default -> {
                     Main.getInstance().getLogger().warning("Type de trigger inconnu: " + type);
                     yield null;
