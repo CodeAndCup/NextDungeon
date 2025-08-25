@@ -5,6 +5,7 @@ import fr.perrier.dungeons.model.Floor;
 import fr.perrier.dungeons.model.FloorInstance;
 import fr.perrier.dungeons.workflow.action.Action;
 import fr.perrier.dungeons.workflow.action.impl.SendMessageAction;
+import fr.perrier.dungeons.workflow.action.impl.SendTitleAction;
 import fr.perrier.dungeons.workflow.trigger.Trigger;
 import fr.perrier.dungeons.workflow.trigger.factory.TriggerFactory;
 import fr.perrier.dungeons.Main;
@@ -161,6 +162,14 @@ public class TriggerSaveManager {
         if(action instanceof SendMessageAction sendAction) {
             actionObj.addProperty("targetplayer", sendAction.getTargetPlayer());
             actionObj.addProperty("message", sendAction.getMessage());
+        } else if (action instanceof SendTitleAction titleAction) {
+            actionObj.addProperty("targetplayer", titleAction.getTargetPlayer());
+            actionObj.addProperty("title", titleAction.getTitle());
+            actionObj.addProperty("subtitle", titleAction.getSubtitle());
+            actionObj.addProperty("fadein", titleAction.getFadeIn());
+            actionObj.addProperty("stay", titleAction.getStay());
+            actionObj.addProperty("fadeout", titleAction.getFadeOut());
+
         }
         // Ajouter d'autres types d'actions ici
     }

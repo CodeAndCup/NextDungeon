@@ -20,6 +20,7 @@ public class ActionFactory {
         try {
             String type = actionData.get("type").getAsString();
 
+            // Edit here and edit in TriggerSaveManager too
             return switch (type) {
                 case "send_message_action" -> {
                     String targetPlayer = actionData.has("targetplayer") ?
