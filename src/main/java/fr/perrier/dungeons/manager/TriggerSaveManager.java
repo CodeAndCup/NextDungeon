@@ -2,17 +2,15 @@ package fr.perrier.dungeons.manager;
 
 import fr.perrier.cupcodeapi.utils.ChatUtil;
 import fr.perrier.dungeons.model.Floor;
-import fr.perrier.dungeons.model.FloorInstance;
 import fr.perrier.dungeons.workflow.action.Action;
-import fr.perrier.dungeons.workflow.action.impl.SendMessageAction;
-import fr.perrier.dungeons.workflow.action.impl.SendTitleAction;
+import fr.perrier.dungeons.workflow.action.impl.*;
 import fr.perrier.dungeons.workflow.trigger.Trigger;
 import fr.perrier.dungeons.workflow.trigger.factory.TriggerFactory;
+import fr.perrier.dungeons.workflow.trigger.impl.*;
 import fr.perrier.dungeons.Main;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonArray;
-import fr.perrier.dungeons.workflow.trigger.impl.RegionTrigger;
 import org.bukkit.entity.Player;
 
 import java.util.List;
@@ -169,6 +167,15 @@ public class TriggerSaveManager {
             actionObj.addProperty("fadein", titleAction.getFadeIn());
             actionObj.addProperty("stay", titleAction.getStay());
             actionObj.addProperty("fadeout", titleAction.getFadeOut());
+
+        } else if (action instanceof TeleporterAction teleporterAction) {
+            actionObj.addProperty("targetplayer", teleporterAction.getTargetPlayer());
+            actionObj.addProperty("x", teleporterAction.getX());
+            actionObj.addProperty("y", teleporterAction.getY());
+            actionObj.addProperty("z", teleporterAction.getZ());
+            actionObj.addProperty("yaw", teleporterAction.getYaw());
+            actionObj.addProperty("pitch", teleporterAction.getPitch());
+            actionObj.addProperty("worldname", teleporterAction.getWorldName());
 
         }
         // Ajouter d'autres types d'actions ici

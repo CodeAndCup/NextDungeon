@@ -1,12 +1,11 @@
 package fr.perrier.dungeons.workflow.action.factory;
 
 import fr.perrier.dungeons.workflow.action.Action;
-import fr.perrier.dungeons.workflow.action.impl.SendMessageAction;
+import fr.perrier.dungeons.workflow.action.impl.*;
 import fr.perrier.dungeons.Main;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
-import fr.perrier.dungeons.workflow.action.impl.SendTitleAction;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,6 +42,23 @@ public class ActionFactory {
                     int fadeOut = actionData.has("fadeout") ?
                             actionData.get("fadeout").getAsInt() : 20;
                     yield new SendTitleAction(targetPlayer, title, subtitle, fadeIn, stay, fadeOut);
+                }
+                case "teleporter_action" -> {
+                    String targetPlayer = actionData.has("targetplayer") ?
+                            actionData.get("targetplayer").getAsString() : "player";
+                    float x = actionData.has("x") ?
+                            actionData.get("x").getAsFloat() : 0;
+                    float y = actionData.has("y") ?
+                            actionData.get("y").getAsFloat() : 0;
+                    float z = actionData.has("z") ?
+                            actionData.get("z").getAsFloat() : 0;
+                    float yaw = actionData.has("yaw") ?
+                            actionData.get("yaw").getAsFloat() : 0;
+                    float pitch = actionData.has("pitch") ?
+                            actionData.get("pitch").getAsFloat() : 0;
+                    String worldName = actionData.has("worldname") ?
+                            actionData.get("worldname").getAsString() : "world";
+                    yield new TeleporterAction(targetPlayer, x, y, z, yaw, pitch, worldName);
                 }
                 default -> {
                     Main.getInstance().getLogger().warning("Type d'action inconnu: " + type);
