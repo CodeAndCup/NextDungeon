@@ -1,6 +1,7 @@
 package fr.perrier.dungeons.webserver.blockly;
 
 import fr.perrier.dungeons.webserver.blockly.annotations.BlocklyInfo;
+import org.bukkit.entity.Player;
 import org.reflections.Reflections;
 
 import java.util.*;
@@ -46,8 +47,19 @@ public class BlocklyJavaScriptGenerator {
      * Génère le code JavaScript pour définir les blocs Blockly, la toolbox et les fonctions utilitaires
      * @return Le code JavaScript généré
      */
-    public String generateJavaScript() {
+    public String generateJavaScript(Player editor) {
         StringBuilder js = new StringBuilder();
+
+        js.append("""
+                console.log(`
+                ===== ÉDITEUR DE TRIGGERS DUNGEONS =====
+                🎯 Système de génération automatique activé
+                👤 Utilisateur:\s""").append(editor.getName()).append("""
+                
+                📅 ${new Date().toLocaleString()}
+                ==========================================
+                `);
+                """);
 
         js.append("// Auto-généré par BlocklyJavaScriptGenerator\n");
         js.append("console.log('🔧 Chargement automatique des blocs Blockly...');\n\n");

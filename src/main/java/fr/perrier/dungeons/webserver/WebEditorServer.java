@@ -92,7 +92,7 @@ public class WebEditorServer {
             try {
                 Main.getInstance().getLogger().info("🔧 Auto-génération des blocs Blockly...");
 
-                String blocklyJs = blocklyGenerator.generateJavaScript();
+                String blocklyJs = blocklyGenerator.generateJavaScript(currentEditor);
                 byte[] jsBytes = blocklyJs.getBytes(StandardCharsets.UTF_8);
 
                 exchange.getResponseHeaders().set("Content-Type", "application/javascript; charset=UTF-8");

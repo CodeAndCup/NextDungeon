@@ -1,5 +1,6 @@
 package fr.perrier.dungeons.webserver;
 
+import fr.perrier.cupcodeapi.utils.ChatUtil;
 import fr.perrier.dungeons.Main;
 import org.bukkit.entity.Player;
 
@@ -23,7 +24,7 @@ public class DungeonWebEditorManager {
 
         // Vérifier si le joueur a déjà un éditeur ouvert
         if (activeServers.containsKey(playerId)) {
-            player.sendMessage("§cVous avez déjà un éditeur web ouvert ! Fermez-le d'abord avec /dungeon admin webeditor stop");
+            player.sendMessage(ChatUtil.translate("&cVous avez déjà un éditeur web ouvert ! Fermez-le d'abord avec /dungeon admin webeditor stop"));
             return false;
         }
 
@@ -37,20 +38,14 @@ public class DungeonWebEditorManager {
             WebEditorServer server = new WebEditorServer(player);
             if (server.startServer(dungeonName, floorId)) {
                 activeServers.put(playerId, server);
-
-                player.sendMessage("§a✓ Éditeur web démarré !");
-                player.sendMessage("§7Ouvrez votre navigateur à l'adresse: §bhttp://localhost:8080");
-                player.sendMessage("§7Édition du donjon: §e" + dungeonName + " §7floor §e" + floorId);
-                player.sendMessage("§7Utilisez §c/dungeon admin webeditor stop §7pour arrêter l'éditeur");
-
                 return true;
             } else {
-                player.sendMessage("§cErreur lors du démarrage de l'éditeur web !");
+                player.sendMessage(ChatUtil.translate("&cErreur lors du démarrage de l'éditeur web !"));
                 return false;
             }
         } catch (Exception e) {
             Main.getInstance().getLogger().severe("Erreur lors du démarrage de l'éditeur web: " + e.getMessage());
-            player.sendMessage("§cErreur interne lors du démarrage de l'éditeur web !");
+            player.sendMessage(ChatUtil.translate("&cErreur interne lors du démarrage de l'éditeur web !"));
             return false;
         }
     }
@@ -64,10 +59,10 @@ public class DungeonWebEditorManager {
 
         if (server != null) {
             server.stopServer();
-            player.sendMessage("§a✓ Éditeur web arrêté !");
+            player.sendMessage(ChatUtil.translate("&a✓ Éditeur web arrêté !"));
             return true;
         } else {
-            player.sendMessage("§cAucun éditeur web n'est actuellement ouvert !");
+            player.sendMessage(ChatUtil.translate("&cAucun éditeur web n'est actuellement ouvert !"));
             return false;
         }
     }
