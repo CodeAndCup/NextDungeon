@@ -23,7 +23,7 @@ import java.util.Map;
         color = "#2196F3",
         displayText = "💬 Envoyer message",
         tooltip = "Envoie un message à un joueur spécifique\n{player} = joueur déclencheur\n{target} = joueur cible\n& = codes couleur",
-        category = "Messages"
+        category = "Actions"
 )
 public class SendMessageAction extends Action implements BlocklyAction {
     private static final long serialVersionUID = 1L;

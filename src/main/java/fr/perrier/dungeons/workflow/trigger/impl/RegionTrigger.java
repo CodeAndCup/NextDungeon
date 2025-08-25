@@ -24,7 +24,7 @@ import java.util.Map;
         color = "#4CAF50",
         displayText = "📍 Quand le joueur entre/sort de région",
         tooltip = "Déclenche quand un joueur entre ou sort d'une région définie",
-        category = "Régions"
+        category = "Triggers"
 )
 public class RegionTrigger extends Trigger implements BlocklyTrigger {
 
