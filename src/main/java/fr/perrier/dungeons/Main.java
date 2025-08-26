@@ -16,6 +16,7 @@ import fr.perrier.dungeons.listener.global.GlobalJoinListener;
 import fr.perrier.dungeons.listener.global.GlobalLeaveListener;
 import fr.perrier.dungeons.listener.global.GlobalPartyListener;
 import fr.perrier.dungeons.manager.GlobalTriggerManager;
+import fr.perrier.dungeons.manager.VariableManager;
 import fr.perrier.dungeons.messaging.Pidgin;
 import fr.perrier.dungeons.model.FloorInstance;
 import fr.perrier.dungeons.storage.ProfileService;
@@ -74,6 +75,8 @@ public final class Main extends JavaPlugin {
     // Global trigger manager
     @Getter
     private GlobalTriggerManager globalTriggerManager;
+    @Getter
+    private VariableManager variableManager;
 
     @Override
     public void onEnable() {
@@ -146,6 +149,10 @@ public final class Main extends JavaPlugin {
         globalTriggerManager = new GlobalTriggerManager();
         globalTriggerManager.initialize();
         globalTriggerManager.refreshTriggerCache();
+
+        // Initialize variable manager
+        variableManager = new VariableManager();
+
 
         // Initialize web editor manager
         webEditorManager = new DungeonWebEditorManager();

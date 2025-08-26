@@ -1,6 +1,7 @@
 package fr.perrier.dungeons.webserver.blockly;
 
 import fr.perrier.dungeons.webserver.blockly.annotations.BlocklyInfo;
+import lombok.SneakyThrows;
 import org.bukkit.entity.Player;
 import org.reflections.Reflections;
 
@@ -45,6 +46,7 @@ public class BlocklyJavaScriptGenerator {
 
     /**
      * Génère le code JavaScript pour définir les blocs Blockly, la toolbox et les fonctions utilitaires
+     *
      * @return Le code JavaScript généré
      */
     public String generateJavaScript(Player editor) {
@@ -55,7 +57,7 @@ public class BlocklyJavaScriptGenerator {
                 ===== ÉDITEUR DE TRIGGERS DUNGEONS =====
                 🎯 Système de génération automatique activé
                 👤 Utilisateur:\s""").append(editor.getName()).append("""
-                
+                                
                 📅 ${new Date().toLocaleString()}
                 ==========================================
                 `);
@@ -75,6 +77,9 @@ public class BlocklyJavaScriptGenerator {
 
         // Générer les blocs utilitaires
         generateUtilityBlocks(js);
+
+        // Générer les blocs variables
+        generateVariableBlocks(js);
 
         // Générer la toolbox
         generateToolbox(js);
@@ -108,7 +113,7 @@ public class BlocklyJavaScriptGenerator {
     /**
      * Génère le code JavaScript pour un bloc de trigger spécifique
      *
-     * @param js Le StringBuilder pour accumuler le code JavaScript
+     * @param js           Le StringBuilder pour accumuler le code JavaScript
      * @param triggerClass La classe du trigger à générer
      */
     private void generateTriggerBlock(StringBuilder js, Class<? extends BlocklyTrigger> triggerClass) {
@@ -165,9 +170,17 @@ public class BlocklyJavaScriptGenerator {
 
         for (Map.Entry<String, List<Class<? extends BlocklyAction>>> entry : actionsByCategory.entrySet()) {
             js.append("// Catégorie: ").append(entry.getKey()).append("\n");
-
             for (Class<? extends BlocklyAction> actionClass : entry.getValue()) {
-                generateActionBlock(js, actionClass);
+                try {
+                    BlocklyAction instance = actionClass.getDeclaredConstructor().newInstance();
+                    if (instance.requiresCustomBlockGeneration()) {
+                        instance.generateCustomBlock(js);
+                    } else {
+                        generateActionBlock(js, actionClass);
+                    }
+                } catch (Exception e) {
+                    generateActionBlock(js, actionClass);
+                }
             }
         }
         js.append("\n");
@@ -176,7 +189,7 @@ public class BlocklyJavaScriptGenerator {
     /**
      * Génère le code JavaScript pour un bloc d'action spécifique
      *
-     * @param js Le StringBuilder pour accumuler le code JavaScript
+     * @param js          Le StringBuilder pour accumuler le code JavaScript
      * @param actionClass La classe de l'action à générer
      */
     private void generateActionBlock(StringBuilder js, Class<? extends BlocklyAction> actionClass) {
@@ -300,32 +313,32 @@ public class BlocklyJavaScriptGenerator {
 
         // Function Definition Block
         js.append("""
-        Blockly.Blocks['function_trigger'] = {
-            init: function() {
-                this.appendDummyInput()
-                    .appendField("🔧 Fonction")
-                    .appendField(new Blockly.FieldTextInput("ma_fonction"), "FUNCTIONNAME");
-                this.appendStatementInput("ACTIONS")
-                    .setCheck("Action")
-                    .appendField("Faire:");
-                this.setColour('#673AB7');
-                this.setTooltip("Définit une fonction personnalisée réutilisable");
-            }
-        };
-        
-        Blockly.Blocks['call_function_action'] = {
-            init: function() {
-                this.appendDummyInput()
-                    .appendField("📞 Appeler")
-                    .appendField(new Blockly.FieldTextInput("ma_fonction"), "FUNCTIONNAME");
-                this.setPreviousStatement(true, "Action");
-                this.setNextStatement(true, "Action");
-                this.setColour('#9C27B0');
-                this.setTooltip("Appelle une fonction définie précédemment");
-            }
-        };
-        
-        """);
+                Blockly.Blocks['function_trigger'] = {
+                    init: function() {
+                        this.appendDummyInput()
+                            .appendField("🔧 Fonction")
+                            .appendField(new Blockly.FieldTextInput("ma_fonction"), "FUNCTIONNAME");
+                        this.appendStatementInput("ACTIONS")
+                            .setCheck("Action")
+                            .appendField("Faire:");
+                        this.setColour('#673AB7');
+                        this.setTooltip("Définit une fonction personnalisée réutilisable");
+                    }
+                };
+                        
+                Blockly.Blocks['call_function_action'] = {
+                    init: function() {
+                        this.appendDummyInput()
+                            .appendField("📞 Appeler")
+                            .appendField(new Blockly.FieldTextInput("ma_fonction"), "FUNCTIONNAME");
+                        this.setPreviousStatement(true, "Action");
+                        this.setNextStatement(true, "Action");
+                        this.setColour('#9C27B0');
+                        this.setTooltip("Appelle une fonction définie précédemment");
+                    }
+                };
+                        
+                """);
     }
 
     /**
@@ -339,25 +352,57 @@ public class BlocklyJavaScriptGenerator {
 
         // Génère le bloc booléen "Vrai"
         js.append("""
-        Blockly.Blocks['boolean_true'] = {
-            init: function() {
-                this.appendDummyInput()
-                    .appendField("✅ Vrai");
-                this.setOutput(true, "Boolean");
-                this.setColour('#4CAF50');
-            }
-        };
-        
-        Blockly.Blocks['boolean_false'] = {
-            init: function() {
-                this.appendDummyInput()
-                    .appendField("❌ Faux");
-                this.setOutput(true, "Boolean");
-                this.setColour('#F44336');
-            }
-        };
-        
-        """);
+                Blockly.Blocks['boolean_true'] = {
+                    init: function() {
+                        this.appendDummyInput()
+                            .appendField("✅ Vrai");
+                        this.setOutput(true, "Boolean");
+                        this.setColour('#4CAF50');
+                    }
+                };
+                        
+                Blockly.Blocks['boolean_false'] = {
+                    init: function() {
+                        this.appendDummyInput()
+                            .appendField("❌ Faux");
+                        this.setOutput(true, "Boolean");
+                        this.setColour('#F44336');
+                    }
+                };
+                
+                Blockly.Blocks['text'] = {
+                    init: function() {
+                        this.appendDummyInput().appendField(new Blockly.FieldTextInput(""), "TEXT");
+                        this.setOutput(true, null);
+                        this.setColour('#5C6BC0');
+                        this.setTooltip('Bloc de texte pour valeurs');
+                    }
+                };
+                        
+                """);
+    }
+
+    /**
+     * Génère les blocs pour la gestion des variables dans Blockly.
+     * Inclut les blocs pour définir et récupérer des variables avec différentes portées.
+     *
+     * @param js Le `StringBuilder` utilisé pour accumuler le code JavaScript généré.
+     */
+    private void generateVariableBlocks(StringBuilder js) {
+        js.append("// ===== BLOCS VARIABLES (AUTO-GÉNÉRÉS) =====\n");
+
+        js.append("""
+                Blockly.Blocks['get_variable'] = {
+                    init: function() {
+                        this.appendDummyInput()
+                            .appendField("📄 Variable")
+                            .appendField(new Blockly.FieldTextInput("ma_variable"), "VARIABLE_NAME");
+                        this.setOutput(true, null);
+                        this.setColour('#FF9800');
+                        this.setTooltip("Récupère la valeur d'une variable");
+                    }
+                };
+                """);
     }
 
     /**
@@ -415,34 +460,48 @@ public class BlocklyJavaScriptGenerator {
 
         // Catégorie fonctions
         js.append("""
-                {
-                    "kind": "category",
-                    "name": "🔧 Functions",
-                    "colour": "#673AB7",
-                    "contents": [
-                        {"kind": "block", "type": "function_trigger"},
-                        {"kind": "block", "type": "call_function_action"}
-                    ]
-                },
-        """);
+                        {
+                            "kind": "category",
+                            "name": "🔧 Functions",
+                            "colour": "#673AB7",
+                            "contents": [
+                                {"kind": "block", "type": "function_trigger"},
+                                {"kind": "block", "type": "call_function_action"}
+                            ]
+                        },
+                """);
 
-        // Catégorie utilitaires
+        // Catégorie variables
         js.append("""
                 {
                     "kind": "category",
-                    "name": "🔧 Utilitaires",
-                    "colour": "#9E9E9E",
+                    "name": "📊 Variables",
+                    "colour": "#FF5722",
                     "contents": [
-                        {"kind": "block", "type": "boolean_true"},
-                        {"kind": "block", "type": "boolean_false"}
+                        {"kind": "block", "type": "set_variable_action"},
+                        {"kind": "block", "type": "get_variable"}
                     ]
-                }
-            ]
-        };
-        
-        console.log('📦 Toolbox auto-générée:', window.DUNGEON_TOOLBOX);
-        
-        """);
+                },
+                """);
+
+        // Catégorie utilitaires
+        js.append("""
+                        {
+                            "kind": "category",
+                            "name": "🔧 Utilitaires",
+                            "colour": "#9E9E9E",
+                            "contents": [
+                                {"kind": "block", "type": "boolean_true"},
+                                {"kind": "block", "type": "boolean_false"},
+                                {"kind": "block", "type": "text"}
+                            ]
+                        }
+                    ]
+                };
+
+                console.log('📦 Toolbox auto-générée:', window.DUNGEON_TOOLBOX);
+
+                """);
     }
 
     /**
@@ -455,16 +514,16 @@ public class BlocklyJavaScriptGenerator {
         js.append("// ===== FONCTIONS UTILITAIRES AUTO-GÉNÉRÉES =====\n");
 
         js.append("""
-        // Génération des triggers depuis l'espace de travail
-        function generateTriggersFromWorkspace() {
-            console.log('🔄 Génération des triggers...');
-            const triggers = [];
-            const blocks = workspace.getTopBlocks();
-            
-            blocks.forEach(block => {
-                console.log('Bloc trouvé:', block.type);
-                
-        """);
+                // Génération des triggers depuis l'espace de travail
+                function generateTriggersFromWorkspace() {
+                    console.log('🔄 Génération des triggers...');
+                    const triggers = [];
+                    const blocks = workspace.getTopBlocks();
+                    
+                    blocks.forEach(block => {
+                        console.log('Bloc trouvé:', block.type);
+                        
+                """);
 
         // Générer dynamiquement les cas pour chaque type de trigger
         for (Map.Entry<String, List<Class<? extends BlocklyTrigger>>> entry : triggersByCategory.entrySet()) {
@@ -474,55 +533,64 @@ public class BlocklyJavaScriptGenerator {
         }
 
         js.append("""
-            });
-            
-            console.log('Triggers générés:', triggers);
-            return triggers;
-        }
-        
-        // Extraction des actions d'un bloc
-        function getActionsFromBlock(block) {
-            const actions = [];
-            let actionBlock = block.getInputTargetBlock('ACTIONS');
-            
-            while (actionBlock) {
-                console.log('Action trouvée:', actionBlock.type);
-                
-        """);
+                    });
+                    
+                    console.log('Triggers générés:', triggers);
+                    return triggers;
+                }
+                        
+                // Extraction des actions d'un bloc
+                function getActionsFromBlock(block) {
+                    const actions = [];
+                    let actionBlock = block.getInputTargetBlock('ACTIONS');
+                    
+                    while (actionBlock) {
+                        console.log('Action trouvée:', actionBlock.type);
+                        
+                """);
 
         // Générer dynamiquement les cas pour chaque type d'action
         for (Map.Entry<String, List<Class<? extends BlocklyAction>>> entry : actionsByCategory.entrySet()) {
             for (Class<? extends BlocklyAction> actionClass : entry.getValue()) {
-                generateActionCase(js, actionClass);
+                try {
+                    BlocklyAction instance = actionClass.getDeclaredConstructor().newInstance();
+                    if (instance.requiresCustomBlockGeneration()) {
+                        instance.generateCustomActionCase(js);
+                    } else {
+                        generateActionCase(js, actionClass);
+                    }
+                } catch (Exception e) {
+                    generateActionCase(js, actionClass);
+                }
             }
         }
 
         js.append("""
-                actionBlock = actionBlock.getNextBlock();
-            }
-            
-            return actions;
-        }
-        
-        // Fonction pour charger les triggers dans l'espace de travail
-        function loadTriggersIntoWorkspace(triggersData) {
-            console.log('🔄 Chargement des triggers dans l\\'espace de travail...');
-            console.log('Données reçues:', triggersData);
-            
-            // Vider l'espace de travail avant de charger
-            workspace.clear();
-            
-            if (!triggersData || !triggersData.triggers) {
-                console.log('Aucun trigger à charger');
-                return;
-            }
-            
-            console.log('Nombre de triggers à charger:', triggersData.triggers.length);
+                        actionBlock = actionBlock.getNextBlock();
+                    }
                     
-            triggersData.triggers.forEach((trigger, index) => {
-                console.log('Chargement du trigger #' + (index + 1) + ':', trigger);
-                
-        """);
+                    return actions;
+                }
+                        
+                // Fonction pour charger les triggers dans l'espace de travail
+                function loadTriggersIntoWorkspace(triggersData) {
+                    console.log('🔄 Chargement des triggers dans l\\'espace de travail...');
+                    console.log('Données reçues:', triggersData);
+                    
+                    // Vider l'espace de travail avant de charger
+                    workspace.clear();
+                    
+                    if (!triggersData || !triggersData.triggers) {
+                        console.log('Aucun trigger à charger');
+                        return;
+                    }
+                    
+                    console.log('Nombre de triggers à charger:', triggersData.triggers.length);
+                            
+                    triggersData.triggers.forEach((trigger, index) => {
+                        console.log('Chargement du trigger #' + (index + 1) + ':', trigger);
+                        
+                """);
 
         // Générer dynamiquement les cas de chargement pour chaque trigger
         for (Map.Entry<String, List<Class<? extends BlocklyTrigger>>> entry : triggersByCategory.entrySet()) {
@@ -532,35 +600,128 @@ public class BlocklyJavaScriptGenerator {
         }
 
         js.append("""
-            });
-            
-            console.log('✅ Triggers chargés dans l\\'espace de travail');
-        }
-        
-        // Fonction pour charger les actions dans un bloc
-        function loadActionsIntoBlock(triggerBlock, actions) {
-            if (!actions || actions.length === 0) return;
-            
-            let previousActionBlock = null;
-            const actionsInput = triggerBlock.getInput('ACTIONS');
-            
-            actions.forEach((action, index) => {
-        """);
+                    });
+                    
+                    console.log('✅ Triggers chargés dans l\\'espace de travail');
+                }
+                        
+                // Fonction pour charger les actions dans un bloc
+                function loadActionsIntoBlock(triggerBlock, actions) {
+                    if (!actions || actions.length === 0) return;
+                    
+                    let previousActionBlock = null;
+                    const actionsInput = triggerBlock.getInput('ACTIONS');
+                    
+                    actions.forEach((action, index) => {
+                """);
 
         // Générer dynamiquement les cas de chargement pour chaque action
         for (Map.Entry<String, List<Class<? extends BlocklyAction>>> entry : actionsByCategory.entrySet()) {
             for (Class<? extends BlocklyAction> actionClass : entry.getValue()) {
-                generateActionLoadingCase(js, actionClass);
+                try {
+                    BlocklyAction instance = actionClass.getDeclaredConstructor().newInstance();
+                    if (instance.requiresCustomBlockGeneration()) {
+                        instance.generateCustomActionLoadingCase(js);
+                    } else {
+                        generateActionLoadingCase(js, actionClass);
+                    }
+                } catch (Exception e) {
+                    generateActionLoadingCase(js, actionClass);
+                }
+            }
+        }
+
+        // Add these helper functions in generateUtilityFunctions method:
+        js.append("""
+                            });
+                }
+                        // Helper function to extract actions from statement inputs (for IF/ELSE blocks)
+                                  function getActionsFromStatementInput(block, inputName) {
+                                      const actions = [];
+                                      let actionBlock = block.getInputTargetBlock(inputName);
+                                     \s
+                                      while (actionBlock) {
+                                          console.log('Action trouvée dans statement:', actionBlock.type);
+                                         \s
+                """);
+
+        // Generate the same action cases as in the main getActionsFromBlock function
+        // But this time we'll inline them properly with the actions array defined
+        for (Map.Entry<String, List<Class<? extends BlocklyAction>>> entry : actionsByCategory.entrySet()) {
+            for (Class<? extends BlocklyAction> actionClass : entry.getValue()) {
+                BlocklyInfo info = actionClass.getAnnotation(BlocklyInfo.class);
+                String actionType = info.name();
+                List<BlocklyFieldExtractor.BlocklyFieldInfo> fields = BlocklyFieldExtractor.extractFields(actionClass);
+
+                js.append("                if (actionBlock.type === '").append(actionType).append("') {\n");
+                js.append("                    actions.push({\n");
+                js.append("                        type: '").append(actionType).append("'");
+
+                for (BlocklyFieldExtractor.BlocklyFieldInfo field : fields) {
+                    js.append(",\n                        ");
+                    generateFieldExtraction(js, field, "actionBlock");
+                }
+
+                js.append("\n                    });\n");
+                js.append("                }\n");
             }
         }
 
         js.append("""
-            });
+                         actionBlock = actionBlock.getNextBlock();
+                     }
+                    \s
+                     return actions;
+                 }
+                \s
+                 // Helper function to load actions into statement inputs
+                 function loadActionsIntoStatement(parentBlock, actions, statementName) {
+                     if (!actions || actions.length === 0) return;
+                    \s
+                     let previousActionBlock = null;
+                     const statementInput = parentBlock.getInput(statementName);
+                    \s
+                     actions.forEach((action, index) => {
+                """);
+
+        // Generate the same action loading cases as in the main loadActionsIntoBlock function
+        for (Map.Entry<String, List<Class<? extends BlocklyAction>>> entry : actionsByCategory.entrySet()) {
+            for (Class<? extends BlocklyAction> actionClass : entry.getValue()) {
+                BlocklyInfo info = actionClass.getAnnotation(BlocklyInfo.class);
+                String actionType = info.name();
+                List<BlocklyFieldExtractor.BlocklyFieldInfo> fields = BlocklyFieldExtractor.extractFields(actionClass);
+
+                js.append("                if (action.type === '").append(actionType).append("') {\n");
+                js.append("                    const actionBlock = workspace.newBlock('").append(actionType).append("');\n");
+
+                for (BlocklyFieldExtractor.BlocklyFieldInfo field : fields) {
+                    generateFieldLoading(js, field, "action");
+                }
+
+                js.append("                    \n");
+                js.append("                    if (index === 0) {\n");
+                js.append("                        // Premier bloc d'action, connecter au statement input\n");
+                js.append("                        statementInput.connection.connect(actionBlock.previousConnection);\n");
+                js.append("                    } else {\n");
+                js.append("                        // Blocs suivants, connecter au bloc précédent\n");
+                js.append("                        if (previousActionBlock) {\n");
+                js.append("                            previousActionBlock.nextConnection.connect(actionBlock.previousConnection);\n");
+                js.append("                        }\n");
+                js.append("                    }\n");
+                js.append("                    \n");
+                js.append("                    actionBlock.initSvg();\n");
+                js.append("                    actionBlock.render();\n");
+                js.append("                    previousActionBlock = actionBlock;\n");
+                js.append("                }\n");
+            }
         }
-        
-        console.log('✅ Fonctions utilitaires auto-générées chargées');
-        
-        """);
+
+        js.append("""
+                                      });
+                                  }
+                                 \s
+                console.log('✅ Fonctions utilitaires auto-générées chargées');
+                """);
     }
 
     /**
@@ -590,7 +751,7 @@ public class BlocklyJavaScriptGenerator {
         // Génère dynamiquement les champs associés au trigger
         for (BlocklyFieldExtractor.BlocklyFieldInfo field : fields) {
             js.append("                        ");
-            generateFieldExtraction(js, field,"block");
+            generateFieldExtraction(js, field, "block");
             js.append(",\n");
         }
 
@@ -614,10 +775,10 @@ public class BlocklyJavaScriptGenerator {
     /**
      * Génère un cas spécifique pour une action dans le code JavaScript.
      *
-     * @param js           Le `StringBuilder` utilisé pour accumuler le code JavaScript généré.
-     * @param actionClass  La classe de l'action à traiter, annotée avec `@BlocklyInfo`.
-     *                     Cette classe est utilisée pour extraire les informations nécessaires
-     *                     à la génération du bloc correspondant.
+     * @param js          Le `StringBuilder` utilisé pour accumuler le code JavaScript généré.
+     * @param actionClass La classe de l'action à traiter, annotée avec `@BlocklyInfo`.
+     *                    Cette classe est utilisée pour extraire les informations nécessaires
+     *                    à la génération du bloc correspondant.
      */
     private void generateActionCase(StringBuilder js, Class<? extends BlocklyAction> actionClass) {
         // Récupère les informations de l'annotation @BlocklyInfo de la classe de l'action
@@ -637,7 +798,7 @@ public class BlocklyJavaScriptGenerator {
         // Génère dynamiquement les champs associés à l'action
         for (BlocklyFieldExtractor.BlocklyFieldInfo field : fields) {
             js.append(",\n                        ");
-            generateFieldExtraction(js, field,"actionBlock");
+            generateFieldExtraction(js, field, "actionBlock");
         }
 
         js.append("\n                    });\n");
@@ -668,7 +829,7 @@ public class BlocklyJavaScriptGenerator {
 
         // Génère dynamiquement le chargement des champs associés au trigger
         for (BlocklyFieldExtractor.BlocklyFieldInfo field : fields) {
-            generateFieldLoading(js, field,"trigger");
+            generateFieldLoading(js, field, "trigger");
         }
 
         js.append("                    \n");
@@ -706,7 +867,7 @@ public class BlocklyJavaScriptGenerator {
 
         // Génère dynamiquement le chargement des champs associés à l'action
         for (BlocklyFieldExtractor.BlocklyFieldInfo field : fields) {
-            generateFieldLoading(js, field,"action");
+            generateFieldLoading(js, field, "action");
         }
 
         js.append("                    \n");

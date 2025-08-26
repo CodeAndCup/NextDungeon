@@ -180,6 +180,11 @@ public class TriggerSaveManager {
             actionObj.addProperty("worldname", teleporterAction.getWorldName());
         } else if (action instanceof CallFunctionAction functionAction) {
             actionObj.addProperty("functionname", functionAction.getFunctionName());
+        } else if (action instanceof SetVariableAction setVariableAction) {
+            actionObj.addProperty("variablename", setVariableAction.getVariableName());
+            actionObj.addProperty("value", setVariableAction.getValue());
+            actionObj.addProperty("scope", setVariableAction.getScope());
+
         }
         // Ajouter d'autres types d'actions ici
     }

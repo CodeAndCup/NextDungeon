@@ -1,6 +1,7 @@
 package fr.perrier.dungeons.workflow.action.impl;
 
 import fr.perrier.cupcodeapi.utils.ChatUtil;
+import fr.perrier.dungeons.Main;
 import fr.perrier.dungeons.webserver.blockly.BlocklyAction;
 import fr.perrier.dungeons.webserver.blockly.annotations.BlocklyField;
 import fr.perrier.dungeons.webserver.blockly.annotations.BlocklyInfo;
@@ -22,7 +23,7 @@ import java.util.Map;
         name = "send_message_action",
         color = "#2196F3",
         displayText = "💬 Envoyer message",
-        tooltip = "Envoie un message à un joueur spécifique\n{player} = joueur déclencheur\n{target} = joueur cible\n& = codes couleur",
+        tooltip = "Envoie un message à un joueur spécifique\n{player} = joueur déclencheur\n{global.variable} = Variable Global\n{player.variable} = Variable Player\n& = codes couleur",
         category = "Actions"
 )
 public class SendMessageAction extends Action implements BlocklyAction {
@@ -76,9 +77,9 @@ public class SendMessageAction extends Action implements BlocklyAction {
         } else if("@all".equals(targetPlayer)) {
             // Envoyer à tous les joueurs en ligne
             String finalMessage = message
-                    .replace("{player}", triggerPlayer != null ? triggerPlayer.getName() : "Unknown")
-                    .replace("{target}", "Tous")
+                    .replace("{player}", "Tous")
                     .replace("{trigger}", data.getOrDefault("trigger_name", "Unknown").toString());
+            finalMessage = Main.getInstance().getVariableManager().formatVariable(finalMessage, triggerPlayer);
             String translatedMessage = ChatUtil.translate(finalMessage);
             Bukkit.broadcastMessage(translatedMessage);
             return true;
@@ -91,9 +92,8 @@ public class SendMessageAction extends Action implements BlocklyAction {
             // Remplacer les variables dans le message
             String finalMessage = message
                     .replace("{player}", triggerPlayer != null ? triggerPlayer.getName() : "Unknown")
-                    .replace("{target}", target.getName())
                     .replace("{trigger}", data.getOrDefault("trigger_name", "Unknown").toString());
-
+            finalMessage = Main.getInstance().getVariableManager().formatVariable(finalMessage, triggerPlayer);
             target.sendMessage(ChatUtil.translate(finalMessage));
             return true;
         }

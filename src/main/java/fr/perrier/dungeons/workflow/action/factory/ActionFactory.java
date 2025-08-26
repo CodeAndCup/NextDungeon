@@ -1,11 +1,13 @@
 package fr.perrier.dungeons.workflow.action.factory;
 
+import com.google.gson.JsonPrimitive;
 import fr.perrier.dungeons.workflow.action.Action;
 import fr.perrier.dungeons.workflow.action.impl.*;
 import fr.perrier.dungeons.Main;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import fr.perrier.dungeons.workflow.condition.IfAction;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -65,6 +67,53 @@ public class ActionFactory {
                             actionData.get("functionname").getAsString() : "ma_fonction";
                     yield new CallFunctionAction(functionName);
                 }
+                case "set_variable_action" -> {
+                    String variableName = actionData.has("variablename") ?
+                            actionData.get("variablename").getAsString() : "ma_variable";
+                    String value = actionData.has("value") ?
+                            actionData.get("value").getAsString() : "0";
+                    String scope = actionData.has("scope") ?
+                            actionData.get("scope").getAsString() : "player";
+                    yield new SetVariableAction(variableName, value, scope);
+                }
+                case "if_action" -> {
+                    IfAction ifAction = new IfAction();
+
+                    // Set condition if provided
+                    if (actionData.has("leftValue")) {
+                        Object leftValue = parseValue(actionData.get("leftValue"));
+                        String operator = actionData.has("operator") ?
+                                actionData.get("operator").getAsString() : "==";
+                        Object rightValue = actionData.has("rightValue") ?
+                                parseValue(actionData.get("rightValue")) : null;
+
+                        ifAction.setCondition(leftValue, operator, rightValue);
+                    }
+
+                    // Load IF actions
+                    if (actionData.has("ifActions")) {
+                        JsonArray ifActionsArray = actionData.getAsJsonArray("ifActions");
+                        for (JsonElement actionElement : ifActionsArray) {
+                            Action action = createActionFromJson(actionElement.getAsJsonObject());
+                            if (action != null) {
+                                ifAction.addIfAction(action);
+                            }
+                        }
+                    }
+
+                    // Load ELSE actions
+                    if (actionData.has("elseActions")) {
+                        JsonArray elseActionsArray = actionData.getAsJsonArray("elseActions");
+                        for (JsonElement actionElement : elseActionsArray) {
+                            Action action = createActionFromJson(actionElement.getAsJsonObject());
+                            if (action != null) {
+                                ifAction.addElseAction(action);
+                            }
+                        }
+                    }
+
+                    yield ifAction;
+                }
                 default -> {
                     Main.getInstance().getLogger().warning("Type d'action inconnu: " + type);
                     yield null;
@@ -94,5 +143,19 @@ public class ActionFactory {
 
         Main.getInstance().getLogger().info("Actions parsees: " + actions.size() + " action(s) creee(s)");
         return actions;
+    }
+
+    private static Object parseValue(JsonElement element) {
+        if (element.isJsonPrimitive()) {
+            JsonPrimitive primitive = element.getAsJsonPrimitive();
+            if (primitive.isString()) {
+                return primitive.getAsString();
+            } else if (primitive.isNumber()) {
+                return primitive.getAsNumber();
+            } else if (primitive.isBoolean()) {
+                return primitive.getAsBoolean();
+            }
+        }
+        return element.toString();
     }
 }

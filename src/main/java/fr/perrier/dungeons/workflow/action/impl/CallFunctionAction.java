@@ -20,7 +20,7 @@ import java.util.Map;
         color = "#9C27B0",
         displayText = "📞 Appeler",
         tooltip = "Appelle une fonction définie",
-        category = "Functions"
+        category = "Actions"
 )
 public class CallFunctionAction extends Action implements BlocklyAction {
     private static final long serialVersionUID = 1L;

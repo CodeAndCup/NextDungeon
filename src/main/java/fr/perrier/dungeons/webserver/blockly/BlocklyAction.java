@@ -22,4 +22,36 @@ public interface BlocklyAction extends BlocklyComponent {
     default boolean isChainable() {
         return true;
     }
+
+    /**
+     * Indicates if this action requires custom JavaScript block generation
+     * @return true if custom generation is needed
+     */
+    default boolean requiresCustomBlockGeneration() {
+        return false;
+    }
+
+    /**
+     * Generate custom JavaScript block definition
+     * @param js StringBuilder to append the JavaScript
+     */
+    default void generateCustomBlock(StringBuilder js) {
+        // Default implementation - do nothing
+    }
+
+    /**
+     * Generate custom action extraction case
+     * @param js StringBuilder to append the JavaScript
+     */
+    default void generateCustomActionCase(StringBuilder js) {
+        // Default implementation - do nothing
+    }
+
+    /**
+     * Generate custom action loading case
+     * @param js StringBuilder to append the JavaScript
+     */
+    default void generateCustomActionLoadingCase(StringBuilder js) {
+        // Default implementation - do nothing
+    }
 }
