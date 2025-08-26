@@ -4,6 +4,7 @@ import fr.perrier.dungeons.Main;
 import fr.perrier.dungeons.workflow.trigger.Trigger;
 import fr.perrier.dungeons.workflow.trigger.handler.TriggerEventHandler;
 import fr.perrier.dungeons.workflow.trigger.handler.impl.*;
+import fr.perrier.dungeons.workflow.trigger.impl.FunctionTrigger;
 import org.bukkit.Bukkit;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
@@ -31,6 +32,9 @@ public class GlobalTriggerManager implements Listener {
 
     // Handlers enregistrés
     private final Map<Class<? extends Event>, TriggerEventHandler<?>> handlers = new HashMap<>();
+
+    private final Map<String, FunctionTrigger> registeredFunctions = new HashMap<>();
+
 
     // Instance singleton
     private static GlobalTriggerManager instance;
@@ -66,7 +70,7 @@ public class GlobalTriggerManager implements Listener {
             Bukkit.getPluginManager().registerEvents(handler, Main.getInstance());
         }*/
 
-        Main.getInstance().getLogger().info("GlobalTriggerManager initialisé avec " + handlers.size() + " handlers");
+        Main.getInstance().getLogger().info("GlobalTriggerManager initialise avec " + handlers.size() + " handlers");
     }
 
     /**
@@ -86,7 +90,7 @@ public class GlobalTriggerManager implements Listener {
      */
     public <T extends Event> void registerHandler(TriggerEventHandler<T> handler) {
         handlers.put(handler.getEventType(), handler);
-        Main.getInstance().getLogger().info("Handler enregistré pour: " + handler.getEventType().getSimpleName());
+        Main.getInstance().getLogger().info("Handler enregistre pour: " + handler.getEventType().getSimpleName());
     }
 
     /**
@@ -118,6 +122,60 @@ public class GlobalTriggerManager implements Listener {
         } catch (Exception e) {
             Main.getInstance().getLogger().severe("Erreur lors du rafraîchissement du cache: " + e.getMessage());
         }
+    }
+
+    /**
+     * Register a function definition
+     */
+    public void registerFunction(FunctionTrigger function) {
+        if (function == null || function.getFunctionName() == null) {
+            return;
+        }
+
+        String name = function.getFunctionName().trim();
+        if (name.isEmpty()) {
+            return;
+        }
+
+        registeredFunctions.put(name, function);
+        Main.getInstance().getLogger().info("Function registered: " + name);
+    }
+
+
+    /**
+     * Get a registered function
+     */
+    public FunctionTrigger getFunction(String name) {
+        if (name == null) {
+            return null;
+        }
+        return registeredFunctions.get(name.trim());
+    }
+
+    /**
+     * Remove a function
+     */
+    public void removeFunction(String name) {
+        if (name != null) {
+            registeredFunctions.remove(name.trim());
+            Main.getInstance().getLogger().info("Function removed: " + name);
+        }
+    }
+
+    /**
+     * Clear all registered functions
+     */
+    public void clearFunctions() {
+        int count = registeredFunctions.size();
+        registeredFunctions.clear();
+        Main.getInstance().getLogger().info("Cleared " + count + " registered functions");
+    }
+
+    /**
+     * Get all registered function names
+     */
+    public String[] getFunctionNames() {
+        return registeredFunctions.keySet().toArray(new String[0]);
     }
 
     /**

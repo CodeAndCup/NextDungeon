@@ -70,6 +70,9 @@ public class BlocklyJavaScriptGenerator {
         // Générer les blocs actions
         generateActionBlocks(js);
 
+        // Générer les blocs fonctions
+        generateFunctionBlocks(js);
+
         // Générer les blocs utilitaires
         generateUtilityBlocks(js);
 
@@ -292,6 +295,39 @@ public class BlocklyJavaScriptGenerator {
         }
     }
 
+    private void generateFunctionBlocks(StringBuilder js) {
+        js.append("// ===== BLOCS USER FUNCTIONS (AUTO-GÉNÉRÉS) =====\n");
+
+        // Function Definition Block
+        js.append("""
+        Blockly.Blocks['function_trigger'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("🔧 Fonction")
+                    .appendField(new Blockly.FieldTextInput("ma_fonction"), "FUNCTIONNAME");
+                this.appendStatementInput("ACTIONS")
+                    .setCheck("Action")
+                    .appendField("Faire:");
+                this.setColour('#673AB7');
+                this.setTooltip("Définit une fonction personnalisée réutilisable");
+            }
+        };
+        
+        Blockly.Blocks['call_function_action'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField("📞 Appeler")
+                    .appendField(new Blockly.FieldTextInput("ma_fonction"), "FUNCTIONNAME");
+                this.setPreviousStatement(true, "Action");
+                this.setNextStatement(true, "Action");
+                this.setColour('#9C27B0');
+                this.setTooltip("Appelle une fonction définie précédemment");
+            }
+        };
+        
+        """);
+    }
+
     /**
      * Génère les blocs utilitaires pour Blockly, tels que les blocs booléens "Vrai" et "Faux".
      *
@@ -376,6 +412,19 @@ public class BlocklyJavaScriptGenerator {
             js.append("            ]\n");
             js.append("        },\n");
         }
+
+        // Catégorie fonctions
+        js.append("""
+                {
+                    "kind": "category",
+                    "name": "🔧 Functions",
+                    "colour": "#673AB7",
+                    "contents": [
+                        {"kind": "block", "type": "function_trigger"},
+                        {"kind": "block", "type": "call_function_action"}
+                    ]
+                },
+        """);
 
         // Catégorie utilitaires
         js.append("""
@@ -536,7 +585,7 @@ public class BlocklyJavaScriptGenerator {
         js.append("                if (block.type === '").append(triggerType).append("') {\n");
         js.append("                    triggers.push({\n");
         js.append("                        type: '").append(triggerType).append("',\n");
-        js.append("                        name: '").append(triggerClass.getSimpleName()).append("_' + Date.now(),\n");
+        js.append("                        name: '").append(triggerClass.getSimpleName()).append("_' + crypto.randomUUID(),\n");
 
         // Génère dynamiquement les champs associés au trigger
         for (BlocklyFieldExtractor.BlocklyFieldInfo field : fields) {

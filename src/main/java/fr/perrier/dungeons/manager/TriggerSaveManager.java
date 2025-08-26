@@ -26,14 +26,14 @@ public class TriggerSaveManager {
      */
     public boolean saveTriggers(String dungeonName, String floorId, String jsonData, Player editor) {
         try {
-            Main.getInstance().getLogger().info("Début de la sauvegarde des triggers pour " + dungeonName + " floor " + floorId);
-            Main.getInstance().getLogger().info("Données JSON reçues: " + jsonData);
+            Main.getInstance().getLogger().info("Starting trigger save process for " + dungeonName + " floor " + floorId);
+            Main.getInstance().getLogger().info("Json data received: " + jsonData);
 
             // Parser les données JSON
             JsonObject data = gson.fromJson(jsonData, JsonObject.class);
 
             if (!data.has("triggers")) {
-                Main.getInstance().getLogger().warning("Aucune donnée de triggers trouvée dans le JSON");
+                Main.getInstance().getLogger().warning("No data of triggers found in JSON");
                 return false;
             }
 
@@ -42,20 +42,20 @@ public class TriggerSaveManager {
             // Convertir en objets Trigger
             List<Trigger> triggers = TriggerFactory.parseTriggersFromJson(triggersArray);
 
-            Main.getInstance().getLogger().info("Triggers convertis: " + triggers.size() + " triggers");
+            Main.getInstance().getLogger().info("Number of triggers parsed: " + triggers.size());
 
             // Sauvegarder les triggers dans la mémoire
             Floor floor = Main.getInstance().getRedisStorageService().getCurrentFloor().get();
             floor.setTriggers(triggers);
             Main.getInstance().getRedisStorageService().syncFloor(floor);
-            Main.getInstance().getLogger().info("Triggers assignés à l'instance en mémoire");
+            Main.getInstance().getLogger().info("Trigger saved in memory for floor: " + floorId);
 
             Main.getInstance().getGlobalTriggerManager().refreshTriggerCache();
 
             // Sauvegarder dans le fichier .dungeon en utilisant votre DungeonFileManager
             boolean fileSaved = DungeonFileManager.saveTriggers(floorId, triggers);
             if (!fileSaved) {
-                Main.getInstance().getLogger().warning("Échec de la sauvegarde du fichier .dungeon");
+                Main.getInstance().getLogger().warning("Failed to save triggers to file for floor: " + floorId);
                 return false;
             }
 
@@ -71,11 +71,11 @@ public class TriggerSaveManager {
                 }
             }
 
-            Main.getInstance().getLogger().info("Sauvegarde terminée avec succès: " + triggers.size() + " triggers");
+            Main.getInstance().getLogger().info("Save process completed successfully: " + triggers.size() + " triggers");
             return true;
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("Erreur lors de la sauvegarde des triggers: " + e.getMessage());
+            Main.getInstance().getLogger().severe("An error occurred while saving triggers: " + e.getMessage());
             e.printStackTrace();
 
             if (editor != null && editor.isOnline()) {
@@ -152,6 +152,8 @@ public class TriggerSaveManager {
             triggerObj.addProperty("regionevent", regionTrigger.getRegionEvent());
             triggerObj.addProperty("onlyonce", regionTrigger.isOnlyOnce());
             triggerObj.addProperty("cooldownseconds", regionTrigger.getCooldownSeconds());
+        } else if (trigger instanceof FunctionTrigger functionTrigger) {
+            triggerObj.addProperty("functionname", functionTrigger.getFunctionName());
         }
         // Ajouter d'autres types de triggers ici
     }
@@ -176,7 +178,8 @@ public class TriggerSaveManager {
             actionObj.addProperty("yaw", teleporterAction.getYaw());
             actionObj.addProperty("pitch", teleporterAction.getPitch());
             actionObj.addProperty("worldname", teleporterAction.getWorldName());
-
+        } else if (action instanceof CallFunctionAction functionAction) {
+            actionObj.addProperty("functionname", functionAction.getFunctionName());
         }
         // Ajouter d'autres types d'actions ici
     }

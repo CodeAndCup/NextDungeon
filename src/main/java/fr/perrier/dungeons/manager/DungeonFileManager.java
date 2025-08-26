@@ -25,7 +25,7 @@ public class DungeonFileManager {
 
             try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file))) {
                 oos.writeObject(triggers);
-                Main.getInstance().getLogger().info("Triggers sauvegardés pour " + floorId);
+                Main.getInstance().getLogger().info("Triggers sauvegardes pour " + floorId);
                 return true;
             }
         } catch (IOException e) {
@@ -48,7 +48,7 @@ public class DungeonFileManager {
 
         try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
             List<Trigger> triggers = (List<Trigger>) ois.readObject();
-            Main.getInstance().getLogger().info("Triggers chargés pour " + floorId + " (" + triggers.size() + " triggers)");
+            Main.getInstance().getLogger().info("Triggers charges pour " + floorId + " (" + triggers.size() + " triggers)");
             return triggers;
         } catch (IOException | ClassNotFoundException e) {
             Main.getInstance().getLogger().severe("Erreur lors du chargement des triggers: " + e.getMessage());

@@ -60,6 +60,11 @@ public class ActionFactory {
                             actionData.get("worldname").getAsString() : "world";
                     yield new TeleporterAction(targetPlayer, x, y, z, yaw, pitch, worldName);
                 }
+                case "call_function_action" -> {
+                    String functionName = actionData.has("functionname") ?
+                            actionData.get("functionname").getAsString() : "ma_fonction";
+                    yield new CallFunctionAction(functionName);
+                }
                 default -> {
                     Main.getInstance().getLogger().warning("Type d'action inconnu: " + type);
                     yield null;
@@ -67,7 +72,7 @@ public class ActionFactory {
             };
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("Erreur lors de la création de l'action: " + e.getMessage());
+            Main.getInstance().getLogger().severe("Erreur lors de la creation de l'action: " + e.getMessage());
             e.printStackTrace();
             return null;
         }
@@ -87,7 +92,7 @@ public class ActionFactory {
             }
         }
 
-        Main.getInstance().getLogger().info("Actions parsées: " + actions.size() + " action(s) créée(s)");
+        Main.getInstance().getLogger().info("Actions parsees: " + actions.size() + " action(s) creee(s)");
         return actions;
     }
 }
