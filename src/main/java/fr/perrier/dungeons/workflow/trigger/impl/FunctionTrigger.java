@@ -76,20 +76,6 @@ public class FunctionTrigger extends Trigger implements BlocklyTrigger {
     }
 
     @Override
-    public Map<String, Object> getBlocklyConfig() {
-        Map<String, Object> config = new HashMap<>();
-        config.put("type", getType());
-        config.put("color", "#673AB7");
-        config.put("category", "functions");
-
-        Map<String, Object> fields = new HashMap<>();
-        fields.put("function_name", Map.of("type", "text", "label", "Nom de la fonction", "default", "ma_fonction"));
-
-        config.put("fields", fields);
-        return config;
-    }
-
-    @Override
     public boolean hasActions() {
         return true;
     }

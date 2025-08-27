@@ -107,6 +107,14 @@
             <id>phoenix</id>
             <url>https://nexus.phoenixdevt.fr/repository/maven-public/</url>
         </repository>
+
+        <!-- MythicMobs API -->
+        <repository>
+            <id>nexus</id>
+            <name>Lumine Releases</name>
+            <url>https://mvn.lumine.io/repository/maven-public/</url>
+        </repository>
+
     </repositories>
 
     <dependencies>
@@ -180,6 +188,15 @@
             <version>1.12.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
+
+        <!-- MythicMobs API -->
+        <dependency>
+            <groupId>io.lumine</groupId>
+            <artifactId>Mythic-Dist</artifactId>
+            <version>5.9.5</version>
+            <scope>provided</scope>
+        </dependency>
+
 
 
         <!-- CloudNet API -->

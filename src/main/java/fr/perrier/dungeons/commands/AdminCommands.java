@@ -32,19 +32,6 @@ public class AdminCommands {
         player.sendMessage(ChatUtil.getBar());
     }
 
-    // Removed cause for now we will create floors manually and not in-game by using the yaml config files
-    /*@Command(names = "dungeon admin create")
-    public static void adminDungeonCreateCommand(Player player, @Param(name = "Dungeon ID") String dungeonId, @Param(name = "Floor ID") String floorId) {
-
-        //TODO: Register new floors in db or something like ?
-        Floor floor = new Floor(dungeonId + "_" + floorId,floorId);
-        floor.generateTemplate().thenRun(() -> {
-            //TODO: Need to sync instances between servers with Redis Pub/Sub or something like ?
-            FloorInstance floorInstance = new FloorInstance(floor.getId());
-            floorInstance.sendToServer(player);
-        });
-    }*/
-
     @Command(names = "dungeon admin edit")
     public static void adminDungeonEditCommand(Player player, @Param(name = "Dungeon ID") String dungeonId, @Param(name = "Floor ID") String floorId) {
         Floor floor = Floor.getFloor(dungeonId + "_" + floorId);

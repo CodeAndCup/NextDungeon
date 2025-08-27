@@ -441,11 +441,25 @@ public class BlocklyJavaScriptGenerator {
 
         // Catégories d'actions
         for (Map.Entry<String, List<Class<? extends BlocklyAction>>> entry : actionsByCategory.entrySet()) {
-            js.append("        {\n");
-            js.append("            \"kind\": \"category\",\n");
-            js.append("            \"name\": \"⚡ ").append(entry.getKey()).append("\",\n");
-            js.append("            \"colour\": \"#2196F3\",\n");
-            js.append("            \"contents\": [\n");
+            if(entry.getKey().equals("Actions")) {
+                js.append("        {\n");
+                js.append("            \"kind\": \"category\",\n");
+                js.append("            \"name\": \"⚡ ").append(entry.getKey()).append("\",\n");
+                js.append("            \"colour\": \"#2196F3\",\n");
+                js.append("            \"contents\": [\n");
+            } else if (entry.getKey().equals("Logic")) {
+                js.append("        {\n");
+                js.append("            \"kind\": \"category\",\n");
+                js.append("            \"name\": \"🔀 ").append(entry.getKey()).append("\",\n");
+                js.append("            \"colour\": \"#FF9800\",\n");
+                js.append("            \"contents\": [\n");
+            } else {
+                js.append("        {\n");
+                js.append("            \"kind\": \"category\",\n");
+                js.append("            \"name\": \"⚙️ ").append(entry.getKey()).append("\",\n");
+                js.append("            \"colour\": \"#607D8B\",\n");
+                js.append("            \"contents\": [\n");
+            }
 
             for (Class<? extends BlocklyAction> actionClass : entry.getValue()) {
                 BlocklyInfo info = actionClass.getAnnotation(BlocklyInfo.class);
@@ -550,7 +564,6 @@ public class BlocklyJavaScriptGenerator {
                         
                 """);
 
-        //TODO: HERE IF USE CUSTOM GENERATION FOR IF ACTION
         // Générer dynamiquement les cas pour chaque type d'action
         for (Map.Entry<String, List<Class<? extends BlocklyAction>>> entry : actionsByCategory.entrySet()) {
             for (Class<? extends BlocklyAction> actionClass : entry.getValue()) {
@@ -621,7 +634,6 @@ public class BlocklyJavaScriptGenerator {
                         let actionBlock = null;
                 """);
 
-        //TODO: HERE IF USE CUSTOM GENERATION FOR IF ACTION
         // Générer dynamiquement les cas de chargement pour chaque action
         for (Map.Entry<String, List<Class<? extends BlocklyAction>>> entry : actionsByCategory.entrySet()) {
             for (Class<? extends BlocklyAction> actionClass : entry.getValue()) {
@@ -664,26 +676,6 @@ public class BlocklyJavaScriptGenerator {
 
         // Generate the same action cases as in the main getActionsFromBlock function
         // But this time we'll inline them properly with the actions array defined
-        /*for (Map.Entry<String, List<Class<? extends BlocklyAction>>> entry : actionsByCategory.entrySet()) {
-            for (Class<? extends BlocklyAction> actionClass : entry.getValue()) {
-                BlocklyInfo info = actionClass.getAnnotation(BlocklyInfo.class);
-                String actionType = info.name();
-                List<BlocklyFieldExtractor.BlocklyFieldInfo> fields = BlocklyFieldExtractor.extractFields(actionClass);
-
-                js.append("                if (actionBlock.type === '").append(actionType).append("') {\n");
-                js.append("                    actions.push({\n");
-                js.append("                        type: '").append(actionType).append("'");
-
-                //TODO: PROBLEM HERE WITH IF ACTION
-                for (BlocklyFieldExtractor.BlocklyFieldInfo field : fields) {
-                    js.append(",\n                        ");
-                    generateFieldExtraction(js, field, "actionBlock");
-                }
-
-                js.append("\n                    });\n");
-                js.append("                }\n");
-            }
-        }*/
         for (Map.Entry<String, List<Class<? extends BlocklyAction>>> entry : actionsByCategory.entrySet()) {
             for (Class<? extends BlocklyAction> actionClass : entry.getValue()) {
                 try {
@@ -721,39 +713,6 @@ public class BlocklyJavaScriptGenerator {
                 """);
 
         // Generate the same action loading cases as in the main loadActionsIntoBlock function
-        /*for (Map.Entry<String, List<Class<? extends BlocklyAction>>> entry : actionsByCategory.entrySet()) {
-            for (Class<? extends BlocklyAction> actionClass : entry.getValue()) {
-                BlocklyInfo info = actionClass.getAnnotation(BlocklyInfo.class);
-                String actionType = info.name();
-                List<BlocklyFieldExtractor.BlocklyFieldInfo> fields = BlocklyFieldExtractor.extractFields(actionClass);
-
-                if()
-
-                js.append("                if (action.type === '").append(actionType).append("') {\n");
-                js.append("                    const actionBlock = workspace.newBlock('").append(actionType).append("');\n");
-
-                //TODO: PROBLEM HERE WITH IF ACTION
-                for (BlocklyFieldExtractor.BlocklyFieldInfo field : fields) {
-                    generateFieldLoading(js, field, "action");
-                }
-
-                js.append("                    \n");
-                js.append("                    if (index === 0) {\n");
-                js.append("                        // Premier bloc d'action, connecter au statement input\n");
-                js.append("                        statementInput.connection.connect(actionBlock.previousConnection);\n");
-                js.append("                    } else {\n");
-                js.append("                        // Blocs suivants, connecter au bloc précédent\n");
-                js.append("                        if (previousActionBlock) {\n");
-                js.append("                            previousActionBlock.nextConnection.connect(actionBlock.previousConnection);\n");
-                js.append("                        }\n");
-                js.append("                    }\n");
-                js.append("                    \n");
-                js.append("                    actionBlock.initSvg();\n");
-                js.append("                    actionBlock.render();\n");
-                js.append("                    previousActionBlock = actionBlock;\n");
-                js.append("                }\n");
-            }
-        }*/
         for (Map.Entry<String, List<Class<? extends BlocklyAction>>> entry : actionsByCategory.entrySet()) {
             for (Class<? extends BlocklyAction> actionClass : entry.getValue()) {
                 try {

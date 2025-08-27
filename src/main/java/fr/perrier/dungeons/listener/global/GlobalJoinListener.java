@@ -3,9 +3,11 @@ package fr.perrier.dungeons.listener.global;
 import fr.perrier.dungeons.Main;
 import fr.perrier.dungeons.messaging.packets.PlayerSwitchServerPacket;
 import fr.perrier.dungeons.model.ProfileData;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 
 public class GlobalJoinListener implements Listener {

@@ -193,51 +193,6 @@ public class RegionTrigger extends Trigger implements BlocklyTrigger {
         return "region_trigger";
     }
 
-    @Override
-    public Map<String, Object> getBlocklyConfig() {
-        Map<String, Object> config = new HashMap<>();
-        config.put("type", getType());
-        config.put("color", "#4CAF50");
-        config.put("icon", "crop-free");
-        config.put("category", "location");
-
-        Map<String, Object> fields = new HashMap<>();
-
-        // Coordonnées de la région
-        fields.put("pos1_x", Map.of("type", "number", "label", "Position 1 - X", "default", 0));
-        fields.put("pos1_y", Map.of("type", "number", "label", "Position 1 - Y", "default", 64));
-        fields.put("pos1_z", Map.of("type", "number", "label", "Position 1 - Z", "default", 0));
-        fields.put("pos2_x", Map.of("type", "number", "label", "Position 2 - X", "default", 10));
-        fields.put("pos2_y", Map.of("type", "number", "label", "Position 2 - Y", "default", 74));
-        fields.put("pos2_z", Map.of("type", "number", "label", "Position 2 - Z", "default", 10));
-        fields.put("world", Map.of("type", "text", "label", "Monde", "default", "world"));
-
-        // Nouvelles options
-        fields.put("region_event", Map.of(
-                "type", "dropdown",
-                "label", "Événement",
-                "default", "enter",
-                "options", new String[]{"enter", "exit", "both"}
-        ));
-
-        fields.put("only_once", Map.of(
-                "type", "checkbox",
-                "label", "Une seule fois par joueur",
-                "default", false
-        ));
-
-        fields.put("cooldown_seconds", Map.of(
-                "type", "number",
-                "label", "Cooldown (secondes)",
-                "default", 0,
-                "min", 0
-        ));
-
-        config.put("fields", fields);
-
-        return config;
-    }
-
     /**
      * Remet à zéro l'historique d'un joueur (utile pour les tests ou reset)
      */

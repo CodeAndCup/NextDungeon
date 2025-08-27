@@ -63,11 +63,6 @@ public abstract class Trigger implements Serializable {
     public abstract String getType();
 
     /**
-     * Retourne la configuration pour l'éditeur Blockly
-     */
-    public abstract Map<String, Object> getBlocklyConfig();
-
-    /**
      * Exécute toutes les actions du trigger
      */
     protected boolean executeActions(Player player, Location location, Map<String, Object> data) {
@@ -85,9 +80,6 @@ public abstract class Trigger implements Serializable {
                 if (!actionSuccess) {
                     Main.getInstance().getLogger().warning("Échec de l'action " + action.getName() + " du trigger " + this.name);
                     success = false;
-                } else {
-                    //TODO: TEST
-                    Main.getInstance().getLogger().info("Action " + action.getName() + " du trigger " + this.name + " exécutée avec succès");
                 }
             } catch (Exception e) {
                 Main.getInstance().getLogger().severe("Erreur lors de l'exécution de l'action " + action.getName() + ": " + e.getMessage());

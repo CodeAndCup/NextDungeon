@@ -1,6 +1,7 @@
 package fr.perrier.dungeons.workflow.trigger.factory;
 
 import fr.perrier.dungeons.workflow.trigger.Trigger;
+import fr.perrier.dungeons.workflow.trigger.impl.EntityDeathTrigger;
 import fr.perrier.dungeons.workflow.trigger.impl.FunctionTrigger;
 import fr.perrier.dungeons.workflow.trigger.impl.RegionTrigger;
 import fr.perrier.dungeons.workflow.action.factory.ActionFactory;
@@ -27,6 +28,7 @@ public class TriggerFactory {
             Trigger trigger = switch (type) {
                 case "region_trigger" -> createRegionTrigger(triggerData, name);
                 case "function_trigger" -> createFunctionTrigger(triggerData, name);
+                case "entity_death_trigger" -> createEntityDeathTrigger(triggerData, name);
                 default -> {
                     Main.getInstance().getLogger().warning("Trigger type unknown: " + type);
                     yield null;
@@ -78,6 +80,14 @@ public class TriggerFactory {
         FunctionTrigger trigger = new FunctionTrigger(name);
 
         if (data.has("functionname")) trigger.setFunctionName(data.get("functionname").getAsString());
+
+        return trigger;
+    }
+
+    private static EntityDeathTrigger createEntityDeathTrigger(JsonObject data, String name) {
+        EntityDeathTrigger trigger = new EntityDeathTrigger(name);
+
+        if (data.has("entitytype")) trigger.setEntityType(data.get("entitytype").getAsString());
 
         return trigger;
     }

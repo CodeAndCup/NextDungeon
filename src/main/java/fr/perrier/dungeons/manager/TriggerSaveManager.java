@@ -155,6 +155,9 @@ public class TriggerSaveManager {
             triggerObj.addProperty("cooldownseconds", regionTrigger.getCooldownSeconds());
         } else if (trigger instanceof FunctionTrigger functionTrigger) {
             triggerObj.addProperty("functionname", functionTrigger.getFunctionName());
+        } else if (trigger instanceof EntityDeathTrigger deathTrigger) {
+            triggerObj.addProperty("entitytype", deathTrigger.getEntityType());
+
         }
         // Ajouter d'autres types de triggers ici
     }
