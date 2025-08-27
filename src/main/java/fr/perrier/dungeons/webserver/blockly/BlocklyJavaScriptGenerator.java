@@ -2,6 +2,7 @@ package fr.perrier.dungeons.webserver.blockly;
 
 import fr.perrier.dungeons.webserver.blockly.annotations.BlocklyInfo;
 import lombok.SneakyThrows;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.reflections.Reflections;
 
@@ -395,11 +396,11 @@ public class BlocklyJavaScriptGenerator {
                 Blockly.Blocks['get_variable'] = {
                     init: function() {
                         this.appendDummyInput()
-                            .appendField("📄 Variable")
-                            .appendField(new Blockly.FieldTextInput("ma_variable"), "VARIABLE_NAME");
+                            .appendField("📊 Obtenir variable")
+                            .appendField(new Blockly.FieldTextInput("{global.ma_variable}"), "TEXT");
                         this.setOutput(true, null);
-                        this.setColour('#FF9800');
-                        this.setTooltip("Récupère la valeur d'une variable");
+                        this.setColour('#5C6BC0');
+                        this.setTooltip('Bloc pour obtenir la valeur d\\'une variable (ex: {global.ma_variable}, {player.ma_variable})');
                     }
                 };
                 """);
@@ -549,14 +550,18 @@ public class BlocklyJavaScriptGenerator {
                         
                 """);
 
+        //TODO: HERE IF USE CUSTOM GENERATION FOR IF ACTION
         // Générer dynamiquement les cas pour chaque type d'action
         for (Map.Entry<String, List<Class<? extends BlocklyAction>>> entry : actionsByCategory.entrySet()) {
             for (Class<? extends BlocklyAction> actionClass : entry.getValue()) {
                 try {
                     BlocklyAction instance = actionClass.getDeclaredConstructor().newInstance();
+                    Bukkit.getLogger().info("Generating action case for " + actionClass.getSimpleName());
                     if (instance.requiresCustomBlockGeneration()) {
+                        Bukkit.getLogger().info("Using custom generation for " + actionClass.getSimpleName());
                         instance.generateCustomActionCase(js);
                     } else {
+                        Bukkit.getLogger().info("Using standard generation for " + actionClass.getSimpleName());
                         generateActionCase(js, actionClass);
                     }
                 } catch (Exception e) {
@@ -613,8 +618,10 @@ public class BlocklyJavaScriptGenerator {
                     const actionsInput = triggerBlock.getInput('ACTIONS');
                     
                     actions.forEach((action, index) => {
+                        let actionBlock = null;
                 """);
 
+        //TODO: HERE IF USE CUSTOM GENERATION FOR IF ACTION
         // Générer dynamiquement les cas de chargement pour chaque action
         for (Map.Entry<String, List<Class<? extends BlocklyAction>>> entry : actionsByCategory.entrySet()) {
             for (Class<? extends BlocklyAction> actionClass : entry.getValue()) {
@@ -633,6 +640,16 @@ public class BlocklyJavaScriptGenerator {
 
         // Add these helper functions in generateUtilityFunctions method:
         js.append("""
+                                    if (actionBlock) {
+                                        actionBlock.initSvg();
+                                        actionBlock.render();
+                                        if (index === 0) {
+                                            actionsInput.connection.connect(actionBlock.previousConnection);
+                                        } else if (previousActionBlock) {
+                                            previousActionBlock.nextConnection.connect(actionBlock.previousConnection);
+                                        }
+                                        previousActionBlock = actionBlock;
+                                    }
                             });
                 }
                         // Helper function to extract actions from statement inputs (for IF/ELSE blocks)
@@ -647,7 +664,7 @@ public class BlocklyJavaScriptGenerator {
 
         // Generate the same action cases as in the main getActionsFromBlock function
         // But this time we'll inline them properly with the actions array defined
-        for (Map.Entry<String, List<Class<? extends BlocklyAction>>> entry : actionsByCategory.entrySet()) {
+        /*for (Map.Entry<String, List<Class<? extends BlocklyAction>>> entry : actionsByCategory.entrySet()) {
             for (Class<? extends BlocklyAction> actionClass : entry.getValue()) {
                 BlocklyInfo info = actionClass.getAnnotation(BlocklyInfo.class);
                 String actionType = info.name();
@@ -657,6 +674,7 @@ public class BlocklyJavaScriptGenerator {
                 js.append("                    actions.push({\n");
                 js.append("                        type: '").append(actionType).append("'");
 
+                //TODO: PROBLEM HERE WITH IF ACTION
                 for (BlocklyFieldExtractor.BlocklyFieldInfo field : fields) {
                     js.append(",\n                        ");
                     generateFieldExtraction(js, field, "actionBlock");
@@ -664,6 +682,23 @@ public class BlocklyJavaScriptGenerator {
 
                 js.append("\n                    });\n");
                 js.append("                }\n");
+            }
+        }*/
+        for (Map.Entry<String, List<Class<? extends BlocklyAction>>> entry : actionsByCategory.entrySet()) {
+            for (Class<? extends BlocklyAction> actionClass : entry.getValue()) {
+                try {
+                    BlocklyAction instance = actionClass.getDeclaredConstructor().newInstance();
+                    Bukkit.getLogger().info("Generating action case for " + actionClass.getSimpleName());
+                    if (instance.requiresCustomBlockGeneration()) {
+                        Bukkit.getLogger().info("Using custom generation for " + actionClass.getSimpleName());
+                        instance.generateCustomActionCase(js);
+                    } else {
+                        Bukkit.getLogger().info("Using standard generation for " + actionClass.getSimpleName());
+                        generateActionCase(js, actionClass);
+                    }
+                } catch (Exception e) {
+                    generateActionCase(js, actionClass);
+                }
             }
         }
 
@@ -679,21 +714,25 @@ public class BlocklyJavaScriptGenerator {
                      if (!actions || actions.length === 0) return;
                     \s
                      let previousActionBlock = null;
-                     const statementInput = parentBlock.getInput(statementName);
+                     const actionsInput = parentBlock.getInput(statementName);
                     \s
                      actions.forEach((action, index) => {
+                        let actionBlock = null;
                 """);
 
         // Generate the same action loading cases as in the main loadActionsIntoBlock function
-        for (Map.Entry<String, List<Class<? extends BlocklyAction>>> entry : actionsByCategory.entrySet()) {
+        /*for (Map.Entry<String, List<Class<? extends BlocklyAction>>> entry : actionsByCategory.entrySet()) {
             for (Class<? extends BlocklyAction> actionClass : entry.getValue()) {
                 BlocklyInfo info = actionClass.getAnnotation(BlocklyInfo.class);
                 String actionType = info.name();
                 List<BlocklyFieldExtractor.BlocklyFieldInfo> fields = BlocklyFieldExtractor.extractFields(actionClass);
 
+                if()
+
                 js.append("                if (action.type === '").append(actionType).append("') {\n");
                 js.append("                    const actionBlock = workspace.newBlock('").append(actionType).append("');\n");
 
+                //TODO: PROBLEM HERE WITH IF ACTION
                 for (BlocklyFieldExtractor.BlocklyFieldInfo field : fields) {
                     generateFieldLoading(js, field, "action");
                 }
@@ -714,12 +753,36 @@ public class BlocklyJavaScriptGenerator {
                 js.append("                    previousActionBlock = actionBlock;\n");
                 js.append("                }\n");
             }
+        }*/
+        for (Map.Entry<String, List<Class<? extends BlocklyAction>>> entry : actionsByCategory.entrySet()) {
+            for (Class<? extends BlocklyAction> actionClass : entry.getValue()) {
+                try {
+                    BlocklyAction instance = actionClass.getDeclaredConstructor().newInstance();
+                    if (instance.requiresCustomBlockGeneration()) {
+                        instance.generateCustomActionLoadingCase(js);
+                    } else {
+                        generateActionLoadingCase(js, actionClass);
+                    }
+                } catch (Exception e) {
+                    generateActionLoadingCase(js, actionClass);
+                }
+            }
         }
 
         js.append("""
-                                      });
-                                  }
-                                 \s
+                                    if (actionBlock) {
+                                        actionBlock.initSvg();
+                                        actionBlock.render();
+                                        if (index === 0) {
+                                            actionsInput.connection.connect(actionBlock.previousConnection);
+                                        } else if (previousActionBlock) {
+                                            previousActionBlock.nextConnection.connect(actionBlock.previousConnection);
+                                        }
+                                        previousActionBlock = actionBlock;
+                                    }
+                                });
+                            }
+                            \s
                 console.log('✅ Fonctions utilitaires auto-générées chargées');
                 """);
     }
@@ -863,14 +926,14 @@ public class BlocklyJavaScriptGenerator {
 
         // Génère le code JavaScript pour charger une action spécifique
         js.append("                if (action.type === '").append(actionType).append("') {\n");
-        js.append("                    const actionBlock = workspace.newBlock('").append(actionType).append("');\n");
+        js.append("                    actionBlock = workspace.newBlock('").append(actionType).append("');\n");
 
         // Génère dynamiquement le chargement des champs associés à l'action
         for (BlocklyFieldExtractor.BlocklyFieldInfo field : fields) {
             generateFieldLoading(js, field, "action");
         }
 
-        js.append("                    \n");
+        /*js.append("                    \n");
         js.append("                    if (index === 0) {\n");
         js.append("                        // Premier bloc d'action, connecter au trigger\n");
         js.append("                        actionsInput.connection.connect(actionBlock.previousConnection);\n");
@@ -884,7 +947,7 @@ public class BlocklyJavaScriptGenerator {
         js.append("                    actionBlock.initSvg();\n");
         js.append("                    actionBlock.render();\n");
         js.append("                    \n");
-        js.append("                    previousActionBlock = actionBlock;\n");
+        js.append("                    previousActionBlock = actionBlock;\n");*/
         js.append("                }\n");
     }
 

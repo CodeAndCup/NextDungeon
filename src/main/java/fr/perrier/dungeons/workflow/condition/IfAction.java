@@ -123,7 +123,7 @@ public class IfAction extends Action implements BlocklyAction {
         js.append("""
         Blockly.Blocks['if_action'] = {
             init: function() {
-                this.appendValueInput('LEFT_VALUE')
+                this.appendValueInput('LEFTVALUE')
                     .setCheck(null)
                     .appendField('🔀 Si');
                 this.appendDummyInput()
@@ -138,12 +138,12 @@ public class IfAction extends Action implements BlocklyAction {
                         ['commence par', 'startsWith'],
                         ['finit par', 'endsWith']
                     ]), 'OPERATOR');
-                this.appendValueInput('RIGHT_VALUE')
+                this.appendValueInput('RIGHTVALUE')
                     .setCheck(null);
-                this.appendStatementInput('IF_ACTIONS')
+                this.appendStatementInput('IFACTIONS')
                     .setCheck('Action')
                     .appendField('Alors:');
-                this.appendStatementInput('ELSE_ACTIONS')
+                this.appendStatementInput('ELSEACTIONS')
                     .setCheck('Action')
                     .appendField('Sinon:');
                 this.setPreviousStatement(true, 'Action');
@@ -158,69 +158,55 @@ public class IfAction extends Action implements BlocklyAction {
     @Override
     public void generateCustomActionCase(StringBuilder js) {
         js.append("""
-        if (actionBlock.type === 'if_action') {
-            const leftValue = actionBlock.getInputTargetBlock('LEFT_VALUE') ? actionBlock.getInputTargetBlock('LEFT_VALUE').getFieldValue('TEXT') || '' : '';
-            const rightValue = actionBlock.getInputTargetBlock('RIGHT_VALUE') ? actionBlock.getInputTargetBlock('RIGHT_VALUE').getFieldValue('TEXT') || '' : '';
-            const ifActions = getActionsFromStatementInput(actionBlock, 'IF_ACTIONS');
-            const elseActions = getActionsFromStatementInput(actionBlock, 'ELSE_ACTIONS');
+                        if (actionBlock.type === 'if_action') {
+                            const leftValue = actionBlock.getInputTargetBlock('LEFTVALUE') ? actionBlock.getInputTargetBlock('LEFTVALUE').getFieldValue('TEXT') || '' : '';
+                            const rightValue = actionBlock.getInputTargetBlock('RIGHTVALUE') ? actionBlock.getInputTargetBlock('RIGHTVALUE').getFieldValue('TEXT') || '' : '';
+                            const ifActions = getActionsFromStatementInput(actionBlock, 'IFACTIONS');
+                            const elseActions = getActionsFromStatementInput(actionBlock, 'ELSEACTIONS');
 
-            actions.push({
-                type: 'if_action',
-                leftValue: leftValue,
-                operator: actionBlock.getFieldValue('OPERATOR'),
-                rightValue: rightValue,
-                ifActions: ifActions,
-                elseActions: elseActions
-            });
-        }
+                            actions.push({
+                                type: 'if_action',
+                                leftvalue: leftValue,
+                                operator: actionBlock.getFieldValue('OPERATOR'),
+                                rightvalue: rightValue,
+                                ifactions: ifActions,
+                                elseactions: elseActions
+                            });
+                        }
         """);
     }
 
     @Override
     public void generateCustomActionLoadingCase(StringBuilder js) {
         js.append("""
-        if (action.type === 'if_action') {
-            const actionBlock = workspace.newBlock('if_action');
+                            if (action.type === 'if_action') {
+                                 actionBlock = workspace.newBlock('if_action');
+                                     if (action.leftvalue) {
+                                         const leftBlock = workspace.newBlock('text');
+                                         leftBlock.setFieldValue(action.leftvalue, 'TEXT');
+                                         leftBlock.initSvg();
+                                         leftBlock.render();
+                                         actionBlock.getInput('LEFTVALUE').connection.connect(leftBlock.outputConnection);
+                                     }
 
-            if (action.leftValue) {
-                const leftBlock = workspace.newBlock('text');
-                leftBlock.setFieldValue(action.leftValue, 'TEXT');
-                leftBlock.initSvg();
-                leftBlock.render();
-                actionBlock.getInput('LEFT_VALUE').connection.connect(leftBlock.outputConnection);
-            }
+                                     if (action.rightvalue) {
+                                         const rightBlock = workspace.newBlock('text');
+                                         rightBlock.setFieldValue(action.rightvalue, 'TEXT');
+                                         rightBlock.initSvg();
+                                         rightBlock.render();
+                                         actionBlock.getInput('RIGHTVALUE').connection.connect(rightBlock.outputConnection);
+                                     }
 
-            if (action.rightValue) {
-                const rightBlock = workspace.newBlock('text');
-                rightBlock.setFieldValue(action.rightValue, 'TEXT');
-                rightBlock.initSvg();
-                rightBlock.render();
-                actionBlock.getInput('RIGHT_VALUE').connection.connect(rightBlock.outputConnection);
-            }
+                                     actionBlock.setFieldValue(action.operator || '==', 'OPERATOR');
 
-            actionBlock.setFieldValue(action.operator || '==', 'OPERATOR');
+                                     if (action.ifactions && action.ifactions.length > 0) {
+                                         loadActionsIntoStatement(actionBlock, action.ifactions, 'IFACTIONS');
+                                     }
 
-            // Load nested actions
-            if (action.ifActions && action.ifActions.length > 0) {
-                loadActionsIntoStatement(actionBlock, action.ifActions, 'IF_ACTIONS');
-            }
-
-            if (action.elseActions && action.elseActions.length > 0) {
-                loadActionsIntoStatement(actionBlock, action.elseActions, 'ELSE_ACTIONS');
-            }
-
-            if (index === 0) {
-                actionsInput.connection.connect(actionBlock.previousConnection);
-            } else {
-                if (previousActionBlock) {
-                    previousActionBlock.nextConnection.connect(actionBlock.previousConnection);
-                }
-            }
-
-            actionBlock.initSvg();
-            actionBlock.render();
-            previousActionBlock = actionBlock;
-        }
+                                     if (action.elseactions && action.elseactions.length > 0) {
+                                         loadActionsIntoStatement(actionBlock, action.elseactions, 'ELSEACTIONS');
+                                     }
+                                 }
         """);
     }
 
@@ -235,9 +221,16 @@ public class IfAction extends Action implements BlocklyAction {
         if (value instanceof String) {
             String stringValue = (String) value;
 
+            stringValue = Main.getInstance().getVariableManager().formatVariable(stringValue, player);
+
             // Handle variable references: {VAR:variable_name}
             if (stringValue.startsWith("{VAR:") && stringValue.endsWith("}")) {
                 String varName = stringValue.substring(5, stringValue.length() - 1);
+
+                // Try data context first
+                if (data.containsKey(varName)) {
+                    return data.get(varName);
+                }
 
                 // Try variable manager
                 if (Main.getInstance().getVariableManager() != null) {
@@ -247,14 +240,12 @@ public class IfAction extends Action implements BlocklyAction {
                     }
                 }
 
-                // Try data context
-                return data.getOrDefault(varName, "");
+                // Return empty string if not found
+                return "";
             }
 
             // Handle player placeholders
-            return stringValue
-                    .replace("{player}", player != null ? player.getName() : "Unknown")
-                    .replace("{trigger}", data.getOrDefault("trigger_name", "Unknown").toString());
+            return stringValue.replace("{player}", player != null ? player.getName() : "Unknown");
         }
 
         return value;

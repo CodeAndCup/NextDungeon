@@ -4,6 +4,7 @@ import fr.perrier.cupcodeapi.utils.ChatUtil;
 import fr.perrier.dungeons.model.Floor;
 import fr.perrier.dungeons.workflow.action.Action;
 import fr.perrier.dungeons.workflow.action.impl.*;
+import fr.perrier.dungeons.workflow.condition.IfAction;
 import fr.perrier.dungeons.workflow.trigger.Trigger;
 import fr.perrier.dungeons.workflow.trigger.factory.TriggerFactory;
 import fr.perrier.dungeons.workflow.trigger.impl.*;
@@ -184,7 +185,30 @@ public class TriggerSaveManager {
             actionObj.addProperty("variablename", setVariableAction.getVariableName());
             actionObj.addProperty("value", setVariableAction.getValue());
             actionObj.addProperty("scope", setVariableAction.getScope());
+        } else if (action instanceof IfAction ifAction) {
+            actionObj.addProperty("operator", ifAction.getOperator());
+            actionObj.addProperty("leftvalue", ifAction.getLeftValue() != null ? ifAction.getLeftValue().toString() : "");
+            actionObj.addProperty("rightvalue", ifAction.getRightValue() != null ? ifAction.getRightValue().toString() : "");
 
+            JsonArray ifActionsArray = new JsonArray();
+            for (Action ifActions : ifAction.getIfActions()) {
+                JsonObject thenActionObj = new JsonObject();
+                thenActionObj.addProperty("type", ifActions.getType());
+                thenActionObj.addProperty("name", ifActions.getName());
+                addPropertyOfAction(thenActionObj, ifActions);
+                ifActionsArray.add(thenActionObj);
+            }
+            actionObj.add("ifactions", ifActionsArray);
+
+            JsonArray elseActionsArray = new JsonArray();
+            for (Action elseActions : ifAction.getElseActions()) {
+                JsonObject elseActionObj = new JsonObject();
+                elseActionObj.addProperty("type", elseActions.getType());
+                elseActionObj.addProperty("name", elseActions.getName());
+                addPropertyOfAction(elseActionObj, elseActions);
+                elseActionsArray.add(elseActionObj);
+            }
+            actionObj.add("elseactions", elseActionsArray);
         }
         // Ajouter d'autres types d'actions ici
     }

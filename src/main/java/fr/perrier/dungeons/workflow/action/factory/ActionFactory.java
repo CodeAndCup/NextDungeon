@@ -80,19 +80,19 @@ public class ActionFactory {
                     IfAction ifAction = new IfAction();
 
                     // Set condition if provided
-                    if (actionData.has("leftValue")) {
-                        Object leftValue = parseValue(actionData.get("leftValue"));
+                    if (actionData.has("leftvalue")) {
+                        Object leftValue = parseValue(actionData.get("leftvalue"));
                         String operator = actionData.has("operator") ?
                                 actionData.get("operator").getAsString() : "==";
-                        Object rightValue = actionData.has("rightValue") ?
-                                parseValue(actionData.get("rightValue")) : null;
+                        Object rightValue = actionData.has("rightvalue") ?
+                                parseValue(actionData.get("rightvalue")) : null;
 
                         ifAction.setCondition(leftValue, operator, rightValue);
                     }
 
                     // Load IF actions
-                    if (actionData.has("ifActions")) {
-                        JsonArray ifActionsArray = actionData.getAsJsonArray("ifActions");
+                    if (actionData.has("ifactions")) {
+                        JsonArray ifActionsArray = actionData.getAsJsonArray("ifactions");
                         for (JsonElement actionElement : ifActionsArray) {
                             Action action = createActionFromJson(actionElement.getAsJsonObject());
                             if (action != null) {
@@ -102,8 +102,8 @@ public class ActionFactory {
                     }
 
                     // Load ELSE actions
-                    if (actionData.has("elseActions")) {
-                        JsonArray elseActionsArray = actionData.getAsJsonArray("elseActions");
+                    if (actionData.has("elseactions")) {
+                        JsonArray elseActionsArray = actionData.getAsJsonArray("elseactions");
                         for (JsonElement actionElement : elseActionsArray) {
                             Action action = createActionFromJson(actionElement.getAsJsonObject());
                             if (action != null) {
