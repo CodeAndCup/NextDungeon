@@ -80,6 +80,7 @@ public class AdminCommands {
             player.sendMessage(ChatUtil.translate("&eIf you want to discard without saving use &c/dungeon admin edit stop --confirm"));
         } else if(savedFile.exists() && !confirm.equalsIgnoreCase("--confirm")) {
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&fAre you sure you want to end your edit mode?"));
+            player.sendMessage(ChatUtil.translate("&fUse &b/dungeon admin edit stop --confirm &fif &ayes"));
         } else if (savedFile.exists() && confirm.equalsIgnoreCase("--confirm")) {
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&a✓ &fEdit mode ended."));
             try {
@@ -88,10 +89,10 @@ public class AdminCommands {
                 // Copy the world files to the template (strict minimum)
                 FileUtil.copyDir(new File(Main.getInstance().getDataFolder() + "/../../world/data/"), new File(Main.getInstance().getDataFolder() + "/../../../../../local/templates/" + currentFloor.getId() + "/default/world/data"));
                 FileUtil.copyDir(new File(Main.getInstance().getDataFolder() + "/../../world/entities/"), new File(Main.getInstance().getDataFolder() + "/../../../../../local/templates/" + currentFloor.getId() + "/default/world/entities"));
-                //Skip playerdata
                 FileUtil.copyDir(new File(Main.getInstance().getDataFolder() + "/../../world/region/"), new File(Main.getInstance().getDataFolder() + "/../../../../../local/templates/" + currentFloor.getId() + "/default/world/region"));
-                FileUtil.copyFile(new File(Main.getInstance().getDataFolder() + "/../../world/uid.dat"), new File(Main.getInstance().getDataFolder() + "/../../../../../local/templates/" + currentFloor.getId() + "/default/world/uid.dat"));
                 FileUtil.copyDir(new File(Main.getInstance().getDataFolder() + "/../../world/poi/"), new File(Main.getInstance().getDataFolder() + "/../../../../../local/templates/" + currentFloor.getId() + "/default/world/poi"));
+                FileUtil.copyFile(new File(Main.getInstance().getDataFolder() + "/../../world/uid.dat"), new File(Main.getInstance().getDataFolder() + "/../../../../../local/templates/" + currentFloor.getId() + "/default/world/uid.dat"));
+                FileUtil.copyFile(new File(Main.getInstance().getDataFolder() + "/../../world/level.dat"), new File(Main.getInstance().getDataFolder() + "/../../../../../local/templates/" + currentFloor.getId() + "/default/world/level.dat"));
 
                 player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&a✓ &fWorld changes saved."));
                 player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&fThe server will now shutdown."));
