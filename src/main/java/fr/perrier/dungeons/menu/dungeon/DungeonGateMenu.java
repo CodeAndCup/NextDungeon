@@ -99,6 +99,7 @@ public class DungeonGateMenu extends GlassMenu {
                     return;
                 }
                 FloorInstance floorInstance = new FloorInstance(floor.getId());
+                player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&fPlease wait while the instance is being prepared..."));
                 floorInstance.sendToServer(DungeonParty.getDungeonPartyOf(player));
             }
         }

@@ -47,8 +47,7 @@ public class AdminCommands {
         FloorInstance floorInstance = new FloorInstance(floor.getId(),true);
         player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&a✓ &fEdit mode started for floor &e" + floor.getId() + "&f."));
         player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&fPlease wait while the instance is being prepared..."));
-
-        ServerUtil.sendToServer(player,floorInstance.getInstanceId());
+        floorInstance.sendToServer(player);
     }
 
     @Command(names = "dungeon admin edit stop", permission = "nextdungeons.admin")
