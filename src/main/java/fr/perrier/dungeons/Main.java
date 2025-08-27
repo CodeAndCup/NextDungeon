@@ -12,6 +12,7 @@ import fr.perrier.dungeons.commands.PlayerCommands;
 import fr.perrier.dungeons.configuration.ConfigLoader;
 import fr.perrier.dungeons.database.DatabaseFactory;
 import fr.perrier.dungeons.database.DatabaseManager;
+import fr.perrier.dungeons.listener.dungeons.InstanceJoinListener;
 import fr.perrier.dungeons.listener.editor.EditorJoinListener;
 import fr.perrier.dungeons.listener.global.GlobalJoinListener;
 import fr.perrier.dungeons.listener.global.GlobalLeaveListener;
@@ -221,7 +222,7 @@ public final class Main extends JavaPlugin {
      */
     private void loadInstanceListeners() {
         PluginManager pluginManager = getServer().getPluginManager();
-        // Register instance-specific listeners here
+        pluginManager.registerEvents(new InstanceJoinListener(), this);
     }
 
     /**
@@ -235,7 +236,6 @@ public final class Main extends JavaPlugin {
     private void loadEditorListeners() {
         PluginManager pluginManager = getServer().getPluginManager();
         pluginManager.registerEvents(new EditorJoinListener(), this);
-        // Register editor-specific listeners here
     }
 
     /**
