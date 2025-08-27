@@ -72,7 +72,7 @@ public class WebEditorServer {
             return true;
 
         } catch (IOException e) {
-            Main.getInstance().getLogger().severe("❌ Erreur lors du démarrage du serveur: " + e.getMessage());
+            Main.getInstance().getLogger().severe("&cAn error occurred white start the web server: " + e.getMessage());
             e.printStackTrace();
             return false;
         }
@@ -107,7 +107,7 @@ public class WebEditorServer {
                 Main.getInstance().getLogger().info("✅ JavaScript généré (" + jsBytes.length + " bytes)");
 
             } catch (Exception e) {
-                Main.getInstance().getLogger().severe("❌ Erreur génération JS: " + e.getMessage());
+                Main.getInstance().getLogger().severe("&c❌ Erreur génération JS: " + e.getMessage());
                 e.printStackTrace();
                 sendErrorResponse(exchange, "Erreur lors de la génération JavaScript");
             }
@@ -143,7 +143,7 @@ public class WebEditorServer {
                 Main.getInstance().getLogger().info("✅ Triggers chargés pour " + currentFloor);
 
             } catch (Exception e) {
-                Main.getInstance().getLogger().severe("❌ Erreur chargement triggers: " + e.getMessage());
+                Main.getInstance().getLogger().severe("&c❌ Erreur chargement triggers: " + e.getMessage());
                 e.printStackTrace();
                 sendErrorResponse(exchange, "Erreur lors du chargement des triggers");
             }
@@ -188,12 +188,12 @@ public class WebEditorServer {
                     Main.getInstance().getLogger().info("✅ Triggers sauvegardés pour " + currentFloor);
                     currentEditor.sendMessage("§a✅ Triggers sauvegardés avec succès!");
                 } else {
-                    Main.getInstance().getLogger().warning("❌ Échec sauvegarde " + currentFloor);
+                    Main.getInstance().getLogger().warning("&e❌ Échec sauvegarde " + currentFloor);
                     currentEditor.sendMessage("§c❌ Erreur lors de la sauvegarde!");
                 }
 
             } catch (Exception e) {
-                Main.getInstance().getLogger().severe("❌ Erreur sauvegarde: " + e.getMessage());
+                Main.getInstance().getLogger().severe("&c❌ Erreur sauvegarde: " + e.getMessage());
                 e.printStackTrace();
                 sendErrorResponse(exchange, "Erreur lors de la sauvegarde");
             }
@@ -244,7 +244,7 @@ public class WebEditorServer {
                 }
 
             } catch (Exception e) {
-                Main.getInstance().getLogger().severe("❌ Erreur types triggers: " + e.getMessage());
+                Main.getInstance().getLogger().severe("&c❌ Erreur types triggers: " + e.getMessage());
                 sendErrorResponse(exchange, "Erreur lors du chargement des types");
             }
         }
@@ -326,7 +326,7 @@ public class WebEditorServer {
                 }
             } else {
                 // Fichier non trouvé
-                Main.getInstance().getLogger().warning("❓ Fichier non trouvé: /webserver" + path);
+                Main.getInstance().getLogger().warning("&e❓ Fichier non trouvé: /webserver" + path);
 
                 if ("/index.html".equals(path)) {
                     // Créer une page de fallback

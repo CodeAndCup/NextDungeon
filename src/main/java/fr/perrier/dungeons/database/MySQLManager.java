@@ -82,7 +82,7 @@ public class MySQLManager implements DatabaseManager {
         // Wait for active operations to complete with a timeout
         try {
             if (!shutdownLatch.await(5, TimeUnit.SECONDS)) {
-                Main.getInstance().getLogger().warning("Some database operations did not complete before shutdown");
+                Main.getInstance().getLogger().warning("&eSome database operations did not complete before shutdown");
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -120,7 +120,7 @@ public class MySQLManager implements DatabaseManager {
 
 
         } catch (SQLException e) {
-            Main.getInstance().getLogger().severe("Failed to create database tables: " + e.getMessage());
+            Main.getInstance().getLogger().severe("&cFailed to create database tables: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -159,7 +159,7 @@ public class MySQLManager implements DatabaseManager {
                 future.complete(result);
             } catch (Exception e) {
                 if (!isShuttingDown) {
-                    Main.getInstance().getLogger().severe("Error in " + operationName + ": " + e.getMessage());
+                    Main.getInstance().getLogger().severe("&cError in " + operationName + ": " + e.getMessage());
                 }
                 future.completeExceptionally(e);
             } finally {
@@ -190,7 +190,7 @@ public class MySQLManager implements DatabaseManager {
             }
         }, "Update: " + query).exceptionally(e -> {
             if (!isShuttingDown) {
-                Main.getInstance().getLogger().severe("Error executing update: " + query);
+                Main.getInstance().getLogger().severe("&cError executing update: " + query);
                 e.printStackTrace();
             }
             return (Integer) 0;
@@ -244,7 +244,7 @@ public class MySQLManager implements DatabaseManager {
         return future.whenComplete((result, error) -> {
             try {
                 if (error != null && !isShuttingDown) {
-                    Main.getInstance().getLogger().severe("Error in " + operationName + ": " + error.getMessage());
+                    Main.getInstance().getLogger().severe("&cError in " + operationName + ": " + error.getMessage());
                 }
             } finally {
                 if (activeOperations.decrementAndGet() == 0 && isShuttingDown) {
@@ -279,7 +279,7 @@ public class MySQLManager implements DatabaseManager {
             );
         }catch (SQLException e) {
             if (!isShuttingDown) {
-                Main.getInstance().getLogger().severe("Error loading profile data for player " + playerId + ": " + e.getMessage());
+                Main.getInstance().getLogger().severe("&cError loading profile data for player " + playerId + ": " + e.getMessage());
                 e.printStackTrace();
             }
             return null;

@@ -50,14 +50,8 @@ public class GlobalTriggerManager implements Listener {
         // Enregistrer ce manager comme listener principal
         Listener dummyListener = new Listener() {};
         EventExecutor executor = (listener, event) -> {
-            if(event.getEventName().equals("EntityDeathEvent"))
-                Bukkit.getLogger().info("EntityDeathEvent capturé par GlobalTriggerManager");
             processEvent(event);
         };
-
-        // Use Reflections library to scan org.bukkit.event package
-        Reflections reflections = new Reflections("org.bukkit.event");
-        Set<Class<? extends Event>> eventClasses = reflections.getSubTypesOf(Event.class);
 
         for (Class<? extends Event> eventClass : handlers.keySet()) {
             try {
@@ -66,16 +60,6 @@ public class GlobalTriggerManager implements Listener {
                 // Handle registration failures
             }
         }
-
-        /*for (Class<? extends Event> eventClass : eventClasses) {
-            if (!Modifier.isAbstract(eventClass.getModifiers())) {
-                try {
-                    Bukkit.getPluginManager().registerEvent(eventClass, dummyListener, EventPriority.NORMAL, executor, Main.getInstance());
-                } catch (Exception ignored) {
-                    // Some events may fail to register (no HandlerList)
-                }
-            }
-        }*/
 
         Main.getInstance().getLogger().info("GlobalTriggerManager initialise avec " + handlers.size() + " handlers");
     }
@@ -120,10 +104,10 @@ public class GlobalTriggerManager implements Listener {
                 }
             }
 
-            Main.getInstance().getLogger().info("Cache des triggers rafraîchi: " + allTriggers.size() + " triggers");
+            Main.getInstance().getLogger().info("Triggers cache refresh complete: " + allTriggers.size() + " triggers");
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("Erreur lors du rafraîchissement du cache: " + e.getMessage());
+            Main.getInstance().getLogger().severe("&cErreur lors du rafraîchissement du cache: " + e.getMessage());
         }
     }
 

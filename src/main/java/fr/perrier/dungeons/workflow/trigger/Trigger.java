@@ -78,11 +78,11 @@ public abstract class Trigger implements Serializable {
             try {
                 boolean actionSuccess = action.execute(player, location, data);
                 if (!actionSuccess) {
-                    Main.getInstance().getLogger().warning("Échec de l'action " + action.getName() + " du trigger " + this.name);
+                    Main.getInstance().getLogger().warning("&eÉchec de l'action " + action.getName() + " du trigger " + this.name);
                     success = false;
                 }
             } catch (Exception e) {
-                Main.getInstance().getLogger().severe("Erreur lors de l'exécution de l'action " + action.getName() + ": " + e.getMessage());
+                Main.getInstance().getLogger().severe("&cErreur lors de l'exécution de l'action " + action.getName() + ": " + e.getMessage());
                 e.printStackTrace();
                 success = false;
             }

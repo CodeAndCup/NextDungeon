@@ -569,12 +569,9 @@ public class BlocklyJavaScriptGenerator {
             for (Class<? extends BlocklyAction> actionClass : entry.getValue()) {
                 try {
                     BlocklyAction instance = actionClass.getDeclaredConstructor().newInstance();
-                    Bukkit.getLogger().info("Generating action case for " + actionClass.getSimpleName());
                     if (instance.requiresCustomBlockGeneration()) {
-                        Bukkit.getLogger().info("Using custom generation for " + actionClass.getSimpleName());
                         instance.generateCustomActionCase(js);
                     } else {
-                        Bukkit.getLogger().info("Using standard generation for " + actionClass.getSimpleName());
                         generateActionCase(js, actionClass);
                     }
                 } catch (Exception e) {
@@ -680,12 +677,9 @@ public class BlocklyJavaScriptGenerator {
             for (Class<? extends BlocklyAction> actionClass : entry.getValue()) {
                 try {
                     BlocklyAction instance = actionClass.getDeclaredConstructor().newInstance();
-                    Bukkit.getLogger().info("Generating action case for " + actionClass.getSimpleName());
                     if (instance.requiresCustomBlockGeneration()) {
-                        Bukkit.getLogger().info("Using custom generation for " + actionClass.getSimpleName());
                         instance.generateCustomActionCase(js);
                     } else {
-                        Bukkit.getLogger().info("Using standard generation for " + actionClass.getSimpleName());
                         generateActionCase(js, actionClass);
                     }
                 } catch (Exception e) {

@@ -86,16 +86,16 @@ public class DungeonGateMenu extends GlassMenu {
         public void clicked(Player player, int slot, ClickType clickType, int hotbarButton) {
             //TODO: Make that can't be click if dungeon already loading
             if(Objects.requireNonNull(Objects.requireNonNull(getButtonItem(player).getItemMeta()).getLore()).stream().anyMatch(s -> s.contains("✘"))) {
-                player.sendRawMessage(ChatUtil.translate("&cYou do not meet the requirements to enter this floor."));
+                player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&cYou do not meet the requirements to enter this floor."));
                 return;
             }
             if(DungeonParty.hasLeadParty(player)) {
                 if(DungeonParty.getDungeonPartyOf(player).getMembers().size() > floor.getRequirements().getPartyRequirements().getMaxSize()) {
-                    player.sendRawMessage(ChatUtil.translate("&cYour party is too big to enter this floor."));
+                    player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&cYour party is too big to enter this floor."));
                     return;
                 }
                 if (DungeonParty.getDungeonPartyOf(player).getMembers().size() < floor.getRequirements().getPartyRequirements().getMinSize()) {
-                    player.sendRawMessage(ChatUtil.translate("&cYour party is too small to enter this floor."));
+                    player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&cYour party is too small to enter this floor."));
                     return;
                 }
                 FloorInstance floorInstance = new FloorInstance(floor.getId());

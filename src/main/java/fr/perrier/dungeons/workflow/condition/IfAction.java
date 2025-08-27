@@ -99,7 +99,7 @@ public class IfAction extends Action implements BlocklyAction {
             if (actionsToExecute != null && !actionsToExecute.isEmpty()) {
                 for (Action action : actionsToExecute) {
                     if (!action.execute(triggerPlayer, location, data)) {
-                        Main.getInstance().getLogger().warning("Action failed in If block: " + action.getClass().getSimpleName());
+                        Main.getInstance().getLogger().warning("&eAction failed in If block: " + action.getClass().getSimpleName());
                     }
                 }
             }
@@ -107,7 +107,7 @@ public class IfAction extends Action implements BlocklyAction {
             return true;
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("Error executing If action: " + e.getMessage());
+            Main.getInstance().getLogger().severe("&cError executing If action: " + e.getMessage());
             e.printStackTrace();
             return false;
         }
@@ -283,11 +283,11 @@ public class IfAction extends Action implements BlocklyAction {
                 case "endsWith":
                     return left.toString().toLowerCase().endsWith(right.toString().toLowerCase());
                 default:
-                    Main.getInstance().getLogger().warning("Unknown operator: " + op);
+                    Main.getInstance().getLogger().warning("&eUnknown operator: " + op);
                     return false;
             }
         } catch (Exception e) {
-            Main.getInstance().getLogger().warning("Error evaluating condition: " + e.getMessage());
+            Main.getInstance().getLogger().warning("&eError evaluating condition: " + e.getMessage());
             return false;
         }
     }

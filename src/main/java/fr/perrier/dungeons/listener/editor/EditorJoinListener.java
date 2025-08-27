@@ -1,6 +1,8 @@
 package fr.perrier.dungeons.listener.editor;
 
 import fr.perrier.cupcodeapi.utils.ItemBuilder;
+import fr.perrier.dungeons.Main;
+import fr.perrier.dungeons.model.Floor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -22,5 +24,8 @@ public class EditorJoinListener implements Listener {
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
+
+        Floor floor = Main.getInstance().getRedisStorageService().getCurrentFloor().get();
+        player.teleport(floor.getWorldConfig().getSpawn().toLocation());
     }
 }

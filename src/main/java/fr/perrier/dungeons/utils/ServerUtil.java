@@ -46,7 +46,7 @@ public class ServerUtil {
         CloudServiceFactory cloudService = InjectionLayer.boot().instance(CloudServiceFactory.class);
         ServiceTask serviceTask = InjectionLayer.boot().instance(ServiceTaskProvider.class).serviceTask(templateName);
         if(serviceTask == null) {
-            System.out.println("Impossible to create service task for " + templateName + ". Error 1.");
+            Main.getInstance().getLogger().severe("&cImpossible to create service task for " + templateName + ". Error 1.");
             return null;
         }
 
@@ -59,11 +59,11 @@ public class ServerUtil {
 
         ServiceCreateResult service = cloudService.createCloudService(config);
         if(service.state() != ServiceCreateResult.State.CREATED) {
-            System.out.println("Impossible to create service for " + templateName + ". Error 2.");
+            Main.getInstance().getLogger().severe("&cImpossible to create service for " + templateName + ". Error 2.");
             return null;
         }
         service.serviceInfo().provider().startAsync();
-        System.out.println("Started service for " + templateName);
+        Main.getInstance().getLogger().info("Starting service for " + templateName + " (editMode=" + editMode + ")");
 
         return service.serviceInfo().serviceId().uniqueId();
     }
@@ -135,23 +135,6 @@ public class ServerUtil {
             String createdAt
     ) {}
 
-    public static void saveFloorWorldTemplate(Floor floor) {
-        /*ServiceInfoSnapshot serviceInfo = Wrapper.getInstance().getCurrentServiceInfoSnapshot();
-
-        // Find the template the server is based on
-        ServiceTemplate template = Arrays.stream(serviceInfo.getConfiguration().getTemplates()).findFirst()
-                .orElseThrow(() -> new IllegalStateException("No template found for this service!"));
-
-        // Get the storage (usually "local", but check your config)
-        TemplateStorage storage = CloudNetDriver.getInstance().getTemplateStorage(template.getStorage());
-
-        // Build the path to the world directory in the current server's directory
-        Path worldDir = Paths.get(serviceInfo., worldDirName);
-
-        // Deploy the world folder to the template
-        storage.deployDirectory(template, worldDir);*/
-    }
-
     /**
      * Check if a template exists for the given floor in the local storage.
      * @param floor the floor to check
@@ -161,8 +144,6 @@ public class ServerUtil {
         ServiceTaskProvider serviceTaskProvider = InjectionLayer.boot().instance(ServiceTaskProvider.class);
         return serviceTaskProvider.serviceTask(floor.getId()) != null;
     }
-
-
 
     /**
      * Create a template for a floor in the local storage.
@@ -195,7 +176,7 @@ public class ServerUtil {
         copyTemplateFiles(sourceTemplate, targetTemplate)
                 .thenAccept(success -> {
                     if (success) {
-                        System.out.println("Template copied successfully");
+                        Main.getInstance().getLogger().info("Template for floor " + floor.getId() + " copied successfully.");
 
                         //Create the task
                         ServiceTaskProvider serviceTaskProvider = InjectionLayer.boot().instance(ServiceTaskProvider.class);
@@ -239,12 +220,12 @@ public class ServerUtil {
                         serviceTaskProvider.addServiceTask(serviceTask);
                         future.complete(true);
                     } else {
-                        System.out.println("Template could not be copied");
+                        Main.getInstance().getLogger().severe("&cTemplate for floor " + floor.getId() + " could not be copied.");
                         future.complete(false);
                     }
                 })
                 .exceptionally(throwable -> {
-                    System.out.println("Template could not be copied");
+                    Main.getInstance().getLogger().severe("&cError while copying template for floor " + floor.getId() + ": " + throwable.getMessage());
                     future.complete(false);
                     return null;
                 });
@@ -272,7 +253,7 @@ public class ServerUtil {
             try {
                 ZipInputStream zipInputStream = sourceTemplateStorage.openZipInputStream(sourceTemplate);
                 if(zipInputStream == null) {
-                    Main.getInstance().getLogger().severe("Unable to get zip input stream for template " + sourceTemplate.name() + " in storage " + sourceTemplate.storage());
+                    Main.getInstance().getLogger().severe("&cUnable to get zip input stream for template " + sourceTemplate.name() + " in storage " + sourceTemplate.storage());
                     return;
                 }
 
@@ -297,7 +278,7 @@ public class ServerUtil {
                                 try {
                                     Files.createDirectories(file);
                                 } catch (IOException e) {
-                                    Main.getInstance().getLogger().severe("Unable to create directory " + file);
+                                    Main.getInstance().getLogger().severe("&cUnable to create directory " + file);
                                 }
                             }
                         } else {
@@ -317,7 +298,7 @@ public class ServerUtil {
                                     }
                                 }
                             } catch (IOException e) {
-                                Main.getInstance().getLogger().severe("Unable to copy file " + entryDeploy.getName());
+                                Main.getInstance().getLogger().severe("&cUnable to copy file " + entryDeploy.getName());
                             }
                         }
                         zipInputStream.closeEntry();

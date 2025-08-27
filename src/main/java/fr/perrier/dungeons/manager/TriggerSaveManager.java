@@ -34,7 +34,7 @@ public class TriggerSaveManager {
             JsonObject data = gson.fromJson(jsonData, JsonObject.class);
 
             if (!data.has("triggers")) {
-                Main.getInstance().getLogger().warning("No data of triggers found in JSON");
+                Main.getInstance().getLogger().warning("&eNo data of triggers found in JSON");
                 return false;
             }
 
@@ -56,7 +56,7 @@ public class TriggerSaveManager {
             // Sauvegarder dans le fichier .dungeon en utilisant votre DungeonFileManager
             boolean fileSaved = DungeonFileManager.saveTriggers(floorId, triggers);
             if (!fileSaved) {
-                Main.getInstance().getLogger().warning("Failed to save triggers to file for floor: " + floorId);
+                Main.getInstance().getLogger().warning("&eFailed to save triggers to file for floor: " + floorId);
                 return false;
             }
 
@@ -76,7 +76,7 @@ public class TriggerSaveManager {
             return true;
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("An error occurred while saving triggers: " + e.getMessage());
+            Main.getInstance().getLogger().severe("&cAn error occurred while saving triggers: " + e.getMessage());
             e.printStackTrace();
 
             if (editor != null && editor.isOnline()) {
@@ -132,7 +132,7 @@ public class TriggerSaveManager {
             return gson.toJson(result);
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("Erreur lors du chargement des triggers: " + e.getMessage());
+            Main.getInstance().getLogger().severe("&cErreur lors du chargement des triggers: " + e.getMessage());
             e.printStackTrace();
 
             JsonObject error = new JsonObject();

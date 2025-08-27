@@ -21,7 +21,7 @@ import java.util.Objects;
 public class ConfigLoader {
 
     public static Dungeon loadDungeon(String name) {
-        File file = new File(Main.getInstance().getDataFolder(), "dungeons/" + name + ".yml");
+        File file = new File(Main.getInstance().getDataFolder(), "/dungeons/" + name + ".yml");
         return loadDungeon(file);
     }
 

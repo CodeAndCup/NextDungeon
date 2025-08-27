@@ -4,6 +4,7 @@ import com.alessiodp.parties.api.events.bukkit.party.BukkitPartiesPartyPreDelete
 import com.alessiodp.parties.api.events.bukkit.player.BukkitPartiesPlayerPreLeaveEvent;
 import com.alessiodp.parties.api.interfaces.Party;
 import fr.perrier.cupcodeapi.utils.ChatUtil;
+import fr.perrier.dungeons.Main;
 import fr.perrier.dungeons.parties.DungeonParty;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -26,7 +27,7 @@ public class GlobalPartyListener implements Listener {
         party.getMembers().forEach(uuid -> {
             Player member = Bukkit.getPlayer(uuid);
             if (member != null)
-                member.sendMessage(ChatUtil.translate("&cYour party has been removed from the party finder!"));
+                member.sendMessage(ChatUtil.translate(Main.getPrefix() + "&cYour party has been removed from the party finder!"));
         });
         DungeonParty.getParties().remove(party.getLeader());
     }
@@ -47,7 +48,7 @@ public class GlobalPartyListener implements Listener {
                 party.getMembers().forEach(uuid -> {
                     Player member = Bukkit.getPlayer(uuid);
                     if (member != null)
-                        member.sendMessage(ChatUtil.translate("&cYour party has been removed from the party finder!"));
+                        member.sendMessage(ChatUtil.translate(Main.getPrefix() + "&cYour party has been removed from the party finder!"));
                 });
             }
         }

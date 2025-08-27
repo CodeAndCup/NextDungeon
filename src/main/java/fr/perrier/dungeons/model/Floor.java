@@ -72,11 +72,9 @@ public class Floor {
     public CompletableFuture<Boolean> generateTemplate() {
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         Bukkit.getScheduler().runTaskAsynchronously(Main.getInstance(), () -> {
-            System.out.println("Is floor template exists : " + ServerUtil.isFloorTemplateExists(this));
             if(!ServerUtil.isFloorTemplateExists(this)) {
                 ServerUtil.createFloorTemplate(this).thenAccept(future::complete);
             } else {
-                System.out.println("Floor template already exists");
                 future.complete(true);
             }
         });

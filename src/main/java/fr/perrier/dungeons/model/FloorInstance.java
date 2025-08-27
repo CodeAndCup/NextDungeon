@@ -129,7 +129,7 @@ public class FloorInstance {
         }else {
             Player leader = Bukkit.getPlayer(Objects.requireNonNull(dungeonParty.getLeader()));
             if (leader != null)
-                leader.sendMessage(ChatUtil.translate("&cAll your party members must be online to join the instance!"));
+                leader.sendMessage(ChatUtil.translate(Main.getPrefix() + "&cAll your party members must be online to join the instance!"));
         }
     }
 
@@ -170,8 +170,8 @@ public class FloorInstance {
                     FloorInstance instance = Main.getInstance().getRedisStorageService().getInstance(instanceId);
 
                     if (instance == null) {
-                        Main.getInstance().getLogger().warning(String.format("Instance %s no longer exists", instanceId));
-                        player.sendMessage(ChatUtil.translate("&cThis dungeon instance no longer exists!"));
+                        Main.getInstance().getLogger().warning(String.format("&eInstance %s no longer exists", instanceId));
+                        player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&cThis dungeon instance no longer exists!"));
                         this.cancel();
                         return;
                     }
@@ -181,8 +181,8 @@ public class FloorInstance {
                         this.cancel();
                     } else {
                         if (System.currentTimeMillis() - startTime > TIMEOUT) {
-                            Main.getInstance().getLogger().warning(String.format("Timed out waiting for instance %s to be ready", instanceId));
-                            player.sendMessage(ChatUtil.translate("&cTimed out waiting for dungeon instance to be ready!"));
+                            Main.getInstance().getLogger().warning(String.format("&eTimed out waiting for instance %s to be ready", instanceId));
+                            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&cTimed out waiting for dungeon instance to be ready!"));
                             this.cancel();
                         }
                     }

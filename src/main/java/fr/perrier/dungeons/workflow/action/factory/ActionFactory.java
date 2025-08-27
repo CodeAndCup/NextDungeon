@@ -115,13 +115,13 @@ public class ActionFactory {
                     yield ifAction;
                 }
                 default -> {
-                    Main.getInstance().getLogger().warning("Type d'action inconnu: " + type);
+                    Main.getInstance().getLogger().warning("&eType d'action inconnu: " + type);
                     yield null;
                 }
             };
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("Erreur lors de la creation de l'action: " + e.getMessage());
+            Main.getInstance().getLogger().severe("&cErreur lors de la creation de l'action: " + e.getMessage());
             e.printStackTrace();
             return null;
         }

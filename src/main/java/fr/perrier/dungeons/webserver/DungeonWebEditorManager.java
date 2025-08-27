@@ -2,6 +2,7 @@ package fr.perrier.dungeons.webserver;
 
 import fr.perrier.cupcodeapi.utils.ChatUtil;
 import fr.perrier.dungeons.Main;
+import fr.perrier.dungeons.utils.ServerUtil;
 import org.bukkit.entity.Player;
 
 import java.util.HashMap;
@@ -22,17 +23,15 @@ public class DungeonWebEditorManager {
     public boolean startWebEditor(Player player, String dungeonName, String floorId) {
         UUID playerId = player.getUniqueId();
 
-        // Vérifier si le joueur a déjà un éditeur ouvert
         if (activeServers.containsKey(playerId)) {
-            player.sendMessage(ChatUtil.translate("&cVous avez déjà un éditeur web ouvert ! Fermez-le d'abord avec /dungeon admin webeditor stop"));
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&cYou already have an active web editor. Please stop it before starting a new one."));
             return false;
         }
 
-        // TODO: Vérifier que le joueur est bien dans un donjon en mode edit
-        // if (!isDungeonInEditMode(player, dungeonName)) {
-        //     player.sendMessage("§cVous devez être dans un donjon en mode édition !");
-        //     return false;
-        // }
+        if(!ServerUtil.isInEditMode()) {
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&cYou can only start the web editor on an editing server."));
+            return false;
+        }
 
         try {
             WebEditorServer server = new WebEditorServer(player);
@@ -40,12 +39,12 @@ public class DungeonWebEditorManager {
                 activeServers.put(playerId, server);
                 return true;
             } else {
-                player.sendMessage(ChatUtil.translate("&cErreur lors du démarrage de l'éditeur web !"));
+                player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&cAn error occurred while starting the web server. Check the server console for details."));
                 return false;
             }
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("Erreur lors du démarrage de l'éditeur web: " + e.getMessage());
-            player.sendMessage(ChatUtil.translate("&cErreur interne lors du démarrage de l'éditeur web !"));
+            Main.getInstance().getLogger().severe("&An error occurred while starting the web editor: " + e.getMessage());
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&cAn error occurred while starting the web editor. Check the server console for details."));
             return false;
         }
     }
@@ -59,10 +58,9 @@ public class DungeonWebEditorManager {
 
         if (server != null) {
             server.stopServer();
-            player.sendMessage(ChatUtil.translate("&a✓ Éditeur web arrêté !"));
             return true;
         } else {
-            player.sendMessage(ChatUtil.translate("&cAucun éditeur web n'est actuellement ouvert !"));
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&cNo web editor is currently active."));
             return false;
         }
     }
@@ -82,7 +80,7 @@ public class DungeonWebEditorManager {
             server.stopServer();
         }
         activeServers.clear();
-        Main.getInstance().getLogger().info("Tous les éditeurs web ont été fermés");
+        Main.getInstance().getLogger().info("All web editors have been shut down.");
     }
 
     /**

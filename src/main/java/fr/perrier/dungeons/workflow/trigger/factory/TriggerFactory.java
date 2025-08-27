@@ -30,7 +30,7 @@ public class TriggerFactory {
                 case "function_trigger" -> createFunctionTrigger(triggerData, name);
                 case "entity_death_trigger" -> createEntityDeathTrigger(triggerData, name);
                 default -> {
-                    Main.getInstance().getLogger().warning("Trigger type unknown: " + type);
+                    Main.getInstance().getLogger().warning("&eTrigger type unknown: " + type);
                     yield null;
                 }
             };
@@ -53,7 +53,7 @@ public class TriggerFactory {
             return trigger;
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("An error occurred while creating trigger from JSON: " + e.getMessage());
+            Main.getInstance().getLogger().severe("&cAn error occurred while creating trigger from JSON: " + e.getMessage());
             e.printStackTrace();
             return null;
         }

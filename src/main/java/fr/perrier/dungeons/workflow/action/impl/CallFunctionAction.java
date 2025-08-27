@@ -62,7 +62,7 @@ public class CallFunctionAction extends Action implements BlocklyAction {
     @Override
     public boolean execute(Player triggerPlayer, Location location, Map<String, Object> data) {
         if (functionName == null || functionName.trim().isEmpty()) {
-            Main.getInstance().getLogger().warning("Function name is empty in CallFunctionAction");
+            Main.getInstance().getLogger().warning("&eFunction name is empty in CallFunctionAction");
             return false;
         }
 
@@ -73,7 +73,7 @@ public class CallFunctionAction extends Action implements BlocklyAction {
                 .getFunction(trimmedFunctionName);
 
         if (function == null) {
-            Main.getInstance().getLogger().warning("Function not found: " + trimmedFunctionName);
+            Main.getInstance().getLogger().warning("&eFunction not found: " + trimmedFunctionName);
             return false;
         }
 
@@ -86,12 +86,12 @@ public class CallFunctionAction extends Action implements BlocklyAction {
             if (result) {
                 Main.getInstance().getLogger().info("Function " + trimmedFunctionName + " executed successfully");
             } else {
-                Main.getInstance().getLogger().warning("Function " + trimmedFunctionName + " execution failed");
+                Main.getInstance().getLogger().warning("&eFunction " + trimmedFunctionName + " execution failed");
             }
 
             return result;
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("Error executing function " + trimmedFunctionName + ": " + e.getMessage());
+            Main.getInstance().getLogger().severe("&cError executing function " + trimmedFunctionName + ": " + e.getMessage());
             e.printStackTrace();
             return false;
         }

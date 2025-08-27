@@ -60,7 +60,7 @@ public class MongoManager implements DatabaseManager {
     @Override
     public <T> CompletableFuture<T> handleAsyncOperation(CompletableFuture<T> future, String operationName) {
         return future.exceptionally(ex -> {
-            Bukkit.getLogger().severe("Erreur lors de l'operation " + operationName + ": " + ex.getMessage());
+            Bukkit.getLogger().severe("&cErreur lors de l'operation " + operationName + ": " + ex.getMessage());
             ex.printStackTrace();
             return null;
         });

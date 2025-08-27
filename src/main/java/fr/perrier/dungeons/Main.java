@@ -12,6 +12,7 @@ import fr.perrier.dungeons.commands.PlayerCommands;
 import fr.perrier.dungeons.configuration.ConfigLoader;
 import fr.perrier.dungeons.database.DatabaseFactory;
 import fr.perrier.dungeons.database.DatabaseManager;
+import fr.perrier.dungeons.listener.editor.EditorJoinListener;
 import fr.perrier.dungeons.listener.global.GlobalJoinListener;
 import fr.perrier.dungeons.listener.global.GlobalLeaveListener;
 import fr.perrier.dungeons.listener.global.GlobalPartyListener;
@@ -37,7 +38,7 @@ public final class Main extends JavaPlugin {
     @Getter
     private static Main instance;
     @Getter
-    private static final String prefix = "[Dungeons] ";
+    private static final String prefix = "&#8B0000&lN&#920000&le&#990000&lx&#A00000&lt&#A70000&lD&#AE0000&lu&#B50000&ln&#BC0000&lg&#C30000&le&#CA0000&lo&#D10000&ln &8» &r";
 
     @Getter@Setter
     private static boolean debug = false;
@@ -110,17 +111,21 @@ public final class Main extends JavaPlugin {
             getLogger().info("Profile service initialized successfully");
 
         } catch (Exception e) {
-            getLogger().severe("Failed to initialize Redis services: " + e.getMessage());
+            getLogger().severe("&cFailed to initialize Redis services: " + e.getMessage());
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
 
         databaseManager = DatabaseFactory.createDatabase();
 
+        // Load Dungeons
+        ConfigLoader.loadAllDungeons();
+
         // Initialize server based on type
         if (ServerUtil.isInstanceServer()) {
             if(ServerUtil.isInEditMode()) {
                 getLogger().info("Server is in EDIT mode");
+                initializeEditorServer();
             }
             initializeInstanceServer();
         } else {
@@ -141,9 +146,6 @@ public final class Main extends JavaPlugin {
 
         // Loading listeners
         loadGlobalListeners();
-
-        // Load Dungeons
-        ConfigLoader.loadAllDungeons();
 
         // Initialize trigger system
         globalTriggerManager = new GlobalTriggerManager();
@@ -232,6 +234,7 @@ public final class Main extends JavaPlugin {
      */
     private void loadEditorListeners() {
         PluginManager pluginManager = getServer().getPluginManager();
+        pluginManager.registerEvents(new EditorJoinListener(), this);
         // Register editor-specific listeners here
     }
 
@@ -249,7 +252,7 @@ public final class Main extends JavaPlugin {
     private void initializeInstanceServer() {
         ServerUtil.InstanceInfo info = ServerUtil.getInstanceInfo();
         if (info == null) {
-            getLogger().severe("Failed to get instance information");
+            getLogger().severe("&cFailed to get instance information");
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
@@ -325,7 +328,7 @@ public final class Main extends JavaPlugin {
                         instance.setReady(true);
                         Main.getInstance().getLogger().info("Instance " + instance.getInstanceId() + " is now ready!");
                     } else {
-                        Main.getInstance().getLogger().severe("No instance found!");
+                        Main.getInstance().getLogger().severe("&cNo instance found!");
                     }
                 }, 100L);
             }
