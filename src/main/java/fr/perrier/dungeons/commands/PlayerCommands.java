@@ -10,7 +10,7 @@ public class PlayerCommands {
     @Command(names = {"dungeon","dungeons","nextdungeon","nextdungeons","nd"})
     public static void onDungeonCommand(Player player) {
         player.sendMessage(ChatUtil.getBar());
-        player.sendMessage(ChatUtil.translate("<gradient:#8B0000:bold>NextDungeon</gradient:#D10000>&8| &fPlayer Commands"));
+        player.sendMessage(ChatUtil.translate("<gradient:#8B0000:bold>NextDungeon</gradient:#D10000> &8| &fPlayer Commands"));
         player.sendMessage("");
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon &8- &fGet the list of available commands"));
         player.sendMessage("");

@@ -20,7 +20,7 @@ public class DebugCommands {
     @Command(names = {"dungeon debug help", "dungeons debug help", "nextdungeon debug help", "nextdungeons debug help", "nd debug help"})
     public static void debugDungeonCommand(Player player) {
         player.sendMessage(ChatUtil.getBar());
-        player.sendMessage(ChatUtil.translate("<gradient:#8B0000:bold>NextDungeon</gradient:#D10000>&8| &fDebug Commands"));
+        player.sendMessage(ChatUtil.translate("<gradient:#8B0000:bold>NextDungeon</gradient:#D10000> &8| &fDebug Commands"));
         player.sendMessage("");
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon debug help &8- &fGet the list of available commands"));
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon debug list dungeons &8- &fList all dungeons"));
