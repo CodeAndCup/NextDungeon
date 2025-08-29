@@ -109,7 +109,7 @@ public class DungeonGateMenu extends GlassMenu {
         @Override
         public ItemStack getButtonItem(Player player) {
             return new ItemBuilder(Material.SPYGLASS)
-                    .setName("&#FF8336&l" + ChatUtil.toSmallCaps("party finder"))
+                    .setName("<gradient:#8B0000:bold>" + ChatUtil.toSmallCaps("party finder") + "</gradient:#D10000>")
                     .setLore(
                             "&7Use the party finder to join a party",
                             "&7queued in the dungeon.",

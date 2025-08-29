@@ -22,20 +22,18 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class FloorInstance {
 
     private static final List<String> LOADING = Arrays.asList(
-            "▁▂▃▄▅▆▇▉▉▇▆▅▄▃▂▁",
-            "▁▁▂▃▄▅▆▇▉▉▇▆▅▄▃▂",
-            "▂▁▁▂▃▄▅▆▇▉▉▇▆▅▄▃",
-            "▃▂▁▁▂▃▄▅▆▇▉▉▇▆▅▄",
-            "▄▃▂▁▁▂▃▄▅▆▇▉▉▇▆▅",
-            "▅▄▃▂▁▁▂▃▄▅▆▇▉▉▇▆",
-            "▆▅▄▃▂▁▁▂▃▄▅▆▇▉▉▇",
-            "▇▆▅▄▃▂▁▁▂▃▄▅▆▇▉▉",
-            "▉▇▆▅▄▃▂▁▁▂▃▄▅▆▇▉",
-            "▉▉▇▆▅▄▃▂▁▁▂▃▄▅▆▇",
-            "▇▉▉▇▆▅▄▃▂▁▁▂▃▄▅▆",
-            "▅▆▇▉▉▇▆▅▄▃▂▁▁▂▃▄",
-            "▄▅▆▇▉▉▇▆▅▄▃▂▁▁▂▃",
-            "▂▃▄▅▆▇▉▉▇▆▅▄▃▂▁▁"
+            "<gradient:#00AA00>▁▂▃▅▆▇▉▉▇▆▅▃▂▁</gradient:#00EE00>",
+            "<gradient:#009900>▁▁▂▃▅▆▇▉▉▇▆▅▃▂</gradient:#00FF00>",
+            "<gradient:#00AA00>▂▁▁▂▃▅▆▇▉▉▇▆▅▃</gradient:#00EE00>",
+            "<gradient:#00BB00>▃▂▁▁▂▃▅▆▇▉▉▇▆▅</gradient:#00DD00>",
+            "<gradient:#00CC00>▅▃▂▁▁▂▃▅▆▇▉▉▇▆</gradient:#00CC00>",
+            "<gradient:#00DD00>▆▅▃▂▁▁▂▃▅▆▇▉▉▇</gradient:#00BB00>",
+            "<gradient:#00EE00>▇▆▅▃▂▁▁▂▃▅▆▇▉▉</gradient:#00AA00>",
+            "<gradient:#00FF00>▉▇▆▅▃▂▁▁▂▃▅▆▇▉</gradient:#009900>",
+            "<gradient:#00FF00>▉▉▇▆▅▃▂▁▁▂▃▅▆▇</gradient:#00AA00>",
+            "<gradient:#00EE00>▇▉▉▇▆▅▃▂▁▁▂▃▅▆</gradient:#00BB00>",
+            "<gradient:#00DD00>▅▆▇▉▉▇▆▅▃▂▁▁▂▃</gradient:#00CC00>",
+            "<gradient:#00BB00>▂▃▅▆▇▉▉▇▆▅▃▂▁▁</gradient:#00DD00>"
     );
 
     private final UUID instanceId;
@@ -53,7 +51,7 @@ public class FloorInstance {
     public FloorInstance(String floorId, boolean editMode) {
         this.floorId = floorId;
         this.instanceId = generateFloorServer(editMode);
-        this.ready = editMode;
+        this.ready = false;
 
         Main.getInstance().getRedisStorageService().syncInstance(this);
     }
@@ -158,7 +156,7 @@ public class FloorInstance {
             @Override
             public void run() {
                 Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
-                    Titles.sendTitle(player, 0, 3, 0, " ", LOADING.get(currentLoad.get()));
+                    Titles.sendTitle(player, 0, 3, 0, " ", ChatUtil.translate(LOADING.get(currentLoad.get())));
                     if(currentLoad.get() +1 >= LOADING.size()) {
                         currentLoad.set(0);
                         return;
@@ -177,6 +175,7 @@ public class FloorInstance {
                     }
 
                     if (instance.isReady()) {
+                        player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&fInstance is &aready&f! Sending you to the dungeon..."));
                         ServerUtil.sendToServer(player, instanceId);
                         this.cancel();
                     } else {

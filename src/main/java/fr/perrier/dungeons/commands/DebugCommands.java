@@ -17,10 +17,17 @@ import org.bukkit.entity.Player;
 
 public class DebugCommands {
 
-    @Command(names = "dungeon debug help")
+    @Command(names = {"dungeon debug help", "dungeons debug help", "nextdungeon debug help", "nextdungeons debug help", "nd debug help"})
     public static void debugDungeonCommand(Player player) {
         player.sendMessage(ChatUtil.getBar());
-        player.sendMessage(ChatUtil.translate("/dungeon debug help"));
+        player.sendMessage(ChatUtil.translate("<gradient:#8B0000:bold>NextDungeon</gradient:#D10000>&8| &fDebug Commands"));
+        player.sendMessage("");
+        player.sendMessage(ChatUtil.translate("&#D10000/dungeon debug help &8- &fGet the list of available commands"));
+        player.sendMessage(ChatUtil.translate("&#D10000/dungeon debug list dungeons &8- &fList all dungeons"));
+        player.sendMessage(ChatUtil.translate("&#D10000/dungeon debug list floors &8- &fList all floors"));
+        player.sendMessage(ChatUtil.translate("&#D10000/dungeon debug list instances &8- &fList all instances"));
+        player.sendMessage(ChatUtil.translate("&#D10000/dungeon debug openmenu &8- &fOpen the dungeon example menu"));
+        player.sendMessage("");
         player.sendMessage(ChatUtil.getBar());
     }
 
@@ -63,5 +70,10 @@ public class DebugCommands {
             return;
         }
         new DungeonGateMenu(dungeon).openMenu(player);
+    }
+
+    @Command(names = "dungeon debug print")
+    public static void debugDungeonPrintCommand(Player player, @Param(name = "message", wildcard = true) String message) {
+        player.sendMessage(ChatUtil.translate(message));
     }
 }

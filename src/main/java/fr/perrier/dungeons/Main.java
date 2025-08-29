@@ -7,7 +7,6 @@ import fr.perrier.cupcodeapi.commands.CommandHandler;
 import fr.perrier.cupcodeapi.menuapi.MenuAPI;
 import fr.perrier.dungeons.commands.AdminCommands;
 import fr.perrier.dungeons.commands.DebugCommands;
-import fr.perrier.dungeons.commands.EditorCommands;
 import fr.perrier.dungeons.commands.PlayerCommands;
 import fr.perrier.dungeons.configuration.ConfigLoader;
 import fr.perrier.dungeons.database.DatabaseFactory;
@@ -39,7 +38,7 @@ public final class Main extends JavaPlugin {
     @Getter
     private static Main instance;
     @Getter
-    private static final String prefix = "&#8B0000&lN&#920000&le&#990000&lx&#A00000&lt&#A70000&lD&#AE0000&lu&#B50000&ln&#BC0000&lg&#C30000&le&#CA0000&lo&#D10000&ln &8» &r";
+    private static final String prefix = "<gradient:#8B0000:bold>NextDungeon</gradient:#D10000> &8» &r";
 
     @Getter@Setter
     private static boolean debug = false;
@@ -187,13 +186,11 @@ public final class Main extends JavaPlugin {
      * Loads all commands using {@link CommandHandler#registerCommands(Class)}.
      *
      * <p>This method is called in {@link #onEnable()} and loads all commands
-     * from {@link AdminCommands}, {@link DebugCommands}, {@link EditorCommands},
-     * and {@link PlayerCommands}.
+     * from {@link AdminCommands}, {@link DebugCommands} and {@link PlayerCommands}.
      */
     private void loadCommands() {
         commandHandler.registerCommands(AdminCommands.class);
         commandHandler.registerCommands(DebugCommands.class);
-        commandHandler.registerCommands(EditorCommands.class);
         commandHandler.registerCommands(PlayerCommands.class);
     }
 
@@ -270,7 +267,7 @@ public final class Main extends JavaPlugin {
         redisStorageService.initializeInstance(info.instanceId(), info.floorId());
 
         // Schedule ready state
-        putDungeonServerReady();
+        putServerReady();
     }
 
     /**
@@ -318,7 +315,7 @@ public final class Main extends JavaPlugin {
      * <p>This method is called after the instance server has been initialized
      * in {@link #initializeInstanceServer()}.</p>
      */
-    private void putDungeonServerReady() {
+    private void putServerReady() {
         Bukkit.getScheduler().scheduleSyncDelayedTask(this, new Runnable(){
             @Override
             public void run(){
