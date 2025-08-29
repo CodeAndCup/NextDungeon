@@ -28,18 +28,18 @@ public class AdminCommands {
         player.sendMessage("");
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin help"));
         // Edit commands
-        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin edit start #F20000<dungeonName> <floorName>"));
-        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin edit stop [--confirm]"));
+        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin edit start &#F20000<dungeon> <floor>"));
+        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin edit stop &#F20000[--confirm]"));
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin webeditor start"));
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin webeditor stop"));
         // Test commands
-        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin test #F20000<dungeonName> <floorName>"));
+        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin test &#F20000<dungeon> <floor>"));
         // Other commands
-        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin import #F20000<world> <dungeonName> <floorName>"));
-        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin load #F20000<dungeonNameConfig>"));
+        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin import &#F20000<world> <dungeon> <floor>"));
+        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin load &#F20000<config>"));
         // Status commands
-        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin status #F20000<dungeonName> [floorName]"));
-        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin goto #F20000<serverName>"));
+        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin status &#F20000<dungeon> [floor]"));
+        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin goto &#F20000<server>"));
         player.sendMessage(ChatUtil.getBar());
     }
 
