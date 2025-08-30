@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>fr.perrier</groupId>
     <artifactId>dungeons</artifactId>
-    <version>1.0-SNAPSHOT-${git.commit.id.abbrev}</version>
-    <packaging>jar</packaging>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
 
     <name>NextDungeon</name>
 
@@ -19,38 +20,27 @@
         </license>
     </licenses>
 
+    <modules>
+        <module>spigot</module>
+        <module>bungeecord</module>
+    </modules>
+
     <properties>
-        <java.version>21</java.version>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
     <build>
-        <defaultGoal>clean package</defaultGoal>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.13.0</version>
+                <version>3.11.0</version>
                 <configuration>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
+                    <source>21</source>
+                    <target>21</target>
                 </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>3.5.3</version>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                        <configuration>
-                            <finalName>NextDungeon</finalName>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
             <plugin>
                 <groupId>pl.project13.maven</groupId>
@@ -65,215 +55,5 @@
                 </executions>
             </plugin>
         </plugins>
-        <resources>
-            <resource>
-                <directory>src/main/resources</directory>
-                <filtering>true</filtering>
-            </resource>
-        </resources>
     </build>
-    <pluginRepositories>
-        <pluginRepository>
-            <id>central</id>
-            <url>https://repo.maven.apache.org/maven2</url>
-        </pluginRepository>
-    </pluginRepositories>
-
-    <repositories>
-        <repository>
-            <id>spigotmc-repo</id>
-            <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
-        </repository>
-
-        <repository>
-            <id>sonatype</id>
-            <url>https://oss.sonatype.org/content/groups/public/</url>
-        </repository>
-        <repository>
-            <id>jitpack.io</id>
-            <url>https://jitpack.io</url>
-        </repository>
-        <repository>
-            <id>sk89q-repo</id>
-            <url>https://maven.enginehub.org/repo/</url>
-        </repository>
-
-        <repository>
-            <id>CupCodeMaven</id>
-            <name>CupCodeAPI</name>
-            <url>https://maven.pkg.github.com/CodeAndCup/CupCodeAPI</url>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-
-        <!-- Parties API -->
-        <repository>
-            <id>alessiodp-repo</id>
-            <url>https://repo.alessiodp.com/releases/</url>
-        </repository>
-
-        <!-- CloudNet API -->
-        <repository>
-            <id>cloudnet-releases</id>
-            <url>https://repo.cloudnetservice.eu/releases/</url>
-        </repository>
-        <repository>
-            <id>cloudnet-snapshots</id>
-            <url>https://repo.cloudnetservice.eu/snapshots/</url>
-        </repository>
-
-        <!-- MMOCore API (this is shit) -->
-        <repository>
-            <id>phoenix</id>
-            <url>https://nexus.phoenixdevt.fr/repository/maven-public/</url>
-        </repository>
-
-        <!-- MythicMobs API -->
-        <repository>
-            <id>nexus</id>
-            <name>Lumine Releases</name>
-            <url>https://mvn.lumine.io/repository/maven-public/</url>
-        </repository>
-
-    </repositories>
-
-    <dependencies>
-        <!-- CupCode API-->
-        <dependency>
-            <groupId>fr.perrier</groupId>
-            <artifactId>cupcodeapi</artifactId>
-            <version>1.21.3-v1.1.2</version>
-        </dependency>
-
-        <!-- Spigot API -->
-        <dependency>
-            <groupId>org.spigotmc</groupId>
-            <artifactId>spigot</artifactId>
-            <version>1.21.4-R0.1-SNAPSHOT</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.spigotmc</groupId>
-            <artifactId>spigot-api</artifactId>
-            <version>1.21.4-R0.1-SNAPSHOT</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <!-- Easy Code -->
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <version>1.18.38</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.jetbrains</groupId>
-            <artifactId>annotations</artifactId>
-            <version>24.0.0</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.reflections</groupId>
-            <artifactId>reflections</artifactId>
-            <version>0.10.2</version>
-        </dependency>
-
-        <!-- Any version compatibility -->
-        <dependency>
-            <groupId>com.github.cryptomorin</groupId>
-            <artifactId>XSeries</artifactId>
-            <version>13.2.0</version>
-        </dependency>
-
-        <!-- Parties API -->
-        <dependency>
-            <groupId>com.alessiodp.parties</groupId>
-            <artifactId>parties-api</artifactId>
-            <version>3.2.16</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <!-- MMOCore API (this is shit) -->
-        <dependency>
-            <groupId>io.lumine</groupId>
-            <artifactId>MythicLib-dist</artifactId>
-            <version>1.6.2-SNAPSHOT</version>
-            <scope>provided</scope>
-            <optional>true</optional>
-        </dependency>
-
-        <dependency>
-            <groupId>net.Indyuce</groupId>
-            <artifactId>MMOCore-API</artifactId>
-            <version>1.12.1-SNAPSHOT</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <!-- MythicMobs API -->
-        <dependency>
-            <groupId>io.lumine</groupId>
-            <artifactId>Mythic-Dist</artifactId>
-            <version>5.9.5</version>
-            <scope>provided</scope>
-        </dependency>
-
-
-
-        <!-- CloudNet API -->
-        <dependency>
-            <groupId>eu.cloudnetservice.cloudnet</groupId>
-            <artifactId>bridge-api</artifactId>
-            <version>4.0.0-RC13</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>eu.cloudnetservice.cloudnet</groupId>
-            <artifactId>driver-api</artifactId>
-            <version>4.0.0-RC13</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>eu.cloudnetservice.cloudnet</groupId>
-            <artifactId>wrapper-jvm-api</artifactId>
-            <version>4.0.0-RC13</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <!-- Redis API -->
-        <dependency>
-            <groupId>org.redisson</groupId>
-            <artifactId>redisson</artifactId>
-            <version>3.22.0</version>
-            <scope>compile</scope>
-        </dependency>
-
-        <!-- Persistance -->
-        <dependency>
-            <groupId>org.mongodb</groupId>
-            <artifactId>mongo-java-driver</artifactId>
-            <version>3.12.11</version>
-        </dependency>
-        <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-            <version>2.9.0</version>
-            <scope>compile</scope>
-        </dependency>
-
-        <!-- MySQL Connector/J -->
-        <dependency>
-            <groupId>mysql</groupId>
-            <artifactId>mysql-connector-java</artifactId>
-            <version>8.0.28</version>
-            <scope>compile</scope>
-        </dependency>
-
-        <!-- HikariCP Connection Pool -->
-        <dependency>
-            <groupId>com.zaxxer</groupId>
-            <artifactId>HikariCP</artifactId>
-            <version>5.0.1</version>
-        </dependency>
-    </dependencies>
 </project>
