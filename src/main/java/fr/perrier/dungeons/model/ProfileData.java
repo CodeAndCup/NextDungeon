@@ -74,7 +74,7 @@ public class ProfileData {
 
         public FloorStats(String floorId) {
             this.floorId = floorId;
-            this.fastestCompletionTime = -1;
+            this.fastestCompletionTime = -2L;
             this.totalEnemiesKilled = 0;
             this.totalDeaths = 0;
         }
@@ -147,11 +147,19 @@ public class ProfileData {
 
     @SuppressWarnings("unchecked")
     private static @NotNull ProfileData deserialize(Map<String, Object> data) {
+        List<FloorStats> floorStats = new ArrayList<>();
+        List<?> rawList = (List<?>) data.get("floorStats");
+        for(Object obj : rawList) {
+            if(obj instanceof Map map) {
+                floorStats.add(FloorStats.deserialize((Map<String, Object>) map));
+            }
+        }
+
         return new ProfileData(
                 UUID.fromString((String) data.get("playerId")),
                 (String) data.get("displayName"),
                 (List<String>) data.get("completedFloors"),
-                (List<FloorStats>) data.get("floorStats"),
+                floorStats,
                 (boolean) data.get("autoReady")
         );
     }

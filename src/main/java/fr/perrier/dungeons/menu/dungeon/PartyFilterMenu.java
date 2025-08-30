@@ -18,6 +18,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,7 +30,7 @@ public class PartyFilterMenu extends GlassMenu {
 
     @Override
     public String getTitle(Player player) {
-        return "";
+        return "&#8B0000&l" + ChatUtil.toSmallCaps("search settings");
     }
 
     @Override
@@ -57,13 +58,13 @@ public class PartyFilterMenu extends GlassMenu {
 
             return new ItemBuilder(Material.RIB_ARMOR_TRIM_SMITHING_TEMPLATE)
                     .hideItemFlags()
-                    .setName("&3Floor selector")
+                    .setName("<gradient:#8B0000:bold>" + ChatUtil.toSmallCaps("floor selector") + "</gradient:#D10000>")
                     .setLore(
                             "&7Select the floor you want to play on.",
                             "",
-                            "&7Current floor&f: &b" + (config.getFloorFilter().isEmpty() ? "&cNone" : config.getFloorFilter()),
+                            "&7Current floor: &#90FFFF" + (config.getFloorFilter().isEmpty() ? "&cNone" : config.getFloorFilter()),
                             "",
-                            "&eClick to select a floor."
+                            "&#FFC700Click to select a floor."
                     ).toItemStack();
         }
 
@@ -78,15 +79,15 @@ public class PartyFilterMenu extends GlassMenu {
 
         return new ConversationButton<>(
                 new ItemBuilder(Material.PAPER)
-                        .setName("&3Description")
+                        .setName("<gradient:#8B0000:bold>" + ChatUtil.toSmallCaps("description") + "</gradient:#D10000>")
                         .setLore(
                                 "&7Write a description to let everyone",
                                 "&7know what your party to do.",
                                 "",
-                                "&bCurrent description:",
-                                "&f" + (config.getDescriptionFilter().isEmpty() ? "&cNone" : config.getDescriptionFilter()),
+                                "&7Current description:",
+                                "&#90FFFF" + (config.getDescriptionFilter().isEmpty() ? "&cNone" : config.getDescriptionFilter()),
                                 "",
-                                "&eClick to edit the description."
+                                "&#FFC700Click to edit the description."
                         )
                         .toItemStack(),
                 player,
@@ -109,16 +110,15 @@ public class PartyFilterMenu extends GlassMenu {
 
         return new ConversationButton<>(
                 new ItemBuilder(Material.EXPERIENCE_BOTTLE)
-                        .setName("&3Minimum player level")
+                        .setName("<gradient:#8B0000:bold>" + ChatUtil.toSmallCaps("minimum player level") + "</gradient:#D10000>")
                         .setLore(
                                 "&7Add a minimum player level requirement",
                                 "&7to join your party so only players with",
                                 "&7at least this level are able to join.",
                                 "",
-                                "&bCurrent minimum player level:",
-                                "&f" + (config.getMinimumLevelFilter() == -1 ? "&cNone" : config.getMinimumLevelFilter()),
+                                "&7Current minimum player level: " + (config.getMinimumLevelFilter() == -1 ? "&cNone" : "&#90FFFF" + config.getMinimumLevelFilter()),
                                 "",
-                                "&eClick to edit the minimum player level."
+                                "&#FFC700Click to edit the minimum player level."
                         )
                         .toItemStack(),
                 player,
@@ -196,7 +196,7 @@ public class PartyFilterMenu extends GlassMenu {
 
         @Override
         public String getTitle(Player player) {
-            return "Select a floor";
+            return "&#8B0000&l" + ChatUtil.toSmallCaps("select a floor");
         }
 
         @RequiredArgsConstructor
@@ -205,13 +205,16 @@ public class PartyFilterMenu extends GlassMenu {
 
             @Override
             public ItemStack getButtonItem(Player player) {
+                List<String> lore = new ArrayList<>();
+                String[] description = floor.getDescription().split("\n");
+                for(String line : description)
+                    lore.add("&7" + ChatUtil.translate(line));
+                lore.add("");
+                lore.add("&#FFC700Click to select this floor.");
+
                 return new ItemBuilder(Material.OMINOUS_TRIAL_KEY)
                         .setName("&f" + floor.getName())
-                        .setLore(
-                                "&7Dungeon Floor",
-                                "",
-                                "&eClick to select this floor."
-                        )
+                        .setLore(lore)
                         .toItemStack();
             }
 

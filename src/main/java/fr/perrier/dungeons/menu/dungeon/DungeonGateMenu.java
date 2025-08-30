@@ -41,6 +41,11 @@ public class DungeonGateMenu extends GlassMenu {
     };
 
     @Override
+    public String getTitle(Player player) {
+        return "&#8B0000&l" + ChatUtil.toSmallCaps(dungeon.getName());
+    }
+
+    @Override
     public int getGlassColor() {
         return 15;
     }
@@ -58,17 +63,16 @@ public class DungeonGateMenu extends GlassMenu {
         }
 
         if(dungeon.getFloors().size() <= 5) {
+            buttons.put(38, new ProfileButton());
             buttons.put(40, new PartyFinderButton());
+            buttons.put(42, new InformationButton());
         } else {
+            buttons.put(47, new ProfileButton());
             buttons.put(49, new PartyFinderButton());
+            buttons.put(51, new InformationButton());
         }
 
         return buttons;
-    }
-
-    @Override
-    public String getTitle(Player player) {
-        return "";
     }
 
     @RequiredArgsConstructor
@@ -122,7 +126,48 @@ public class DungeonGateMenu extends GlassMenu {
 
         @Override
         public void clicked(Player player, int slot, ClickType clickType, int hotbarButton) {
-            new PartyFinderMenu(dungeon).openMenu(player);
+            new PartyFinderMenu(DungeonGateMenu.this,dungeon).openMenu(player);
+        }
+    }
+
+    private static class InformationButton extends Button {
+        @Override
+        public ItemStack getButtonItem(Player player) {
+            return new ItemBuilder(Material.REDSTONE_TORCH)
+                    .setName("<gradient:#8B0000:bold>" + ChatUtil.toSmallCaps("information") + "</gradient:#D10000>")
+                    .setLore(
+                            "&7Information about dungeons.",
+                            "",
+                            "&#FFC700Click to view more details."
+                    )
+                    .toItemStack();
+        }
+
+        @Override
+        public void clicked(Player player, int slot, ClickType clickType, int hotbarButton) {
+
+        }
+    }
+
+    private class ProfileButton extends Button {
+        @Override
+        public ItemStack getButtonItem(Player player) {
+
+            return new ItemBuilder(Material.PLAYER_HEAD)
+                    .setSkullOwner(player.getName())
+                    .setName("&f" + ChatUtil.toSmallCaps(player.getName()))
+                    .setLore(
+                            "&7View your statistics, best",
+                            "&7performances and more.",
+                            "",
+                            "&#FFC700Click to view your profile."
+                    )
+                    .toItemStack();
+        }
+
+        @Override
+        public void clicked(Player player, int slot, ClickType clickType, int hotbarButton) {
+            new ProfileMenu(DungeonGateMenu.this,dungeon).openMenu(player);
         }
     }
 

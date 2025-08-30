@@ -41,7 +41,7 @@ public class PartyBuilderMenu extends GlassMenu {
 
     @Override
     public String getTitle(Player player) {
-        return "Party Builder";
+        return "&#8B0000&l" + ChatUtil.toSmallCaps("party builder");
     }
 
     @Override
@@ -68,13 +68,13 @@ public class PartyBuilderMenu extends GlassMenu {
         public ItemStack getButtonItem(Player player) {
             return new ItemBuilder(Material.RIB_ARMOR_TRIM_SMITHING_TEMPLATE)
                     .hideItemFlags()
-                    .setName("&3Floor selector")
+                    .setName("<gradient:#8B0000:bold>" + ChatUtil.toSmallCaps("floor selector") + "</gradient:#D10000>")
                     .setLore(
                             "&7Select the floor you want to play on.",
                             "",
-                            "&7Current floor&f: &b" + (floorId.isEmpty() ? "&cNone" : floorId),
+                            "&7Current floor: &#90FFFF" + (floorId.isEmpty() ? "&cNone" : floorId),
                             "",
-                            "&eClick to select a floor."
+                            "&#FFC700Click to select a floor."
                     ).toItemStack();
         }
 
@@ -87,15 +87,15 @@ public class PartyBuilderMenu extends GlassMenu {
     public Button EditDescriptionButton(Player player) {
         return new ConversationButton<>(
                 new ItemBuilder(Material.PAPER)
-                        .setName("&3Description")
+                        .setName("<gradient:#8B0000:bold>" + ChatUtil.toSmallCaps("description") + "</gradient:#D10000>")
                         .setLore(
                                 "&7Write a description to let everyone",
                                 "&7know what your party to do.",
                                 "",
-                                "&bCurrent description:",
-                                "&f" + (description.isEmpty() ? "&cNone" : description),
+                                "&7Current description:",
+                                "&#90FFFF" + (description.isEmpty() ? "&cNone" : description),
                                 "",
-                                "&eClick to edit the description."
+                                "&#FFC700Click to edit the description."
                         )
                         .toItemStack(),
                 player,
@@ -116,15 +116,15 @@ public class PartyBuilderMenu extends GlassMenu {
     public Button EditMinLevelButton(Player player) {
         return new ConversationButton<>(
                 new ItemBuilder(Material.EXPERIENCE_BOTTLE)
-                        .setName("&3Minimum player level")
+                        .setName("<gradient:#8B0000:bold>" + ChatUtil.toSmallCaps("minimum player level") + "</gradient:#D10000>")
                         .setLore(
                                 "&7Add a minimum player level requirement",
                                 "&7to join your party so only players with",
                                 "&7at least this level are able to join.",
                                 "",
-                                "&bCurrent minimum level: &f" + minLevel,
+                                "&7Current minimum level: &#90FFFF" + minLevel,
                                 "",
-                                "&eClick to edit the minimum player level."
+                                "&#FFC700Click to edit the minimum player level."
                         )
                         .toItemStack(),
                 player,
@@ -155,11 +155,11 @@ public class PartyBuilderMenu extends GlassMenu {
         @Override
         public ItemStack getButtonItem(Player player) {
             return new ItemBuilder(Material.REDSTONE_BLOCK)
-                    .setName("&cCancel")
+                    .setName("&#FF0000" + ChatUtil.toSmallCaps("cancel"))
                     .setLore(
                             "&7Close the party builder.",
                             "",
-                            "&eClick to cancel."
+                            "&#FFC700Click to cancel."
                     )
                     .toItemStack();
         }
@@ -174,12 +174,12 @@ public class PartyBuilderMenu extends GlassMenu {
         @Override
         public ItemStack getButtonItem(Player player) {
             return new ItemBuilder(Material.EMERALD_BLOCK)
-                    .setName("&aConfirm")
+                    .setName("&#00FF00" + ChatUtil.toSmallCaps("confirm"))
                     .setLore(
                             "&7Open up your party so",
                             "&7other players can start joining.",
                             "",
-                            "&eClick to confirm."
+                            "&#FFC700Click to confirm."
                     )
                     .toItemStack();
         }
