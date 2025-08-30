@@ -51,7 +51,7 @@ public class NextDungeonVelocity {
         }
 
         // Enregistrer les commandes
-        server.getCommandManager().register("webeditor-proxy", new WebEditorProxyCommand(), "webeditor");
+        server.getCommandManager().register(server.getCommandManager().metaBuilder("webeditor-proxy").aliases("webeditor").build(), new WebEditorProxyCommand());
     }
 
     @Subscribe

@@ -97,7 +97,7 @@ public class SpigotCommunicationService {
                 // Vérifier si c'est du JSON avec erreur
                 JsonObject jsonResponse = gson.fromJson(response, JsonObject.class);
                 if (jsonResponse.has("error")) {
-                    return "// Erreur: " + jsonResponse.get("error").getAsString() + "\nconsole.error('Erreur génération Blockly');";
+                    return "/* Erreur: " + jsonResponse.get("error").getAsString() + "*/ console.error('Erreur génération Blockly');";
                 }
             } catch (Exception e) {
                 // Si ce n'est pas du JSON, c'est probablement du JavaScript valide
@@ -105,7 +105,7 @@ public class SpigotCommunicationService {
             }
         }
         
-        return "// Erreur communication Spigot\nconsole.error('Communication error');";
+        return "/* Erreur communication Spigot */console.error('Communication error');";
     }
 
     /**

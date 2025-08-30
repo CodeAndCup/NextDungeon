@@ -10,7 +10,7 @@
         <artifactId>dungeons</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
-    <artifactId>dungeons-velocity</artifactId>
+    <artifactId>NextDungeonVelocity</artifactId>
     <packaging>jar</packaging>
 
     <name>NextDungeon Velocity</name>

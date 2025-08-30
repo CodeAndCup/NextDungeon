@@ -103,13 +103,13 @@ public class ProxyEditorMessageHandler {
             
             Player editor = Bukkit.getPlayer(editorUuid);
             if (editor == null) {
-                return "// Erreur: Éditeur non trouvé\nconsole.error('Éditeur non connecté');";
+                return "console.error('Éditeur non connecté');";
             }
             
             return blocklyGenerator.generateJavaScript(editor);
         } catch (Exception e) {
             Main.getInstance().getLogger().severe("Erreur génération JS: " + e.getMessage());
-            return "// Erreur: " + e.getMessage() + "\nconsole.error('Erreur génération Blockly');";
+            return "console.error('Erreur génération Blockly');";
         }
     }
 

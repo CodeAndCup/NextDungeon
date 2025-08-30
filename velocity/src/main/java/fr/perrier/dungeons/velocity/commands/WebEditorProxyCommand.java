@@ -143,8 +143,8 @@ public class WebEditorProxyCommand implements SimpleCommand {
         player.sendMessage(Component.text("/webeditor-proxy info", NamedTextColor.GRAY));
     }
 
-    @Override
+    /*@Override
     public boolean hasPermission(Invocation invocation) {
         return invocation.source().hasPermission("nextdungeons.proxy.webeditor");
-    }
+    }*/
 }
