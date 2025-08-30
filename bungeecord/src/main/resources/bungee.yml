@@ -1,5 +1,5 @@
 name: NextDungeonBungee
 version: ${project.version}
-main: fr.perrier.dungeons.NextDungeonBungee
+main: fr.perrier.dungeons.bungee.NextDungeonBungee
 description: Web editor centralise pour les dungeons NextDungeon
 author: PerrierBouteille
