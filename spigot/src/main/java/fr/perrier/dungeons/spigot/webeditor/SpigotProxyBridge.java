@@ -73,7 +73,12 @@ public class SpigotProxyBridge {
                 String type = request.get("type").getAsString();
                 String response = processRequest(type, request);
                 
-                sendJsonResponse(exchange, response);
+                // Déterminer le type de contenu selon le type de requête
+                if ("GENERATE_BLOCKLY_JS".equals(type)) {
+                    sendJavaScriptResponse(exchange, response);
+                } else {
+                    sendJsonResponse(exchange, response);
+                }
                 
             } catch (Exception e) {
                 Main.getInstance().getLogger().severe("Erreur traitement requête proxy: " + e.getMessage());
@@ -82,32 +87,38 @@ public class SpigotProxyBridge {
         }
 
         private String processRequest(String type, JsonObject request) {
-            return switch (type) {
-                case "LOAD_TRIGGERS" -> {
-                    String dungeonName = request.get("dungeonName").getAsString();
-                    String floorId = request.get("floorId").getAsString();
-                    yield messageHandler.handleLoadTriggersRequest(dungeonName, floorId);
-                }
-                case "SAVE_TRIGGERS" -> {
-                    String dungeonName = request.get("dungeonName").getAsString();
-                    String floorId = request.get("floorId").getAsString();
-                    String triggersData = request.get("triggersData").getAsString();
-                    String editorUuidStr = request.get("editorUuid").getAsString();
-                    yield messageHandler.handleSaveTriggersRequest(dungeonName, floorId, triggersData, java.util.UUID.fromString(editorUuidStr));
-                }
-                case "GET_TRIGGER_TYPES" -> messageHandler.handleGetTriggerTypesRequest();
-                case "GENERATE_BLOCKLY_JS" -> {
-                    String editorUuidStr = request.get("editorUuid").getAsString();
-                    yield messageHandler.handleGenerateBlocklyJsRequest(java.util.UUID.fromString(editorUuidStr));
-                }
-                case "GET_FLOOR_INFO" -> {
-                    String dungeonName = request.get("dungeonName").getAsString();
-                    String floorId = request.get("floorId").getAsString();
-                    String editorName = request.get("editorName").getAsString();
-                    yield messageHandler.handleGetFloorInfoRequest(dungeonName, floorId, editorName);
-                }
-                default -> createErrorResponse("Type de requête inconnu: " + type);
-            };
+            try {
+                return switch (type) {
+                    case "LOAD_TRIGGERS" -> {
+                        String dungeonName = request.get("dungeonName").getAsString();
+                        String floorId = request.get("floorId").getAsString();
+                        yield messageHandler.handleLoadTriggersRequest(dungeonName, floorId);
+                    }
+                    case "SAVE_TRIGGERS" -> {
+                        String dungeonName = request.get("dungeonName").getAsString();
+                        String floorId = request.get("floorId").getAsString();
+                        String triggersData = request.get("triggersData").getAsString();
+                        String editorUuidStr = request.get("editorUuid").getAsString();
+                        yield messageHandler.handleSaveTriggersRequest(dungeonName, floorId, triggersData, java.util.UUID.fromString(editorUuidStr));
+                    }
+                    case "GET_TRIGGER_TYPES" -> messageHandler.handleGetTriggerTypesRequest();
+                    case "GENERATE_BLOCKLY_JS" -> {
+                        String editorUuidStr = request.get("editorUuid").getAsString();
+                        // Pour Blockly JS, retourner directement le JavaScript, pas du JSON
+                        yield messageHandler.handleGenerateBlocklyJsRequest(java.util.UUID.fromString(editorUuidStr));
+                    }
+                    case "GET_FLOOR_INFO" -> {
+                        String dungeonName = request.get("dungeonName").getAsString();
+                        String floorId = request.get("floorId").getAsString();
+                        String editorName = request.get("editorName").getAsString();
+                        yield messageHandler.handleGetFloorInfoRequest(dungeonName, floorId, editorName);
+                    }
+                    default -> createErrorResponse("Type de requête inconnu: " + type);
+                };
+            } catch (Exception e) {
+                Main.getInstance().getLogger().severe("Erreur traitement requête " + type + ": " + e.getMessage());
+                return createErrorResponse("Erreur traitement: " + e.getMessage());
+            }
         }
 
         private String createErrorResponse(String message) {
@@ -128,6 +139,19 @@ public class SpigotProxyBridge {
 
         try (OutputStream os = exchange.getResponseBody()) {
             os.write(jsonBytes);
+        }
+    }
+
+    private void sendJavaScriptResponse(HttpExchange exchange, String javascript) throws IOException {
+        byte[] jsBytes = javascript.getBytes(StandardCharsets.UTF_8);
+        
+        exchange.getResponseHeaders().set("Content-Type", "application/javascript; charset=UTF-8");
+        exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+        exchange.getResponseHeaders().set("Cache-Control", "no-cache");
+        exchange.sendResponseHeaders(200, jsBytes.length);
+
+        try (OutputStream os = exchange.getResponseBody()) {
+            os.write(jsBytes);
         }
     }
 

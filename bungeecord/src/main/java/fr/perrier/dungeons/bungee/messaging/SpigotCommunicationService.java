@@ -90,7 +90,22 @@ public class SpigotCommunicationService {
         request.addProperty("editorUuid", editorUuid.toString());
         
         String response = sendSpigotRequest(spigotServer, request.toString());
-        return response != null ? response : "// Erreur communication Spigot\nconsole.error('Communication error');";
+        
+        // Pour Blockly JS, la réponse est du JavaScript pur, pas du JSON
+        if (response != null) {
+            try {
+                // Vérifier si c'est du JSON avec erreur
+                JsonObject jsonResponse = gson.fromJson(response, JsonObject.class);
+                if (jsonResponse.has("error")) {
+                    return "// Erreur: " + jsonResponse.get("error").getAsString() + "\nconsole.error('Erreur génération Blockly');";
+                }
+            } catch (Exception e) {
+                // Si ce n'est pas du JSON, c'est probablement du JavaScript valide
+                return response;
+            }
+        }
+        
+        return "// Erreur communication Spigot\nconsole.error('Communication error');";
     }
 
     /**

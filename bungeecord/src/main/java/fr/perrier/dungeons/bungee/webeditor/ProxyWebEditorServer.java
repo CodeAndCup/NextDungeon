@@ -2,6 +2,7 @@ package fr.perrier.dungeons.bungee.webeditor;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
@@ -13,6 +14,7 @@ import lombok.Getter;
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 import java.util.concurrent.Executors;
 
 /**
