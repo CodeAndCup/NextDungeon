@@ -212,6 +212,12 @@ public class TriggerSaveManager {
                 elseActionsArray.add(elseActionObj);
             }
             actionObj.add("elseactions", elseActionsArray);
+        } else if (action instanceof SummonMobAction summonMobAction) {
+            actionObj.addProperty("mobtype", summonMobAction.getMobType());
+            actionObj.addProperty("x", summonMobAction.getX());
+            actionObj.addProperty("y", summonMobAction.getY());
+            actionObj.addProperty("z", summonMobAction.getZ());
+            actionObj.addProperty("worldname", summonMobAction.getWorldName());
         }
         // Ajouter d'autres types d'actions ici
     }

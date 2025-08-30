@@ -1,5 +1,6 @@
 package fr.perrier.dungeons.workflow.trigger.impl;
 
+import fr.perrier.dungeons.utils.ServerUtil;
 import fr.perrier.dungeons.webserver.blockly.BlocklyTrigger;
 import fr.perrier.dungeons.webserver.blockly.annotations.BlocklyField;
 import fr.perrier.dungeons.webserver.blockly.annotations.BlocklyInfo;
@@ -36,6 +37,8 @@ public class EntityDeathTrigger extends Trigger implements BlocklyTrigger {
 
     @Override
     public boolean execute(Player player, Location location, Map<String, Object> data) {
+        if(ServerUtil.isInEditMode()) return false;
+
         if(!checkConditions(player, data)) {
             return false;
         }

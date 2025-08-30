@@ -1,6 +1,7 @@
 package fr.perrier.dungeons.workflow.trigger.impl;
 
 import fr.perrier.cupcodeapi.utils.RegionUtils;
+import fr.perrier.dungeons.utils.ServerUtil;
 import fr.perrier.dungeons.webserver.blockly.BlocklyTrigger;
 import fr.perrier.dungeons.webserver.blockly.annotations.BlocklyField;
 import fr.perrier.dungeons.webserver.blockly.annotations.BlocklyInfo;
@@ -68,6 +69,8 @@ public class RegionTrigger extends Trigger implements BlocklyTrigger {
 
     @Override
     public boolean execute(Player player, Location location, Map<String, Object> data) {
+        if(ServerUtil.isInEditMode()) return false;
+
         if (!checkConditions(player, data)) {
             return false;
         }
@@ -123,15 +126,24 @@ public class RegionTrigger extends Trigger implements BlocklyTrigger {
 
         Location playerLoc = player.getLocation();
 
-        if (worldName != null && !worldName.isEmpty() && !Objects.requireNonNull(playerLoc.getWorld()).getName().equals(worldName)) {
+        if (worldName != null && !worldName.isEmpty() && !playerLoc.getWorld().getName().equals(worldName)) {
             return false;
         }
 
-        return RegionUtils.isInside(
-                playerLoc,
-                new Location(playerLoc.getWorld(), pos1X, pos1Y, pos1Z),
-                new Location(playerLoc.getWorld(), pos2X, pos2Y, pos2Z)
-        );
+        double minX = Math.min(pos1X, pos2X);
+        double maxX = Math.max(pos1X, pos2X);
+        double minY = Math.min(pos1Y, pos2Y);
+        double maxY = Math.max(pos1Y, pos2Y);
+        double minZ = Math.min(pos1Z, pos2Z);
+        double maxZ = Math.max(pos1Z, pos2Z);
+
+        double px = playerLoc.getX();
+        double py = playerLoc.getY();
+        double pz = playerLoc.getZ();
+
+        return px >= minX && px <= maxX &&
+               py >= minY && py <= maxY &&
+               pz >= minZ && pz <= maxZ;
     }
 
     @Override

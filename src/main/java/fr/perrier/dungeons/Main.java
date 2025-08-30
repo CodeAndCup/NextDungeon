@@ -12,6 +12,8 @@ import fr.perrier.dungeons.configuration.ConfigLoader;
 import fr.perrier.dungeons.database.DatabaseFactory;
 import fr.perrier.dungeons.database.DatabaseManager;
 import fr.perrier.dungeons.listener.dungeons.InstanceJoinListener;
+import fr.perrier.dungeons.listener.dungeons.InstanceMobKillListener;
+import fr.perrier.dungeons.listener.dungeons.InstancePlayerDeathListener;
 import fr.perrier.dungeons.listener.editor.EditorJoinListener;
 import fr.perrier.dungeons.listener.global.GlobalJoinListener;
 import fr.perrier.dungeons.listener.global.GlobalLeaveListener;
@@ -220,6 +222,8 @@ public final class Main extends JavaPlugin {
     private void loadInstanceListeners() {
         PluginManager pluginManager = getServer().getPluginManager();
         pluginManager.registerEvents(new InstanceJoinListener(), this);
+        pluginManager.registerEvents(new InstanceMobKillListener(), this);
+        pluginManager.registerEvents(new InstancePlayerDeathListener(), this);
     }
 
     /**

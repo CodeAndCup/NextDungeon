@@ -115,6 +115,19 @@ public class ActionFactory {
                     yield ifAction;
                 }
                 case "end_dungeon_action" -> new EndDungeonAction();
+                case "summon_mob_action" -> {
+                    String mobType = actionData.has("mobtype") ?
+                            actionData.get("mobtype").getAsString() : "ZOMBIE";
+                    float x = actionData.has("x") ?
+                            actionData.get("x").getAsFloat() : 0;
+                    float y = actionData.has("y") ?
+                            actionData.get("y").getAsFloat() : 0;
+                    float z = actionData.has("z") ?
+                            actionData.get("z").getAsFloat() : 0;
+                    String worldName = actionData.has("worldname") ?
+                            actionData.get("worldname").getAsString() : "world";
+                    yield new SummonMobAction(mobType, x, y, z, worldName);
+                }
                 default -> {
                     Main.getInstance().getLogger().warning("&eType d'action inconnu: " + type);
                     yield null;
