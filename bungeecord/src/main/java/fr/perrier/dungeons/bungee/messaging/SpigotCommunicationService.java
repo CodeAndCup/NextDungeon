@@ -4,11 +4,11 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import fr.perrier.dungeons.bungee.NextDungeonBungee;
 
-import java.util.Map;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Service de communication avec les serveurs Spigot via Redis
@@ -16,10 +16,6 @@ import java.util.concurrent.TimeUnit;
 public class SpigotCommunicationService {
 
     private final Gson gson = new Gson();
-    private final Map<String, CompletableFuture<String>> pendingRequests = new ConcurrentHashMap<>();
-    
-    // Pour l'instant, simulation - dans l'implémentation réelle utiliser Redis
-    // TODO: Intégrer avec le système Redis existant
 
     /**
      * Crée une session d'édition pour un joueur depuis un serveur Spigot
@@ -42,133 +38,117 @@ public class SpigotCommunicationService {
      * Charge les triggers d'un floor depuis le serveur Spigot
      */
     public String loadTriggers(String spigotServer, String dungeonName, String floorId) throws Exception {
-        String requestId = UUID.randomUUID().toString();
-        
-        // TODO: Envoyer message Redis au serveur Spigot
         JsonObject request = new JsonObject();
         request.addProperty("type", "LOAD_TRIGGERS");
-        request.addProperty("requestId", requestId);
         request.addProperty("dungeonName", dungeonName);
         request.addProperty("floorId", floorId);
         
-        CompletableFuture<String> future = new CompletableFuture<>();
-        pendingRequests.put(requestId, future);
-        
-        // TODO: Publier sur Redis channel "dungeon_webeditor_request_" + spigotServer
         NextDungeonBungee.getInstance().getLogger().info("📤 Demande de chargement triggers pour " + floorId + " sur " + spigotServer);
         
-        // Simulation pour l'instant - à remplacer par vraie communication Redis
-        simulateSpigotResponse(requestId, createMockTriggersResponse(dungeonName, floorId));
-        
-        return future.get(30, TimeUnit.SECONDS);
+        String response = sendSpigotRequest(spigotServer, request.toString());
+        return response != null ? response : createMockTriggersResponse(dungeonName, floorId);
     }
 
     /**
      * Sauvegarde les triggers sur le serveur Spigot
      */
     public boolean saveTriggers(String spigotServer, String dungeonName, String floorId, String triggersJson, UUID editorUuid) throws Exception {
-        String requestId = UUID.randomUUID().toString();
-        
         JsonObject request = new JsonObject();
         request.addProperty("type", "SAVE_TRIGGERS");
-        request.addProperty("requestId", requestId);
         request.addProperty("dungeonName", dungeonName);
         request.addProperty("floorId", floorId);
         request.addProperty("editorUuid", editorUuid.toString());
         request.addProperty("triggersData", triggersJson);
         
-        CompletableFuture<String> future = new CompletableFuture<>();
-        pendingRequests.put(requestId, future);
-        
         NextDungeonBungee.getInstance().getLogger().info("📤 Demande de sauvegarde triggers pour " + floorId + " sur " + spigotServer);
         
-        // Simulation
-        simulateSpigotResponse(requestId, "{\"success\": true}");
-        
-        String response = future.get(30, TimeUnit.SECONDS);
-        JsonObject result = gson.fromJson(response, JsonObject.class);
-        return result.has("success") && result.get("success").getAsBoolean();
+        String response = sendSpigotRequest(spigotServer, request.toString());
+        if (response != null) {
+            JsonObject result = gson.fromJson(response, JsonObject.class);
+            return result.has("success") && result.get("success").getAsBoolean();
+        }
+        return false;
     }
 
     /**
      * Récupère les types de triggers disponibles
      */
     public String getTriggerTypes(String spigotServer) throws Exception {
-        String requestId = UUID.randomUUID().toString();
-        
         JsonObject request = new JsonObject();
         request.addProperty("type", "GET_TRIGGER_TYPES");
-        request.addProperty("requestId", requestId);
         
-        CompletableFuture<String> future = new CompletableFuture<>();
-        pendingRequests.put(requestId, future);
-        
-        // Simulation
-        simulateSpigotResponse(requestId, createMockTriggerTypesResponse());
-        
-        return future.get(30, TimeUnit.SECONDS);
+        String response = sendSpigotRequest(spigotServer, request.toString());
+        return response != null ? response : createMockTriggerTypesResponse();
     }
 
     /**
      * Génère le JavaScript Blockly
      */
     public String generateBlocklyJs(String spigotServer, UUID editorUuid) throws Exception {
-        String requestId = UUID.randomUUID().toString();
-        
         JsonObject request = new JsonObject();
         request.addProperty("type", "GENERATE_BLOCKLY_JS");
-        request.addProperty("requestId", requestId);
         request.addProperty("editorUuid", editorUuid.toString());
         
-        CompletableFuture<String> future = new CompletableFuture<>();
-        pendingRequests.put(requestId, future);
-        
-        // Simulation
-        simulateSpigotResponse(requestId, "// Blockly JS généré\nconsole.log('Blockly blocks loaded');");
-        
-        return future.get(30, TimeUnit.SECONDS);
+        String response = sendSpigotRequest(spigotServer, request.toString());
+        return response != null ? response : "// Erreur communication Spigot\nconsole.error('Communication error');";
     }
 
     /**
      * Récupère les informations du floor
      */
     public String getFloorInfo(String spigotServer, String dungeonName, String floorId, String editorName) throws Exception {
-        String requestId = UUID.randomUUID().toString();
-        
         JsonObject request = new JsonObject();
         request.addProperty("type", "GET_FLOOR_INFO");
-        request.addProperty("requestId", requestId);
         request.addProperty("dungeonName", dungeonName);
         request.addProperty("floorId", floorId);
         request.addProperty("editorName", editorName);
         
-        CompletableFuture<String> future = new CompletableFuture<>();
-        pendingRequests.put(requestId, future);
-        
-        // Simulation
-        simulateSpigotResponse(requestId, createMockFloorInfoResponse(dungeonName, floorId, editorName));
-        
-        return future.get(30, TimeUnit.SECONDS);
+        String response = sendSpigotRequest(spigotServer, request.toString());
+        return response != null ? response : createMockFloorInfoResponse(dungeonName, floorId, editorName);
     }
 
     /**
-     * Gère la réponse d'un serveur Spigot
+     * Envoie une requête HTTP au serveur Spigot
      */
-    public void handleSpigotResponse(String requestId, String response) {
-        CompletableFuture<String> future = pendingRequests.remove(requestId);
-        if (future != null) {
-            future.complete(response);
+    private String sendSpigotRequest(String spigotServer, String jsonData) {
+        try {
+            // Pour simplifier, on suppose que le serveur Spigot est sur localhost:8081
+            // Dans une vraie implémentation, mapper spigotServer vers l'IP réelle
+            java.net.URL url = new java.net.URL("http://localhost:8081/spigot-api/request");
+            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+            
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setDoOutput(true);
+            conn.setConnectTimeout(5000);
+            conn.setReadTimeout(30000);
+
+            try (OutputStream os = conn.getOutputStream()) {
+                byte[] input = jsonData.getBytes(StandardCharsets.UTF_8);
+                os.write(input, 0, input.length);
+            }
+
+            int responseCode = conn.getResponseCode();
+            if (responseCode == java.net.HttpURLConnection.HTTP_OK) {
+                try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+                    StringBuilder response = new StringBuilder();
+                    String responseLine;
+                    while ((responseLine = br.readLine()) != null) {
+                        response.append(responseLine.trim());
+                    }
+                    return response.toString();
+                }
+            } else {
+                NextDungeonBungee.getInstance().getLogger().warning("Erreur communication Spigot: HTTP " + responseCode);
+                return null;
+            }
+        } catch (Exception e) {
+            NextDungeonBungee.getInstance().getLogger().warning("Communication Spigot échouée: " + e.getMessage());
+            return null;
         }
     }
 
-    // Méthodes de simulation - à supprimer lors de l'intégration Redis réelle
-    private void simulateSpigotResponse(String requestId, String response) {
-        // Simule un délai de réponse
-        CompletableFuture.delayedExecutor(100, TimeUnit.MILLISECONDS).execute(() -> {
-            handleSpigotResponse(requestId, response);
-        });
-    }
-
+    // Méthodes de fallback en cas d'échec de communication
     private String createMockTriggersResponse(String dungeonName, String floorId) {
         return String.format("""
             {

@@ -44,6 +44,9 @@ public class ProxyWebEditorServer {
 
             // Routes API avec pattern /{floorId-uuid}/api/*
             server.createContext("/", new RouteHandler());
+            
+            // API proxy pour communication avec les serveurs Spigot
+            server.createContext("/proxy-api/", new ProxyApiHandler());
 
             server.setExecutor(Executors.newFixedThreadPool(8));
             server.start();
@@ -311,5 +314,75 @@ public class ProxyWebEditorServer {
         if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) return "image/jpeg";
         if (fileName.endsWith(".ico")) return "image/x-icon";
         return "text/plain";
+    }
+
+    /**
+     * Handler pour les requêtes API du proxy (communication avec Spigot)
+     */
+    private class ProxyApiHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            String path = exchange.getRequestURI().getPath();
+            
+            if (path.startsWith("/proxy-api/session")) {
+                handleSessionRequest(exchange);
+            } else {
+                sendNotFound(exchange);
+            }
+        }
+
+        private void handleSessionRequest(HttpExchange exchange) throws IOException {
+            if (!"POST".equals(exchange.getRequestMethod())) {
+                sendMethodNotAllowed(exchange);
+                return;
+            }
+
+            try {
+                String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+                JsonObject request = gson.fromJson(requestBody, JsonObject.class);
+                
+                String action = request.get("action").getAsString();
+                JsonObject response = new JsonObject();
+                
+                switch (action) {
+                    case "create_session" -> {
+                        String dungeonName = request.get("dungeonName").getAsString();
+                        String floorId = request.get("floorId").getAsString();
+                        String playerUuid = request.get("playerUuid").getAsString();
+                        String playerName = request.get("playerName").getAsString();
+                        String spigotServer = request.get("spigotServer").getAsString();
+                        
+                        String sessionId = sessionManager.createSessionFromProxy(
+                            dungeonName, floorId, UUID.fromString(playerUuid), playerName, spigotServer
+                        );
+                        
+                        response.addProperty("success", true);
+                        response.addProperty("sessionId", sessionId);
+                        response.addProperty("url", "http://localhost:8080/" + sessionId + "/editor/");
+                        
+                        NextDungeonBungee.getInstance().getLogger().info("✅ Session créée: " + sessionId + " pour " + playerName);
+                    }
+                    case "stop_session" -> {
+                        String sessionId = request.get("sessionId").getAsString();
+                        boolean success = sessionManager.removeSession(sessionId);
+                        
+                        response.addProperty("success", success);
+                        response.addProperty("message", success ? "Session fermée" : "Session non trouvée");
+                        
+                        NextDungeonBungee.getInstance().getLogger().info("🛑 Session fermée: " + sessionId);
+                    }
+                    default -> {
+                        response.addProperty("success", false);
+                        response.addProperty("error", "Action inconnue: " + action);
+                    }
+                }
+                
+                sendJsonResponse(exchange, gson.toJson(response));
+                
+            } catch (Exception e) {
+                NextDungeonBungee.getInstance().getLogger().severe("Erreur API proxy: " + e.getMessage());
+                sendErrorResponse(exchange, "Erreur traitement requête: " + e.getMessage());
+            }
+        }
     }
 }

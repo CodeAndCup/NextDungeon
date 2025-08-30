@@ -76,6 +76,10 @@ public final class Main extends JavaPlugin {
     // Web editor manager
     @Getter@Deprecated
     private DungeonWebEditorManager webEditorManager;
+    
+    // Proxy bridge for web editor communication
+    @Getter
+    private fr.perrier.dungeons.spigot.webeditor.SpigotProxyBridge proxyBridge;
 
     // Global trigger manager
     @Getter
@@ -162,6 +166,14 @@ public final class Main extends JavaPlugin {
 
         // Initialize web editor manager
         webEditorManager = new DungeonWebEditorManager();
+        
+        // Initialize proxy bridge for web editor communication
+        proxyBridge = new fr.perrier.dungeons.spigot.webeditor.SpigotProxyBridge();
+        if (proxyBridge.startBridge()) {
+            getLogger().info("✅ Pont de communication proxy démarré");
+        } else {
+            getLogger().warning("⚠️ Impossible de démarrer le pont proxy");
+        }
     }
 
     @Override
@@ -184,6 +196,11 @@ public final class Main extends JavaPlugin {
         CupCodeAPI.disable();
         Pidgin.shutdown();
         webEditorManager.shutdownAllEditors();
+        
+        // Arrêter le pont de communication proxy
+        if (proxyBridge != null) {
+            proxyBridge.stopBridge();
+        }
     }
 
     /**
