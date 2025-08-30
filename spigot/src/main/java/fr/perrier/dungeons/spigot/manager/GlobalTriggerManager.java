@@ -6,7 +6,6 @@ import fr.perrier.dungeons.spigot.workflow.trigger.handler.TriggerEventHandler;
 import fr.perrier.dungeons.spigot.workflow.trigger.handler.impl.EntityDeathTriggerHandler;
 import fr.perrier.dungeons.spigot.workflow.trigger.handler.impl.RegionTriggerHandler;
 import fr.perrier.dungeons.spigot.workflow.trigger.impl.FunctionTrigger;
-import fr.perrier.dungeons.workflow.trigger.handler.impl.*;
 import org.bukkit.Bukkit;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventPriority;

@@ -10,10 +10,10 @@
         <artifactId>dungeons</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
-    <artifactId>dungeons-bungeecord</artifactId>
+    <artifactId>dungeons-velocity</artifactId>
     <packaging>jar</packaging>
 
-    <name>NextDungeon BungeeCord</name>
+    <name>NextDungeon Velocity</name>
 
     <licenses>
         <license>
@@ -25,17 +25,17 @@
 
     <repositories>
         <repository>
-            <id>sonatype-oss-snapshots</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+            <id>papermc</id>
+            <url>https://repo.papermc.io/repository/maven-public/</url>
         </repository>
     </repositories>
 
     <dependencies>
-        <!-- BungeeCord API -->
+        <!-- Velocity API -->
         <dependency>
-            <groupId>net.md-5</groupId>
-            <artifactId>bungeecord-api</artifactId>
-            <version>1.21-R0.3</version>
+            <groupId>com.velocitypowered</groupId>
+            <artifactId>velocity-api</artifactId>
+            <version>3.4.0-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
 

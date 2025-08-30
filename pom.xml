@@ -23,6 +23,7 @@
     <modules>
         <module>spigot</module>
         <module>bungeecord</module>
+        <module>velocity</module>
     </modules>
 
     <properties>

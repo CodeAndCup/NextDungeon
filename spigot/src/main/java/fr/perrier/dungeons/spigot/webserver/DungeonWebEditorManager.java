@@ -1,10 +1,14 @@
 package fr.perrier.dungeons.spigot.webserver;
 
+import eu.cloudnetservice.driver.inject.InjectionLayer;
+import eu.cloudnetservice.driver.service.ServiceInfoSnapshot;
+import eu.cloudnetservice.wrapper.holder.ServiceInfoHolder;
 import fr.perrier.cupcodeapi.utils.ChatUtil;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.utils.ServerUtil;
 import fr.perrier.dungeons.spigot.webeditor.ProxyEditorMessageHandler;
 import fr.perrier.dungeons.spigot.webeditor.ProxyBridgeService;
+import lombok.Getter;
 import org.bukkit.entity.Player;
 
 import java.util.HashMap;
@@ -14,6 +18,11 @@ import java.util.UUID;
 public class DungeonWebEditorManager {
 
     private final Map<UUID, String> activeEditorSessions; // UUID du joueur -> sessionId du proxy
+    /**
+     * -- GETTER --
+     *  Retourne le handler de messages pour traiter les requêtes du proxy
+     */
+    @Getter
     private final ProxyEditorMessageHandler messageHandler;
     private final ProxyBridgeService bridgeService;
 
@@ -113,18 +122,10 @@ public class DungeonWebEditorManager {
     }
 
     /**
-     * Retourne le handler de messages pour traiter les requêtes du proxy
-     */
-    public ProxyEditorMessageHandler getMessageHandler() {
-        return messageHandler;
-    }
-
-    /**
      * Récupère le nom du serveur actuel
      */
     private String getCurrentServerName() {
-        // TODO: Récupérer le vrai nom du serveur depuis CloudNet ou la configuration
-        return "dungeon-edit-server";
+        ServiceInfoSnapshot currentService = InjectionLayer.ext().instance(ServiceInfoHolder.class).serviceInfo();
+        return currentService.name();
     }
-}
 }

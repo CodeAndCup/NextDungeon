@@ -3,7 +3,6 @@ package fr.perrier.dungeons.spigot.workflow.action.factory;
 import com.google.gson.JsonPrimitive;
 import fr.perrier.dungeons.spigot.workflow.action.impl.*;
 import fr.perrier.dungeons.spigot.workflow.action.Action;
-import fr.perrier.dungeons.workflow.action.impl.*;
 import fr.perrier.dungeons.spigot.Main;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonArray;

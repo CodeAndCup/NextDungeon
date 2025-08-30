@@ -10,8 +10,6 @@ import fr.perrier.dungeons.spigot.workflow.trigger.factory.TriggerFactory;
 import fr.perrier.dungeons.spigot.workflow.trigger.impl.EntityDeathTrigger;
 import fr.perrier.dungeons.spigot.workflow.trigger.impl.FunctionTrigger;
 import fr.perrier.dungeons.spigot.workflow.trigger.impl.RegionTrigger;
-import fr.perrier.dungeons.workflow.action.impl.*;
-import fr.perrier.dungeons.workflow.trigger.impl.*;
 import fr.perrier.dungeons.spigot.Main;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
