@@ -16,6 +16,7 @@ import net.Indyuce.mmocore.api.player.PlayerData;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
+import org.bukkit.event.player.PlayerInputEvent;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.*;

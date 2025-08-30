@@ -7,7 +7,7 @@ import java.util.List;
 /**
  * Interface pour les actions Blockly
  */
-public interface BlocklyAction extends BlocklyComponent {
+public interface BlocklyAction {
 
     /**
      * @return Liste des champs de l'action

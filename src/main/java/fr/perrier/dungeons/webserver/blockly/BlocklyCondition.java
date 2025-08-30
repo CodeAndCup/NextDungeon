@@ -4,7 +4,7 @@ import org.bukkit.entity.Player;
 
 import java.util.Map;
 
-public interface BlocklyCondition extends BlocklyComponent {
+public interface BlocklyCondition {
     /**
      * Évalue la condition
      */

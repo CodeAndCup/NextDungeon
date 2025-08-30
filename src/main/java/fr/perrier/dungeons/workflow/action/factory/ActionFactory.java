@@ -114,6 +114,7 @@ public class ActionFactory {
 
                     yield ifAction;
                 }
+                case "end_dungeon_action" -> new EndDungeonAction();
                 default -> {
                     Main.getInstance().getLogger().warning("&eType d'action inconnu: " + type);
                     yield null;

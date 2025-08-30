@@ -40,26 +40,6 @@ public class CallFunctionAction extends Action implements BlocklyAction {
     }
 
     @Override
-    public String getBlockName() {
-        return "call_function_action";
-    }
-
-    @Override
-    public String getColor() {
-        return "#9C27B0";
-    }
-
-    @Override
-    public String getTooltip() {
-        return "Appelle une fonction définie précédemment";
-    }
-
-    @Override
-    public String getDisplayText() {
-        return "📞 Appeler " + (functionName != null ? functionName : "");
-    }
-
-    @Override
     public boolean execute(Player triggerPlayer, Location location, Map<String, Object> data) {
         if (functionName == null || functionName.trim().isEmpty()) {
             Main.getInstance().getLogger().warning("&eFunction name is empty in CallFunctionAction");

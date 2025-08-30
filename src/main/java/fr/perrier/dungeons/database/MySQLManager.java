@@ -271,7 +271,7 @@ public class MySQLManager implements DatabaseManager {
                             profileData = ProfileData.fromJson(rs.getString("data"));
                         } else {
                             // No existing profile, return a new one
-                            profileData = new ProfileData();
+                            profileData = new ProfileData(playerId);
                         }
                         return profileData;
                     },

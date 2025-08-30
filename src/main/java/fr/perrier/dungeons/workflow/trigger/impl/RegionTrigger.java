@@ -1,17 +1,18 @@
 package fr.perrier.dungeons.workflow.trigger.impl;
 
+import fr.perrier.cupcodeapi.utils.RegionUtils;
 import fr.perrier.dungeons.webserver.blockly.BlocklyTrigger;
 import fr.perrier.dungeons.webserver.blockly.annotations.BlocklyField;
 import fr.perrier.dungeons.webserver.blockly.annotations.BlocklyInfo;
 import fr.perrier.dungeons.workflow.trigger.Trigger;
 import lombok.Getter;
 import lombok.Setter;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Trigger qui se déclenche quand un joueur entre/sort d'une région définie par deux positions
@@ -49,51 +50,20 @@ public class RegionTrigger extends Trigger implements BlocklyTrigger {
     @BlocklyField(type = BlocklyField.FieldType.TEXT_INPUT, label = "Monde:", defaultValue = "world", order = 7)
     private String worldName;
 
-    // Nouvelles options pour le système global
     @BlocklyField(type = BlocklyField.FieldType.DROPDOWN, label = "Événement:", order = 8, options = "enter,exit,both")
-    private String regionEvent = "enter"; // "enter", "exit", "both"
+    private String regionEvent = "enter";
 
     @BlocklyField(type = BlocklyField.FieldType.CHECKBOX, label = "Une seule fois:", order = 9)
-    private boolean onlyOnce = false; // Déclenche seulement une fois par joueur
+    private boolean onlyOnce = false;
 
     @BlocklyField(type = BlocklyField.FieldType.NUMBER_INPUT, label = "Cooldown (sec):", defaultValue = "0", order = 10)
-    private int cooldownSeconds = 0; // Cooldown entre les déclenchements
+    private int cooldownSeconds = 0;
 
-    // Cache pour le système "une seule fois" et les cooldowns
     private final Map<String, Long> playerTriggerHistory = new HashMap<>();
 
     public RegionTrigger(String name) {
         super(name);
-        this.worldName = "world"; // Monde par défaut
-    }
-
-    @Override
-    public String getBlockName() {
-        return "region_trigger";
-    }
-
-    @Override
-    public String getColor() {
-        return "#4CAF50";
-    }
-
-    @Override
-    public String getTooltip() {
-        return "Déclenche quand un joueur entre ou sort d'une région définie";
-    }
-
-    @Override
-    public String getDisplayText() {
-        return "📍 Quand le joueur " + getRegionEventText() + " région";
-    }
-
-    private String getRegionEventText() {
-        return switch (regionEvent.toLowerCase()) {
-            case "enter" -> "entre en";
-            case "exit" -> "sort de";
-            case "both" -> "entre/sort de";
-            default -> "entre en";
-        };
+        this.worldName = "world";
     }
 
     @Override
@@ -102,30 +72,27 @@ public class RegionTrigger extends Trigger implements BlocklyTrigger {
             return false;
         }
 
-        // Vérifier le cooldown si activé
         if (cooldownSeconds > 0) {
             String playerId = player.getUniqueId().toString();
             long currentTime = System.currentTimeMillis();
             Long lastTrigger = playerTriggerHistory.get(playerId);
 
             if (lastTrigger != null && (currentTime - lastTrigger) < (cooldownSeconds * 1000L)) {
-                return false; // Encore en cooldown
+                return false;
             }
 
             playerTriggerHistory.put(playerId, currentTime);
         }
 
-        // Vérifier "une seule fois" si activé
         if (onlyOnce) {
             String playerId = player.getUniqueId().toString() + "_once";
             if (playerTriggerHistory.containsKey(playerId)) {
-                return false; // Déjà déclenché pour ce joueur
+                return false;
             }
 
             playerTriggerHistory.put(playerId, System.currentTimeMillis());
         }
 
-        // Exécuter toutes les actions définies
         return executeActions(player, location, data);
     }
 
@@ -135,25 +102,16 @@ public class RegionTrigger extends Trigger implements BlocklyTrigger {
             return false;
         }
 
-        // Vérifier le type d'événement de région si spécifié dans les données
         String currentRegionEvent = (String) data.get("region_event");
         if (currentRegionEvent != null && !regionEvent.equals("both")) {
             if (!regionEvent.equals(currentRegionEvent)) {
-                return false; // L'événement ne correspond pas
+                return false;
             }
         }
 
         Location playerLoc = player.getLocation();
 
-        // Vérifier le monde si spécifié
-        if (worldName != null && !worldName.isEmpty() && !playerLoc.getWorld().getName().equals(worldName)) {
-            return false;
-        }
-
-        // Le RegionTriggerHandler s'occupe déjà de vérifier si le joueur est dans la région
-        // Ici on peut ajouter des conditions supplémentaires si nécessaire
-
-        return true; // Les conditions de base sont remplies
+        return worldName == null || worldName.isEmpty() || Objects.requireNonNull(playerLoc.getWorld()).getName().equals(worldName);
     }
 
     /**
@@ -165,27 +123,15 @@ public class RegionTrigger extends Trigger implements BlocklyTrigger {
 
         Location playerLoc = player.getLocation();
 
-        // Vérifier le monde si spécifié
-        if (worldName != null && !worldName.isEmpty() && !playerLoc.getWorld().getName().equals(worldName)) {
+        if (worldName != null && !worldName.isEmpty() && !Objects.requireNonNull(playerLoc.getWorld()).getName().equals(worldName)) {
             return false;
         }
 
-        // Calculer les coordonnées min/max
-        double minX = Math.min(pos1X, pos2X);
-        double maxX = Math.max(pos1X, pos2X);
-        double minY = Math.min(pos1Y, pos2Y);
-        double maxY = Math.max(pos1Y, pos2Y);
-        double minZ = Math.min(pos1Z, pos2Z);
-        double maxZ = Math.max(pos1Z, pos2Z);
-
-        // Vérifier si le joueur est dans la région
-        double px = playerLoc.getX();
-        double py = playerLoc.getY();
-        double pz = playerLoc.getZ();
-
-        return px >= minX && px <= maxX &&
-                py >= minY && py <= maxY &&
-                pz >= minZ && pz <= maxZ;
+        return RegionUtils.isInside(
+                playerLoc,
+                new Location(playerLoc.getWorld(), pos1X, pos1Y, pos1Z),
+                new Location(playerLoc.getWorld(), pos2X, pos2Y, pos2Z)
+        );
     }
 
     @Override

@@ -62,26 +62,6 @@ public class IfAction extends Action implements BlocklyAction {
     }
 
     @Override
-    public String getBlockName() {
-        return "if_action";
-    }
-
-    @Override
-    public String getColor() {
-        return "#FF9800";
-    }
-
-    @Override
-    public String getTooltip() {
-        return "Exécute des actions selon une condition";
-    }
-
-    @Override
-    public String getDisplayText() {
-        return "🔀 Si";
-    }
-
-    @Override
     public boolean execute(Player triggerPlayer, Location location, Map<String, Object> data) {
         try {
             // Resolve values

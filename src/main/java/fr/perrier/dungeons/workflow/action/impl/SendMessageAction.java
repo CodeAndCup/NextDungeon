@@ -44,26 +44,6 @@ public class SendMessageAction extends Action implements BlocklyAction {
     }
 
     @Override
-    public String getBlockName() {
-        return "send_message_action";
-    }
-
-    @Override
-    public String getColor() {
-        return "#2196F3";
-    }
-
-    @Override
-    public String getTooltip() {
-        return "Envoie un message à un joueur spécifique";
-    }
-
-    @Override
-    public String getDisplayText() {
-        return "💬 Envoyer message";
-    }
-
-    @Override
     public boolean execute(Player triggerPlayer, Location location, Map<String, Object> data) {
         if (message == null || message.isEmpty()) {
             return false;

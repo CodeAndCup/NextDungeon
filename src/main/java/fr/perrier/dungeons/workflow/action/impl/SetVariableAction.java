@@ -54,26 +54,6 @@ public class SetVariableAction extends Action implements BlocklyAction {
     }
 
     @Override
-    public String getBlockName() {
-        return "set_variable_action";
-    }
-
-    @Override
-    public String getColor() {
-        return "#FF5722";
-    }
-
-    @Override
-    public String getTooltip() {
-        return "Définit la valeur d'une variable avec une portée spécifiée (player, instance, global)";
-    }
-
-    @Override
-    public String getDisplayText() {
-        return "📝 Définir " + (variableName != null ? variableName : "variable");
-    }
-
-    @Override
     public boolean execute(Player triggerPlayer, Location location, Map<String, Object> data) {
         if (variableName == null || variableName.trim().isEmpty()) {
             Main.getInstance().getLogger().warning("&eVariable name is empty in SetVariableAction");

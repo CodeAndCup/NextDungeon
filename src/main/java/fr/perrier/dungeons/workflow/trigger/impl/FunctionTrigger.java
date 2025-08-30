@@ -40,26 +40,6 @@ public class FunctionTrigger extends Trigger implements BlocklyTrigger {
     }
 
     @Override
-    public String getBlockName() {
-        return "function_trigger";
-    }
-
-    @Override
-    public String getColor() {
-        return "#673AB7";
-    }
-
-    @Override
-    public String getTooltip() {
-        return "Définit une fonction personnalisée qui peut être appelée depuis d'autres actions";
-    }
-
-    @Override
-    public String getDisplayText() {
-        return "🔧 Fonction " + (functionName != null ? functionName : "");
-    }
-
-    @Override
     public boolean execute(Player player, Location location, Map<String, Object> data) {
         return executeActions(player, location, data);
     }

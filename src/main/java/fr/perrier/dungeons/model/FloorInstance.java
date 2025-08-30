@@ -3,19 +3,19 @@ package fr.perrier.dungeons.model;
 import com.alessiodp.parties.api.interfaces.Party;
 import com.cryptomorin.xseries.messages.Titles;
 import fr.perrier.cupcodeapi.utils.ChatUtil;
+import fr.perrier.cupcodeapi.utils.TimeUtil;
 import fr.perrier.dungeons.Main;
 import fr.perrier.dungeons.parties.DungeonParty;
 import fr.perrier.dungeons.utils.ServerUtil;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Getter
@@ -39,6 +39,8 @@ public class FloorInstance {
     private final UUID instanceId;
     private final String floorId;
     private boolean ready;
+
+    private final HashMap<UUID, PlayerStats> playerStats = new HashMap<>();
 
     public FloorInstance(String floorId) {
         this.floorId = floorId;
@@ -191,6 +193,63 @@ public class FloorInstance {
                 }
             }
         }.runTaskTimerAsynchronously(Main.getInstance(), 0L, 2L);
+    }
+
+    public void complete() {
+        for(Player player : Bukkit.getOnlinePlayers()) {
+            PlayerStats playerStats = this.playerStats.get(player.getUniqueId());
+            if(playerStats == null) continue;
+
+            ProfileData profileData = Main.getInstance().getProfileService().getProfileData(player.getUniqueId());
+            profileData.addCompletedFloor(floorId);
+            profileData.addFloorStat(new ProfileData.FloorStats(floorId, playerStats.getStartTime(), playerStats.getEnemiesKilled(), playerStats.getDeaths()));
+            Main.getInstance().getProfileService().saveProfileData(player.getUniqueId());
+
+            Titles.sendTitle(player, 10, 70, 20,
+                    ChatUtil.translate("&f&l" + ChatUtil.toSmallCaps("Congratulations!!")),
+                    ChatUtil.translate("&#FFBB00&l" + ChatUtil.toSmallCaps("Dungeon Complete")));
+
+            Dungeon currentDungeon = Dungeon.getDungeon(floorId.split("_")[0]);
+
+            player.sendMessage(ChatUtil.getBar());
+            player.sendMessage(ChatUtil.translate("&#D10000Dungeon: &#D63333" + ChatUtil.toSmallCaps(currentDungeon.getName())));
+            player.sendMessage(ChatUtil.translate("&#D10000Floor: &#D68533" + ChatUtil.toSmallCaps(getFloor().getName())));
+            player.sendMessage(ChatUtil.translate("&#D10000Time: &f" + TimeUtil.getDuration(System.currentTimeMillis() - playerStats.getStartTime())));
+            player.sendMessage(ChatUtil.translate("&#D10000Enemies killed: &f" + playerStats.getEnemiesKilled()));
+            player.sendMessage(ChatUtil.translate("&#D10000Deaths: &f" + playerStats.getDeaths()));
+            player.sendMessage(ChatUtil.getBar());
+        }
+
+        Bukkit.broadcastMessage(ChatUtil.translate(Main.getPrefix() + "&fThe dungeon instance &e" + getInstanceName() + " &fwill shut down in &c30 &fseconds."));
+
+        Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+            Main.getInstance().getRedisStorageService().removeInstance(this.instanceId);
+            Bukkit.shutdown();
+        }, 20L * 30);
+    }
+
+    @Getter
+    @Setter
+    public static class PlayerStats {
+        private final UUID playerId;
+        private int enemiesKilled;
+        private int deaths;
+        private long startTime;
+
+        public PlayerStats(UUID playerId) {
+            this.playerId = playerId;
+            this.enemiesKilled = 0;
+            this.deaths = 0;
+            this.startTime = System.currentTimeMillis();
+        }
+
+        public void incrementEnemiesKilled() {
+            this.enemiesKilled++;
+        }
+
+        public void incrementDeaths() {
+            this.deaths++;
+        }
     }
 
 

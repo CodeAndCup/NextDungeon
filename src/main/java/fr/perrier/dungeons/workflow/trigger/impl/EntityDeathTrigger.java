@@ -30,28 +30,8 @@ public class EntityDeathTrigger extends Trigger implements BlocklyTrigger {
     }
 
     @Override
-    public String getBlockName() {
-        return "entity_death_trigger";
-    }
-
-    @Override
     public String getType() {
         return "entity_death_trigger";
-    }
-
-    @Override
-    public String getColor() {
-        return "#4CAF50";
-    }
-
-    @Override
-    public String getTooltip() {
-        return "Déclenche lorsque une entité meurt";
-    }
-
-    @Override
-    public String getDisplayText() {
-        return "📍 Quand une entité meurt";
     }
 
     @Override

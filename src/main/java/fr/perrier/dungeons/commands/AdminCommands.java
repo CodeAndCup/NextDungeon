@@ -28,18 +28,18 @@ public class AdminCommands {
         player.sendMessage("");
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin help"));
         // Edit commands
-        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin edit start &#F20000<dungeon> <floor>"));
-        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin edit stop &#F20000[--confirm]"));
+        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin edit start &#D63333<dungeon> <floor>"));
+        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin edit stop &#D63333[--confirm]"));
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin webeditor start"));
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin webeditor stop"));
         // Test commands
-        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin test &#F20000<dungeon> <floor>"));
+        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin test &#D63333<dungeon> <floor>"));
         // Other commands
-        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin import &#F20000<world> <dungeon> <floor>"));
-        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin load &#F20000<config>"));
+        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin import &#D63333<world> <dungeon> <floor>"));
+        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin load &#D63333<config>"));
         // Status commands
-        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin status &#F20000<dungeon> [floor]"));
-        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin goto &#F20000<server>"));
+        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin status &#D63333<dungeon> [floor]"));
+        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin goto &#D63333<server>"));
         player.sendMessage(ChatUtil.getBar());
     }
 
@@ -96,7 +96,7 @@ public class AdminCommands {
                 FileUtil.copyDir(new File(Main.getInstance().getDataFolder() + "/../../world/data/"), new File(Main.getInstance().getDataFolder() + "/../../../../../local/templates/" + currentFloor.getId() + "/default/world/data"));
                 FileUtil.copyDir(new File(Main.getInstance().getDataFolder() + "/../../world/entities/"), new File(Main.getInstance().getDataFolder() + "/../../../../../local/templates/" + currentFloor.getId() + "/default/world/entities"));
                 FileUtil.copyDir(new File(Main.getInstance().getDataFolder() + "/../../world/region/"), new File(Main.getInstance().getDataFolder() + "/../../../../../local/templates/" + currentFloor.getId() + "/default/world/region"));
-                FileUtil.copyDir(new File(Main.getInstance().getDataFolder() + "/../../world/poi/"), new File(Main.getInstance().getDataFolder() + "/../../../../../local/templates/" + currentFloor.getId() + "/default/world/poi"));
+                //FileUtil.copyDir(new File(Main.getInstance().getDataFolder() + "/../../world/poi/"), new File(Main.getInstance().getDataFolder() + "/../../../../../local/templates/" + currentFloor.getId() + "/default/world/poi"));
                 FileUtil.copyFile(new File(Main.getInstance().getDataFolder() + "/../../world/uid.dat"), new File(Main.getInstance().getDataFolder() + "/../../../../../local/templates/" + currentFloor.getId() + "/default/world/uid.dat"));
                 FileUtil.copyFile(new File(Main.getInstance().getDataFolder() + "/../../world/level.dat"), new File(Main.getInstance().getDataFolder() + "/../../../../../local/templates/" + currentFloor.getId() + "/default/world/level.dat"));
 
@@ -166,8 +166,9 @@ public class AdminCommands {
         }
 
         FloorInstance floorInstance = new FloorInstance(floor.getId());
-
-        ServerUtil.sendToServer(player,floorInstance.getInstanceId());
+        player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&a✓ &fTest instance started for floor &e" + floor.getId() + "&f."));
+        player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&fPlease wait while the instance is being prepared..."));
+        floorInstance.sendToServer(player);
     }
 
     @Command(names = "dungeon admin load")

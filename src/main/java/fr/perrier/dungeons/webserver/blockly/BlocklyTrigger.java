@@ -8,7 +8,7 @@ import java.util.List;
 /**
  * Interface pour les triggers Blockly
  */
-public interface BlocklyTrigger extends BlocklyComponent {
+public interface BlocklyTrigger {
 
     /**
      * @return Liste des champs du trigger

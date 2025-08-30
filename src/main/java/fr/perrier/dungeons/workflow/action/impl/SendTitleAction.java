@@ -62,27 +62,6 @@ public class SendTitleAction extends Action implements BlocklyAction {
         this.stay = stay;
         this.fadeOut = fadeOut;
     }
-
-    @Override
-    public String getBlockName() {
-        return "send_title_action";
-    }
-
-    @Override
-    public String getColor() {
-        return "#2196F3";
-    }
-
-    @Override
-    public String getTooltip() {
-        return "Envoie un title à un joueur spécifique";
-    }
-
-    @Override
-    public String getDisplayText() {
-        return "💬 Envoyer title";
-    }
-
     @Override
     public boolean execute(Player triggerPlayer, Location location, Map<String, Object> data) {
         if (title == null || subtitle == null) {

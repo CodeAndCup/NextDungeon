@@ -2,6 +2,7 @@ package fr.perrier.dungeons.model;
 
 import com.google.gson.reflect.TypeToken;
 import fr.perrier.cupcodeapi.utils.TimeUtil;
+import fr.perrier.dungeons.Main;
 import fr.perrier.dungeons.utils.GsonProvider;
 import lombok.Getter;
 import lombok.Setter;
@@ -14,6 +15,7 @@ import java.util.*;
 @Setter
 public class ProfileData {
 
+    private UUID playerId;
     private String displayName;
 
     private final List<String> completedFloors;
@@ -21,18 +23,45 @@ public class ProfileData {
 
     private boolean autoReady;
 
-    public ProfileData() {
+    public ProfileData(UUID playerId) {
+        this.playerId = playerId;
         this.displayName = "";
         this.completedFloors = new ArrayList<>();
         this.floorStats = new ArrayList<>();
         this.autoReady = false;
     }
 
-    private ProfileData(String displayName, List<String> completedFloors, List<FloorStats> floorStats, boolean autoReady) {
+    private ProfileData(UUID playerId, String displayName, List<String> completedFloors, List<FloorStats> floorStats, boolean autoReady) {
+        this.playerId = playerId;
         this.displayName = displayName;
         this.completedFloors = completedFloors;
         this.floorStats = floorStats;
         this.autoReady = autoReady;
+    }
+
+    public void addFloorStat(FloorStats stats) {
+        Optional<FloorStats> existingStats = this.floorStats.stream()
+                .filter(s -> s.getFloorId().equals(stats.getFloorId()))
+                .findFirst();
+
+        if (existingStats.isPresent()) {
+            FloorStats existing = existingStats.get();
+            existing.setTotalDeaths(existing.getTotalDeaths() + stats.getTotalDeaths());
+            existing.setTotalEnemiesKilled(existing.getTotalEnemiesKilled() + stats.getTotalEnemiesKilled());
+            if (existing.getFastestCompletionTime() == -1 || (stats.getFastestCompletionTime() != -1 && stats.getFastestCompletionTime() < existing.getFastestCompletionTime())) {
+                existing.setFastestCompletionTime(stats.getFastestCompletionTime());
+            }
+        } else {
+            this.floorStats.add(stats);
+        }
+        Main.getInstance().getProfileService().syncProfileData(playerId, this);
+    }
+
+    public void addCompletedFloor(String floorId) {
+        if (!this.completedFloors.contains(floorId)) {
+            this.completedFloors.add(floorId);
+        }
+        Main.getInstance().getProfileService().syncProfileData(playerId, this);
     }
 
     @Setter
@@ -50,7 +79,7 @@ public class ProfileData {
             this.totalDeaths = 0;
         }
 
-        private FloorStats(String floorId, long fastestCompletionTime, int totalEnemiesKilled, int totalDeaths) {
+        public FloorStats(String floorId, long fastestCompletionTime, int totalEnemiesKilled, int totalDeaths) {
             this.floorId = floorId;
             this.fastestCompletionTime = fastestCompletionTime;
             this.totalEnemiesKilled = totalEnemiesKilled;
@@ -107,6 +136,7 @@ public class ProfileData {
     private @NotNull Map<String, Object> serialize() {
         Map<String, Object> data = new HashMap<>();
 
+        data.put("playerId", this.playerId.toString());
         data.put("displayName", this.displayName);
         data.put("completedFloors", this.completedFloors);
         data.put("floorStats", this.floorStats);
@@ -118,6 +148,7 @@ public class ProfileData {
     @SuppressWarnings("unchecked")
     private static @NotNull ProfileData deserialize(Map<String, Object> data) {
         return new ProfileData(
+                UUID.fromString((String) data.get("playerId")),
                 (String) data.get("displayName"),
                 (List<String>) data.get("completedFloors"),
                 (List<FloorStats>) data.get("floorStats"),

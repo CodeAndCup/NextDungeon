@@ -66,26 +66,6 @@ public class TeleporterAction extends Action implements BlocklyAction {
     }
 
     @Override
-    public String getBlockName() {
-        return "teleporter_action";
-    }
-
-    @Override
-    public String getColor() {
-        return "#2196F3";
-    }
-
-    @Override
-    public String getTooltip() {
-        return "Téléporter un joueur spécifique";
-    }
-
-    @Override
-    public String getDisplayText() {
-        return "\uD83C\uDF0C\u200B Envoyer message";
-    }
-
-    @Override
     public boolean execute(Player triggerPlayer, Location location, Map<String, Object> data) {
         if(worldName == null || worldName.isEmpty()) {
             worldName = "world";
