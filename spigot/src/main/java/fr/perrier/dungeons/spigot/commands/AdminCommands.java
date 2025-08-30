@@ -136,16 +136,7 @@ public class AdminCommands {
 
         boolean success = Main.getInstance().getWebEditorManager().startWebEditor(player, currentDungeon.getName(), currentFloor.getId());
 
-        if (success) {
-            player.sendMessage("");
-            player.sendMessage(ChatUtil.getBar());
-            player.sendMessage(ChatUtil.translate("&6🏰 &lÉDITEUR WEB DÉMARRÉ"));
-            player.sendMessage(ChatUtil.translate("&7Donjon: &e" + currentDungeon.getName()));
-            player.sendMessage(ChatUtil.translate("&7Floor: &e" + currentFloor.getId() + " &8(" + currentFloor.getName() + ")"));
-            player.sendMessage(ChatUtil.translate("&7URL: &b&nhttp://localhost:8080"));
-            player.sendMessage(ChatUtil.translate("&7Arrêt: &c/dungeon admin webeditor stop"));
-            player.sendMessage(ChatUtil.getBar());
-        }
+        // Le message de succès avec l'URL est maintenant géré dans DungeonWebEditorManager
     }
 
     @Command(names = "dungeon admin webeditor stop", permission = "nextdungeons.admin")

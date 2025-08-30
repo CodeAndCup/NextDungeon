@@ -20,7 +20,11 @@ import java.util.concurrent.Executors;
 /**
  * Serveur web pour l'éditeur Blockly de triggers/actions
  * Recodé entièrement pour éviter les erreurs d'implémentation
+ * 
+ * @deprecated Cette classe est remplacée par le système proxy centralisé.
+ * Voir ProxyWebEditorServer et DungeonWebEditorManager pour la nouvelle implémentation.
  */
+@Deprecated
 public class WebEditorServer {
 
     private static final int PORT = 8080;

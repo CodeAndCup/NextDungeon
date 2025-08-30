@@ -19,7 +19,10 @@ public class RedisMessage<T> {
         INSTANCE_REMOVE,
         PLAYER_JOIN_DUNGEON,
         PLAYER_LEAVE_DUNGEON,
-        DUNGEON_STATE_UPDATE
+        DUNGEON_STATE_UPDATE,
+        // Web Editor messages
+        WEB_EDITOR_REQUEST,
+        WEB_EDITOR_RESPONSE
     }
 
     /**
