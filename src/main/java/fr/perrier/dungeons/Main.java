@@ -6,6 +6,7 @@ import fr.perrier.cupcodeapi.CupCodeAPI;
 import fr.perrier.cupcodeapi.commands.CommandHandler;
 import fr.perrier.cupcodeapi.menuapi.MenuAPI;
 import fr.perrier.dungeons.commands.AdminCommands;
+import fr.perrier.dungeons.commands.ConsoleCommands;
 import fr.perrier.dungeons.commands.DebugCommands;
 import fr.perrier.dungeons.commands.PlayerCommands;
 import fr.perrier.dungeons.configuration.ConfigLoader;
@@ -194,6 +195,7 @@ public final class Main extends JavaPlugin {
         commandHandler.registerCommands(AdminCommands.class);
         commandHandler.registerCommands(DebugCommands.class);
         commandHandler.registerCommands(PlayerCommands.class);
+        commandHandler.registerCommands(ConsoleCommands.class);
     }
 
 

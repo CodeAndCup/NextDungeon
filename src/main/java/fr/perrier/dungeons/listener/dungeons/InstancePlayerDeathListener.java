@@ -15,5 +15,7 @@ public class InstancePlayerDeathListener implements Listener {
         FloorInstance.PlayerStats stats = instance.getPlayerStats().get(event.getEntity().getUniqueId());
         if(stats != null)
             stats.incrementDeaths();
+
+        //TODO: Ban the player after (check the time from the requirements/rules)
     }
 }
