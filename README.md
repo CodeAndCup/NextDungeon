@@ -17,8 +17,8 @@ NextDungeon is a powerful and extensible plugin for Minecraft servers, designed 
 - Java 21
 - Redis server
 - Dependencies:
-    - Redisson Client
-    - CupCodeAPI
+    - CloudNet v4.0.0-RC13 or higher
+    - Redis
     - Parties
     - MMOCore
 - SoftDependencies (optional):
