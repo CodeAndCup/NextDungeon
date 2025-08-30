@@ -7,6 +7,7 @@ import com.velocitypowered.api.event.proxy.ProxyShutdownEvent;
 import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.proxy.ProxyServer;
 import fr.perrier.dungeons.velocity.commands.WebEditorProxyCommand;
+import fr.perrier.dungeons.velocity.messaging.ProxyPidgin;
 import fr.perrier.dungeons.velocity.webeditor.ProxyWebEditorServer;
 import lombok.Getter;
 import org.slf4j.Logger;
@@ -30,6 +31,8 @@ public class NextDungeonVelocity {
     private long startTime;
     @Getter
     private ProxyWebEditorServer webEditorServer;
+    @Getter
+    private ProxyPidgin messaging;
 
     @Inject
     public NextDungeonVelocity(ProxyServer server, Logger logger) {
@@ -41,6 +44,21 @@ public class NextDungeonVelocity {
     public void onProxyInitialization(ProxyInitializeEvent event) {
         instance = this;
         this.startTime = System.currentTimeMillis();
+        
+        // Initialize messaging system
+        try {
+            // TODO: Read from config file
+            this.messaging = new ProxyPidgin(
+                "dungeons-messaging",  // topic name
+                "localhost",  // redis host
+                6379,  // redis port
+                null,  // redis username
+                null   // redis password
+            );
+            logger.info("✅ Système de messagerie Redis initialisé");
+        } catch (Exception e) {
+            logger.error("❌ Erreur initialisation messaging Redis: " + e.getMessage());
+        }
         
         // Démarrer le serveur web centralisé
         webEditorServer = new ProxyWebEditorServer();
@@ -58,6 +76,9 @@ public class NextDungeonVelocity {
     public void onProxyShutdown(ProxyShutdownEvent event) {
         if (webEditorServer != null) {
             webEditorServer.stopServer();
+        }
+        if (messaging != null) {
+            ProxyPidgin.shutdown();
         }
         logger.info("🛑 NextDungeon Velocity désactivé");
     }
