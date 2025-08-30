@@ -27,11 +27,13 @@ import fr.perrier.dungeons.storage.ProfileService;
 import fr.perrier.dungeons.storage.RedisStorageService;
 import fr.perrier.dungeons.utils.ServerUtil;
 import fr.perrier.dungeons.webserver.DungeonWebEditorManager;
+import fr.perrier.dungeons.webserver.ProxyWebEditorManager;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
@@ -73,8 +75,11 @@ public final class Main extends JavaPlugin {
     private ServerUtil serverUtil;
 
     // Web editor manager
-    @Getter
+    @Getter@Deprecated
     private DungeonWebEditorManager webEditorManager;
+    @Getter
+    private ProxyWebEditorManager proxyWebEditorManager;
+
 
     // Global trigger manager
     @Getter
@@ -161,6 +166,7 @@ public final class Main extends JavaPlugin {
 
         // Initialize web editor manager
         webEditorManager = new DungeonWebEditorManager();
+        initializeProxyWebEditor();
     }
 
     @Override
@@ -183,6 +189,48 @@ public final class Main extends JavaPlugin {
         CupCodeAPI.disable();
         Pidgin.shutdown();
         webEditorManager.shutdownAllEditors();
+    }
+
+    /**
+     * Initialise le nouveau système proxy WebEditor
+     */
+    private void initializeProxyWebEditor() {
+        if (!getConfig().getBoolean("webeditor.enabled", true)) {
+            getLogger().info("📴 WebEditor désactivé dans la configuration");
+            return;
+        }
+
+        proxyWebEditorManager = new ProxyWebEditorManager();
+
+        if (getConfig().getBoolean("webeditor.auto-connect", true)) {
+            // Démarrer après 3 secondes pour laisser le serveur finir de démarrer
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    if (proxyWebEditorManager.start()) {
+                        getLogger().info("🌐 Système WebEditor Proxy initialisé");
+                        getLogger().info("📡 Serveur: " + proxyWebEditorManager.getServerName());
+
+                        // Vérifier la connexion après 10 secondes
+                        new BukkitRunnable() {
+                            @Override
+                            public void run() {
+                                if (proxyWebEditorManager.isConnected()) {
+                                    getLogger().info("✅ WebEditor Proxy connecté avec succès!");
+                                } else {
+                                    getLogger().warning("⚠️ WebEditor Proxy non connecté, vérifiez la configuration");
+                                }
+                            }
+                        }.runTaskLater(Main.this, 200L); // 10 secondes
+
+                    } else {
+                        getLogger().severe("❌ Échec démarrage WebEditor Proxy");
+                    }
+                }
+            }.runTaskLater(this, 60L); // 3 secondes
+        } else {
+            getLogger().info("📴 WebEditor Proxy en mode manuel (auto-connect désactivé)");
+        }
     }
 
     /**

@@ -20,5 +20,22 @@ DatabaseConfiguration:
         port: 27017
         database: "dungeons"
 
+webeditor:
+    # Nom unique de ce serveur (auto-généré si vide)
+    # Format recommandé: spigot-lobby, spigot-dungeon1, etc.
+    server-name: ""
+
+    # Adresse du proxy BungeeCord hébergeant le serveur web
+    proxy-host: "localhost"
+
+    # Port WebSocket du proxy BungeeCord
+    proxy-port: 8081
+
+    # Connexion automatique au démarrage
+    auto-connect: true
+
+    # Retry automatique en cas de déconnexion
+    auto-retry: true
+
 ServerConfiguration:
     isLobby: true

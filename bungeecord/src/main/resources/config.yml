@@ -1,0 +1,24 @@
+# Configuration NextDungeon BungeeCord
+webserver:
+  # Port du serveur web (interface utilisateur)
+  web-port: 8080
+
+  # Port du serveur WebSocket (connexions Spigot)
+  websocket-port: 8081
+
+  # Autoriser les connexions externes
+  bind-address: "0.0.0.0"
+
+  # Sécurité
+  cors-enabled: true
+
+# Options serveurs
+servers:
+  # Timeout de ping en secondes
+  ping-timeout: 30
+
+  # Intervalle de ping en secondes
+  ping-interval: 30
+
+  # Reconnexion automatique
+  auto-reconnect: true
