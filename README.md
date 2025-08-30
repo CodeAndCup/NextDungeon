@@ -1,183 +1,82 @@
-# Dungeons Plugin
+# NextDungeon
 
-A powerful Minecraft dungeon plugin that provides instanced dungeons with CloudNet service integration and Redis synchronization.
-
-## Table of Contents
-- [Features](#features)
-- [Requirements](#requirements)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Usage](#usage)
-- [Commands](#commands)
-- [Development](#development)
-- [API](#api)
-- [Contributing](#contributing)
-- [License](#license)
+NextDungeon is a powerful and extensible plugin for Minecraft servers, designed to manage and automate custom dungeons with advanced workflow logic. Dungeons and floors are centrally managed and synchronized using Redis, with a flexible trigger-action system for custom mechanics. The plugin includes a web editor, admin/debug commands, and integrates with Parties for group management.
 
 ## Features
-
-### Core Features
-- **Instanced Dungeons**: Each dungeon instance runs on its own server
-- **CloudNet Integration**: Seamless server management and scaling
-- **Redis Synchronization**: Real-time data synchronization across servers
-- **Dynamic Template System**: Automated dungeon template management
-- **Party System Integration**: With Parties API
-
-### Dungeon Features
-- **Multi-Floor System**: Support for multiple floors per dungeon
-- **Step-Based Progression**: Configurable progression system
-- **Requirements System**: Set entry requirements for dungeons
-- **Custom Rules**: Configurable rules per floor
-- **World Management**: Automatic world creation and cleanup
+- **Centralized Dungeon Management:** Dungeons and floors are managed as data objects and synchronized across servers using Redis.
+- **Flexible Workflow System:** Triggers, actions, and conditions allow for custom dungeon automation and scripting.
+- **Floor Configuration:** Each floor supports requirements, rules, steps, and triggers for granular control.
+- **Web Editor:** Integrated web interface for editing dungeons, floors, and workflow logic.
+- **Admin & Debug Tools:** Commands for editing, testing, importing, and managing dungeons and floors.
+- **Parties Integration:** Supports group management via PartiesAPI.
+- **Template System:** Asynchronous generation and management of floor templates.
+- **No Per-Dungeon Server Instancing:** Dungeons are not run on separate servers; all data is synchronized and managed centrally.
 
 ## Requirements
-
-- Minecraft Server 1.20.4
-- CloudNet v4.0.0-RC13
-- Redis Server
+- Minecraft server 1.21.4
 - Java 21
+- Redis server
 - Dependencies:
-    - CloudNet Driver API
     - Redisson Client
     - CupCodeAPI
-    - Parties API
+    - Parties
+    - MMOCore
+- SoftDependencies (optional):
+    - MythicLib / MythicMobs
 
 ## Installation
-
-1. Download the latest release from the releases page
-2. Place the JAR file in your plugins folder
-3. Configure your CloudNet setup
-4. Start your server
-5. Configure the plugin (config.yml)
+1. Place the NextDungeon plugin in your server's `plugins` folder.
+2. Install and configure Redis.
+3. Ensure all dependencies are present.
+4. Restart your server.
 
 ## Configuration
-
-### Main Configuration (config.yml)
-```yaml
-ServerConfiguration:
-  isLobby: false
-
-RedisConfiguration:
-  host: "localhost"
-  port: 6379
-  password: "your_password"
-  topic: "dungeons"
-```
-
-### Dungeon Configuration (dungeons/example.yml)
-```yaml
-dungeon:
-  id: "example"
-  name: "Example Dungeon"
-  floors:
-    - id: "floor1"
-      name: "First Floor"
-      world:
-        spawn:
-          x: 0
-          y: 100
-          z: 0
-        difficulty: "NORMAL"
-      requirements:
-        retry_cooldown: "30m"
-        required_dungeons: []
-        required_items: []
-        forbidden_items: []
-        party:
-          min_size: 1
-          max_size: 5
-      rules:
-        death_ban: "1h"
-        gamemode: "ADVENTURE"
-        allow_flight: false
-      steps:
-        - id: "step1"
-          name: "Beginning"
-          region:
-            pos1:
-              x: -10
-              y: 100
-              z: -10
-            pos2:
-              x: 10
-              y: 120
-              z: 10
-```
+- Main configuration: `src/resources/config.yml`
+- Dungeons and floors: YAML files in `src/resources/dungeons/`
+- Example configuration: `dungeon_exemple.yml`
+- Redis and MySQL connection settings in the config file. `MongoDB is not supported for now but it's planned for future releases.`
 
 ## Usage
-
-### Basic Setup
-
-*Will be added later*
-
-### Creating a Dungeon Instance
-
-```bash
-/dungeon admin create <dungeonId> <floorId>
-```
-
-### Testing a Dungeon
-
-```bash
-/dungeon admin test <dungeonId> <floorId>
-```
+- Use the web editor to create and manage dungeons, floors, triggers, and actions.
+- Admins can edit, test, import, and manage dungeons and floors using commands.
+- Debug commands allow inspection of dungeons, floors, and instances.
 
 ## Commands
-
 ### Admin Commands
-- `/dungeon admin create <dungeonId> <floorId>` - Create a new dungeon
-- `/dungeon admin test <dungeonId> <floorId>` - Test a dungeon floor
-
-### Player Commands
-- `/dungeon join <dungeonId>` - Join a dungeon
-- `/dungeon leave` - Leave current dungeon
-- `/dungeon list` - List available dungeons
+- `/dungeon admin help` — List admin commands
+- `/dungeon admin edit start <dungeon> <floor>` — Start edit mode for a floor
+- `/dungeon admin edit stop [--confirm]` — Stop edit mode
+- `/dungeon admin webeditor start` — Start web editor
+- `/dungeon admin webeditor stop` — Stop web editor
+- `/dungeon admin test <dungeon> <floor>` — Test a dungeon floor
+- `/dungeon admin import <world> <dungeon> <floor>` — Import a world as a dungeon floor
+- `/dungeon admin load <config>` — Reload configuration
+- `/dungeon admin status <dungeon> [floor]` — Check status
+- `/dungeon admin goto <server>` — Teleport to server
 
 ### Debug Commands
-- `/dungeon debug toggle` - Toggle debug mode
-- `/dungeon debug info` - Show debug information
+- `/dungeon debug help` — List debug commands
+- `/dungeon debug list dungeons` — List all dungeons
+- `/dungeon debug list floors` — List all floors
+- `/dungeon debug list instances` — List all instances
+- `/dungeon debug openmenu` — Open example dungeon menu
+- `/dungeon debug print <message>` — Print a message
 
-> *Still in progress*
+### Player Commands
+- `/dungeon` — Show available commands
+- `/dungeon help` — Show help
 
-## Development
+## Workflow System
+- **Triggers:** Define events that start workflows (e.g., region entry, entity death).
+- **Actions:** Define effects (e.g., teleport, send message, set variable).
+- **Conditions:** Use logic blocks (if/else) for advanced automation.
+- All workflow logic is editable via the web editor.
 
-### Building from Source
-
-1. Clone the repository
-```bash
-git clone https://github.com/SAOFR-DEV/Dungeons.git
-```
-
-2. Build with Maven
-```bash
-mvn clean package
-```
-
-### API Usage
-
-No API available yet
+## API & Development
+- No API available for now.
 
 ## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+Contributions are welcome! Please open an issue or pull request on the GitHub repository.
 
 ## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Authors
-
-- Perrier - Initial work and maintenance
-
-## Support
-
-For support:
-1. Check the [Wiki](https://github.com/SAOFR-DEV/Dungeons/wiki)
-2. Open an [Issue](https://github.com/SAOFR-DEV/Dungeons/issues)
-3. Join our Discord server
-
-Last updated: 2025-08-11 20:11:15 UTC
+This project is licensed under the MIT License. See `LICENSE.md` for more information.

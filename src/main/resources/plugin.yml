@@ -10,3 +10,4 @@ authors: [ PerrierBottle ]
 website: https://cupcode.fr/
 
 depend: [ Parties, MMOCore, CloudNet-Bridge ]
+softdepend: [ MythicMobs ]
