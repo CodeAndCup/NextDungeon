@@ -1,4 +1,4 @@
-# NextDungeon
+# NextDungeon <img src="logo.webp" alt="NextDungeon Logo" width="38" align="left">
 
 NextDungeon is a powerful and extensible plugin for Minecraft servers, designed to manage and automate custom dungeons with advanced workflow logic. Dungeons and floors are centrally managed and synchronized using Redis, with a flexible trigger-action system for custom mechanics. The plugin includes a web editor, admin/debug commands, and integrates with Parties for group management.
 
