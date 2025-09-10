@@ -27,7 +27,7 @@ public class NextDungeonBungee extends Plugin {
         try {
             // TODO: Read from config file
             this.messaging = new ProxyPidgin(
-                "dungeons-messaging",  // topic name
+                "dungeons:packets",  // topic name
                 "localhost",  // redis host
                 6379,  // redis port
                 null,  // redis username

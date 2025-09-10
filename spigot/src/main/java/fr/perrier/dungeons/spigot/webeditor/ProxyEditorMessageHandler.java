@@ -6,9 +6,11 @@ import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.manager.TriggerSaveManager;
 import fr.perrier.dungeons.spigot.webserver.blockly.BlocklyJavaScriptGenerator;
 import fr.perrier.dungeons.spigot.model.Floor;
+import org.bson.internal.Base64;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 /**
@@ -106,7 +108,7 @@ public class ProxyEditorMessageHandler {
                 return "console.error('Éditeur non connecté');";
             }
             
-            return blocklyGenerator.generateJavaScript(editor);
+            return Base64.encode(blocklyGenerator.generateJavaScript(editor).getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
             Main.getInstance().getLogger().severe("Erreur génération JS: " + e.getMessage());
             return "console.error('Erreur génération Blockly');";

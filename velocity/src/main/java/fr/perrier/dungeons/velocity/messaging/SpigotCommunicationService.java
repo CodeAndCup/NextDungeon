@@ -5,7 +5,9 @@ import fr.perrier.dungeons.velocity.NextDungeonVelocity;
 import fr.perrier.dungeons.velocity.messaging.packets.webeditor.WebEditorRequestPacket;
 import fr.perrier.dungeons.velocity.messaging.packets.webeditor.WebEditorResponsePacket;
 import fr.perrier.dungeons.velocity.messaging.subscribers.WebEditorResponseSubscriber;
+import jodd.util.Base64;
 
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -27,10 +29,10 @@ public class SpigotCommunicationService {
                 .getSessionManager()
                 .createSessionFromProxy(dungeonName, floorId, editorUuid, editorName, spigotServer);
                 
-            NextDungeonVelocity.getInstance().getLogger().info("✅ Session créée: " + sessionId + " pour " + editorName);
+            NextDungeonVelocity.getInstance().getLogger().info("✅ Session created: " + sessionId + " for " + editorName);
             return sessionId;
         } catch (Exception e) {
-            NextDungeonVelocity.getInstance().getLogger().error("Erreur création session: " + e.getMessage());
+            NextDungeonVelocity.getInstance().getLogger().error("Session creation error: " + e.getMessage());
             return null;
         }
     }
@@ -48,10 +50,10 @@ public class SpigotCommunicationService {
         );
         
         if (response != null && response.isSuccess()) {
-            NextDungeonVelocity.getInstance().getLogger().info("📥 Triggers chargés pour " + floorId + " depuis " + spigotServer);
+            NextDungeonVelocity.getInstance().getLogger().info("📥 Triggers loaded for " + floorId + " from " + spigotServer);
             return response.getData();
         } else {
-            NextDungeonVelocity.getInstance().getLogger().warn("❌ Échec chargement triggers pour " + floorId);
+            NextDungeonVelocity.getInstance().getLogger().warn("❌ Failed to load triggers for " + floorId);
             return createMockTriggersResponse(dungeonName, floorId);
         }
     }
@@ -71,10 +73,10 @@ public class SpigotCommunicationService {
         );
         
         if (response != null && response.isSuccess()) {
-            NextDungeonVelocity.getInstance().getLogger().info("📥 Triggers sauvegardés pour " + floorId + " sur " + spigotServer);
+            NextDungeonVelocity.getInstance().getLogger().info("📥 Triggers saved for " + floorId + " on " + spigotServer);
             return true;
         } else {
-            NextDungeonVelocity.getInstance().getLogger().warn("❌ Échec sauvegarde triggers pour " + floorId);
+            NextDungeonVelocity.getInstance().getLogger().warn("❌ Backup failure triggers for " + floorId);
             return false;
         }
     }
@@ -109,7 +111,7 @@ public class SpigotCommunicationService {
         );
         
         if (response != null && response.isSuccess()) {
-            return response.getData();
+            return Base64.decodeToString(response.getData());
         } else {
             return "/* Erreur communication Spigot */ console.error('Communication error');";
         }
@@ -156,13 +158,13 @@ public class SpigotCommunicationService {
         );
         
         NextDungeonVelocity.getInstance().getMessaging().sendPacket(requestPacket);
-        NextDungeonVelocity.getInstance().getLogger().info("📤 Requête envoyée: " + requestType + " (ID: " + requestId + ")");
+        NextDungeonVelocity.getInstance().getLogger().info("📤 Request sent: " + requestType + " (ID: " + requestId + ")");
         
         try {
             // Attendre la réponse
             return future.get(DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         } catch (Exception e) {
-            NextDungeonVelocity.getInstance().getLogger().warn("⏱️ Timeout ou erreur attente réponse: " + e.getMessage());
+            NextDungeonVelocity.getInstance().getLogger().warn("⏱️ Timeout or error waiting for response: " + e.getMessage());
             return null;
         }
     }

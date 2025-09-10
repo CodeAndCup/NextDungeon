@@ -57,6 +57,7 @@ public class Pidgin {
 
         this.registerAdapter(PlayerSwitchServerPacket.class, new PlayerSwitchServerSubscriber());
         this.registerAdapter(WebEditorRequestPacket.class, new WebEditorRequestSubscriber());
+        this.registerAdapter(WebEditorResponsePacket.class, null);
     }
 
     /**

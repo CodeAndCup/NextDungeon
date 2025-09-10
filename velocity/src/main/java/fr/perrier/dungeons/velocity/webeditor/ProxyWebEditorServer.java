@@ -53,11 +53,11 @@ public class ProxyWebEditorServer {
             server.setExecutor(Executors.newFixedThreadPool(8));
             server.start();
 
-            NextDungeonVelocity.getInstance().getLogger().info("🌐 Serveur web centralisé démarré sur http://localhost:" + PORT);
+            NextDungeonVelocity.getInstance().getLogger().info("🌐 Centralized web server start on http://localhost:" + PORT);
             return true;
 
         } catch (IOException e) {
-            NextDungeonVelocity.getInstance().getLogger().error("Erreur lors du démarrage du serveur web: " + e.getMessage());
+            NextDungeonVelocity.getInstance().getLogger().error("Error starting web server: " + e.getMessage());
             e.printStackTrace();
             return false;
         }
@@ -69,7 +69,7 @@ public class ProxyWebEditorServer {
     public void stopServer() {
         if (server != null) {
             server.stop(1);
-            NextDungeonVelocity.getInstance().getLogger().info("🛑 Serveur web centralisé arrêté");
+            NextDungeonVelocity.getInstance().getLogger().info("🛑 Centralized web server shut down");
         }
     }
 
@@ -93,7 +93,7 @@ public class ProxyWebEditorServer {
             EditorSession session = sessionManager.getSession(sessionId);
             
             if (session == null) {
-                sendErrorResponse(exchange, "Session d'édition non trouvée: " + sessionId);
+                sendErrorResponse(exchange, "Edit session not found: " + sessionId);
                 return;
             }
 
@@ -156,7 +156,7 @@ public class ProxyWebEditorServer {
             String triggersJson = communicationService.loadTriggers(session.getSpigotServer(), session.getDungeonName(), session.getFloorId());
             sendJsonResponse(exchange, triggersJson);
         } catch (Exception e) {
-            sendErrorResponse(exchange, "Erreur lors du chargement des triggers: " + e.getMessage());
+            sendErrorResponse(exchange, "Error loading triggers: " + e.getMessage());
         }
     }
 
@@ -174,12 +174,12 @@ public class ProxyWebEditorServer {
             boolean success = communicationService.saveTriggers(session.getSpigotServer(), session.getDungeonName(), session.getFloorId(), requestBody, session.getEditorUuid());
             
             String responseJson = success ?
-                "{\"success\": true, \"message\": \"Triggers sauvegardés avec succès\"}" :
-                "{\"success\": false, \"message\": \"Erreur lors de la sauvegarde\"}";
+                "{\"success\": true, \"message\": \"Triggers successfully saved\"}" :
+                "{\"success\": false, \"message\": \"Error while saving\"}";
                 
             sendJsonResponse(exchange, responseJson);
         } catch (Exception e) {
-            sendErrorResponse(exchange, "Erreur lors de la sauvegarde: " + e.getMessage());
+            sendErrorResponse(exchange, "Error while saving: " + e.getMessage());
         }
     }
 
@@ -196,7 +196,7 @@ public class ProxyWebEditorServer {
             String typesJson = communicationService.getTriggerTypes(session.getSpigotServer());
             sendJsonResponse(exchange, typesJson);
         } catch (Exception e) {
-            sendErrorResponse(exchange, "Erreur lors du chargement des types: " + e.getMessage());
+            sendErrorResponse(exchange, "Error loading types: " + e.getMessage());
         }
     }
 
@@ -221,7 +221,7 @@ public class ProxyWebEditorServer {
                 os.write(blocklyJs.getBytes(StandardCharsets.UTF_8));
             }
         } catch (Exception e) {
-            sendErrorResponse(exchange, "Erreur lors de la génération JavaScript: " + e.getMessage());
+            sendErrorResponse(exchange, "Error generating JavaScript: " + e.getMessage());
         }
     }
 
@@ -238,7 +238,7 @@ public class ProxyWebEditorServer {
             String floorInfoJson = communicationService.getFloorInfo(session.getSpigotServer(), session.getDungeonName(), session.getFloorId(), session.getEditorName());
             sendJsonResponse(exchange, floorInfoJson);
         } catch (Exception e) {
-            sendErrorResponse(exchange, "Erreur lors du chargement des informations: " + e.getMessage());
+            sendErrorResponse(exchange, "Error loading information: " + e.getMessage());
         }
     }
 
@@ -371,19 +371,19 @@ public class ProxyWebEditorServer {
                         response.addProperty("success", success);
                         response.addProperty("message", success ? "Session fermée" : "Session non trouvée");
                         
-                        NextDungeonVelocity.getInstance().getLogger().info("🛑 Session fermée: " + sessionId);
+                        NextDungeonVelocity.getInstance().getLogger().info("🛑 Session closed: " + sessionId);
                     }
                     default -> {
                         response.addProperty("success", false);
-                        response.addProperty("error", "Action inconnue: " + action);
+                        response.addProperty("error", "Unknown action: " + action);
                     }
                 }
                 
                 sendJsonResponse(exchange, gson.toJson(response));
                 
             } catch (Exception e) {
-                NextDungeonVelocity.getInstance().getLogger().error("Erreur API proxy: " + e.getMessage());
-                sendErrorResponse(exchange, "Erreur traitement requête: " + e.getMessage());
+                NextDungeonVelocity.getInstance().getLogger().error("Proxy API error: " + e.getMessage());
+                sendErrorResponse(exchange, "Error processing request: " + e.getMessage());
             }
         }
     }

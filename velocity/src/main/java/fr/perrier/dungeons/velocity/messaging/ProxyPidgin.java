@@ -2,6 +2,7 @@ package fr.perrier.dungeons.velocity.messaging;
 
 import com.google.gson.Gson;
 import fr.perrier.dungeons.velocity.NextDungeonVelocity;
+import fr.perrier.dungeons.velocity.messaging.packets.webeditor.WebEditorRequestPacket;
 import fr.perrier.dungeons.velocity.messaging.packets.webeditor.WebEditorResponsePacket;
 import fr.perrier.dungeons.velocity.messaging.pidgin.IncomingPacketHandler;
 import fr.perrier.dungeons.velocity.messaging.pidgin.Packet;
@@ -50,6 +51,7 @@ public class ProxyPidgin {
         this.topic.addListener(String.class, new MessagingListener());
 
         // Enregistrer le subscriber pour les réponses web editor
+        this.registerAdapter(WebEditorRequestPacket.class, null);
         this.registerAdapter(WebEditorResponsePacket.class, new WebEditorResponseSubscriber());
     }
 
