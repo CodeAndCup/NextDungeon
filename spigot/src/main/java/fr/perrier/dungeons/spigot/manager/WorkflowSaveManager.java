@@ -21,13 +21,13 @@ import java.util.List;
 /**
  * Service de sauvegarde des triggers depuis Blockly
  */
-public class TriggerSaveManager {
+public class WorkflowSaveManager {
     private final Gson gson = new Gson();
 
     /**
      * Sauvegarde les triggers depuis les données JSON de Blockly
      */
-    public boolean saveTriggers(String dungeonName, String floorId, String jsonData, Player editor) {
+    public boolean saveWorkflows(String dungeonName, String floorId, String jsonData, Player editor) {
         try {
             Main.getInstance().getLogger().info("Starting trigger save process for " + dungeonName + " floor " + floorId);
             Main.getInstance().getLogger().info("Json data received: " + jsonData);
@@ -95,7 +95,6 @@ public class TriggerSaveManager {
      */
     public String loadTriggersAsJson(String dungeonName, String floorId) {
         try {
-            //List<Trigger> triggers = DungeonFileManager.loadTriggers(floorId);
             List<Trigger> triggers = Main.getInstance().getRedisStorageService().getCurrentFloor().get().getTriggers();
 
             // Convertir en format JSON pour Blockly

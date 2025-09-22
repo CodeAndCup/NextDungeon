@@ -3,7 +3,7 @@ package fr.perrier.dungeons.spigot.webserver;
 import fr.perrier.dungeons.spigot.webserver.blockly.BlocklyJavaScriptGenerator;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.model.Floor;
-import fr.perrier.dungeons.spigot.manager.TriggerSaveManager;
+import fr.perrier.dungeons.spigot.manager.WorkflowSaveManager;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.sun.net.httpserver.HttpExchange;
@@ -31,7 +31,7 @@ public class WebEditorServer {
 
     private HttpServer server;
     private final Gson gson;
-    private final TriggerSaveManager triggerSaveManager;
+    private final WorkflowSaveManager workflowSaveManager;
     @Getter
     private final Player currentEditor;
     private final BlocklyJavaScriptGenerator blocklyGenerator;
@@ -43,7 +43,7 @@ public class WebEditorServer {
 
     public WebEditorServer(Player editor) {
         this.gson = new GsonBuilder().setPrettyPrinting().create();
-        this.triggerSaveManager = new TriggerSaveManager();
+        this.workflowSaveManager = new WorkflowSaveManager();
         this.currentEditor = editor;
         this.blocklyGenerator = new BlocklyJavaScriptGenerator();
     }
@@ -133,7 +133,7 @@ public class WebEditorServer {
                 Main.getInstance().getLogger().info("📥 Chargement des triggers pour " + currentFloor);
 
                 // Utiliser votre TriggerSaveManager existant
-                String triggersJson = triggerSaveManager.loadTriggersAsJson(currentDungeon, currentFloor);
+                String triggersJson = workflowSaveManager.loadTriggersAsJson(currentDungeon, currentFloor);
                 byte[] jsonBytes = triggersJson.getBytes(StandardCharsets.UTF_8);
 
                 exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
@@ -172,7 +172,7 @@ public class WebEditorServer {
                 String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
 
                 // Utiliser votre TriggerSaveManager existant
-                boolean success = triggerSaveManager.saveTriggers(currentDungeon, currentFloor, requestBody, currentEditor);
+                boolean success = workflowSaveManager.saveWorkflows(currentDungeon, currentFloor, requestBody, currentEditor);
 
                 String responseJson = success ?
                         "{\"success\": true, \"message\": \"Triggers sauvegardés avec succès pour " + currentFloor + "\"}" :

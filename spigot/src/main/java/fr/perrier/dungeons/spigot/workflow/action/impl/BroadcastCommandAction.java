@@ -33,10 +33,6 @@ public class BroadcastCommandAction extends Action implements BlocklyAction {
         this.command = command;
     }
 
-    public BroadcastCommandAction() {
-        this("say Hello World!");
-    }
-
     @Override
     public boolean execute(Player player, Location location, Map<String, Object> data) {
         if (command == null || command.isEmpty()) {

@@ -3,7 +3,7 @@ package fr.perrier.dungeons.spigot.webeditor;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import fr.perrier.dungeons.spigot.Main;
-import fr.perrier.dungeons.spigot.manager.TriggerSaveManager;
+import fr.perrier.dungeons.spigot.manager.WorkflowSaveManager;
 import fr.perrier.dungeons.spigot.webserver.blockly.BlocklyJavaScriptGenerator;
 import fr.perrier.dungeons.spigot.model.Floor;
 import org.bson.internal.Base64;
@@ -19,11 +19,11 @@ import java.util.UUID;
 public class ProxyEditorMessageHandler {
 
     private final Gson gson = new Gson();
-    private final TriggerSaveManager triggerSaveManager;
+    private final WorkflowSaveManager workflowSaveManager;
     private final BlocklyJavaScriptGenerator blocklyGenerator;
 
     public ProxyEditorMessageHandler() {
-        this.triggerSaveManager = new TriggerSaveManager();
+        this.workflowSaveManager = new WorkflowSaveManager();
         this.blocklyGenerator = new BlocklyJavaScriptGenerator();
     }
 
@@ -33,7 +33,7 @@ public class ProxyEditorMessageHandler {
     public String handleLoadTriggersRequest(String dungeonName, String floorId) {
         try {
             Main.getInstance().getLogger().info("📥 Requête proxy: chargement triggers pour " + floorId);
-            return triggerSaveManager.loadTriggersAsJson(dungeonName, floorId);
+            return workflowSaveManager.loadTriggersAsJson(dungeonName, floorId);
         } catch (Exception e) {
             Main.getInstance().getLogger().severe("Erreur chargement triggers: " + e.getMessage());
             return createErrorResponse("Erreur lors du chargement des triggers: " + e.getMessage());
@@ -48,7 +48,7 @@ public class ProxyEditorMessageHandler {
             Main.getInstance().getLogger().info("💾 Requête proxy: sauvegarde triggers pour " + floorId);
             
             Player editor = Bukkit.getPlayer(editorUuid);
-            boolean success = triggerSaveManager.saveTriggers(dungeonName, floorId, triggersJson, editor);
+            boolean success = workflowSaveManager.saveWorkflows(dungeonName, floorId, triggersJson, editor);
             
             JsonObject response = new JsonObject();
             response.addProperty("success", success);
