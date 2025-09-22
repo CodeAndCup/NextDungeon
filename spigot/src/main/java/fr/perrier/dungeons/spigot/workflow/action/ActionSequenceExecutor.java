@@ -1,0 +1,53 @@
+package fr.perrier.dungeons.spigot.workflow.action;
+
+import fr.perrier.dungeons.spigot.Main;
+import fr.perrier.dungeons.spigot.workflow.action.impl.DelayAction;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.entity.Player;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Exécuteur séquentiel asynchrone pour les actions d'un trigger
+ */
+public class ActionSequenceExecutor {
+    private final List<Action> actions;
+    private final Player player;
+    private final Location location;
+    private final Map<String, Object> data;
+    private int index = 0;
+
+    public ActionSequenceExecutor(List<Action> actions, Player player, Location location, Map<String, Object> data) {
+        this.actions = actions;
+        this.player = player;
+        this.location = location;
+        this.data = data;
+    }
+
+    /**
+     * Démarre l'exécution de la séquence d'actions
+     */
+    public void executeNext() {
+        if (index >= actions.size()) {
+            return;
+        }
+        Action action = actions.get(index);
+        index++;
+        try {
+            if (action instanceof DelayAction delayAction) {
+                int ticks = delayAction.getTicks();
+                Bukkit.getScheduler().runTaskLater(Main.getInstance(), this::executeNext, Math.max(1, ticks));
+            } else {
+                action.execute(player, location, data);
+                executeNext();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            // Continue quand même la séquence
+            executeNext();
+        }
+    }
+}
+

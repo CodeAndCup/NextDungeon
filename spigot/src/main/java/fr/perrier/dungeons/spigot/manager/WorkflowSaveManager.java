@@ -226,6 +226,8 @@ public class WorkflowSaveManager {
             actionObj.addProperty("z", schematicAction.getZ());
         } else if (action instanceof BroadcastCommandAction broadcastCommandAction) {
             actionObj.addProperty("command", broadcastCommandAction.getCommand());
+        } else if (action instanceof DelayAction delayAction) {
+            actionObj.addProperty("ticks", delayAction.getTicks());
         }
         // Ajouter d'autres types d'actions ici
     }

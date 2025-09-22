@@ -2,6 +2,7 @@ package fr.perrier.dungeons.spigot.workflow.trigger;
 
 import fr.perrier.dungeons.spigot.workflow.action.Action;
 import fr.perrier.dungeons.spigot.Main;
+import fr.perrier.dungeons.spigot.workflow.action.ActionSequenceExecutor;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Location;
@@ -65,28 +66,12 @@ public abstract class Trigger implements Serializable {
      * Exécute toutes les actions du trigger
      */
     protected boolean executeActions(Player player, Location location, Map<String, Object> data) {
-
         if (actions == null || actions.isEmpty()) {
-            return true; // Pas d'actions = succès
+            return true;
         }
-
-        boolean success = true;
-        data.put("trigger_name", this.name); // Ajouter le nom du trigger aux données
-
-        for (Action action : actions) {
-            try {
-                boolean actionSuccess = action.execute(player, location, data);
-                if (!actionSuccess) {
-                    Main.getInstance().getLogger().warning("&eÉchec de l'action " + action.getName() + " du trigger " + this.name);
-                    success = false;
-                }
-            } catch (Exception e) {
-                Main.getInstance().getLogger().severe("&cErreur lors de l'exécution de l'action " + action.getName() + ": " + e.getMessage());
-                e.printStackTrace();
-                success = false;
-            }
-        }
-
-        return success;
+        data.put("trigger_name", this.name);
+        // Nouvelle exécution asynchrone
+        new ActionSequenceExecutor(actions, player, location, data).executeNext();
+        return true;
     }
 }

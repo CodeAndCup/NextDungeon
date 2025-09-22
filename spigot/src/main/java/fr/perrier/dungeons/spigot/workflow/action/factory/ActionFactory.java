@@ -144,6 +144,11 @@ public class ActionFactory {
                             actionData.get("command").getAsString() : "say Hello World!";
                     yield new BroadcastCommandAction(command);
                 }
+                case "delay_action" -> {
+                    int ticks = actionData.has("ticks") ?
+                        actionData.get("ticks").getAsInt() : 20;
+                    yield new DelayAction(ticks);
+                }
                 default -> {
                     Main.getInstance().getLogger().warning("&eType d'action inconnu: " + type);
                     yield null;
