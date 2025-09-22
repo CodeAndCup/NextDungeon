@@ -128,6 +128,17 @@ public class ActionFactory {
                             actionData.get("worldname").getAsString() : "world";
                     yield new SummonMobAction(mobType, x, y, z, worldName);
                 }
+                case "worldedit_schematic_action" -> {
+                    String filename = actionData.has("filename") ?
+                            actionData.get("filename").getAsString() : "schematic.schem";
+                    float x = actionData.has("x") ?
+                            actionData.get("x").getAsFloat() : 0;
+                    float y = actionData.has("y") ?
+                            actionData.get("y").getAsFloat() : 64;
+                    float z = actionData.has("z") ?
+                            actionData.get("z").getAsFloat() : 0;
+                    yield new WorldEditSchematicAction(filename, x, y, z);
+                }
                 default -> {
                     Main.getInstance().getLogger().warning("&eType d'action inconnu: " + type);
                     yield null;

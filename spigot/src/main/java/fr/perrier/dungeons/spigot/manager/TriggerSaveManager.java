@@ -220,6 +220,11 @@ public class TriggerSaveManager {
             actionObj.addProperty("y", summonMobAction.getY());
             actionObj.addProperty("z", summonMobAction.getZ());
             actionObj.addProperty("worldname", summonMobAction.getWorldName());
+        } else if (action instanceof WorldEditSchematicAction schematicAction) {
+            actionObj.addProperty("filename", schematicAction.getFilename());
+            actionObj.addProperty("x", schematicAction.getX());
+            actionObj.addProperty("y", schematicAction.getY());
+            actionObj.addProperty("z", schematicAction.getZ());
         }
         // Ajouter d'autres types d'actions ici
     }
