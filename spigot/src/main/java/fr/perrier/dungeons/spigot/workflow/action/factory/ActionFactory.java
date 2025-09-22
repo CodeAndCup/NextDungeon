@@ -139,6 +139,11 @@ public class ActionFactory {
                             actionData.get("z").getAsFloat() : 0;
                     yield new WorldEditSchematicAction(filename, x, y, z);
                 }
+                case "broadcast_command_action" -> {
+                    String command = actionData.has("command") ?
+                            actionData.get("command").getAsString() : "say Hello World!";
+                    yield new BroadcastCommandAction(command);
+                }
                 default -> {
                     Main.getInstance().getLogger().warning("&eType d'action inconnu: " + type);
                     yield null;

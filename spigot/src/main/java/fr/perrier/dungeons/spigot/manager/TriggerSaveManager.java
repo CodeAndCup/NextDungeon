@@ -225,6 +225,8 @@ public class TriggerSaveManager {
             actionObj.addProperty("x", schematicAction.getX());
             actionObj.addProperty("y", schematicAction.getY());
             actionObj.addProperty("z", schematicAction.getZ());
+        } else if (action instanceof BroadcastCommandAction broadcastCommandAction) {
+            actionObj.addProperty("command", broadcastCommandAction.getCommand());
         }
         // Ajouter d'autres types d'actions ici
     }
