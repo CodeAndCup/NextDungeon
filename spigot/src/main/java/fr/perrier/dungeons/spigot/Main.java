@@ -26,13 +26,13 @@ import fr.perrier.dungeons.spigot.model.FloorInstance;
 import fr.perrier.dungeons.spigot.storage.ProfileService;
 import fr.perrier.dungeons.spigot.storage.RedisStorageService;
 import fr.perrier.dungeons.spigot.utils.ServerUtil;
+import fr.perrier.dungeons.spigot.webeditor.SpigotProxyBridge;
 import fr.perrier.dungeons.spigot.webserver.DungeonWebEditorManager;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
@@ -68,10 +68,6 @@ public final class Main extends JavaPlugin {
     private ProfileService profileService;
     @Getter
     private DatabaseManager databaseManager;
-
-    // Server utility class
-    @Getter
-    private ServerUtil serverUtil;
 
     // Web editor manager
     @Getter@Deprecated
@@ -168,7 +164,7 @@ public final class Main extends JavaPlugin {
         webEditorManager = new DungeonWebEditorManager();
         
         // Initialize proxy bridge for web editor communication
-        proxyBridge = new fr.perrier.dungeons.spigot.webeditor.SpigotProxyBridge();
+        proxyBridge = new SpigotProxyBridge();
         if (proxyBridge.startBridge()) {
             getLogger().info("✅ Pont de communication proxy démarré");
         } else {
@@ -323,7 +319,7 @@ public final class Main extends JavaPlugin {
      * in {@link #initializeInstanceServer()}.</p>
      */
     private void initializeLobbyServer() {
-        getLogger().info(String.format("Initializing lobby server"));
+        getLogger().info("Initializing lobby server");
         // Lobby specific initialization if needed
     }
 

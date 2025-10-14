@@ -192,6 +192,16 @@ public class FloorInstance {
         }.runTaskTimerAsynchronously(Main.getInstance(), 0L, 2L);
     }
 
+    /**
+     * Completes the dungeon instance for all players currently in it.
+     *
+     * <p>This method iterates through all online players, checks if they have
+     * associated PlayerStats, and if so, updates their ProfileData with the
+     * completed floor information and statistics. It then sends a congratulatory
+     * title and message to each player with their performance details. Finally,
+     * it schedules a task to shut down the server instance after a 30-second delay,
+     * notifying all players of the impending shutdown.</p>
+     */
     public void complete() {
         for(Player player : Bukkit.getOnlinePlayers()) {
             PlayerStats playerStats = this.playerStats.get(player.getUniqueId());
@@ -240,10 +250,16 @@ public class FloorInstance {
             this.startTime = System.currentTimeMillis();
         }
 
+        /**
+         * Increments the count of enemies killed by the player.
+         */
         public void incrementEnemiesKilled() {
             this.enemiesKilled++;
         }
 
+        /**
+         * Increments the count of deaths for the player.
+         */
         public void incrementDeaths() {
             this.deaths++;
         }

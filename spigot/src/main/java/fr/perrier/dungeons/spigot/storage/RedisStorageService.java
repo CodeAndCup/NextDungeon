@@ -277,6 +277,10 @@ public class RedisStorageService {
         Main.getInstance().getLogger().info("Cleared local floor and instance references");
     }
 
+    /**
+     * Remove a dungeon from Redis
+     * @param id the ID of the dungeon to remove
+     */
     public void removeDungeon(String id) {
         // Remove from Redis
         dungeonsMap.remove(id);

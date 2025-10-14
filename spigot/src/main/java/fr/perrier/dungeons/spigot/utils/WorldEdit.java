@@ -23,6 +23,14 @@ import java.util.Objects;
 
 public class WorldEdit {
 
+    /**
+     * Apply a schematic at the given coordinates in the "world" world.
+     *
+     * @param schematicName the name of the schematic file (without .schematic extension)
+     * @param x the x coordinate
+     * @param y the y coordinate
+     * @param z the z coordinate
+     */
     public static void applySchematic(String schematicName, int x, int y, int z) {
         File file = new File(Main.getInstance().getDataFolder() + File.separator + "schematics" + File.separator + schematicName + ".schematic");
         if (!file.exists()) {
@@ -67,6 +75,4 @@ public class WorldEdit {
             e.printStackTrace();
         }
     }
-
-
 }
