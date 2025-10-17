@@ -83,7 +83,8 @@ public class ConfigLoader {
             ConfigurationSection rulesSec = floorSection.getConfigurationSection("rules");
             if (rulesSec != null) {
                 Rules rules = new Rules();
-                rules.setDeathBanDuration(TimeUtil.getDuration(rulesSec.getString("death_ban")));
+                rules.setMaxLives(rulesSec.getInt("max_lives"));
+                rules.setDeathBanDuration(rulesSec.getString("death_ban"));
                 rules.setGamemode(rulesSec.getString("gamemode"));
                 rules.setAllowFlight(rulesSec.getBoolean("allow_flight"));
                 floor.setRules(rules);

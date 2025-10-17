@@ -22,3 +22,4 @@ DatabaseConfiguration:
 
 ServerConfiguration:
     isLobby: true
+    banCommand: "litebans:ban {player} {time} {reason}"

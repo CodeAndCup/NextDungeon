@@ -28,6 +28,7 @@ dungeon:
           - "Magic Wand"
 
       rules:
+        max_lives: 3
         death_ban: "15m"
         gamemode: "SURVIVAL"
         allow_flight: false

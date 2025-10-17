@@ -6,7 +6,8 @@ import lombok.Setter;
 @Getter
 @Setter
 public class Rules {
-    private long deathBanDuration;
+    private int maxLives;
+    private String deathBanDuration;
     private String gamemode;
     private boolean allowFlight;
 }

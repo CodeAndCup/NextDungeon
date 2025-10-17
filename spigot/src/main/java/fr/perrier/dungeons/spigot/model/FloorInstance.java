@@ -38,6 +38,7 @@ public class FloorInstance {
     private boolean ready;
 
     private final HashMap<UUID, PlayerStats> playerStats = new HashMap<>();
+    private final HashMap<UUID, Integer> playerCurrentLives = new HashMap<>();
 
     public FloorInstance(String floorId) {
         this.floorId = floorId;

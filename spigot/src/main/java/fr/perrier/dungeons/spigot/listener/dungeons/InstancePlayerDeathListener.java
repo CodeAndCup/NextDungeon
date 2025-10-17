@@ -2,9 +2,12 @@ package fr.perrier.dungeons.spigot.listener.dungeons;
 
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.model.FloorInstance;
+import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
+
+import java.util.Objects;
 
 public class InstancePlayerDeathListener implements Listener {
 
@@ -16,6 +19,16 @@ public class InstancePlayerDeathListener implements Listener {
         if(stats != null)
             stats.incrementDeaths();
 
-        //TODO: Ban the player after (check the time from the requirements/rules)
+        if(instance.getPlayerCurrentLives().containsKey(event.getEntity().getUniqueId()) && instance.getPlayerCurrentLives().get(event.getEntity().getUniqueId()) > 0) {
+            instance.getPlayerCurrentLives().compute(event.getEntity().getUniqueId(), (k, currentLives) -> currentLives - 1);
+        } else {
+            Bukkit.dispatchCommand(
+                    Bukkit.getConsoleSender(),
+                    Objects.requireNonNull(Main.getInstance().getConfig().getString("ServerConfiguration.banCommand"))
+                            .replace("{player}", event.getEntity().getName())
+                            .replace("{time}", instance.getFloor().getRules().getDeathBanDuration())
+                            .replace("{reason}", "Vous avez épuisé toutes vos vies dans l'instance de donjon !")
+            );
+        }
     }
 }
