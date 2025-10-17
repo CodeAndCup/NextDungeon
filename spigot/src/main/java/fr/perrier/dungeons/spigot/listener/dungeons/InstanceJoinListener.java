@@ -19,6 +19,9 @@ public class InstanceJoinListener implements Listener {
 
         FloorInstance instance = Main.getInstance().getRedisStorageService().getCurrentInstance().get();
         instance.getPlayerStats().put(player.getUniqueId(), new FloorInstance.PlayerStats(player.getUniqueId()));
+
+        // Initialize player's lives if not already present
+        // This ensures that players rejoining the instance retain their remaining lives from before they left
         instance.getPlayerCurrentLives().putIfAbsent(player.getUniqueId(), instance.getFloor().getRules().getMaxLives());
     }
 }

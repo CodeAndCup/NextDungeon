@@ -2,6 +2,8 @@ package fr.perrier.dungeons.spigot;
 
 import com.alessiodp.parties.api.Parties;
 import com.alessiodp.parties.api.interfaces.PartiesAPI;
+import com.github.juliarn.npclib.api.Platform;
+import com.github.juliarn.npclib.bukkit.BukkitPlatform;
 import fr.perrier.cupcodeapi.CupCodeAPI;
 import fr.perrier.cupcodeapi.commands.CommandHandler;
 import fr.perrier.cupcodeapi.menuapi.MenuAPI;
@@ -19,6 +21,7 @@ import fr.perrier.dungeons.spigot.listener.editor.EditorJoinListener;
 import fr.perrier.dungeons.spigot.listener.global.GlobalJoinListener;
 import fr.perrier.dungeons.spigot.listener.global.GlobalLeaveListener;
 import fr.perrier.dungeons.spigot.listener.global.GlobalPartyListener;
+import fr.perrier.dungeons.spigot.manager.GhostFactory;
 import fr.perrier.dungeons.spigot.manager.GlobalTriggerManager;
 import fr.perrier.dungeons.spigot.manager.VariableManager;
 import fr.perrier.dungeons.spigot.messaging.Pidgin;
@@ -37,6 +40,7 @@ import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
 
+@Getter
 public final class Main extends JavaPlugin {
 
     @Getter
@@ -48,39 +52,27 @@ public final class Main extends JavaPlugin {
     private static boolean debug = false;
 
     // Plugin API instance
-    @Getter
     private PartiesAPI partiesAPI;
-
-    // Plugin commands
-    @Getter
     private CommandHandler commandHandler;
-
-    // Plugin menu
-    @Getter
     private MenuAPI menuAPI;
+    private GhostFactory ghostFactory;
+    private Platform bukkitNpcPlatform;
 
     // Plugin packets pub/sub and sync storage
-    @Getter
     private Pidgin messaging;
-    @Getter
     private RedisStorageService redisStorageService;
-    @Getter
     private ProfileService profileService;
-    @Getter
     private DatabaseManager databaseManager;
 
     // Web editor manager
-    @Getter@Deprecated
+    @Deprecated
     private DungeonWebEditorManager webEditorManager;
     
     // Proxy bridge for web editor communication
-    @Getter
-    private fr.perrier.dungeons.spigot.webeditor.SpigotProxyBridge proxyBridge;
+    private SpigotProxyBridge proxyBridge;
 
     // Global trigger manager
-    @Getter
     private GlobalTriggerManager globalTriggerManager;
-    @Getter
     private VariableManager variableManager;
 
     @Override
@@ -140,6 +132,9 @@ public final class Main extends JavaPlugin {
         CupCodeAPI.enable(this);
         menuAPI = new MenuAPI(this);
         partiesAPI = Parties.getApi();
+        ghostFactory = new GhostFactory();
+        bukkitNpcPlatform = BukkitPlatform.bukkitNpcPlatformBuilder()
+                .build();
 
         // Enabling messaging system
         this.messaging = new Pidgin(Main.getInstance().getConfig().getString("RedisConfiguration.topic"));
