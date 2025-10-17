@@ -240,6 +240,14 @@
             <scope>provided</scope>
         </dependency>
 
+        <!-- Corpse API -->
+        <dependency>
+            <groupId>com.github.unldenis</groupId>
+            <artifactId>Corpse</artifactId>
+            <version>1.0.10</version>
+        </dependency>
+
+
         <!-- CloudNet API -->
         <dependency>
             <groupId>eu.cloudnetservice.cloudnet</groupId>

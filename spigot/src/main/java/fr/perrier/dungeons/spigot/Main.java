@@ -2,8 +2,6 @@ package fr.perrier.dungeons.spigot;
 
 import com.alessiodp.parties.api.Parties;
 import com.alessiodp.parties.api.interfaces.PartiesAPI;
-import com.github.juliarn.npclib.api.Platform;
-import com.github.juliarn.npclib.bukkit.BukkitPlatform;
 import fr.perrier.cupcodeapi.CupCodeAPI;
 import fr.perrier.cupcodeapi.commands.CommandHandler;
 import fr.perrier.cupcodeapi.menuapi.MenuAPI;
@@ -56,7 +54,6 @@ public final class Main extends JavaPlugin {
     private CommandHandler commandHandler;
     private MenuAPI menuAPI;
     private GhostFactory ghostFactory;
-    private Platform bukkitNpcPlatform;
 
     // Plugin packets pub/sub and sync storage
     private Pidgin messaging;
@@ -133,8 +130,6 @@ public final class Main extends JavaPlugin {
         menuAPI = new MenuAPI(this);
         partiesAPI = Parties.getApi();
         ghostFactory = new GhostFactory();
-        bukkitNpcPlatform = BukkitPlatform.bukkitNpcPlatformBuilder()
-                .build();
 
         // Enabling messaging system
         this.messaging = new Pidgin(Main.getInstance().getConfig().getString("RedisConfiguration.topic"));
