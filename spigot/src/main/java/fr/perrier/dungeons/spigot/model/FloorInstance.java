@@ -40,6 +40,8 @@ public class FloorInstance {
     private final HashMap<UUID, PlayerStats> playerStats = new HashMap<>();
     private final HashMap<UUID, Integer> playerCurrentLives = new HashMap<>();
 
+    //TODO: Trouver un moyen pour faire la génération en async mais que ça ne casse pas le sync du constructor, donc peut etre avoir l'instanceId après.
+
     public FloorInstance(String floorId) {
         this.floorId = floorId;
         this.instanceId = generateFloorServer(false);
@@ -55,7 +57,6 @@ public class FloorInstance {
 
         Main.getInstance().getRedisStorageService().syncInstance(this);
     }
-
 
     /**
      * Generates a unique server instance for the current floor.
