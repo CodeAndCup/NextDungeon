@@ -75,7 +75,7 @@ public class FunctionTrigger extends Trigger implements BlocklyTrigger {
         Main.getInstance().getGlobalTriggerManager().registerFunction(this);
 
         Main.getInstance().getLogger().info("Registered function: " + functionName + " with " +
-                (getActions() != null ? getActions().size() : 0) + " actions");
+                                            (getActions() != null ? getActions().size() : 0) + " actions");
     }
 
     /**

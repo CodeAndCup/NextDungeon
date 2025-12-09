@@ -2,6 +2,7 @@ package fr.perrier.dungeons.spigot.listener.dungeons;
 
 import com.cryptomorin.xseries.messages.Titles;
 import com.github.unldenis.corpse.api.CorpseAPI;
+import com.github.unldenis.corpse.corpse.Corpse;
 import fr.perrier.cupcodeapi.utils.ChatUtil;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.model.FloorInstance;
@@ -20,12 +21,12 @@ import java.util.*;
 public class InstancePlayerDeathListener implements Listener {
 
     @Getter
-    private static final Map<UUID,GhostData> ghostData = new HashMap<>();
+    private static final Map<UUID,GhostData> GHOST_DATA = new HashMap<>();
 
     @Setter
     @Getter
     @AllArgsConstructor
-    private class GhostData {
+    private static class GhostData {
         private final UUID playerUUID;
         private final Location deathLocation;
         private int timeLeftAsGhost;
@@ -34,25 +35,28 @@ public class InstancePlayerDeathListener implements Listener {
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent event) {
         Player player = event.getEntity();
+        player.setRespawnLocation(player.getLocation().clone().add(0,2,0));
 
         //TODO: Put player in ghost mode to view if teamate revives them before respawn timer ends and consume a life.
         if(!Main.getInstance().getGhostFactory().isGhost(player)) {
-            ghostData.put(player.getUniqueId(), new GhostData(player.getUniqueId(), player.getLocation(), 15));
+            GHOST_DATA.put(player.getUniqueId(), new GhostData(player.getUniqueId(), player.getLocation(), 15));
 
-            CorpseAPI.getInstance().spawnCorpse(player);
+            Corpse corpse = CorpseAPI.getInstance().spawnCorpse(player);
             Main.getInstance().getGhostFactory().addPlayer(player);
             player.setAllowFlight(true);
             player.setFlying(true);
             player.setInvulnerable(true);
 
-            player.teleport(player.getLocation().clone().add(0,2,0));
+            Bukkit.getScheduler().runTaskLater(Main.getInstance(), () ->
+                    player.teleport(player.getLocation().clone().add(0,2,0))
+            , 10L);
 
-            Bukkit.getScheduler().runTaskTimerAsynchronously(Main.getInstance(), () -> {
-                GhostData data = ghostData.get(player.getUniqueId());
+            Bukkit.getScheduler().runTaskTimerAsynchronously(Main.getInstance(), task -> {
+                GhostData data = GHOST_DATA.get(player.getUniqueId());
                 if(data != null) {
                     data.setTimeLeftAsGhost(data.getTimeLeftAsGhost() - 1);
                     Titles.sendTitle(player, 0, 20, 0,
-                            ChatUtil.toSmallCaps(ChatUtil.translate("&c7You are a ghost!")),
+                            ChatUtil.toSmallCaps(ChatUtil.translate("&7You are a ghost!")),
                             ChatUtil.toSmallCaps(ChatUtil.translate("&fTime before respawn &#8B0000" + data.getTimeLeftAsGhost() + "s"))
                     );
                     if(data.getTimeLeftAsGhost() <= 0) {
@@ -60,11 +64,13 @@ public class InstancePlayerDeathListener implements Listener {
                         player.setAllowFlight(false);
                         player.setFlying(false);
                         player.setInvulnerable(false);
-                        player.teleport(ghostData.get(player.getUniqueId()).getDeathLocation());
-
-                        ghostData.remove(player.getUniqueId());
-
-                        applyDeathTo(player);
+                        Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
+                            player.teleport(GHOST_DATA.get(player.getUniqueId()).getDeathLocation());
+                            GHOST_DATA.remove(player.getUniqueId());
+                            applyDeathTo(player);
+                            CorpseAPI.getInstance().removeCorpse(corpse);
+                        });
+                        task.cancel();
                     }
                 }
             }, 20L, 20L);

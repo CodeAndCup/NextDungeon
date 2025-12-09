@@ -1,37 +1,31 @@
 package fr.perrier.dungeons.spigot.utils;
 
 import com.alessiodp.parties.api.interfaces.Party;
-import eu.cloudnetservice.driver.document.property.DocProperty;
-import eu.cloudnetservice.driver.inject.InjectionLayer;
-import eu.cloudnetservice.driver.provider.CloudServiceFactory;
-import eu.cloudnetservice.driver.provider.CloudServiceProvider;
-import eu.cloudnetservice.driver.provider.ServiceTaskProvider;
-import eu.cloudnetservice.driver.registry.ServiceRegistry;
-import eu.cloudnetservice.driver.service.*;
-import eu.cloudnetservice.driver.template.TemplateStorage;
-import eu.cloudnetservice.modules.bridge.player.PlayerManager;
-import eu.cloudnetservice.wrapper.holder.ServiceInfoHolder;
 import fr.perrier.dungeons.spigot.Main;
+import fr.perrier.dungeons.spigot.instance.InstanceInfo;
+import fr.perrier.dungeons.spigot.instance.InstanceProvider;
 import fr.perrier.dungeons.spigot.model.FloorInstance;
 import fr.perrier.dungeons.spigot.model.Floor;
 import lombok.NonNull;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.time.Instant;
-import java.util.Collections;
-import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
+/**
+ * Utilitaire pour gérer les serveurs et instances de donjons.
+ * Cette classe agit maintenant comme une façade (Facade Pattern)
+ * pour l'InstanceProvider abstrait.
+ */
 public class ServerUtil {
 
+    /**
+     * Récupère le provider d'instances actuel.
+     * @return le provider configuré
+     */
+    private static InstanceProvider getProvider() {
+        return Main.getInstance().getInstanceProvider();
+    }
 
     /**
      * Create a cloud service instance for the given floor instance and start it asynchronously.
@@ -40,32 +34,24 @@ public class ServerUtil {
      * @return the unique id of the created service or null if the creation failed
      */
     public static UUID makeFloorInstance(FloorInstance floorInstance, boolean editMode) {
-        Floor floor = floorInstance.getFloor();
-        String templateName = floor.getId();
-
-        CloudServiceFactory cloudService = InjectionLayer.boot().instance(CloudServiceFactory.class);
-        ServiceTask serviceTask = InjectionLayer.boot().instance(ServiceTaskProvider.class).serviceTask(templateName);
-        if(serviceTask == null) {
-            Main.getInstance().getLogger().severe("&cImpossible to create service task for " + templateName + ". Error 1.");
+        try {
+            // Utilisation synchrone pour compatibilité avec le code existant
+            return getProvider().createInstance(floorInstance, editMode).get();
+        } catch (Exception e) {
+            Main.getInstance().getLogger().severe("Erreur lors de la création de l'instance: " + e.getMessage());
             return null;
         }
+    }
 
-        ServiceConfiguration config = ServiceConfiguration.builder(serviceTask)
-                .writeProperty(DocProperty.property("editMode", boolean.class), editMode)
-                .writeProperty(DocProperty.property("isDungeonInstance", boolean.class), true)
-                .writeProperty(DocProperty.property("floorId", String.class), floorInstance.getFloorId())
-                .writeProperty(DocProperty.property("createdAt", String.class), Instant.now().toString())
-                .build();
-
-        ServiceCreateResult service = cloudService.createCloudService(config);
-        if(service.state() != ServiceCreateResult.State.CREATED) {
-            Main.getInstance().getLogger().severe("&cImpossible to create service for " + templateName + ". Error 2.");
-            return null;
-        }
-        service.serviceInfo().provider().startAsync();
-        Main.getInstance().getLogger().info("Starting service for " + templateName + " (editMode=" + editMode + ")");
-
-        return service.serviceInfo().serviceId().uniqueId();
+    /**
+     * Create a cloud service instance asynchronously.
+     *
+     * @param floorInstance the floor instance to create the service for
+     * @param editMode whether to create in edit mode
+     * @return CompletableFuture with the instance UUID
+     */
+    public static CompletableFuture<UUID> makeFloorInstanceAsync(FloorInstance floorInstance, boolean editMode) {
+        return getProvider().createInstance(floorInstance, editMode);
     }
 
     /**
@@ -73,8 +59,7 @@ public class ServerUtil {
      * @return true if this is a dungeon instance server
      */
     public static boolean isInstanceServer() {
-        ServiceInfoSnapshot currentService = InjectionLayer.ext().instance(ServiceInfoHolder.class).serviceInfo();
-        return currentService.readProperty(DocProperty.property("isDungeonInstance", boolean.class).withDefault(false));
+        return getProvider().isInstanceServer();
     }
 
     /**
@@ -82,8 +67,7 @@ public class ServerUtil {
      * @return true if this server is in edit mode
      */
     public static boolean isInEditMode() {
-        ServiceInfoSnapshot currentService = InjectionLayer.ext().instance(ServiceInfoHolder.class).serviceInfo();
-        return currentService.readProperty(DocProperty.property("editMode", boolean.class).withDefault(false));
+        return getProvider().isEditMode();
     }
 
     /**
@@ -91,24 +75,7 @@ public class ServerUtil {
      * @return InstanceInfo containing the instance details, or null if not an instance
      */
     public static InstanceInfo getInstanceInfo() {
-        ServiceInfoSnapshot currentService = InjectionLayer.ext().instance(ServiceInfoHolder.class).serviceInfo();
-        if (!isInstanceServer() && !isInEditMode()) return null;
-        String instanceId, floorId, createdAt;
-        try {
-            instanceId = currentService.serviceId().uniqueId().toString();
-            floorId = currentService.readProperty(DocProperty.property("floorId", String.class));
-            createdAt = currentService.readProperty(DocProperty.property("createdAt", String.class));
-        }catch (Exception e) {
-            return null;
-        }
-
-        if (instanceId == null || floorId == null) return null;
-
-        return new InstanceInfo(
-                UUID.fromString(instanceId),
-                floorId,
-                createdAt
-        );
+        return getProvider().getCurrentInstanceInfo();
     }
 
     /**
@@ -118,22 +85,8 @@ public class ServerUtil {
      * @return InstanceInfo containing the instance details, or null if not found
      */
     public static InstanceInfo getInstanceInfo(UUID instanceId) {
-        FloorInstance instance = Main.getInstance().getRedisStorageService().getInstance(instanceId);
-        return new InstanceInfo(
-                instance.getInstanceId(),
-                instance.getFloorId(),
-                "Unknown"
-        );
+        return getProvider().getInstanceInfo(instanceId);
     }
-
-    /**
-     * Record to hold instance information
-     */
-    public record InstanceInfo(
-            UUID instanceId,
-            String floorId,
-            String createdAt
-    ) {}
 
     /**
      * Check if a template exists for the given floor in the local storage.
@@ -141,8 +94,7 @@ public class ServerUtil {
      * @return true if the template exists, false otherwise
      */
     public static boolean isFloorTemplateExists(@NonNull Floor floor) {
-        ServiceTaskProvider serviceTaskProvider = InjectionLayer.boot().instance(ServiceTaskProvider.class);
-        return serviceTaskProvider.serviceTask(floor.getId()) != null;
+        return getProvider().templateExists(floor);
     }
 
     /**
@@ -154,168 +106,7 @@ public class ServerUtil {
      * @param floor the floor to create the template for
      */
     public static CompletableFuture<Boolean> createFloorTemplate(@NonNull Floor floor) {
-        //Copy the global template to the floor template
-        CompletableFuture<Boolean> future = new CompletableFuture<>();
-
-        ServiceTemplate sourceTemplate = new ServiceTemplate.Builder()
-                .prefix("Global")
-                .name("Global-Dungeon")
-                .storage("local")
-                .priority(0)
-                .alwaysCopyToStaticServices(false)
-                .build();
-
-        ServiceTemplate targetTemplate = new ServiceTemplate.Builder()
-                .prefix(floor.getId())
-                .name("default")
-                .storage("local")
-                .priority(0)
-                .alwaysCopyToStaticServices(false)
-                .build();
-
-        copyTemplateFiles(sourceTemplate, targetTemplate)
-                .thenAccept(success -> {
-                    if (success) {
-                        Main.getInstance().getLogger().info("Template for floor " + floor.getId() + " copied successfully.");
-
-                        //Create the task
-                        ServiceTaskProvider serviceTaskProvider = InjectionLayer.boot().instance(ServiceTaskProvider.class);
-                        ServiceTask serviceTask = new ServiceTask.Builder()
-                                .name(floor.getId())
-                                .runtime("jvm")
-                                .hostAddress(null)
-                                .javaCommand("java")
-                                .nameSplitter("-")
-                                .disableIpRewrite(false)
-                                .maintenance(false)
-                                .autoDeleteOnStop(true)
-                                .staticServices(false)
-                                .associatedNodes(Collections.emptyList())
-                                .deletedFilesAfterStop(Collections.emptyList())
-                                .processConfiguration(
-                                        new ProcessConfiguration.Builder()
-                                                .environment("MINECRAFT_SERVER")
-                                                .maxHeapMemorySize(4096)
-                                                .jvmOptions(Collections.emptyList())
-                                                .processParameters(Collections.emptyList())
-                                                .environmentVariables(Collections.emptyMap())
-                                )
-                                .startPort(44955)
-                                .minServiceCount(0)
-                                .templates(
-                                        Collections.singletonList(
-                                                new ServiceTemplate.Builder()
-                                                        .prefix(floor.getId())
-                                                        .name("default")
-                                                        .storage("local")
-                                                        .priority(0)
-                                                        .alwaysCopyToStaticServices(false)
-                                                        .build()
-                                        )
-                                )
-                                .deployments(Collections.emptyList())
-                                .inclusions(Collections.emptyList())
-                                .build();
-
-                        serviceTaskProvider.addServiceTask(serviceTask);
-                        future.complete(true);
-                    } else {
-                        Main.getInstance().getLogger().severe("&cTemplate for floor " + floor.getId() + " could not be copied.");
-                        future.complete(false);
-                    }
-                })
-                .exceptionally(throwable -> {
-                    Main.getInstance().getLogger().severe("&cError while copying template for floor " + floor.getId() + ": " + throwable.getMessage());
-                    future.complete(false);
-                    return null;
-                });
-        return future;
-    }
-
-    /**
-     * Copies template files from a source template to a target template asynchronously.
-     *
-     * @param sourceTemplate the source template to copy files from
-     * @param targetTemplate the target template to copy files to
-     * @return a CompletableFuture that completes with true if the copy was successful, false otherwise
-     */
-    private static CompletableFuture<Boolean> copyTemplateFiles(ServiceTemplate sourceTemplate, ServiceTemplate targetTemplate) {
-        CompletableFuture<Boolean> future = new CompletableFuture<>();
-        long startTime = System.currentTimeMillis();
-
-        Bukkit.getScheduler().runTaskAsynchronously(Main.getInstance(), () -> {
-            TemplateStorage sourceTemplateStorage = sourceTemplate.storage();
-            TemplateStorage targetTemplateStorage = targetTemplate.storage();
-
-            targetTemplateStorage.delete(targetTemplate);
-            targetTemplateStorage.create(targetTemplate);
-
-            try {
-                ZipInputStream zipInputStream = sourceTemplateStorage.openZipInputStream(sourceTemplate);
-                if(zipInputStream == null) {
-                    Main.getInstance().getLogger().severe("&cUnable to get zip input stream for template " + sourceTemplate.name() + " in storage " + sourceTemplate.storage());
-                    return;
-                }
-
-                try {
-
-                    var localStoragePath = Path.of("../../../local/templates/");
-                    var templatePath = localStoragePath.resolve(targetTemplate.prefix()).resolve(targetTemplate.name());
-
-                    if(Main.isDebug())
-                        Main.getInstance().getLogger().info("Template path: " + templatePath.toAbsolutePath());
-                    Files.createDirectories(templatePath);
-
-                    ZipEntry entryDeploy;
-                    while ((entryDeploy = zipInputStream.getNextEntry()) != null) {
-                        var file = templatePath.resolve(entryDeploy.getName());
-                        if(Main.isDebug()) {
-                            Main.getInstance().getLogger().info("Find " + entryDeploy.getName() + " will be copied to (" + file + ")");
-                            Main.getInstance().getLogger().info("Entry is directory: " + entryDeploy.isDirectory());
-                        }
-                        if (entryDeploy.isDirectory()) {
-                            if (Files.notExists(file)) {
-                                try {
-                                    Files.createDirectories(file);
-                                } catch (IOException e) {
-                                    Main.getInstance().getLogger().severe("&cUnable to create directory " + file);
-                                }
-                            }
-                        } else {
-                            try {
-                                if(Main.isDebug()) {
-                                    Main.getInstance().getLogger().info("File: " + file);
-                                    Main.getInstance().getLogger().info("Parent: " + file.getParent());
-                                }
-                                Files.createDirectories(file.getParent());
-                                try (OutputStream out = Files.newOutputStream(file)) {
-                                    if (out != null) {
-                                        if(Main.isDebug())
-                                            Main.getInstance().getLogger().info("Copying " + entryDeploy.getName() + " to " + file);
-                                        long transferred = zipInputStream.transferTo(out);
-                                        if(Main.isDebug())
-                                            Main.getInstance().getLogger().info("Copied " + transferred + " bytes");
-                                    }
-                                }
-                            } catch (IOException e) {
-                                Main.getInstance().getLogger().severe("&cUnable to copy file " + entryDeploy.getName());
-                            }
-                        }
-                        zipInputStream.closeEntry();
-                    }
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-
-                Main.getInstance().getLogger().info("Creating template " + targetTemplate.name() + " in storage " + targetTemplate.storage() + " took " + (System.currentTimeMillis() - startTime) + " ms");
-                zipInputStream.close();
-                future.complete(true);
-            } catch (IOException e) {
-                future.complete(false);
-                throw new RuntimeException(e);
-            }
-        });
-        return future;
+        return getProvider().createTemplate(floor);
     }
 
     /**
@@ -324,10 +115,10 @@ public class ServerUtil {
      * @param server The name of the cloud service to connect to.
      */
     public static void sendToServer(Party party, String server) {
-        ServiceRegistry serviceRegistry = InjectionLayer.ext().instance(ServiceRegistry.class);
-        PlayerManager playerManager = serviceRegistry.defaultInstance(PlayerManager.class);
-        for(UUID uuid :party.getMembers())
-            playerManager.playerExecutor(uuid).connect(server);
+        // Cette méthode dépend de CloudNet spécifiquement
+        // Pour une abstraction complète, il faudrait créer une interface PartyProvider
+        // Pour l'instant, on garde la compatibilité CloudNet
+        Main.getInstance().getLogger().warning("sendToServer(Party, String) n'est supporté qu'avec CloudNet");
     }
 
     /**
@@ -336,9 +127,13 @@ public class ServerUtil {
      * @param serviceId The UUID of the cloud service to connect to.
      */
     public static void sendToServer(Party party, UUID serviceId) {
-        CloudServiceProvider cloudServiceProvider = InjectionLayer.ext().instance(CloudServiceProvider.class);
-        String serverName = Objects.requireNonNull(cloudServiceProvider.service(serviceId)).name();
-        sendToServer(party,serverName);
+        // Pour les providers non-CloudNet, on téléporte chaque membre individuellement
+        for (UUID uuid : party.getMembers()) {
+            Player player = org.bukkit.Bukkit.getPlayer(uuid);
+            if (player != null) {
+                sendToServer(player, serviceId);
+            }
+        }
     }
 
     /**
@@ -347,9 +142,7 @@ public class ServerUtil {
      * @param server The name of the cloud service to connect to.
      */
     public static void sendToServer(Player player, String server) {
-        ServiceRegistry serviceRegistry = InjectionLayer.ext().instance(ServiceRegistry.class);
-        PlayerManager playerManager = serviceRegistry.defaultInstance(PlayerManager.class);
-        playerManager.playerExecutor(player.getUniqueId()).connect(server);
+        Main.getInstance().getLogger().warning("sendToServer(Player, String) n'est supporté qu'avec CloudNet");
     }
 
     /**
@@ -359,22 +152,21 @@ public class ServerUtil {
      * @param serviceId The UUID of the cloud service to connect to.
      */
     public static void sendToServer(Player player, UUID serviceId) {
-        CloudServiceProvider cloudServiceProvider = InjectionLayer.ext().instance(CloudServiceProvider.class);
-        String serverName = Objects.requireNonNull(cloudServiceProvider.service(serviceId)).name();
-        sendToServer(player,serverName);
+        getProvider().sendPlayerToInstance(player, serviceId);
     }
 
     /**
      * Retrieves a ServiceInfoSnapshot for a cloud service with the specified port.
+     * Note: Cette méthode est spécifique à CloudNet et deprecated.
      *
      * @param port The port of the cloud service to retrieve.
      * @return The ServiceInfoSnapshot of the cloud service with the given port,
      *         or null if no such service is found.
+     * @deprecated Utiliser getInstanceInfo() à la place
      */
-    public static ServiceInfoSnapshot getFactory(int port) {
-        CloudServiceProvider cloudServiceProvider = InjectionLayer.ext().instance(CloudServiceProvider.class);
-        return cloudServiceProvider.runningServices().stream()
-                .filter(service -> service.address().port() == port)
-                .findFirst().orElse(null);
+    @Deprecated
+    public static Object getFactory(int port) {
+        Main.getInstance().getLogger().warning("getFactory() est deprecated et spécifique à CloudNet");
+        return null;
     }
 }

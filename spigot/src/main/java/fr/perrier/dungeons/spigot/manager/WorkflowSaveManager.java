@@ -55,18 +55,24 @@ public class WorkflowSaveManager {
 
             Main.getInstance().getGlobalTriggerManager().refreshTriggerCache();
 
-            // Sauvegarder dans le fichier .dungeon en utilisant votre DungeonFileManager
-            boolean fileSaved = DungeonFileManager.saveTriggers(floorId, triggers);
-            if (!fileSaved) {
-                Main.getInstance().getLogger().warning("&eFailed to save triggers to file for floor: " + floorId);
-                return false;
-            }
+            // Sauvegarder dans la base de données en utilisant DungeonFileManager
+            DungeonFileManager.saveTriggers(floorId, triggers).thenAccept(fileSaved -> {
+                if (fileSaved) {
+                    Main.getInstance().getLogger().info("Triggers sauvegardés dans la base de données pour le floor: " + floorId);
+                } else {
+                    Main.getInstance().getLogger().warning("&eÉchec de la sauvegarde des triggers dans la base de données pour le floor: " + floorId);
+                }
+            }).exceptionally(ex -> {
+                Main.getInstance().getLogger().severe("&cErreur lors de la sauvegarde des triggers: " + ex.getMessage());
+                ex.printStackTrace();
+                return null;
+            });
 
             // Notifier l'éditeur
             if (editor != null && editor.isOnline()) {
                 editor.sendMessage(ChatUtil.translate("&a✓ Triggers sauvegardés avec succès !"));
                 editor.sendMessage(ChatUtil.translate("&7➤ " + triggers.size() + " trigger(s) sauvegardé(s)"));
-                editor.sendMessage(ChatUtil.translate("&7➤ Fichier: &e" + floorId + ".dungeon"));
+                editor.sendMessage(ChatUtil.translate("&7➤ Base de données: &e" + Main.getInstance().getConfig().getString("DatabaseConfiguration.type")));
 
                 // Détail des triggers
                 for (Trigger trigger : triggers) {

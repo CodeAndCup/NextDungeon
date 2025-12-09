@@ -7,18 +7,44 @@ RedisConfiguration:
 
 DatabaseConfiguration:
     type: "mysql" #Supported types: mongodb, mysql
-
     mysql:
         host: "localhost"
         port: 3306
         database: "dungeons"
         username: "root"
         password: "root"
-
     mongodb:
         host: "localhost"
         port: 27017
         database: "dungeons"
+
+# Configuration du provider d'instances
+# Types disponibles: CLOUDNET, ASP, VANILLA
+# - CLOUDNET: Utilise CloudNet pour gérer les instances (nécessite CloudNet)
+# - ASP: Utilise Advanced Slime World Manager pour des instances légères (nécessite SlimeWorldManager)
+# - VANILLA: Utilise le système de mondes Minecraft natif optimisé (toujours disponible)
+InstanceProvider:
+    type: "CLOUDNET" # Changez selon votre infrastructure
+    ASP: # Configuration spécifique pour ASP
+        loaderType: "FILE" # Types disponibles: FILE, MYSQL, MONGODB
+        mysql:
+            url: "jdbc:mysql://localhost:3306/asm"
+            host: "localhost"
+            port: 3306
+            database: "asm"
+            useSSL: false
+            username: "root"
+            password: "root"
+        mongodb:
+            database: "asm"
+            collection: "worlds"
+            username: ""
+            password: ""
+            authSource: ""
+            host: "localhost"
+            port: 27017
+            uri: ""
+
 
 ServerConfiguration:
     isLobby: true

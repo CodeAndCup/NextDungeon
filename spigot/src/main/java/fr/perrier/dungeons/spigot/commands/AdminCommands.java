@@ -5,6 +5,7 @@ import fr.perrier.cupcodeapi.commands.annotations.Param;
 import fr.perrier.cupcodeapi.utils.ChatUtil;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.configuration.ConfigLoader;
+import fr.perrier.dungeons.spigot.instance.InstanceInfo;
 import fr.perrier.dungeons.spigot.model.Dungeon;
 import fr.perrier.dungeons.spigot.model.FloorInstance;
 import fr.perrier.dungeons.spigot.model.Floor;
@@ -63,49 +64,60 @@ public class AdminCommands {
             return;
         }
 
-        ServerUtil.InstanceInfo info = ServerUtil.getInstanceInfo();
-        if(info == null || info.floorId() == null) {
+        InstanceInfo info = ServerUtil.getInstanceInfo();
+        if(info == null || info.getFloorId() == null) {
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&cYou are not in a floor instance."));
             return;
         }
 
-        Floor currentFloor = Floor.getFloor(info.floorId());
+        Floor currentFloor = Floor.getFloor(info.getFloorId());
 
         if (currentFloor == null) {
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&cFloor not found."));
             return;
         }
 
-        // Hey this path is really ugly but it works for now
-        File savedFile = new File(Main.getInstance().getDataFolder() + "/../../../../../local/templates/" + currentFloor.getId() + "/default/plugins/NextDungeon/dungeons/", currentFloor.getId() + ".dungeon");
-
-        if(!savedFile.exists()) {
-            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&eWarning no saved dungeon file found for this floor."));
-            player.sendMessage(ChatUtil.translate("&eIf you have trigger changes they will be lost on the next dungeon start / edit."));
-            player.sendMessage(ChatUtil.translate("&eIf you want to discard without saving use &c/dungeon admin edit stop --confirm"));
-        } else if(savedFile.exists() && !confirm.equalsIgnoreCase("--confirm")) {
-            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&fAre you sure you want to end your edit mode?"));
-            player.sendMessage(ChatUtil.translate("&fUse &b/dungeon admin edit stop --confirm &fif &ayes"));
-        } else if (savedFile.exists() && confirm.equalsIgnoreCase("--confirm")) {
-            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&a✓ &fEdit mode ended."));
-            try {
-                Objects.requireNonNull(Bukkit.getWorld("world")).save();
-
-                // Copy the world files to the template (strict minimum)
-                FileUtil.copyDir(new File(Main.getInstance().getDataFolder() + "/../../world/data/"), new File(Main.getInstance().getDataFolder() + "/../../../../../local/templates/" + currentFloor.getId() + "/default/world/data"));
-                FileUtil.copyDir(new File(Main.getInstance().getDataFolder() + "/../../world/entities/"), new File(Main.getInstance().getDataFolder() + "/../../../../../local/templates/" + currentFloor.getId() + "/default/world/entities"));
-                FileUtil.copyDir(new File(Main.getInstance().getDataFolder() + "/../../world/region/"), new File(Main.getInstance().getDataFolder() + "/../../../../../local/templates/" + currentFloor.getId() + "/default/world/region"));
-                //FileUtil.copyDir(new File(Main.getInstance().getDataFolder() + "/../../world/poi/"), new File(Main.getInstance().getDataFolder() + "/../../../../../local/templates/" + currentFloor.getId() + "/default/world/poi"));
-                FileUtil.copyFile(new File(Main.getInstance().getDataFolder() + "/../../world/uid.dat"), new File(Main.getInstance().getDataFolder() + "/../../../../../local/templates/" + currentFloor.getId() + "/default/world/uid.dat"));
-                FileUtil.copyFile(new File(Main.getInstance().getDataFolder() + "/../../world/level.dat"), new File(Main.getInstance().getDataFolder() + "/../../../../../local/templates/" + currentFloor.getId() + "/default/world/level.dat"));
-
-                player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&a✓ &fWorld changes saved."));
-                player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&fThe server will now shutdown."));
-                Bukkit.getScheduler().runTaskLater(Main.getInstance(), Bukkit::shutdown, 100L);
-            }catch (Exception e) {
-                player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&cError while saving the world changes: " + e.getMessage()));
+        // Vérifier si des triggers existent dans la base de données
+        Main.getInstance().getDatabaseManager().triggersExist(currentFloor.getId()).thenAccept(triggersExist -> {
+            if(!triggersExist) {
+                player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&eWarning: no saved triggers found for this floor in database."));
+                player.sendMessage(ChatUtil.translate("&eIf you have trigger changes they will be lost on the next dungeon start / edit."));
+                player.sendMessage(ChatUtil.translate("&eIf you want to discard without saving use &c/dungeon admin edit stop --confirm"));
+            } else if(triggersExist && !confirm.equalsIgnoreCase("--confirm")) {
+                player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&fAre you sure you want to end your edit mode?"));
+                player.sendMessage(ChatUtil.translate("&fUse &b/dungeon admin edit stop --confirm &fif &ayes"));
+            } else if (triggersExist && confirm.equalsIgnoreCase("--confirm")) {
+                saveAndShutdown(player, currentFloor);
             }
-        }
+        }).exceptionally(ex -> {
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&cError checking triggers: " + ex.getMessage()));
+            return null;
+        });
+    }
+
+    /**
+     * Sauvegarde le monde et arrête le serveur après l'édition
+     */
+    private static void saveAndShutdown(Player player, Floor currentFloor) {
+        player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&a✓ &fEdit mode ended."));
+
+        // Utiliser le provider d'instance pour sauvegarder le monde (adapté à CloudNet, ASP ou Vanilla)
+        Main.getInstance().getInstanceProvider().saveEditWorldToTemplate(currentFloor).thenAccept(success -> {
+            if (success) {
+                player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&a✓ &fWorld changes saved to template."));
+                player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&7Provider: &e" + Main.getInstance().getInstanceProvider().getType()));
+                player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&7Triggers saved in database: &e" + Main.getInstance().getConfig().getString("DatabaseConfiguration.type")));
+                player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&fThe server will now shutdown."));
+
+                Bukkit.getScheduler().runTaskLater(Main.getInstance(), Bukkit::shutdown, 100L);
+            } else {
+                player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&cError while saving the world changes."));
+                player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&cCheck the console for details."));
+            }
+        }).exceptionally(ex -> {
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&cError while saving the world changes: " + ex.getMessage()));
+            return null;
+        });
     }
 
     @Command(names = "dungeon admin webeditor start", permission = "nextdungeons.admin")
@@ -120,21 +132,21 @@ public class AdminCommands {
             return;
         }
 
-        ServerUtil.InstanceInfo info = ServerUtil.getInstanceInfo();
-        if(info == null || info.floorId() == null) {
+        InstanceInfo info = ServerUtil.getInstanceInfo();
+        if(info == null || info.getFloorId() == null) {
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&cYou are not in a floor instance."));
             return;
         }
 
-        Dungeon currentDungeon = Dungeon.getDungeon(info.floorId().split("_")[0]);
-        Floor currentFloor = Floor.getFloor(info.floorId());
+        Dungeon currentDungeon = Dungeon.getDungeon(info.getFloorId().split("_")[0]);
+        Floor currentFloor = Floor.getFloor(info.getFloorId());
 
         if (currentFloor == null) {
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&cFloor not found."));
             return;
         }
 
-        boolean success = Main.getInstance().getWebEditorManager().startWebEditor(player, currentDungeon.getName(), currentFloor.getId());
+        Main.getInstance().getWebEditorManager().startWebEditor(player, currentDungeon.getName(), currentFloor.getId());
 
         // Le message de succès avec l'URL est maintenant géré dans DungeonWebEditorManager
     }
@@ -181,11 +193,11 @@ public class AdminCommands {
         player.sendMessage(ChatUtil.translate("&6Dungeon Status"));
 
         if (ServerUtil.isInstanceServer()) {
-            ServerUtil.InstanceInfo info = ServerUtil.getInstanceInfo();
+            InstanceInfo info = ServerUtil.getInstanceInfo();
             player.sendMessage(ChatUtil.translate("&7Server Type: &aDungeon Instance"));
-            player.sendMessage(ChatUtil.translate("&7Instance ID: &f" + Objects.requireNonNull(info).instanceId()));
-            player.sendMessage(ChatUtil.translate("&7Floor ID: &f" + info.floorId()));
-            player.sendMessage(ChatUtil.translate("&7Created At: &f" + info.createdAt()));
+            player.sendMessage(ChatUtil.translate("&7Instance ID: &f" + Objects.requireNonNull(info).getInstanceId()));
+            player.sendMessage(ChatUtil.translate("&7Floor ID: &f" + info.getFloorId()));
+            player.sendMessage(ChatUtil.translate("&7Created At: &f" + info.getCreatedAt()));
 
             RedisStorageService storage = Main.getInstance().getRedisStorageService();
             FloorInstance instance = storage.getCurrentInstance().get();
@@ -208,11 +220,11 @@ public class AdminCommands {
             player.sendMessage(ChatUtil.translate("&cInstance not found"));
             return;
         }
-        ServerUtil.InstanceInfo info = ServerUtil.getInstanceInfo(instance.getInstanceId());
+        InstanceInfo info = ServerUtil.getInstanceInfo(instance.getInstanceId());
         player.sendMessage(ChatUtil.translate("&7Server Type: &aDungeon Instance"));
-        player.sendMessage(ChatUtil.translate("&7Instance ID: &f" + info.instanceId()));
-        player.sendMessage(ChatUtil.translate("&7Floor ID: &f" + info.floorId()));
-        player.sendMessage(ChatUtil.translate("&7Created At: &f" + info.createdAt()));
+        player.sendMessage(ChatUtil.translate("&7Instance ID: &f" + info.getInstanceId()));
+        player.sendMessage(ChatUtil.translate("&7Floor ID: &f" + info.getFloorId()));
+        player.sendMessage(ChatUtil.translate("&7Created At: &f" + info.getCreatedAt()));
         player.sendMessage(ChatUtil.translate("&7Ready: &f" + instance.isReady()));
         player.sendMessage(ChatUtil.getBar());
     }

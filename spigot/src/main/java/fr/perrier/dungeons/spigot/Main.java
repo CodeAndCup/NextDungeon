@@ -12,6 +12,7 @@ import fr.perrier.dungeons.spigot.commands.PlayerCommands;
 import fr.perrier.dungeons.spigot.configuration.ConfigLoader;
 import fr.perrier.dungeons.spigot.database.DatabaseFactory;
 import fr.perrier.dungeons.spigot.database.DatabaseManager;
+import fr.perrier.dungeons.spigot.instance.InstanceInfo;
 import fr.perrier.dungeons.spigot.listener.dungeons.InstanceJoinListener;
 import fr.perrier.dungeons.spigot.listener.dungeons.InstanceMobKillListener;
 import fr.perrier.dungeons.spigot.listener.dungeons.InstancePlayerDeathListener;
@@ -37,6 +38,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
+import fr.perrier.dungeons.spigot.instance.InstanceProvider;
+import fr.perrier.dungeons.spigot.instance.InstanceProviderFactory;
 
 @Getter
 public final class Main extends JavaPlugin {
@@ -71,6 +74,9 @@ public final class Main extends JavaPlugin {
     // Global trigger manager
     private GlobalTriggerManager globalTriggerManager;
     private VariableManager variableManager;
+
+    // Instance provider (CloudNet, ASP, ou Vanilla)
+    private InstanceProvider instanceProvider;
 
     @Override
     public void onEnable() {
@@ -109,7 +115,27 @@ public final class Main extends JavaPlugin {
             return;
         }
 
+        // Initialize Instance Provider
+        try {
+            instanceProvider = InstanceProviderFactory.createProvider();
+            instanceProvider.initialize().thenAccept(success -> {
+                if (success) {
+                    getLogger().info("✅ Instance provider initialisé: " + instanceProvider.getType());
+                } else {
+                    getLogger().severe("❌ Échec de l'initialisation du provider");
+                }
+            });
+        } catch (Exception e) {
+            getLogger().severe("Erreur lors de la création du provider: " + e.getMessage());
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+
         databaseManager = DatabaseFactory.createDatabase();
+
+        // Migrate legacy .dungeon files to database
+        getLogger().info("Vérification des fichiers .dungeon à migrer...");
+        fr.perrier.dungeons.spigot.manager.DungeonFileManager.migrateAllLegacyFiles();
 
         // Load Dungeons
         ConfigLoader.loadAllDungeons();
@@ -164,13 +190,18 @@ public final class Main extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        // Shutdown instance provider
+        if (instanceProvider != null) {
+            instanceProvider.shutdown();
+        }
+
         // If this is an instance server, cleanup the instance data
         if (ServerUtil.isInstanceServer()) {
-            ServerUtil.InstanceInfo info = ServerUtil.getInstanceInfo();
+            fr.perrier.dungeons.spigot.instance.InstanceInfo info = ServerUtil.getInstanceInfo();
             if (info != null) {
                 // Remove instance from Redis
-                redisStorageService.removeInstance(info.instanceId());
-                getLogger().info(String.format("Cleaned up instance %s from Redis", info.instanceId()));
+                redisStorageService.removeInstance(info.getInstanceId());
+                getLogger().info(String.format("Cleaned up instance %s from Redis", info.getInstanceId()));
             }
         }
 
@@ -257,7 +288,7 @@ public final class Main extends JavaPlugin {
      * and creation timestamp.</p>
      */
     private void initializeInstanceServer() {
-        ServerUtil.InstanceInfo info = ServerUtil.getInstanceInfo();
+        InstanceInfo info = ServerUtil.getInstanceInfo();
         if (info == null) {
             getLogger().severe("&cFailed to get instance information");
             getServer().getPluginManager().disablePlugin(this);
@@ -266,15 +297,15 @@ public final class Main extends JavaPlugin {
 
         getLogger().info(String.format(
                 "Initializing dungeon instance server (ID: %s, Floor: %s, Created at: %s)",
-                info.instanceId(),
-                info.floorId(),
-                info.createdAt()
+                info.getInstanceId(),
+                info.getFloorId(),
+                info.getCreatedAt()
         ));
 
         loadInstanceListeners();
 
         // Initialize instance in Redis
-        redisStorageService.initializeInstance(info.instanceId(), info.floorId());
+        redisStorageService.initializeInstance(info.getInstanceId(), info.getFloorId());
 
         // Schedule ready state
         putServerReady();
