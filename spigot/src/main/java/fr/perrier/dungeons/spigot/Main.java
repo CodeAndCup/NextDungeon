@@ -197,7 +197,7 @@ public final class Main extends JavaPlugin {
 
         // If this is an instance server, cleanup the instance data
         if (ServerUtil.isInstanceServer()) {
-            fr.perrier.dungeons.spigot.instance.InstanceInfo info = ServerUtil.getInstanceInfo();
+            InstanceInfo info = ServerUtil.getInstanceInfo();
             if (info != null) {
                 // Remove instance from Redis
                 redisStorageService.removeInstance(info.getInstanceId());

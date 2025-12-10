@@ -30,7 +30,17 @@ public class TriggerSerializer {
         if (triggers == null) {
             return "[]";
         }
-        return gson.toJson(triggers);
+
+        // Forcer la sérialisation avec le type Trigger pour que l'adaptateur soit utilisé
+        JsonArray jsonArray = new JsonArray();
+        for (Trigger trigger : triggers) {
+            if (trigger != null) {
+                JsonElement serialized = gson.toJsonTree(trigger, Trigger.class);
+                jsonArray.add(serialized);
+            }
+        }
+
+        return gson.toJson(jsonArray);
     }
 
     /**
@@ -81,12 +91,26 @@ public class TriggerSerializer {
         @Override
         public Trigger deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
             JsonObject jsonObject = json.getAsJsonObject();
-            String className = jsonObject.get("className").getAsString();
-            JsonElement data = jsonObject.get("data");
+
+            // Validation: vérifier que les champs requis existent
+            JsonElement classNameElement = jsonObject.get("className");
+            JsonElement dataElement = jsonObject.get("data");
+
+            if (classNameElement == null || classNameElement.isJsonNull()) {
+                Main.getInstance().getLogger().warning("Trigger JSON invalide: champ 'className' manquant ou null");
+                return null;
+            }
+
+            if (dataElement == null || dataElement.isJsonNull()) {
+                Main.getInstance().getLogger().warning("Trigger JSON invalide: champ 'data' manquant ou null");
+                return null;
+            }
+
+            String className = classNameElement.getAsString();
 
             try {
                 Class<?> clazz = Class.forName(className);
-                return context.deserialize(data, clazz);
+                return context.deserialize(dataElement, clazz);
             } catch (ClassNotFoundException e) {
                 Main.getInstance().getLogger().warning("Classe de trigger inconnue: " + className);
                 return null;
@@ -110,12 +134,26 @@ public class TriggerSerializer {
         @Override
         public Action deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
             JsonObject jsonObject = json.getAsJsonObject();
-            String className = jsonObject.get("className").getAsString();
-            JsonElement data = jsonObject.get("data");
+
+            // Validation: vérifier que les champs requis existent
+            JsonElement classNameElement = jsonObject.get("className");
+            JsonElement dataElement = jsonObject.get("data");
+
+            if (classNameElement == null || classNameElement.isJsonNull()) {
+                Main.getInstance().getLogger().warning("Action JSON invalide: champ 'className' manquant ou null");
+                return null;
+            }
+
+            if (dataElement == null || dataElement.isJsonNull()) {
+                Main.getInstance().getLogger().warning("Action JSON invalide: champ 'data' manquant ou null");
+                return null;
+            }
+
+            String className = classNameElement.getAsString();
 
             try {
                 Class<?> clazz = Class.forName(className);
-                return context.deserialize(data, clazz);
+                return context.deserialize(dataElement, clazz);
             } catch (ClassNotFoundException e) {
                 Main.getInstance().getLogger().warning("Classe d'action inconnue: " + className);
                 return null;
@@ -123,4 +161,3 @@ public class TriggerSerializer {
         }
     }
 }
-

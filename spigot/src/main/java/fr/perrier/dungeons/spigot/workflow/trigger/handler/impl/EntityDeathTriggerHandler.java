@@ -41,7 +41,7 @@ public class EntityDeathTriggerHandler implements TriggerEventHandler<EntityDeat
         }
     }
 
-    private void checkEntityDeathTrigger(Player player, EntityDeathTrigger entityDeathTrigger, EntityDeathEvent event) {
+    private void checkMythicMobEntityDeathTrigger(Player player, EntityDeathTrigger entityDeathTrigger, EntityDeathEvent event) {
         Entity entity = event.getEntity();
 
         ActiveMob mythicMob = MythicBukkit.inst().getMobManager().getMythicMobInstance(entity);
@@ -56,7 +56,7 @@ public class EntityDeathTriggerHandler implements TriggerEventHandler<EntityDeat
         }
     }
 
-    private void checkMythicMobEntityDeathTrigger(Player player, EntityDeathTrigger entityDeathTrigger, EntityDeathEvent event) {
+    private void checkEntityDeathTrigger(Player player, EntityDeathTrigger entityDeathTrigger, EntityDeathEvent event) {
         Entity entity = event.getEntity();
 
         if(entity.getType().name().equalsIgnoreCase(entityDeathTrigger.getEntityType())) {
