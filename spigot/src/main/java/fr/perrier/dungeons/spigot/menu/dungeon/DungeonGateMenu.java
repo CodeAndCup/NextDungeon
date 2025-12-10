@@ -101,9 +101,8 @@ public class DungeonGateMenu extends GlassMenu {
                     player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&cYour party is too small to enter this floor."));
                     return;
                 }
-                FloorInstance floorInstance = new FloorInstance(floor.getId());
+                FloorInstance.generateNewInstanceAsync(floor.getId(),false, floorInstance -> floorInstance.sendToServer(DungeonParty.getDungeonPartyOf(player)));
                 player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&fPlease wait while the instance is being prepared..."));
-                floorInstance.sendToServer(DungeonParty.getDungeonPartyOf(player));
             }
         }
     }

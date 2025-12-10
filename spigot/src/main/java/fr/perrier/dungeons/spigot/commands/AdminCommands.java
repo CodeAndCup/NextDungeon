@@ -51,10 +51,9 @@ public class AdminCommands {
             return;
         }
 
-        FloorInstance floorInstance = new FloorInstance(floor.getId(),true);
+        FloorInstance.generateNewInstanceAsync(floor.getId(),true,floorInstance -> floorInstance.sendToServer(player));
         player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&a✓ &fEdit mode started for floor &e" + floor.getId() + "&f."));
         player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&fPlease wait while the instance is being prepared..."));
-        floorInstance.sendToServer(player);
     }
 
     @Command(names = "dungeon admin edit stop", permission = "nextdungeons.admin")
@@ -167,10 +166,9 @@ public class AdminCommands {
             return;
         }
 
-        FloorInstance floorInstance = new FloorInstance(floor.getId());
+        FloorInstance.generateNewInstanceAsync(floor.getId(),false,floorInstance -> floorInstance.sendToServer(player));
         player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&a✓ &fTest instance started for floor &e" + floor.getId() + "&f."));
         player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&fPlease wait while the instance is being prepared..."));
-        floorInstance.sendToServer(player);
     }
 
     @Command(names = "dungeon admin load")

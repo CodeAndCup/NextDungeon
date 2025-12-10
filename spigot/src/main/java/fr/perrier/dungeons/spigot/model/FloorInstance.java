@@ -14,6 +14,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 @Getter
 public class FloorInstance {
@@ -40,22 +41,21 @@ public class FloorInstance {
     private final HashMap<UUID, PlayerStats> playerStats = new HashMap<>();
     private final HashMap<UUID, Integer> playerCurrentLives = new HashMap<>();
 
-    //TODO: Trouver un moyen pour faire la génération en async mais que ça ne casse pas le sync du constructor, donc peut etre avoir l'instanceId après.
-
-    public FloorInstance(String floorId) {
-        this.floorId = floorId;
-        this.instanceId = generateFloorServer(false);
-        this.ready = false;
-
-        Main.getInstance().getRedisStorageService().syncInstance(this);
-    }
-
-    public FloorInstance(String floorId, boolean editMode) {
+    private FloorInstance(String floorId, boolean editMode) {
         this.floorId = floorId;
         this.instanceId = generateFloorServer(editMode);
         this.ready = false;
 
         Main.getInstance().getRedisStorageService().syncInstance(this);
+    }
+
+    public static void generateNewInstanceAsync(String floorId, boolean editMode, Consumer<FloorInstance> callback) {
+        Bukkit.getScheduler().runTaskAsynchronously(Main.getInstance(), () -> {
+            FloorInstance floorInstance = new FloorInstance(floorId, editMode);
+            Bukkit.getScheduler().runTask(Main.getInstance(), () ->
+                callback.accept(floorInstance)
+            );
+        });
     }
 
     /**
