@@ -26,7 +26,7 @@ public class DebugCommands {
         player.sendMessage(ChatUtil.getBar());
     }
 
-    @Command(names = "dungeon debug list instances")
+    @Command(names = {"dungeon debug list instances", "dungeons debug list instances", "nextdungeon debug list instances", "nextdungeons debug list instances", "nd debug list instances"})
     public static void debugDungeonListInstancesCommand(Player player) {
         player.sendMessage(ChatUtil.getBar());
         player.sendMessage(ChatUtil.translate("&6Instances:"));
@@ -36,7 +36,7 @@ public class DebugCommands {
         player.sendMessage(ChatUtil.getBar());
     }
 
-    @Command(names = "dungeon debug list floors")
+    @Command(names = {"dungeon debug list floors", "dungeons debug list floors", "nextdungeon debug list floors", "nextdungeons debug list floors", "nd debug list floors"})
     public static void debugDungeonListFloorsCommand(Player player) {
         player.sendMessage(ChatUtil.getBar());
         player.sendMessage(ChatUtil.translate("&6Floors:"));
@@ -46,7 +46,7 @@ public class DebugCommands {
         player.sendMessage(ChatUtil.getBar());
     }
 
-    @Command(names = "dungeon debug list dungeons")
+    @Command(names = {"dungeon debug list dungeons", "dungeons debug list dungeons", "nextdungeon debug list dungeons", "nextdungeons debug list dungeons", "nd debug list dungeons"})
     public static void debugDungeonListDungeonsCommand(Player player) {
         player.sendMessage(ChatUtil.getBar());
         player.sendMessage(ChatUtil.translate("&6Dungeons:"));
@@ -56,7 +56,7 @@ public class DebugCommands {
         player.sendMessage(ChatUtil.getBar());
     }
 
-    @Command(names = "dungeon debug openmenu")
+    @Command(names = {"dungeon debug openmenu", "dungeons debug openmenu", "nextdungeon debug openmenu", "nextdungeons debug openmenu", "nd debug openmenu"})
     public static void debugDungeonOpenMenuCommand(Player player) {
 
         Dungeon dungeon = Dungeon.getDungeon("example");

@@ -43,7 +43,9 @@ public class AdminCommands {
         player.sendMessage(ChatUtil.getBar());
     }
 
-    @Command(names = "dungeon admin edit start", permission = "nextdungeons.admin")
+    @Command(
+            names = {"dungeon admin edit start", "dungeons admin edit start", "nextdungeon admin edit start", "nextdungeons admin edit start", "nd admin edit start"},
+            permission = "nextdungeons.admin")
     public static void adminDungeonEditCommand(Player player, @Param(name = "Dungeon ID") String dungeonId, @Param(name = "Floor ID") String floorId) {
         Floor floor = Floor.getFloor(dungeonId + "_" + floorId);
         if (floor == null) {
@@ -56,7 +58,9 @@ public class AdminCommands {
         player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&fPlease wait while the instance is being prepared..."));
     }
 
-    @Command(names = "dungeon admin edit stop", permission = "nextdungeons.admin")
+    @Command(
+            names = {"dungeon admin edit stop", "dungeons admin edit stop", "nextdungeon admin edit stop", "nextdungeons admin edit stop", "nd admin edit stop"},
+            permission = "nextdungeons.admin")
     public static void adminDungeonSaveCommand(Player player, @Param(name = "Confirm", baseValue = "none")String confirm) {
         if(!ServerUtil.isInEditMode()) {
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&cThis server is not in edit mode."));
@@ -119,7 +123,9 @@ public class AdminCommands {
         });
     }
 
-    @Command(names = "dungeon admin webeditor start", permission = "nextdungeons.admin")
+    @Command(
+            names = {"dungeon admin webeditor start", "dungeons admin webeditor start", "nextdungeon admin webeditor start", "nextdungeons admin webeditor start", "nd admin webeditor start"},
+            permission = "nextdungeons.admin")
     public static void adminDungeonWebEditorStartCommand(Player player) {
         if(Main.getInstance().getWebEditorManager().hasActiveEditor(player)) {
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&cYou already have an active web editor session."));
@@ -150,7 +156,9 @@ public class AdminCommands {
         // Le message de succès avec l'URL est maintenant géré dans DungeonWebEditorManager
     }
 
-    @Command(names = "dungeon admin webeditor stop", permission = "nextdungeons.admin")
+    @Command(
+            names = {"dungeon admin webeditor stop", "dungeons admin webeditor stop", "nextdungeon admin webeditor stop", "nextdungeons admin webeditor stop", "nd admin webeditor stop"},
+            permission = "nextdungeons.admin")
     public static void adminDungeonWebEditorStopCommand(Player player) {
         boolean success = Main.getInstance().getWebEditorManager().stopWebEditor(player);
         if (success) {
@@ -185,45 +193,44 @@ public class AdminCommands {
         ServerUtil.sendToServer(player,server);
     }
 
-    @Command(names = "dungeon admin status")
-    public static void adminDungeonStatusCommand(Player player) {
+    @Command(
+            names = {"dungeon admin status", "dungeons admin status", "nextdungeon admin status", "nextdungeons admin status", "nd admin status"},
+            permission = "nextdungeons.admin")
+    public static void adminDungeonStatusParamCommand(Player player, @Param(name = "Instance ID", baseValue = "00000000-0000-0000-0000-000000000000") String instanceId) {
         player.sendMessage(ChatUtil.getBar());
         player.sendMessage(ChatUtil.translate("&6Dungeon Status"));
 
-        if (ServerUtil.isInstanceServer()) {
+        boolean isDefaultInstance = instanceId.equals("00000000-0000-0000-0000-000000000000");
+        if (isDefaultInstance && ServerUtil.isInstanceServer()) {
             InstanceInfo info = ServerUtil.getInstanceInfo();
-            player.sendMessage(ChatUtil.translate("&7Server Type: &aDungeon Instance"));
-            player.sendMessage(ChatUtil.translate("&7Instance ID: &f" + Objects.requireNonNull(info).getInstanceId()));
-            player.sendMessage(ChatUtil.translate("&7Floor ID: &f" + info.getFloorId()));
-            player.sendMessage(ChatUtil.translate("&7Created At: &f" + info.getCreatedAt()));
+            if (info != null) {
+                player.sendMessage(ChatUtil.translate("&7Server Type: &aDungeon Instance"));
+                player.sendMessage(ChatUtil.translate("&7Instance ID: &f" + info.getInstanceId()));
+                player.sendMessage(ChatUtil.translate("&7Floor ID: &f" + info.getFloorId()));
+                player.sendMessage(ChatUtil.translate("&7Created At: &f" + info.getCreatedAt()));
 
-            RedisStorageService storage = Main.getInstance().getRedisStorageService();
-            FloorInstance instance = storage.getCurrentInstance().get();
-            if (instance != null) {
+                FloorInstance instance = Main.getInstance().getRedisStorageService().getCurrentInstance().get();
+                if (instance != null) {
+                    player.sendMessage(ChatUtil.translate("&7Ready: &f" + instance.isReady()));
+                }
+            } else {
+                player.sendMessage(ChatUtil.translate("&cInstance info introuvable."));
+            }
+        } else if (isDefaultInstance) {
+            player.sendMessage(ChatUtil.translate("&7Server Type: &aLobby"));
+        } else {
+            FloorInstance instance = Main.getInstance().getRedisStorageService().getInstance(UUID.fromString(instanceId));
+            if (instance == null) {
+                player.sendMessage(ChatUtil.translate("&cInstance not found"));
+            } else {
+                InstanceInfo info = ServerUtil.getInstanceInfo(instance.getInstanceId());
+                player.sendMessage(ChatUtil.translate("&7Server Type: &aDungeon Instance"));
+                player.sendMessage(ChatUtil.translate("&7Instance ID: &f" + info.getInstanceId()));
+                player.sendMessage(ChatUtil.translate("&7Floor ID: &f" + info.getFloorId()));
+                player.sendMessage(ChatUtil.translate("&7Created At: &f" + info.getCreatedAt()));
                 player.sendMessage(ChatUtil.translate("&7Ready: &f" + instance.isReady()));
             }
-        } else {
-            player.sendMessage(ChatUtil.translate("&7Server Type: &aLobby"));
         }
-
-        player.sendMessage(ChatUtil.getBar());
-    }
-
-    @Command(names = "dungeon admin status")
-    public static void adminDungeonStatusParamCommand(Player player, @Param(name = "Instance ID") String instanceId) {
-        player.sendMessage(ChatUtil.getBar());
-        player.sendMessage(ChatUtil.translate("&6Dungeon Status"));
-        FloorInstance instance = Main.getInstance().getRedisStorageService().getInstance(UUID.fromString(instanceId));
-        if(instance == null) {
-            player.sendMessage(ChatUtil.translate("&cInstance not found"));
-            return;
-        }
-        InstanceInfo info = ServerUtil.getInstanceInfo(instance.getInstanceId());
-        player.sendMessage(ChatUtil.translate("&7Server Type: &aDungeon Instance"));
-        player.sendMessage(ChatUtil.translate("&7Instance ID: &f" + info.getInstanceId()));
-        player.sendMessage(ChatUtil.translate("&7Floor ID: &f" + info.getFloorId()));
-        player.sendMessage(ChatUtil.translate("&7Created At: &f" + info.getCreatedAt()));
-        player.sendMessage(ChatUtil.translate("&7Ready: &f" + instance.isReady()));
         player.sendMessage(ChatUtil.getBar());
     }
 }
