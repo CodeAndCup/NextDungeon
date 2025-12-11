@@ -245,7 +245,7 @@ public class FloorInstance {
 
             ProfileData profileData = Main.getInstance().getProfileService().getProfileData(player.getUniqueId());
             profileData.addCompletedFloor(floorId);
-            profileData.addFloorStat(new ProfileData.FloorStats(floorId, playerStats.getStartTime(), playerStats.getEnemiesKilled(), playerStats.getDeaths()));
+            profileData.addFloorStat(new ProfileData.FloorStats(floorId, System.currentTimeMillis() - playerStats.getStartTime(), playerStats.getEnemiesKilled(), playerStats.getDeaths()));
             Main.getInstance().getProfileService().saveProfileData(player.getUniqueId());
 
             Titles.sendTitle(player, 10, 70, 20,
