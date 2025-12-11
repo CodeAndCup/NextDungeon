@@ -65,7 +65,6 @@ public final class Main extends JavaPlugin {
     private DatabaseManager databaseManager;
 
     // Web editor manager
-    @Deprecated
     private DungeonWebEditorManager webEditorManager;
     
     // Proxy bridge for web editor communication

@@ -1,0 +1,12 @@
+# Configuration NextDungeon Velocity
+
+[webeditor]
+# Port du serveur web de l'éditeur
+port = 7734
+
+[redis]
+host = "localhost"
+port = 6379
+topic = "dungeons:packets"
+username = ""
+password = ""

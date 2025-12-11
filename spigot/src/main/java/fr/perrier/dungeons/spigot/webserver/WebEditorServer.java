@@ -27,7 +27,7 @@ import java.util.concurrent.Executors;
 @Deprecated
 public class WebEditorServer {
 
-    private static final int PORT = 8080;
+    private final int port;
 
     private HttpServer server;
     private final Gson gson;
@@ -41,11 +41,12 @@ public class WebEditorServer {
     @Getter
     private String currentFloor;
 
-    public WebEditorServer(Player editor) {
+    public WebEditorServer(Player editor, int port) {
         this.gson = new GsonBuilder().setPrettyPrinting().create();
         this.workflowSaveManager = new WorkflowSaveManager();
         this.currentEditor = editor;
         this.blocklyGenerator = new BlocklyJavaScriptGenerator();
+        this.port = port;
     }
 
     /**
@@ -56,7 +57,7 @@ public class WebEditorServer {
             this.currentDungeon = dungeonName;
             this.currentFloor = floorId;
 
-            server = HttpServer.create(new InetSocketAddress(PORT), 0);
+            server = HttpServer.create(new InetSocketAddress(port), 0);
 
             // Routes API
             server.createContext("/api/triggers", new TriggersHandler());
@@ -71,7 +72,7 @@ public class WebEditorServer {
             server.setExecutor(Executors.newFixedThreadPool(4));
             server.start();
 
-            Main.getInstance().getLogger().info("🌐 Serveur web démarré sur http://localhost:" + PORT);
+            Main.getInstance().getLogger().info("🌐 Serveur web démarré sur http://localhost:" + port);
             Main.getInstance().getLogger().info("📝 Édition du donjon: " + dungeonName + " floor " + floorId);
             return true;
 
@@ -473,3 +474,4 @@ public class WebEditorServer {
         exchange.getResponseBody().close();
     }
 }
+

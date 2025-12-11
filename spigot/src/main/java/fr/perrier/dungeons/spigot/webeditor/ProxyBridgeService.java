@@ -17,9 +17,18 @@ import java.util.UUID;
 public class ProxyBridgeService {
 
     private static final String PROXY_HOST = "localhost";
-    private static final int PROXY_PORT = 8080;
+    private int proxyPort = 7734; // Port par défaut
     private static final int SPIGOT_BRIDGE_PORT = 8081;
     private final Gson gson = new Gson();
+
+    public ProxyBridgeService() {
+        // Essayer de lire le port depuis la config du plugin
+        try {
+            proxyPort = Main.getInstance().getConfig().getInt("webeditor.proxy-port", 7734);
+        } catch (Exception e) {
+            Main.getInstance().getLogger().warning("Impossible de lire le port proxy depuis la config, utilisation du port par défaut: 7734");
+        }
+    }
 
     /**
      * Demande la création d'une session d'édition au proxy
@@ -78,7 +87,7 @@ public class ProxyBridgeService {
      */
     private String sendPostRequest(String endpoint, String jsonData) {
         try {
-            URL url = new URL("http://" + PROXY_HOST + ":" + PROXY_PORT + endpoint);
+            URL url = new URL("http://" + PROXY_HOST + ":" + proxyPort + endpoint);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             
             conn.setRequestMethod("POST");

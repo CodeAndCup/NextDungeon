@@ -5,6 +5,10 @@ RedisConfiguration:
     password: ""
     topic: "dungeons:packets" #Don't change or know what you're doing
 
+# Configuration de l'éditeur web
+webeditor:
+    proxy-port: 7734 # Port du serveur web proxy (Velocity/BungeeCord)
+
 DatabaseConfiguration:
     type: "mysql" #Supported types: mongodb, mysql
     mysql:

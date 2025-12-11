@@ -23,18 +23,22 @@ import java.util.concurrent.Executors;
  */
 public class ProxyWebEditorServer {
 
-    private static final int PORT = 8080;
-    
+    private final int port;
     private HttpServer server;
     private final Gson gson;
     @Getter
     private final EditorSessionManager sessionManager;
     private final SpigotCommunicationService communicationService;
 
-    public ProxyWebEditorServer() {
+    public ProxyWebEditorServer(int port) {
+        this.port = port;
         this.gson = new GsonBuilder().setPrettyPrinting().create();
         this.sessionManager = new EditorSessionManager();
         this.communicationService = new SpigotCommunicationService();
+    }
+
+    public int getPort() {
+        return port;
     }
 
     /**
@@ -42,7 +46,7 @@ public class ProxyWebEditorServer {
      */
     public boolean startServer() {
         try {
-            server = HttpServer.create(new InetSocketAddress(PORT), 0);
+            server = HttpServer.create(new InetSocketAddress(port), 0);
 
             // Routes API avec pattern /{floorId-uuid}/api/*
             server.createContext("/", new RouteHandler());
@@ -53,7 +57,7 @@ public class ProxyWebEditorServer {
             server.setExecutor(Executors.newFixedThreadPool(8));
             server.start();
 
-            NextDungeonBungee.getInstance().getLogger().info("🌐 Serveur web centralisé démarré sur http://localhost:" + PORT);
+            NextDungeonBungee.getInstance().getLogger().info("🌐 Serveur web centralisé démarré sur http://localhost:" + port);
             return true;
 
         } catch (IOException e) {
@@ -360,8 +364,8 @@ public class ProxyWebEditorServer {
                         
                         response.addProperty("success", true);
                         response.addProperty("sessionId", sessionId);
-                        response.addProperty("url", "http://localhost:8080/" + sessionId + "/editor/");
-                        
+                        response.addProperty("url", "http://localhost:" + port + "/" + sessionId + "/editor/");
+
                         NextDungeonBungee.getInstance().getLogger().info("✅ Session créée: " + sessionId + " pour " + playerName);
                     }
                     case "stop_session" -> {
@@ -388,3 +392,4 @@ public class ProxyWebEditorServer {
         }
     }
 }
+

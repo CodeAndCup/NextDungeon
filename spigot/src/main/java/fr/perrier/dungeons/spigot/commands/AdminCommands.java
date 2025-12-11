@@ -152,8 +152,6 @@ public class AdminCommands {
         }
 
         Main.getInstance().getWebEditorManager().startWebEditor(player, currentDungeon.getName(), currentFloor.getId());
-
-        // Le message de succès avec l'URL est maintenant géré dans DungeonWebEditorManager
     }
 
     @Command(
