@@ -4,6 +4,7 @@ package fr.perrier.dungeons.spigot.menu.dungeon;
 import fr.perrier.cupcodeapi.menuapi.Button;
 import fr.perrier.cupcodeapi.menuapi.GlassMenu;
 import fr.perrier.cupcodeapi.menuapi.Menu;
+import fr.perrier.cupcodeapi.menuapi.buttons.BackButton;
 import fr.perrier.cupcodeapi.menuapi.buttons.ConversationButton;
 import fr.perrier.cupcodeapi.menuapi.buttons.DisplayButton;
 import fr.perrier.cupcodeapi.utils.ChatUtil;
@@ -236,9 +237,9 @@ public class PartyBuilderMenu extends GlassMenu {
             }
 
             if(dungeon.getFloors().size() <= 5) {
-                buttons.put(40, new DisplayButton(new ItemStack(Material.AIR)));
+                buttons.put(40, new BackButton(oldMenu));
             } else {
-                buttons.put(49, new DisplayButton(new ItemStack(Material.AIR)));
+                buttons.put(49, new BackButton(oldMenu));
             }
 
             return buttons;
@@ -246,7 +247,7 @@ public class PartyBuilderMenu extends GlassMenu {
 
         @Override
         public String getTitle(Player player) {
-            return "Select a floor";
+            return "&#8B0000&l" + ChatUtil.toSmallCaps("select a floor");
         }
 
         @RequiredArgsConstructor

@@ -19,20 +19,53 @@ import java.util.function.Consumer;
 @Getter
 public class FloorInstance {
 
-    private static final List<String> LOADING = Arrays.asList(
-            "<gradient:#00AA00>▁▂▃▅▆▇▉▉▇▆▅▃▂▁</gradient:#00EE00>",
-            "<gradient:#009900>▁▁▂▃▅▆▇▉▉▇▆▅▃▂</gradient:#00FF00>",
-            "<gradient:#00AA00>▂▁▁▂▃▅▆▇▉▉▇▆▅▃</gradient:#00EE00>",
-            "<gradient:#00BB00>▃▂▁▁▂▃▅▆▇▉▉▇▆▅</gradient:#00DD00>",
-            "<gradient:#00CC00>▅▃▂▁▁▂▃▅▆▇▉▉▇▆</gradient:#00CC00>",
-            "<gradient:#00DD00>▆▅▃▂▁▁▂▃▅▆▇▉▉▇</gradient:#00BB00>",
-            "<gradient:#00EE00>▇▆▅▃▂▁▁▂▃▅▆▇▉▉</gradient:#00AA00>",
-            "<gradient:#00FF00>▉▇▆▅▃▂▁▁▂▃▅▆▇▉</gradient:#009900>",
-            "<gradient:#00FF00>▉▉▇▆▅▃▂▁▁▂▃▅▆▇</gradient:#00AA00>",
-            "<gradient:#00EE00>▇▉▉▇▆▅▃▂▁▁▂▃▅▆</gradient:#00BB00>",
-            "<gradient:#00DD00>▅▆▇▉▉▇▆▅▃▂▁▁▂▃</gradient:#00CC00>",
-            "<gradient:#00BB00>▂▃▅▆▇▉▉▇▆▅▃▂▁▁</gradient:#00DD00>"
-    );
+    @Getter
+    private enum LoadingBar {
+        WAVE(Arrays.asList(
+                "<gradient:#00AA00>▁▂▃▅▆▇▉▉▇▆▅▃▂▁</gradient:#00EE00>",
+                "<gradient:#009900>▁▁▂▃▅▆▇▉▉▇▆▅▃▂</gradient:#00FF00>",
+                "<gradient:#00AA00>▂▁▁▂▃▅▆▇▉▉▇▆▅▃</gradient:#00EE00>",
+                "<gradient:#00BB00>▃▂▁▁▂▃▅▆▇▉▉▇▆▅</gradient:#00DD00>",
+                "<gradient:#00CC00>▅▃▂▁▁▂▃▅▆▇▉▉▇▆</gradient:#00CC00>",
+                "<gradient:#00DD00>▆▅▃▂▁▁▂▃▅▆▇▉▉▇</gradient:#00BB00>",
+                "<gradient:#00EE00>▇▆▅▃▂▁▁▂▃▅▆▇▉▉</gradient:#00AA00>",
+                "<gradient:#00FF00>▉▇▆▅▃▂▁▁▂▃▅▆▇▉</gradient:#009900>",
+                "<gradient:#00FF00>▉▉▇▆▅▃▂▁▁▂▃▅▆▇</gradient:#00AA00>",
+                "<gradient:#00EE00>▇▉▉▇▆▅▃▂▁▁▂▃▅▆</gradient:#00BB00>",
+                "<gradient:#00DD00>▅▆▇▉▉▇▆▅▃▂▁▁▂▃</gradient:#00CC00>",
+                "<gradient:#00BB00>▂▃▅▆▇▉▉▇▆▅▃▂▁▁</gradient:#00DD00>"
+        )),
+        BOX(Arrays.asList(
+                "&#00DD00▮&0▯▯▯▯▯▯▯▯▯",
+                "&0▯&#00DD00▮&0▯▯▯▯▯▯▯▯",
+                "&0▯▯&#00DD00▮&0▯▯▯▯▯▯▯",
+                "&0▯▯▯&#00DD00▮&0▯▯▯▯▯▯",
+                "&0▯▯▯▯&#00DD00▮&0▯▯▯▯▯",
+                "&0▯▯▯▯▯&#00DD00▮&0▯▯▯▯",
+                "&0▯▯▯▯▯▯&#00DD00▮&0▯▯▯",
+                "&0▯▯▯▯▯▯▯&#00DD00▮&0▯▯",
+                "&0▯▯▯▯▯▯▯▯&#00DD00▮&0▯",
+                "&0▯▯▯▯▯▯▯▯▯&#00DD00▮",
+                "&0▯▯▯▯▯▯▯▯&#00DD00▮&0▯",
+                "&0▯▯▯▯▯▯▯&#00DD00▮&0▯▯",
+                "&0▯▯▯▯▯▯&#00DD00▮&0▯▯▯",
+                "&0▯▯▯▯▯&#00DD00▮&0▯▯▯▯",
+                "&0▯▯▯▯&#00DD00▮&0▯▯▯▯▯",
+                "&0▯▯▯&#00DD00▮&0▯▯▯▯▯▯",
+                "&0▯▯&#00DD00▮&0▯▯▯▯▯▯▯",
+                "&0▯&#00DD00▮&0▯▯▯▯▯▯▯▯"
+        ))
+        ;
+        private final List<String> frames;
+        LoadingBar(List<String> frames) {
+            this.frames = frames;
+        }
+
+        public static LoadingBar getRandom() {
+            LoadingBar[] values = LoadingBar.values();
+            return values[new Random().nextInt(values.length)];
+        }
+    }
 
     private final UUID instanceId;
     private final String floorId;
@@ -149,6 +182,7 @@ public class FloorInstance {
 
         AtomicInteger timerDelay = new AtomicInteger(0);
         AtomicInteger currentLoad = new AtomicInteger(0);
+        List<String> loadingBar = LoadingBar.getRandom().getFrames();
 
         new BukkitRunnable() {
             private final long startTime = System.currentTimeMillis();
@@ -157,8 +191,8 @@ public class FloorInstance {
             @Override
             public void run() {
                 Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
-                    Titles.sendTitle(player, 0, 3, 0, " ", ChatUtil.translate(LOADING.get(currentLoad.get())));
-                    if(currentLoad.get() +1 >= LOADING.size()) {
+                    Titles.sendTitle(player, 0, 3, 0, " ", ChatUtil.translate(loadingBar.get(currentLoad.get())));
+                    if(currentLoad.get() +1 >= loadingBar.size()) {
                         currentLoad.set(0);
                         return;
                     }
