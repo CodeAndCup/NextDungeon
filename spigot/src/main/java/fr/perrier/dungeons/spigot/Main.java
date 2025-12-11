@@ -133,10 +133,6 @@ public final class Main extends JavaPlugin {
 
         databaseManager = DatabaseFactory.createDatabase();
 
-        // Migrate legacy .dungeon files to database
-        getLogger().info("Vérification des fichiers .dungeon à migrer...");
-        fr.perrier.dungeons.spigot.manager.DungeonFileManager.migrateAllLegacyFiles();
-
         // Load Dungeons
         ConfigLoader.loadAllDungeons();
 
