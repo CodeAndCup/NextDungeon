@@ -57,12 +57,11 @@ public class CloudNetProvider implements InstanceProvider {
     }
 
     @Override
-    public CompletableFuture<UUID> createInstance(FloorInstance floorInstance, boolean editMode) {
+    public CompletableFuture<UUID> createInstance(Floor floor, boolean editMode) {
         CompletableFuture<UUID> future = new CompletableFuture<>();
 
         Bukkit.getScheduler().runTaskAsynchronously(Main.getInstance(), () -> {
             try {
-                Floor floor = floorInstance.getFloor();
                 String templateName = floor.getId();
 
                 CloudServiceFactory cloudService = InjectionLayer.boot().instance(CloudServiceFactory.class);
@@ -77,7 +76,7 @@ public class CloudNetProvider implements InstanceProvider {
                 ServiceConfiguration config = ServiceConfiguration.builder(serviceTask)
                         .writeProperty(DocProperty.property("editMode", boolean.class), editMode)
                         .writeProperty(DocProperty.property("isDungeonInstance", boolean.class), true)
-                        .writeProperty(DocProperty.property("floorId", String.class), floorInstance.getFloorId())
+                        .writeProperty(DocProperty.property("floorId", String.class), floor.getId())
                         .writeProperty(DocProperty.property("createdAt", String.class), Instant.now().toString())
                         .build();
 

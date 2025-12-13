@@ -30,13 +30,13 @@ public class ServerUtil {
     /**
      * Create a cloud service instance for the given floor instance and start it asynchronously.
      *
-     * @param floorInstance the floor instance to create the service for
+     * @param floor the floor to create the service for
      * @return the unique id of the created service or null if the creation failed
      */
-    public static UUID makeFloorInstance(FloorInstance floorInstance, boolean editMode) {
+    public static UUID makeFloorInstance(Floor floor, boolean editMode) {
         try {
             // Utilisation synchrone pour compatibilité avec le code existant
-            return getProvider().createInstance(floorInstance, editMode).get();
+            return getProvider().createInstance(floor, editMode).get();
         } catch (Exception e) {
             Main.getInstance().getLogger().severe("Erreur lors de la création de l'instance: " + e.getMessage());
             return null;
@@ -46,12 +46,12 @@ public class ServerUtil {
     /**
      * Create a cloud service instance asynchronously.
      *
-     * @param floorInstance the floor instance to create the service for
+     * @param floor the floor to create the service for
      * @param editMode whether to create in edit mode
      * @return CompletableFuture with the instance UUID
      */
-    public static CompletableFuture<UUID> makeFloorInstanceAsync(FloorInstance floorInstance, boolean editMode) {
-        return getProvider().createInstance(floorInstance, editMode);
+    public static CompletableFuture<UUID> makeFloorInstanceAsync(Floor floor, boolean editMode) {
+        return getProvider().createInstance(floor, editMode);
     }
 
     /**

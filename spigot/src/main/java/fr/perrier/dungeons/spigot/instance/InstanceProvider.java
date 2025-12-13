@@ -28,11 +28,11 @@ public interface InstanceProvider {
     /**
      * Crée une nouvelle instance pour un étage de donjon.
      *
-     * @param floorInstance l'instance de l'étage à créer
+     * @param floor l'étage pour lequel créer l'instance
      * @param editMode true si l'instance doit être créée en mode édition
      * @return CompletableFuture contenant l'UUID de l'instance créée, ou null si échec
      */
-    CompletableFuture<UUID> createInstance(FloorInstance floorInstance, boolean editMode);
+    CompletableFuture<UUID> createInstance(Floor floor, boolean editMode);
 
     /**
      * Supprime une instance de donjon.

@@ -106,12 +106,11 @@ public class ASPProvider implements InstanceProvider {
     }
 
     @Override
-    public CompletableFuture<UUID> createInstance(FloorInstance floorInstance, boolean editMode) {
+    public CompletableFuture<UUID> createInstance(Floor floor, boolean editMode) {
         CompletableFuture<UUID> future = new CompletableFuture<>();
 
         Bukkit.getScheduler().runTaskAsynchronously(Main.getInstance(), () -> {
             try {
-                Floor floor = floorInstance.getFloor();
                 UUID instanceId = UUID.randomUUID();
                 String worldName = generateWorldName(floor.getId(), instanceId);
 
