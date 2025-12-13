@@ -2,6 +2,16 @@ package fr.perrier.dungeons.spigot;
 
 import com.alessiodp.parties.api.Parties;
 import com.alessiodp.parties.api.interfaces.PartiesAPI;
+import com.github.juliarn.npclib.api.NpcActionController;
+import com.github.juliarn.npclib.api.NpcTracker;
+import com.github.juliarn.npclib.api.Platform;
+import com.github.juliarn.npclib.api.event.manager.NpcEventManager;
+import com.github.juliarn.npclib.api.log.PlatformLogger;
+import com.github.juliarn.npclib.api.profile.ProfileResolver;
+import com.github.juliarn.npclib.bukkit.BukkitPlatform;
+import com.github.juliarn.npclib.bukkit.BukkitVersionAccessor;
+import com.github.juliarn.npclib.bukkit.BukkitWorldAccessor;
+import com.github.juliarn.npclib.bukkit.protocol.BukkitProtocolAdapter;
 import fr.perrier.cupcodeapi.CupCodeAPI;
 import fr.perrier.cupcodeapi.commands.CommandHandler;
 import fr.perrier.cupcodeapi.menuapi.MenuAPI;
@@ -16,6 +26,7 @@ import fr.perrier.dungeons.spigot.instance.InstanceInfo;
 import fr.perrier.dungeons.spigot.listener.dungeons.InstanceJoinListener;
 import fr.perrier.dungeons.spigot.listener.dungeons.InstanceMobKillListener;
 import fr.perrier.dungeons.spigot.listener.dungeons.InstancePlayerDeathListener;
+import fr.perrier.dungeons.spigot.listener.dungeons.ReviveItemListener;
 import fr.perrier.dungeons.spigot.listener.editor.EditorJoinListener;
 import fr.perrier.dungeons.spigot.listener.global.GlobalJoinListener;
 import fr.perrier.dungeons.spigot.listener.global.GlobalLeaveListener;
@@ -33,6 +44,10 @@ import fr.perrier.dungeons.spigot.webserver.DungeonWebEditorManager;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Bukkit;
+import org.bukkit.World;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.redisson.Redisson;
@@ -57,6 +72,7 @@ public final class Main extends JavaPlugin {
     private CommandHandler commandHandler;
     private MenuAPI menuAPI;
     private GhostFactory ghostFactory;
+    private Platform<World, Player, ItemStack, Plugin> npcLibPlatform;
 
     // Plugin packets pub/sub and sync storage
     private Pidgin messaging;
@@ -135,6 +151,22 @@ public final class Main extends JavaPlugin {
         // Load Dungeons
         ConfigLoader.loadAllDungeons();
 
+        // Enabling other plugins API
+        CupCodeAPI.enable(this);
+        menuAPI = new MenuAPI(this);
+        partiesAPI = Parties.getApi();
+        ghostFactory = new GhostFactory();
+        npcLibPlatform = BukkitPlatform.bukkitNpcPlatformBuilder()
+                .extension(this)
+                .debug(true)
+                .actionController(builder -> builder
+                        .flag(NpcActionController.SPAWN_DISTANCE, 60)
+                        .flag(NpcActionController.IMITATE_DISTANCE, 30)
+                )
+                .worldAccessor(BukkitWorldAccessor.nameBasedAccessor())
+                .packetFactory(BukkitProtocolAdapter.packetEvents())
+                .build();
+
         // Initialize server based on type
         if (ServerUtil.isInstanceServer()) {
             if(ServerUtil.isInEditMode()) {
@@ -145,12 +177,6 @@ public final class Main extends JavaPlugin {
         } else {
             initializeLobbyServer();
         }
-
-        // Enabling other plugins API
-        CupCodeAPI.enable(this);
-        menuAPI = new MenuAPI(this);
-        partiesAPI = Parties.getApi();
-        ghostFactory = new GhostFactory();
 
         // Enabling messaging system
         this.messaging = new Pidgin(Main.getInstance().getConfig().getString("RedisConfiguration.topic"));
@@ -208,6 +234,7 @@ public final class Main extends JavaPlugin {
         CupCodeAPI.disable();
         Pidgin.shutdown();
         webEditorManager.shutdownAllEditors();
+        ghostFactory.close();
         
         // Arrêter le pont de communication proxy
         if (proxyBridge != null) {
@@ -256,6 +283,7 @@ public final class Main extends JavaPlugin {
         pluginManager.registerEvents(new InstanceJoinListener(), this);
         pluginManager.registerEvents(new InstanceMobKillListener(), this);
         pluginManager.registerEvents(new InstancePlayerDeathListener(), this);
+        pluginManager.registerEvents(new ReviveItemListener(), this);
     }
 
     /**

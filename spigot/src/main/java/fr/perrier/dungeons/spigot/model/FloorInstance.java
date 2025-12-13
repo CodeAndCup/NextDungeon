@@ -191,7 +191,7 @@ public class FloorInstance {
             @Override
             public void run() {
                 Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
-                    Titles.sendTitle(player, 0, 3, 0, " ", ChatUtil.translate(loadingBar.get(currentLoad.get())));
+                    Titles.sendTitle(player, 0, 3, 0, ChatUtil.translate("&f" + ChatUtil.toSmallCaps("Loading Dungeon..")), ChatUtil.translate(loadingBar.get(currentLoad.get())));
                     if(currentLoad.get() +1 >= loadingBar.size()) {
                         currentLoad.set(0);
                         return;
