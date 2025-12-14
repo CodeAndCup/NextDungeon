@@ -46,8 +46,15 @@ public class NextDungeonBungee extends Plugin {
         
         // Démarrer le serveur web centralisé avec le port configuré
         webEditorServer = new ProxyWebEditorServer(webEditorPort);
+        
+        // Initialiser le tableau de bord avec le client Redisson
+        if (messaging != null) {
+            webEditorServer.initializeDashboard(messaging.getClient());
+        }
+        
         if (webEditorServer.startServer()) {
             getLogger().info("✅ Serveur web éditeur centralisé démarré sur le port " + webEditorPort);
+            getLogger().info("📊 Dashboard disponible sur http://localhost:" + webEditorPort + "/dashboard");
         } else {
             getLogger().severe("❌ Impossible de démarrer le serveur web éditeur");
         }
