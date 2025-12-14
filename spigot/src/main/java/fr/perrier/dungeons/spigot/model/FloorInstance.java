@@ -3,11 +3,12 @@ package fr.perrier.dungeons.spigot.model;
 import com.cryptomorin.xseries.messages.Titles;
 import fr.perrier.cupcodeapi.utils.ChatUtil;
 import fr.perrier.cupcodeapi.utils.TimeUtil;
+import fr.perrier.dungeons.common.model.dungeon.config.FloorInstanceData;
+import fr.perrier.dungeons.common.model.player.PlayerStats;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.parties.DungeonParty;
 import fr.perrier.dungeons.spigot.utils.ServerUtil;
 import lombok.Getter;
-import lombok.Setter;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -17,7 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 @Getter
-public class FloorInstance {
+public class FloorInstance extends FloorInstanceData {
 
     @Getter
     private enum LoadingBar {
@@ -67,16 +68,9 @@ public class FloorInstance {
         }
     }
 
-    private final UUID instanceId;
-    private final String floorId;
-    private boolean ready;
-
-    private final HashMap<UUID, PlayerStats> playerStats = new HashMap<>();
-    private final HashMap<UUID, Integer> playerCurrentLives = new HashMap<>();
-
     private FloorInstance(String floorId, boolean editMode) {
-        this.floorId = floorId;
-        this.instanceId = generateFloorServer(Floor.getFloor(floorId),editMode);
+        super(floorId);
+        this.instanceId = generateFloorServer(getFloor(), editMode);
         this.ready = false;
 
         Main.getInstance().getRedisStorageService().syncInstance(this);
@@ -271,35 +265,6 @@ public class FloorInstance {
         }, 20L * 30);
     }
 
-    @Getter
-    @Setter
-    public static class PlayerStats {
-        private final UUID playerId;
-        private int enemiesKilled;
-        private int deaths;
-        private long startTime;
-
-        public PlayerStats(UUID playerId) {
-            this.playerId = playerId;
-            this.enemiesKilled = 0;
-            this.deaths = 0;
-            this.startTime = System.currentTimeMillis();
-        }
-
-        /**
-         * Increments the count of enemies killed by the player.
-         */
-        public void incrementEnemiesKilled() {
-            this.enemiesKilled++;
-        }
-
-        /**
-         * Increments the count of deaths for the player.
-         */
-        public void incrementDeaths() {
-            this.deaths++;
-        }
-    }
 
 
     /**

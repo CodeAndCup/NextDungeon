@@ -1,5 +1,6 @@
 package fr.perrier.dungeons.spigot.manager;
 
+import fr.perrier.dungeons.common.workflow.trigger.TriggerData;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.workflow.trigger.Trigger;
 import fr.perrier.dungeons.spigot.workflow.trigger.handler.TriggerEventHandler;
@@ -84,9 +85,14 @@ public class GlobalTriggerManager implements Listener {
         triggersByEventType.clear();
 
         try {
-            List<Trigger> allTriggers = Main.getInstance().getRedisStorageService().getCurrentFloor().get().getTriggers();
+            List<TriggerData> allTriggers = Main.getInstance().getRedisStorageService().getCurrentFloor().get().getTriggers();
 
-            for (Trigger trigger : allTriggers) {
+            for (TriggerData triggerData : allTriggers) {
+                if( !(triggerData instanceof Trigger trigger)) {
+                    Main.getInstance().getLogger().warning("TriggerData non valide dans le cache: " + triggerData.getName());
+                    continue;
+                }
+
                 if (!trigger.isEnabled()) continue;
 
                 // Cache par type de trigger

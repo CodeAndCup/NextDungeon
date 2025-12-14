@@ -1,5 +1,6 @@
 package fr.perrier.dungeons.spigot.manager;
 
+import fr.perrier.dungeons.common.workflow.trigger.TriggerData;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.workflow.trigger.Trigger;
 
@@ -15,7 +16,7 @@ public class DungeonFileManager {
     /**
      * Sauvegarde les triggers d'un floor dans la base de données
      */
-    public static CompletableFuture<Boolean> saveTriggers(String floorId, List<Trigger> triggers) {
+    public static CompletableFuture<Boolean> saveTriggers(String floorId, List<TriggerData> triggers) {
         return Main.getInstance().getDatabaseManager()
                 .saveTriggers(floorId, triggers)
                 .thenApply(v -> {
@@ -32,10 +33,10 @@ public class DungeonFileManager {
     /**
      * Charge les triggers d'un floor depuis la base de données
      */
-    public static List<Trigger> loadTriggers(String floorId) {
+    public static List<TriggerData> loadTriggers(String floorId) {
         try {
-            CompletableFuture<List<Trigger>> future = Main.getInstance().getDatabaseManager().loadTriggers(floorId);
-            List<Trigger> triggers = future.join();
+            CompletableFuture<List<TriggerData>> future = Main.getInstance().getDatabaseManager().loadTriggers(floorId);
+            List<TriggerData> triggers = future.join();
 
             if (triggers != null && !triggers.isEmpty()) {
                 Main.getInstance().getLogger().info("Triggers chargés pour " + floorId + " (" + triggers.size() + " triggers)");

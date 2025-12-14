@@ -1,4 +1,4 @@
-package fr.perrier.dungeons.spigot.configuration;
+package fr.perrier.dungeons.common.model.dungeon.config;
 
 import lombok.Getter;
 import lombok.Setter;

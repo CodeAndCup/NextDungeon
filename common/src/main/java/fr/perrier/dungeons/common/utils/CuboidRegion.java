@@ -1,4 +1,4 @@
-package fr.perrier.dungeons.spigot.utils;
+package fr.perrier.dungeons.common.utils;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

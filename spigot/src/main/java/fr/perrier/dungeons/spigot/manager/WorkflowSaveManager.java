@@ -1,6 +1,8 @@
 package fr.perrier.dungeons.spigot.manager;
 
 import fr.perrier.cupcodeapi.utils.ChatUtil;
+import fr.perrier.dungeons.common.workflow.action.ActionData;
+import fr.perrier.dungeons.common.workflow.trigger.TriggerData;
 import fr.perrier.dungeons.spigot.model.Floor;
 import fr.perrier.dungeons.spigot.workflow.action.Action;
 import fr.perrier.dungeons.spigot.workflow.action.impl.*;
@@ -43,7 +45,7 @@ public class WorkflowSaveManager {
             JsonArray triggersArray = data.getAsJsonArray("triggers");
 
             // Convertir en objets Trigger
-            List<Trigger> triggers = TriggerFactory.parseTriggersFromJson(triggersArray);
+            List<TriggerData> triggers = TriggerFactory.parseTriggersFromJson(triggersArray);
 
             Main.getInstance().getLogger().info("Number of triggers parsed: " + triggers.size());
 
@@ -75,8 +77,11 @@ public class WorkflowSaveManager {
                 editor.sendMessage(ChatUtil.translate("&7➤ Base de données: &e" + Main.getInstance().getConfig().getString("DatabaseConfiguration.type")));
 
                 // Détail des triggers
-                for (Trigger trigger : triggers) {
-                    editor.sendMessage(ChatUtil.translate("&8  • &f" + trigger.getName() + " &7(" + trigger.getType() + ")"));
+                for (TriggerData triggerData : triggers) {
+                    if(triggerData instanceof Trigger trigger)
+                        editor.sendMessage(ChatUtil.translate("&8  • &f" + trigger.getName() + " &7(" + trigger.getType() + ")"));
+                    else
+                        editor.sendMessage(ChatUtil.translate("&8  • &fUnknown Trigger Type"));
                 }
             }
 
@@ -101,12 +106,15 @@ public class WorkflowSaveManager {
      */
     public String loadTriggersAsJson(String dungeonName, String floorId) {
         try {
-            List<Trigger> triggers = Main.getInstance().getRedisStorageService().getCurrentFloor().get().getTriggers();
+            List<TriggerData> triggers = Main.getInstance().getRedisStorageService().getCurrentFloor().get().getTriggers();
 
             // Convertir en format JSON pour Blockly
             JsonArray triggersArray = new JsonArray();
 
-            for (Trigger trigger : triggers) {
+            for (TriggerData triggerData : triggers) {
+                if(!(triggerData instanceof Trigger trigger))
+                    continue;
+
                 JsonObject triggerObj = new JsonObject();
                 triggerObj.addProperty("id", trigger.getTriggerId().toString());
                 triggerObj.addProperty("type", trigger.getType());
@@ -116,12 +124,13 @@ public class WorkflowSaveManager {
                 addPropertyOfTrigger(triggerObj, trigger);
 
                 JsonArray actionsArray = new JsonArray();
-                for (Action action : trigger.getActions()) {
-                    JsonObject actionObj = new JsonObject();
-                    actionObj.addProperty("type", action.getType());
-                    actionObj.addProperty("name", action.getName());
+                for (ActionData actionData : trigger.getActions()) {
 
-                    addPropertyOfAction(actionObj, action);
+                    JsonObject actionObj = new JsonObject();
+                    actionObj.addProperty("type", actionData.getType());
+                    actionObj.addProperty("name", actionData.getName());
+
+                    addPropertyOfAction(actionObj, actionData);
 
                     actionsArray.add(actionObj);
                 }
@@ -169,71 +178,84 @@ public class WorkflowSaveManager {
         // Ajouter d'autres types de triggers ici
     }
 
-    private void addPropertyOfAction(JsonObject actionObj, Action action) {
-        if(action instanceof SendMessageAction sendAction) {
-            actionObj.addProperty("targetplayer", sendAction.getTargetPlayer());
-            actionObj.addProperty("message", sendAction.getMessage());
-        } else if (action instanceof SendTitleAction titleAction) {
-            actionObj.addProperty("targetplayer", titleAction.getTargetPlayer());
-            actionObj.addProperty("title", titleAction.getTitle());
-            actionObj.addProperty("subtitle", titleAction.getSubtitle());
-            actionObj.addProperty("fadein", titleAction.getFadeIn());
-            actionObj.addProperty("stay", titleAction.getStay());
-            actionObj.addProperty("fadeout", titleAction.getFadeOut());
+    private void addPropertyOfAction(JsonObject actionObj, ActionData actionData) {
+        if(!(actionData instanceof Action action)) {
+            Main.getInstance().getLogger().warning("Unknown ActionData type: " + actionData.getClass().getName());
+            return;
+        }
 
-        } else if (action instanceof TeleporterAction teleporterAction) {
-            actionObj.addProperty("targetplayer", teleporterAction.getTargetPlayer());
-            actionObj.addProperty("x", teleporterAction.getX());
-            actionObj.addProperty("y", teleporterAction.getY());
-            actionObj.addProperty("z", teleporterAction.getZ());
-            actionObj.addProperty("yaw", teleporterAction.getYaw());
-            actionObj.addProperty("pitch", teleporterAction.getPitch());
-            actionObj.addProperty("worldname", teleporterAction.getWorldName());
-        } else if (action instanceof CallFunctionAction functionAction) {
-            actionObj.addProperty("functionname", functionAction.getFunctionName());
-        } else if (action instanceof SetVariableAction setVariableAction) {
-            actionObj.addProperty("variablename", setVariableAction.getVariableName());
-            actionObj.addProperty("value", setVariableAction.getValue());
-            actionObj.addProperty("scope", setVariableAction.getScope());
-        } else if (action instanceof IfAction ifAction) {
-            actionObj.addProperty("operator", ifAction.getOperator());
-            actionObj.addProperty("leftvalue", ifAction.getLeftValue() != null ? ifAction.getLeftValue().toString() : "");
-            actionObj.addProperty("rightvalue", ifAction.getRightValue() != null ? ifAction.getRightValue().toString() : "");
-
-            JsonArray ifActionsArray = new JsonArray();
-            for (Action ifActions : ifAction.getIfActions()) {
-                JsonObject thenActionObj = new JsonObject();
-                thenActionObj.addProperty("type", ifActions.getType());
-                thenActionObj.addProperty("name", ifActions.getName());
-                addPropertyOfAction(thenActionObj, ifActions);
-                ifActionsArray.add(thenActionObj);
+        switch (action) {
+            case SendMessageAction sendAction -> {
+                actionObj.addProperty("targetplayer", sendAction.getTargetPlayer());
+                actionObj.addProperty("message", sendAction.getMessage());
             }
-            actionObj.add("ifactions", ifActionsArray);
-
-            JsonArray elseActionsArray = new JsonArray();
-            for (Action elseActions : ifAction.getElseActions()) {
-                JsonObject elseActionObj = new JsonObject();
-                elseActionObj.addProperty("type", elseActions.getType());
-                elseActionObj.addProperty("name", elseActions.getName());
-                addPropertyOfAction(elseActionObj, elseActions);
-                elseActionsArray.add(elseActionObj);
+            case SendTitleAction titleAction -> {
+                actionObj.addProperty("targetplayer", titleAction.getTargetPlayer());
+                actionObj.addProperty("title", titleAction.getTitle());
+                actionObj.addProperty("subtitle", titleAction.getSubtitle());
+                actionObj.addProperty("fadein", titleAction.getFadeIn());
+                actionObj.addProperty("stay", titleAction.getStay());
+                actionObj.addProperty("fadeout", titleAction.getFadeOut());
             }
-            actionObj.add("elseactions", elseActionsArray);
-        } else if (action instanceof SummonMobAction summonMobAction) {
-            actionObj.addProperty("mobtype", summonMobAction.getMobType());
-            actionObj.addProperty("x", summonMobAction.getX());
-            actionObj.addProperty("y", summonMobAction.getY());
-            actionObj.addProperty("z", summonMobAction.getZ());
-            actionObj.addProperty("worldname", summonMobAction.getWorldName());
-        } else if (action instanceof WorldEditSchematicAction schematicAction) {
-            actionObj.addProperty("filename", schematicAction.getFilename());
-            actionObj.addProperty("x", schematicAction.getX());
-            actionObj.addProperty("y", schematicAction.getY());
-            actionObj.addProperty("z", schematicAction.getZ());
-        } else if (action instanceof BroadcastCommandAction broadcastCommandAction) {
-            actionObj.addProperty("command", broadcastCommandAction.getCommand());
-        } else if (action instanceof DelayAction delayAction) {
-            actionObj.addProperty("ticks", delayAction.getTicks());
+            case TeleporterAction teleporterAction -> {
+                actionObj.addProperty("targetplayer", teleporterAction.getTargetPlayer());
+                actionObj.addProperty("x", teleporterAction.getX());
+                actionObj.addProperty("y", teleporterAction.getY());
+                actionObj.addProperty("z", teleporterAction.getZ());
+                actionObj.addProperty("yaw", teleporterAction.getYaw());
+                actionObj.addProperty("pitch", teleporterAction.getPitch());
+                actionObj.addProperty("worldname", teleporterAction.getWorldName());
+            }
+            case CallFunctionAction functionAction ->
+                    actionObj.addProperty("functionname", functionAction.getFunctionName());
+            case SetVariableAction setVariableAction -> {
+                actionObj.addProperty("variablename", setVariableAction.getVariableName());
+                actionObj.addProperty("value", setVariableAction.getValue());
+                actionObj.addProperty("scope", setVariableAction.getScope());
+            }
+            case IfAction ifAction -> {
+                actionObj.addProperty("operator", ifAction.getOperator());
+                actionObj.addProperty("leftvalue", ifAction.getLeftValue() != null ? ifAction.getLeftValue().toString() : "");
+                actionObj.addProperty("rightvalue", ifAction.getRightValue() != null ? ifAction.getRightValue().toString() : "");
+
+                JsonArray ifActionsArray = new JsonArray();
+                for (Action ifActions : ifAction.getIfActions()) {
+                    JsonObject thenActionObj = new JsonObject();
+                    thenActionObj.addProperty("type", ifActions.getType());
+                    thenActionObj.addProperty("name", ifActions.getName());
+                    addPropertyOfAction(thenActionObj, ifActions);
+                    ifActionsArray.add(thenActionObj);
+                }
+                actionObj.add("ifactions", ifActionsArray);
+
+                JsonArray elseActionsArray = new JsonArray();
+                for (Action elseActions : ifAction.getElseActions()) {
+                    JsonObject elseActionObj = new JsonObject();
+                    elseActionObj.addProperty("type", elseActions.getType());
+                    elseActionObj.addProperty("name", elseActions.getName());
+                    addPropertyOfAction(elseActionObj, elseActions);
+                    elseActionsArray.add(elseActionObj);
+                }
+                actionObj.add("elseactions", elseActionsArray);
+            }
+            case SummonMobAction summonMobAction -> {
+                actionObj.addProperty("mobtype", summonMobAction.getMobType());
+                actionObj.addProperty("x", summonMobAction.getX());
+                actionObj.addProperty("y", summonMobAction.getY());
+                actionObj.addProperty("z", summonMobAction.getZ());
+                actionObj.addProperty("worldname", summonMobAction.getWorldName());
+            }
+            case WorldEditSchematicAction schematicAction -> {
+                actionObj.addProperty("filename", schematicAction.getFilename());
+                actionObj.addProperty("x", schematicAction.getX());
+                actionObj.addProperty("y", schematicAction.getY());
+                actionObj.addProperty("z", schematicAction.getZ());
+            }
+            case BroadcastCommandAction broadcastCommandAction ->
+                    actionObj.addProperty("command", broadcastCommandAction.getCommand());
+            case DelayAction delayAction -> actionObj.addProperty("ticks", delayAction.getTicks());
+            default -> {
+            }
         }
         // Ajouter d'autres types d'actions ici
     }

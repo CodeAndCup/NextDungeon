@@ -2,10 +2,13 @@ package fr.perrier.dungeons.spigot.database;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import fr.perrier.dungeons.common.workflow.trigger.TriggerData;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.model.ProfileData;
 
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -316,7 +319,7 @@ public class MySQLManager implements DatabaseManager {
      * @return un CompletableFuture contenant la liste des triggers
      */
     @Override
-    public CompletableFuture<java.util.List<fr.perrier.dungeons.spigot.workflow.trigger.Trigger>> loadTriggers(String floorId) {
+    public CompletableFuture<List<TriggerData>> loadTriggers(String floorId) {
         return executeAsync(() -> {
             try {
                 return executeQuery(
@@ -332,7 +335,7 @@ public class MySQLManager implements DatabaseManager {
                 );
             } catch (SQLException e) {
                 Main.getInstance().getLogger().severe("&cError loading triggers for floor " + floorId + ": " + e.getMessage());
-                return new java.util.ArrayList<>();
+                return new ArrayList<>();
             }
         }, "Load triggers for " + floorId);
     }
@@ -344,7 +347,7 @@ public class MySQLManager implements DatabaseManager {
      * @return un CompletableFuture indiquant la fin de l'opération
      */
     @Override
-    public CompletableFuture<Void> saveTriggers(String floorId, java.util.List<fr.perrier.dungeons.spigot.workflow.trigger.Trigger> triggers) {
+    public CompletableFuture<Void> saveTriggers(String floorId, List<TriggerData> triggers) {
         return executeAsync(() -> {
             String json = TriggerSerializer.serializeTriggers(triggers);
             try (Connection conn = dataSource.getConnection();

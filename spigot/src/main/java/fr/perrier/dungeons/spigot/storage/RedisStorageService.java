@@ -1,5 +1,6 @@
 package fr.perrier.dungeons.spigot.storage;
 
+import fr.perrier.dungeons.common.model.dungeon.FloorData;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.model.Dungeon;
 import fr.perrier.dungeons.spigot.model.FloorInstance;
@@ -36,7 +37,7 @@ public class RedisStorageService {
     @Getter
     private RMap<String, Dungeon> dungeonsMap;
     @Getter
-    private RMap<String, Floor> floorsMap;
+    private RMap<String, FloorData> floorsMap;
     @Getter
     private RMap<UUID, FloorInstance> instancesMap;
 
@@ -85,14 +86,16 @@ public class RedisStorageService {
         currentInstance.set(instance);
 
         // Get and set floor
-        Floor floor = floorsMap.get(floorId);
-        if (floor == null) {
+        FloorData floorData = floorsMap.get(floorId);
+        if (floorData == null) {
             Main.getInstance().getLogger().severe(String.format(
                     "Could not find floor %s in Redis",
                     floorId
             ));
             return;
         }
+
+        Floor floor = new Floor(floorData);
 
         currentFloor.set(floor);
 
@@ -250,7 +253,7 @@ public class RedisStorageService {
             return localFloor;
         }
 
-        return floorsMap.get(id);
+        return new Floor(floorsMap.get(id));
     }
 
     /**

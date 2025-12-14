@@ -1,6 +1,6 @@
-package fr.perrier.dungeons.spigot.model;
+package fr.perrier.dungeons.common.model.dungeon;
 
-import fr.perrier.dungeons.spigot.utils.CuboidRegion;
+import fr.perrier.dungeons.common.utils.CuboidRegion;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;

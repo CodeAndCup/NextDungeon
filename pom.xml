@@ -6,8 +6,8 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>fr.perrier</groupId>
-    <artifactId>dungeons</artifactId>
-    <version>1.0.1-SNAPSHOT</version>
+    <artifactId>NextDungeon</artifactId>
+    <version>1.0.2-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>NextDungeon</name>
@@ -21,6 +21,7 @@
     </licenses>
 
     <modules>
+        <module>common</module>
         <module>spigot</module>
         <module>bungeecord</module>
         <module>velocity</module>

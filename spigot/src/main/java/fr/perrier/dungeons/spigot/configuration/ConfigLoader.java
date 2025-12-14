@@ -1,12 +1,15 @@
 package fr.perrier.dungeons.spigot.configuration;
 
 import fr.perrier.cupcodeapi.utils.TimeUtil;
+import fr.perrier.dungeons.common.model.dungeon.config.Requirements;
+import fr.perrier.dungeons.common.model.dungeon.config.Rules;
+import fr.perrier.dungeons.common.model.dungeon.config.WorldConfig;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.model.Dungeon;
 import fr.perrier.dungeons.spigot.model.Floor;
-import fr.perrier.dungeons.spigot.model.Step;
-import fr.perrier.dungeons.spigot.utils.CuboidRegion;
-import fr.perrier.dungeons.spigot.utils.Position;
+import fr.perrier.dungeons.common.model.dungeon.Step;
+import fr.perrier.dungeons.common.utils.CuboidRegion;
+import fr.perrier.dungeons.common.utils.Position;
 import org.bukkit.Difficulty;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;

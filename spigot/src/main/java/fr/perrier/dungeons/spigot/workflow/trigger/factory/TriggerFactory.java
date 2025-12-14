@@ -1,5 +1,6 @@
 package fr.perrier.dungeons.spigot.workflow.trigger.factory;
 
+import fr.perrier.dungeons.common.workflow.trigger.TriggerData;
 import fr.perrier.dungeons.spigot.workflow.action.factory.ActionFactory;
 import fr.perrier.dungeons.spigot.workflow.trigger.Trigger;
 import fr.perrier.dungeons.spigot.workflow.trigger.impl.FunctionTrigger;
@@ -92,12 +93,12 @@ public class TriggerFactory {
         return trigger;
     }
 
-    public static List<Trigger> parseTriggersFromJson(JsonArray triggersArray) {
-        List<Trigger> triggers = new ArrayList<>();
+    public static List<TriggerData> parseTriggersFromJson(JsonArray triggersArray) {
+        List<TriggerData> triggers = new ArrayList<>();
 
         for (JsonElement element : triggersArray) {
             if (element.isJsonObject()) {
-                Trigger trigger = createTriggerFromJson(element.getAsJsonObject());
+                TriggerData trigger = createTriggerFromJson(element.getAsJsonObject());
                 if (trigger != null) {
                     triggers.add(trigger);
                     if(trigger instanceof FunctionTrigger functionTrigger) {

@@ -7,10 +7,10 @@
 
     <parent>
         <groupId>fr.perrier</groupId>
-        <artifactId>dungeons</artifactId>
-        <version>1.0.1-SNAPSHOT</version>
+        <artifactId>NextDungeon</artifactId>
+        <version>1.0.2-SNAPSHOT</version>
     </parent>
-    <artifactId>dungeons-bungeecord</artifactId>
+    <artifactId>NextDungeon-BungeeCord</artifactId>
     <packaging>jar</packaging>
 
     <name>NextDungeon BungeeCord</name>
@@ -63,6 +63,13 @@
             <artifactId>redisson</artifactId>
             <version>3.22.0</version>
             <scope>compile</scope>
+        </dependency>
+
+        <!-- Common module -->
+        <dependency>
+            <groupId>fr.perrier</groupId>
+            <artifactId>NextDungeon-Common</artifactId>
+            <version>1.0.2-SNAPSHOT</version>
         </dependency>
     </dependencies>
 

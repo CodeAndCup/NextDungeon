@@ -12,6 +12,7 @@ import com.mojang.authlib.GameProfile;
 import fr.perrier.cupcodeapi.utils.ChatUtil;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.model.FloorInstance;
+import fr.perrier.dungeons.common.model.player.PlayerStats;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -235,7 +236,7 @@ public class InstancePlayerDeathListener implements Listener {
     private void applyDeathTo(Player player) {
         FloorInstance instance = Main.getInstance().getRedisStorageService().getCurrentInstance().get();
 
-        FloorInstance.PlayerStats stats = instance.getPlayerStats().get(player.getUniqueId());
+        PlayerStats stats = instance.getPlayerStats().get(player.getUniqueId());
         if(stats != null) {
             stats.incrementDeaths();
         }

@@ -3,6 +3,7 @@ package fr.perrier.dungeons.spigot.database;
 import com.mongodb.*;
 import com.mongodb.MongoClient;
 import com.mongodb.client.*;
+import fr.perrier.dungeons.common.workflow.trigger.TriggerData;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.model.ProfileData;
 import fr.perrier.dungeons.spigot.workflow.trigger.Trigger;
@@ -100,7 +101,7 @@ public class MongoManager implements DatabaseManager {
      * @return un CompletableFuture contenant la liste des triggers
      */
     @Override
-    public CompletableFuture<List<Trigger>> loadTriggers(String floorId) {
+    public CompletableFuture<List<TriggerData>> loadTriggers(String floorId) {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 Document query = new Document("floor_id", floorId);
@@ -108,7 +109,7 @@ public class MongoManager implements DatabaseManager {
 
                 if (result != null && result.containsKey("triggers_data")) {
                     String json = result.getString("triggers_data");
-                    List<Trigger> triggers = TriggerSerializer.deserializeTriggers(json);
+                    List<TriggerData> triggers = TriggerSerializer.deserializeTriggers(json);
                     Main.getInstance().getLogger().info("Triggers chargés pour " + floorId + " (" + triggers.size() + " triggers)");
                     return triggers;
                 }
@@ -130,7 +131,7 @@ public class MongoManager implements DatabaseManager {
      * @return un CompletableFuture indiquant la fin de l'opération
      */
     @Override
-    public CompletableFuture<Void> saveTriggers(String floorId, List<Trigger> triggers) {
+    public CompletableFuture<Void> saveTriggers(String floorId, List<TriggerData> triggers) {
         return CompletableFuture.runAsync(() -> {
             try {
                 String json = TriggerSerializer.serializeTriggers(triggers);

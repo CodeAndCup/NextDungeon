@@ -3,6 +3,7 @@ package fr.perrier.dungeons.spigot.commands;
 import fr.perrier.cupcodeapi.commands.annotations.Command;
 import fr.perrier.cupcodeapi.commands.annotations.Param;
 import fr.perrier.cupcodeapi.utils.ChatUtil;
+import fr.perrier.dungeons.common.model.dungeon.FloorData;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.menu.dungeon.DungeonGateMenu;
 import fr.perrier.dungeons.spigot.model.FloorInstance;
@@ -40,8 +41,8 @@ public class DebugCommands {
     public static void debugDungeonListFloorsCommand(Player player) {
         player.sendMessage(ChatUtil.getBar());
         player.sendMessage(ChatUtil.translate("&6Floors:"));
-        for (Floor floor : Main.getInstance().getRedisStorageService().getFloorsMap().values()) {
-            player.sendMessage(ChatUtil.translate("  &8- &e" + floor.getName() + " &8(&7&o" + floor.getId() + "&8)"));
+        for (FloorData floorData : Main.getInstance().getRedisStorageService().getFloorsMap().values()) {
+            player.sendMessage(ChatUtil.translate("  &8- &e" + floorData.getName() + " &8(&7&o" + floorData.getId() + "&8)"));
         }
         player.sendMessage(ChatUtil.getBar());
     }

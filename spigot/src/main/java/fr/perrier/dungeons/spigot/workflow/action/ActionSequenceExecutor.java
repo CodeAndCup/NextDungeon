@@ -1,5 +1,6 @@
 package fr.perrier.dungeons.spigot.workflow.action;
 
+import fr.perrier.dungeons.common.workflow.action.ActionData;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.workflow.action.impl.DelayAction;
 import org.bukkit.Bukkit;
@@ -13,13 +14,13 @@ import java.util.Map;
  * Exécuteur séquentiel asynchrone pour les actions d'un trigger
  */
 public class ActionSequenceExecutor {
-    private final List<Action> actions;
+    private final List<ActionData> actions;
     private final Player player;
     private final Location location;
     private final Map<String, Object> data;
     private int index = 0;
 
-    public ActionSequenceExecutor(List<Action> actions, Player player, Location location, Map<String, Object> data) {
+    public ActionSequenceExecutor(List<ActionData> actions, Player player, Location location, Map<String, Object> data) {
         this.actions = actions;
         this.player = player;
         this.location = location;
@@ -33,14 +34,17 @@ public class ActionSequenceExecutor {
         if (index >= actions.size()) {
             return;
         }
-        Action action = actions.get(index);
+        ActionData actionData = actions.get(index);
         index++;
         try {
-            if (action instanceof DelayAction delayAction) {
+            if (actionData instanceof DelayAction delayAction) {
                 int ticks = delayAction.getTicks();
                 Bukkit.getScheduler().runTaskLater(Main.getInstance(), this::executeNext, Math.max(1, ticks));
-            } else {
+            } else if(actionData instanceof Action action) {
                 action.execute(player, location, data);
+                executeNext();
+            } else {
+                Main.getInstance().getLogger().warning("Action inconnue de type: " + actionData.getClass().getName());
                 executeNext();
             }
         } catch (Exception e) {

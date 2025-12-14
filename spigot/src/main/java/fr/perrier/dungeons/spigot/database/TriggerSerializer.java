@@ -1,6 +1,7 @@
 package fr.perrier.dungeons.spigot.database;
 
 import com.google.gson.*;
+import fr.perrier.dungeons.common.workflow.trigger.TriggerData;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.workflow.action.Action;
 import fr.perrier.dungeons.spigot.workflow.trigger.Trigger;
@@ -26,16 +27,16 @@ public class TriggerSerializer {
      * @param triggers la liste de triggers à sérialiser
      * @return la chaîne JSON représentant les triggers
      */
-    public static String serializeTriggers(List<Trigger> triggers) {
+    public static String serializeTriggers(List<TriggerData> triggers) {
         if (triggers == null) {
             return "[]";
         }
 
         // Forcer la sérialisation avec le type Trigger pour que l'adaptateur soit utilisé
         JsonArray jsonArray = new JsonArray();
-        for (Trigger trigger : triggers) {
+        for (TriggerData trigger : triggers) {
             if (trigger != null) {
-                JsonElement serialized = gson.toJsonTree(trigger, Trigger.class);
+                JsonElement serialized = gson.toJsonTree(trigger, TriggerData.class);
                 jsonArray.add(serialized);
             }
         }
@@ -48,18 +49,18 @@ public class TriggerSerializer {
      * @param json la chaîne JSON à désérialiser
      * @return la liste de triggers désérialisée
      */
-    public static List<Trigger> deserializeTriggers(String json) {
+    public static List<TriggerData> deserializeTriggers(String json) {
         if (json == null || json.trim().isEmpty() || json.equals("[]")) {
             return new ArrayList<>();
         }
 
         try {
             JsonArray jsonArray = JsonParser.parseString(json).getAsJsonArray();
-            List<Trigger> triggers = new ArrayList<>();
+            List<TriggerData> triggers = new ArrayList<>();
 
             for (JsonElement element : jsonArray) {
                 try {
-                    Trigger trigger = gson.fromJson(element, Trigger.class);
+                    TriggerData trigger = gson.fromJson(element, Trigger.class);
                     if (trigger != null) {
                         triggers.add(trigger);
                     }

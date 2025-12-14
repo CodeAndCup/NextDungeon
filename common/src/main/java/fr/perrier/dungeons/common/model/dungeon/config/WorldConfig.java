@@ -1,6 +1,6 @@
-package fr.perrier.dungeons.spigot.configuration;
+package fr.perrier.dungeons.common.model.dungeon.config;
 
-import fr.perrier.dungeons.spigot.utils.Position;
+import fr.perrier.dungeons.common.utils.Position;
 import lombok.Getter;
 
 @Getter
