@@ -1,6 +1,7 @@
 package fr.perrier.dungeons.spigot.storage;
 
 import fr.perrier.dungeons.common.model.dungeon.FloorData;
+import fr.perrier.dungeons.common.model.dungeon.config.FloorInstanceData;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.model.Dungeon;
 import fr.perrier.dungeons.spigot.model.FloorInstance;
@@ -39,7 +40,7 @@ public class RedisStorageService {
     @Getter
     private RMap<String, FloorData> floorsMap;
     @Getter
-    private RMap<UUID, FloorInstance> instancesMap;
+    private RMap<UUID, FloorInstanceData> instancesMap;
 
     private RTopic syncTopic;
 
@@ -73,14 +74,16 @@ public class RedisStorageService {
      */
     public void initializeInstance(UUID instanceId, String floorId) {
         // Get instance from Redis
-        FloorInstance instance = instancesMap.get(instanceId);
-        if (instance == null) {
+        FloorInstanceData instanceData = instancesMap.get(instanceId);
+        if (instanceData == null) {
             Main.getInstance().getLogger().severe(String.format(
                     "Could not find instance %s in Redis",
                     instanceId
             ));
             return;
         }
+
+        FloorInstance instance = new FloorInstance(instanceData);
 
         // Set current instance
         currentInstance.set(instance);
@@ -268,7 +271,12 @@ public class RedisStorageService {
             return localInstance;
         }
 
-        return instancesMap.get(id);
+        localInstance = new FloorInstance(instancesMap.get(id));
+        if (localInstance.getInstanceId() != null && localInstance.getInstanceId().equals(id)) {
+            return localInstance;
+        }
+
+        throw new IllegalArgumentException("Instance not found: " + id);
     }
 
     /**
@@ -295,11 +303,13 @@ public class RedisStorageService {
      * @param instanceId the ID of the instance to remove
      */
     public void removeInstance(UUID instanceId) {
-        FloorInstance instance = instancesMap.get(instanceId);
-        if (instance == null) {
+        FloorInstanceData instanceData = instancesMap.get(instanceId);
+        if (instanceData == null) {
             Main.getInstance().getLogger().warning(String.format("Tried to remove non-existent instance: %s", instanceId));
             return;
         }
+
+        FloorInstance instance = new FloorInstance(instanceData);
 
         // Create removal message
         RedisMessage<FloorInstance> message = RedisMessage.create(

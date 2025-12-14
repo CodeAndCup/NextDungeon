@@ -25,4 +25,14 @@ public class FloorInstanceData {
         this.floorId = floorId;
         this.ready = false;
     }
+
+    /**
+     * Gets the name of this instance.
+     * <p>
+     * The name is in the format of {@code <floorId>_<instanceId>}.
+     * @return the name of this instance
+     */
+    public String getInstanceName() {
+        return floorId + "_" + instanceId.toString();
+    }
 }

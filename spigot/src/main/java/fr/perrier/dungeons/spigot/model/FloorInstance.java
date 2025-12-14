@@ -76,6 +76,13 @@ public class FloorInstance extends FloorInstanceData {
         Main.getInstance().getRedisStorageService().syncInstance(this);
     }
 
+    public FloorInstance(FloorInstanceData floorInstanceData) {
+        super(floorInstanceData.getInstanceId(), floorInstanceData.getFloorId());
+        this.ready = floorInstanceData.isReady();
+        this.playerStats.putAll(floorInstanceData.getPlayerStats());
+        this.playerCurrentLives.putAll(floorInstanceData.getPlayerCurrentLives());
+    }
+
     public static void generateNewInstanceAsync(String floorId, boolean editMode, Consumer<FloorInstance> callback) {
         Bukkit.getScheduler().runTaskAsynchronously(Main.getInstance(), () -> {
             FloorInstance floorInstance = new FloorInstance(floorId, editMode);
@@ -96,16 +103,6 @@ public class FloorInstance extends FloorInstanceData {
      */
     private UUID generateFloorServer(Floor floor, boolean editMode) {
         return ServerUtil.makeFloorInstance(floor,editMode);
-    }
-
-    /**
-     * Gets the name of this instance.
-     * <p>
-     * The name is in the format of {@code <floorId>_<instanceId>}.
-     * @return the name of this instance
-     */
-    public String getInstanceName() {
-        return floorId + "_" + instanceId.toString();
     }
 
     /**
