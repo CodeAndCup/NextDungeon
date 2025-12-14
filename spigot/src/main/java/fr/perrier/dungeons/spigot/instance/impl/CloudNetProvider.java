@@ -1,0 +1,444 @@
+package fr.perrier.dungeons.spigot.instance.impl;
+
+import eu.cloudnetservice.driver.document.property.DocProperty;
+import eu.cloudnetservice.driver.inject.InjectionLayer;
+import eu.cloudnetservice.driver.provider.CloudServiceFactory;
+import eu.cloudnetservice.driver.provider.CloudServiceProvider;
+import eu.cloudnetservice.driver.provider.ServiceTaskProvider;
+import eu.cloudnetservice.driver.service.*;
+import eu.cloudnetservice.driver.template.TemplateStorage;
+import eu.cloudnetservice.modules.bridge.player.PlayerManager;
+import eu.cloudnetservice.driver.registry.ServiceRegistry;
+import eu.cloudnetservice.wrapper.holder.ServiceInfoHolder;
+import fr.perrier.dungeons.spigot.Main;
+import fr.perrier.dungeons.spigot.instance.InstanceInfo;
+import fr.perrier.dungeons.spigot.instance.InstanceProvider;
+import fr.perrier.dungeons.spigot.instance.ProviderType;
+import fr.perrier.dungeons.spigot.model.Floor;
+import fr.perrier.dungeons.spigot.model.FloorInstance;
+import lombok.NonNull;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Instant;
+import java.util.Collections;
+import java.util.Objects;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+
+/**
+ * Implémentation du provider utilisant CloudNet pour gérer les instances.
+ * Cette classe encapsule toute la logique spécifique à CloudNet.
+ */
+public class CloudNetProvider implements InstanceProvider {
+
+    @Override
+    public CompletableFuture<Boolean> initialize() {
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+
+        try {
+            // Vérifier que CloudNet est disponible
+            InjectionLayer.boot();
+            Main.getInstance().getLogger().info("CloudNet provider initialisé avec succès");
+            future.complete(true);
+        } catch (Exception e) {
+            Main.getInstance().getLogger().severe("Erreur lors de l'initialisation de CloudNet: " + e.getMessage());
+            future.complete(false);
+        }
+
+        return future;
+    }
+
+    @Override
+    public CompletableFuture<UUID> createInstance(Floor floor, boolean editMode) {
+        CompletableFuture<UUID> future = new CompletableFuture<>();
+
+        Bukkit.getScheduler().runTaskAsynchronously(Main.getInstance(), () -> {
+            try {
+                String templateName = floor.getId();
+
+                CloudServiceFactory cloudService = InjectionLayer.boot().instance(CloudServiceFactory.class);
+                ServiceTask serviceTask = InjectionLayer.boot().instance(ServiceTaskProvider.class).serviceTask(templateName);
+
+                if (serviceTask == null) {
+                    Main.getInstance().getLogger().severe("Impossible de créer la task pour " + templateName);
+                    future.complete(null);
+                    return;
+                }
+
+                ServiceConfiguration config = ServiceConfiguration.builder(serviceTask)
+                        .writeProperty(DocProperty.property("editMode", boolean.class), editMode)
+                        .writeProperty(DocProperty.property("isDungeonInstance", boolean.class), true)
+                        .writeProperty(DocProperty.property("floorId", String.class), floor.getId())
+                        .writeProperty(DocProperty.property("createdAt", String.class), Instant.now().toString())
+                        .build();
+
+                ServiceCreateResult service = cloudService.createCloudService(config);
+
+                if (service.state() != ServiceCreateResult.State.CREATED) {
+                    Main.getInstance().getLogger().severe("Impossible de créer le service pour " + templateName);
+                    future.complete(null);
+                    return;
+                }
+
+                service.serviceInfo().provider().startAsync();
+                Main.getInstance().getLogger().info("Service démarré pour " + templateName + " (editMode=" + editMode + ")");
+
+                future.complete(service.serviceInfo().serviceId().uniqueId());
+            } catch (Exception e) {
+                Main.getInstance().getLogger().severe("Erreur lors de la création de l'instance: " + e.getMessage());
+                future.complete(null);
+            }
+        });
+
+        return future;
+    }
+
+    @Override
+    public CompletableFuture<Boolean> deleteInstance(UUID instanceId) {
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+
+        Bukkit.getScheduler().runTaskAsynchronously(Main.getInstance(), () -> {
+            try {
+                CloudServiceProvider cloudServiceProvider = InjectionLayer.ext().instance(CloudServiceProvider.class);
+                ServiceInfoSnapshot service = cloudServiceProvider.service(instanceId);
+
+                if (service != null) {
+                    service.provider().stop();
+                    Main.getInstance().getLogger().info("Instance " + instanceId + " arrêtée");
+                    future.complete(true);
+                } else {
+                    Main.getInstance().getLogger().warning("Instance " + instanceId + " introuvable");
+                    future.complete(false);
+                }
+            } catch (Exception e) {
+                Main.getInstance().getLogger().severe("Erreur lors de la suppression de l'instance: " + e.getMessage());
+                future.complete(false);
+            }
+        });
+
+        return future;
+    }
+
+    @Override
+    public boolean isInstanceServer() {
+        try {
+            ServiceInfoSnapshot currentService = InjectionLayer.ext().instance(ServiceInfoHolder.class).serviceInfo();
+            return currentService.readProperty(DocProperty.property("isDungeonInstance", boolean.class).withDefault(false));
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    @Override
+    public boolean isEditMode() {
+        try {
+            ServiceInfoSnapshot currentService = InjectionLayer.ext().instance(ServiceInfoHolder.class).serviceInfo();
+            return currentService.readProperty(DocProperty.property("editMode", boolean.class).withDefault(false));
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    @Override
+    public InstanceInfo getCurrentInstanceInfo() {
+        try {
+            ServiceInfoSnapshot currentService = InjectionLayer.ext().instance(ServiceInfoHolder.class).serviceInfo();
+
+            if (!isInstanceServer() && !isEditMode()) {
+                return null;
+            }
+
+            String instanceId = currentService.serviceId().uniqueId().toString();
+            String floorId = currentService.readProperty(DocProperty.property("floorId", String.class));
+            String createdAt = currentService.readProperty(DocProperty.property("createdAt", String.class));
+
+            if (instanceId == null || floorId == null) {
+                return null;
+            }
+
+            return new InstanceInfo(
+                    UUID.fromString(instanceId),
+                    floorId,
+                    createdAt,
+                    isEditMode(),
+                    true
+            );
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    @Override
+    public InstanceInfo getInstanceInfo(UUID instanceId) {
+        try {
+            FloorInstance instance = Main.getInstance().getRedisStorageService().getInstance(instanceId);
+            if (instance == null) {
+                return null;
+            }
+
+            return new InstanceInfo(
+                    instance.getInstanceId(),
+                    instance.getFloorId(),
+                    "Unknown",
+                    false,
+                    instance.isReady()
+            );
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    @Override
+    public boolean templateExists(@NonNull Floor floor) {
+        try {
+            ServiceTaskProvider serviceTaskProvider = InjectionLayer.boot().instance(ServiceTaskProvider.class);
+            return serviceTaskProvider.serviceTask(floor.getId()) != null;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    @Override
+    public CompletableFuture<Boolean> createTemplate(@NonNull Floor floor) {
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+
+        ServiceTemplate sourceTemplate = new ServiceTemplate.Builder()
+                .prefix("Global")
+                .name("Global-Dungeon")
+                .storage("local")
+                .priority(0)
+                .alwaysCopyToStaticServices(false)
+                .build();
+
+        ServiceTemplate targetTemplate = new ServiceTemplate.Builder()
+                .prefix(floor.getId())
+                .name("default")
+                .storage("local")
+                .priority(0)
+                .alwaysCopyToStaticServices(false)
+                .build();
+
+        copyTemplateFiles(sourceTemplate, targetTemplate)
+                .thenAccept(success -> {
+                    if (success) {
+                        Main.getInstance().getLogger().info("Template pour " + floor.getId() + " copié avec succès");
+
+                        ServiceTaskProvider serviceTaskProvider = InjectionLayer.boot().instance(ServiceTaskProvider.class);
+                        ServiceTask serviceTask = new ServiceTask.Builder()
+                                .name(floor.getId())
+                                .runtime("jvm")
+                                .hostAddress(null)
+                                .javaCommand("java")
+                                .nameSplitter("-")
+                                .disableIpRewrite(false)
+                                .maintenance(false)
+                                .autoDeleteOnStop(true)
+                                .staticServices(false)
+                                .associatedNodes(Collections.emptyList())
+                                .deletedFilesAfterStop(Collections.emptyList())
+                                .processConfiguration(
+                                        new ProcessConfiguration.Builder()
+                                                .environment("MINECRAFT_SERVER")
+                                                .maxHeapMemorySize(4096)
+                                                .jvmOptions(Collections.emptyList())
+                                                .processParameters(Collections.emptyList())
+                                                .environmentVariables(Collections.emptyMap())
+                                )
+                                .startPort(44955)
+                                .minServiceCount(0)
+                                .templates(
+                                        Collections.singletonList(
+                                                new ServiceTemplate.Builder()
+                                                        .prefix(floor.getId())
+                                                        .name("default")
+                                                        .storage("local")
+                                                        .priority(0)
+                                                        .alwaysCopyToStaticServices(false)
+                                                        .build()
+                                        )
+                                )
+                                .deployments(Collections.emptyList())
+                                .inclusions(Collections.emptyList())
+                                .build();
+
+                        serviceTaskProvider.addServiceTask(serviceTask);
+                        future.complete(true);
+                    } else {
+                        Main.getInstance().getLogger().severe("Impossible de copier le template pour " + floor.getId());
+                        future.complete(false);
+                    }
+                })
+                .exceptionally(throwable -> {
+                    Main.getInstance().getLogger().severe("Erreur lors de la copie du template: " + throwable.getMessage());
+                    future.complete(false);
+                    return null;
+                });
+
+        return future;
+    }
+
+    @Override
+    public CompletableFuture<Boolean> sendPlayerToInstance(Player player, UUID instanceId) {
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+
+        Bukkit.getScheduler().runTaskAsynchronously(Main.getInstance(), () -> {
+            try {
+                CloudServiceProvider cloudServiceProvider = InjectionLayer.ext().instance(CloudServiceProvider.class);
+                ServiceInfoSnapshot service = cloudServiceProvider.service(instanceId);
+
+                if (service == null) {
+                    future.complete(false);
+                    return;
+                }
+
+                String serverName = service.name();
+                ServiceRegistry serviceRegistry = InjectionLayer.ext().instance(ServiceRegistry.class);
+                PlayerManager playerManager = serviceRegistry.defaultInstance(PlayerManager.class);
+                playerManager.playerExecutor(player.getUniqueId()).connect(serverName);
+
+                future.complete(true);
+            } catch (Exception e) {
+                Main.getInstance().getLogger().severe("Erreur lors de l'envoi du joueur: " + e.getMessage());
+                future.complete(false);
+            }
+        });
+
+        return future;
+    }
+
+    @Override
+    public ProviderType getType() {
+        return ProviderType.CLOUDNET;
+    }
+
+    @Override
+    public CompletableFuture<Boolean> saveEditWorldToTemplate(Floor floor) {
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+
+        Bukkit.getScheduler().runTaskAsynchronously(Main.getInstance(), () -> {
+            try {
+                Main.getInstance().getLogger().info("Sauvegarde du monde d'édition pour " + floor.getId() + " (CloudNet)...");
+
+                // Sauvegarder le monde
+                Objects.requireNonNull(Bukkit.getWorld("world")).save();
+
+                // Chemins spécifiques à CloudNet
+                File worldSource = new File(Main.getInstance().getDataFolder() + "/../../world");
+                File templateDest = new File(Main.getInstance().getDataFolder() + "/../../../../../local/templates/" + floor.getId() + "/default/world");
+
+                // Copier les fichiers du monde vers le template CloudNet
+                jodd.io.FileUtil.copyDir(new File(worldSource, "data"), new File(templateDest, "data"));
+                jodd.io.FileUtil.copyDir(new File(worldSource, "entities"), new File(templateDest, "entities"));
+                jodd.io.FileUtil.copyDir(new File(worldSource, "region"), new File(templateDest, "region"));
+                jodd.io.FileUtil.copyFile(new File(worldSource, "uid.dat"), new File(templateDest, "uid.dat"));
+                jodd.io.FileUtil.copyFile(new File(worldSource, "level.dat"), new File(templateDest, "level.dat"));
+
+                Main.getInstance().getLogger().info("Monde sauvegardé dans le template CloudNet pour " + floor.getId());
+                future.complete(true);
+            } catch (Exception e) {
+                Main.getInstance().getLogger().severe("Erreur lors de la sauvegarde CloudNet: " + e.getMessage());
+                e.printStackTrace();
+                future.complete(false);
+            }
+        });
+
+        return future;
+    }
+
+    @Override
+    public void shutdown() {
+        Main.getInstance().getLogger().info("Arrêt du CloudNet provider");
+        // Rien de spécial à faire pour CloudNet
+    }
+
+    /**
+     * Copie les fichiers d'un template source vers un template cible.
+     */
+    private CompletableFuture<Boolean> copyTemplateFiles(ServiceTemplate sourceTemplate, ServiceTemplate targetTemplate) {
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        long startTime = System.currentTimeMillis();
+
+        Bukkit.getScheduler().runTaskAsynchronously(Main.getInstance(), () -> {
+            TemplateStorage sourceTemplateStorage = sourceTemplate.storage();
+            TemplateStorage targetTemplateStorage = targetTemplate.storage();
+
+            targetTemplateStorage.delete(targetTemplate);
+            targetTemplateStorage.create(targetTemplate);
+
+            try {
+                ZipInputStream zipInputStream = sourceTemplateStorage.openZipInputStream(sourceTemplate);
+                if (zipInputStream == null) {
+                    Main.getInstance().getLogger().severe("Impossible d'ouvrir le zip du template " + sourceTemplate.name());
+                    future.complete(false);
+                    return;
+                }
+
+                try {
+                    var localStoragePath = Path.of("../../../local/templates/");
+                    var templatePath = localStoragePath.resolve(targetTemplate.prefix()).resolve(targetTemplate.name());
+
+                    if (Main.isDebug()) {
+                        Main.getInstance().getLogger().info("Chemin du template: " + templatePath.toAbsolutePath());
+                    }
+
+                    Files.createDirectories(templatePath);
+
+                    ZipEntry entryDeploy;
+                    while ((entryDeploy = zipInputStream.getNextEntry()) != null) {
+                        var file = templatePath.resolve(entryDeploy.getName());
+
+                        if (Main.isDebug()) {
+                            Main.getInstance().getLogger().info("Copie de " + entryDeploy.getName() + " vers " + file);
+                        }
+
+                        if (entryDeploy.isDirectory()) {
+                            if (Files.notExists(file)) {
+                                try {
+                                    Files.createDirectories(file);
+                                } catch (IOException e) {
+                                    Main.getInstance().getLogger().severe("Impossible de créer le dossier " + file);
+                                }
+                            }
+                        } else {
+                            try {
+                                Files.createDirectories(file.getParent());
+                                try (OutputStream out = Files.newOutputStream(file)) {
+                                    if (out != null) {
+                                        long transferred = zipInputStream.transferTo(out);
+                                        if (Main.isDebug()) {
+                                            Main.getInstance().getLogger().info(transferred + " octets copiés");
+                                        }
+                                    }
+                                }
+                            } catch (IOException e) {
+                                Main.getInstance().getLogger().severe("Impossible de copier " + entryDeploy.getName());
+                            }
+                        }
+                        zipInputStream.closeEntry();
+                    }
+                } catch (Exception e) {
+                    future.complete(false);
+                    throw new RuntimeException(e);
+                }
+
+                Main.getInstance().getLogger().info("Création du template " + targetTemplate.name() +
+                        " terminée en " + (System.currentTimeMillis() - startTime) + " ms");
+                zipInputStream.close();
+                future.complete(true);
+            } catch (IOException e) {
+                future.complete(false);
+                throw new RuntimeException(e);
+            }
+        });
+
+        return future;
+    }
+}

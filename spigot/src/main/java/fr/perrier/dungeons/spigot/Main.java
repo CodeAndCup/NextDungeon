@@ -2,6 +2,16 @@ package fr.perrier.dungeons.spigot;
 
 import com.alessiodp.parties.api.Parties;
 import com.alessiodp.parties.api.interfaces.PartiesAPI;
+import com.github.juliarn.npclib.api.NpcActionController;
+import com.github.juliarn.npclib.api.NpcTracker;
+import com.github.juliarn.npclib.api.Platform;
+import com.github.juliarn.npclib.api.event.manager.NpcEventManager;
+import com.github.juliarn.npclib.api.log.PlatformLogger;
+import com.github.juliarn.npclib.api.profile.ProfileResolver;
+import com.github.juliarn.npclib.bukkit.BukkitPlatform;
+import com.github.juliarn.npclib.bukkit.BukkitVersionAccessor;
+import com.github.juliarn.npclib.bukkit.BukkitWorldAccessor;
+import com.github.juliarn.npclib.bukkit.protocol.BukkitProtocolAdapter;
 import fr.perrier.cupcodeapi.CupCodeAPI;
 import fr.perrier.cupcodeapi.commands.CommandHandler;
 import fr.perrier.cupcodeapi.menuapi.MenuAPI;
@@ -12,9 +22,11 @@ import fr.perrier.dungeons.spigot.commands.PlayerCommands;
 import fr.perrier.dungeons.spigot.configuration.ConfigLoader;
 import fr.perrier.dungeons.spigot.database.DatabaseFactory;
 import fr.perrier.dungeons.spigot.database.DatabaseManager;
+import fr.perrier.dungeons.spigot.instance.InstanceInfo;
 import fr.perrier.dungeons.spigot.listener.dungeons.InstanceJoinListener;
 import fr.perrier.dungeons.spigot.listener.dungeons.InstanceMobKillListener;
 import fr.perrier.dungeons.spigot.listener.dungeons.InstancePlayerDeathListener;
+import fr.perrier.dungeons.spigot.listener.dungeons.ReviveItemListener;
 import fr.perrier.dungeons.spigot.listener.editor.EditorJoinListener;
 import fr.perrier.dungeons.spigot.listener.global.GlobalJoinListener;
 import fr.perrier.dungeons.spigot.listener.global.GlobalLeaveListener;
@@ -32,11 +44,17 @@ import fr.perrier.dungeons.spigot.webserver.DungeonWebEditorManager;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Bukkit;
+import org.bukkit.World;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
+import fr.perrier.dungeons.spigot.instance.InstanceProvider;
+import fr.perrier.dungeons.spigot.instance.InstanceProviderFactory;
 
 @Getter
 public final class Main extends JavaPlugin {
@@ -54,6 +72,7 @@ public final class Main extends JavaPlugin {
     private CommandHandler commandHandler;
     private MenuAPI menuAPI;
     private GhostFactory ghostFactory;
+    private Platform<World, Player, ItemStack, Plugin> npcLibPlatform;
 
     // Plugin packets pub/sub and sync storage
     private Pidgin messaging;
@@ -62,7 +81,6 @@ public final class Main extends JavaPlugin {
     private DatabaseManager databaseManager;
 
     // Web editor manager
-    @Deprecated
     private DungeonWebEditorManager webEditorManager;
     
     // Proxy bridge for web editor communication
@@ -71,6 +89,9 @@ public final class Main extends JavaPlugin {
     // Global trigger manager
     private GlobalTriggerManager globalTriggerManager;
     private VariableManager variableManager;
+
+    // Instance provider (CloudNet, ASP, ou Vanilla)
+    private InstanceProvider instanceProvider;
 
     @Override
     public void onEnable() {
@@ -109,10 +130,42 @@ public final class Main extends JavaPlugin {
             return;
         }
 
+        // Initialize Instance Provider
+        try {
+            instanceProvider = InstanceProviderFactory.createProvider();
+            instanceProvider.initialize().thenAccept(success -> {
+                if (success) {
+                    getLogger().info("✅ Instance provider initialisé: " + instanceProvider.getType());
+                } else {
+                    getLogger().severe("❌ Échec de l'initialisation du provider");
+                }
+            });
+        } catch (Exception e) {
+            getLogger().severe("Erreur lors de la création du provider: " + e.getMessage());
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+
         databaseManager = DatabaseFactory.createDatabase();
 
         // Load Dungeons
         ConfigLoader.loadAllDungeons();
+
+        // Enabling other plugins API
+        CupCodeAPI.enable(this);
+        menuAPI = new MenuAPI(this);
+        partiesAPI = Parties.getApi();
+        ghostFactory = new GhostFactory();
+        npcLibPlatform = BukkitPlatform.bukkitNpcPlatformBuilder()
+                .extension(this)
+                .debug(true)
+                .actionController(builder -> builder
+                        .flag(NpcActionController.SPAWN_DISTANCE, 60)
+                        .flag(NpcActionController.IMITATE_DISTANCE, 30)
+                )
+                .worldAccessor(BukkitWorldAccessor.nameBasedAccessor())
+                .packetFactory(BukkitProtocolAdapter.packetEvents())
+                .build();
 
         // Initialize server based on type
         if (ServerUtil.isInstanceServer()) {
@@ -124,12 +177,6 @@ public final class Main extends JavaPlugin {
         } else {
             initializeLobbyServer();
         }
-
-        // Enabling other plugins API
-        CupCodeAPI.enable(this);
-        menuAPI = new MenuAPI(this);
-        partiesAPI = Parties.getApi();
-        ghostFactory = new GhostFactory();
 
         // Enabling messaging system
         this.messaging = new Pidgin(Main.getInstance().getConfig().getString("RedisConfiguration.topic"));
@@ -164,13 +211,18 @@ public final class Main extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        // Shutdown instance provider
+        if (instanceProvider != null) {
+            instanceProvider.shutdown();
+        }
+
         // If this is an instance server, cleanup the instance data
         if (ServerUtil.isInstanceServer()) {
-            ServerUtil.InstanceInfo info = ServerUtil.getInstanceInfo();
+            InstanceInfo info = ServerUtil.getInstanceInfo();
             if (info != null) {
                 // Remove instance from Redis
-                redisStorageService.removeInstance(info.instanceId());
-                getLogger().info(String.format("Cleaned up instance %s from Redis", info.instanceId()));
+                redisStorageService.removeInstance(info.getInstanceId());
+                getLogger().info(String.format("Cleaned up instance %s from Redis", info.getInstanceId()));
             }
         }
 
@@ -182,6 +234,7 @@ public final class Main extends JavaPlugin {
         CupCodeAPI.disable();
         Pidgin.shutdown();
         webEditorManager.shutdownAllEditors();
+        ghostFactory.close();
         
         // Arrêter le pont de communication proxy
         if (proxyBridge != null) {
@@ -230,6 +283,7 @@ public final class Main extends JavaPlugin {
         pluginManager.registerEvents(new InstanceJoinListener(), this);
         pluginManager.registerEvents(new InstanceMobKillListener(), this);
         pluginManager.registerEvents(new InstancePlayerDeathListener(), this);
+        pluginManager.registerEvents(new ReviveItemListener(), this);
     }
 
     /**
@@ -257,7 +311,7 @@ public final class Main extends JavaPlugin {
      * and creation timestamp.</p>
      */
     private void initializeInstanceServer() {
-        ServerUtil.InstanceInfo info = ServerUtil.getInstanceInfo();
+        InstanceInfo info = ServerUtil.getInstanceInfo();
         if (info == null) {
             getLogger().severe("&cFailed to get instance information");
             getServer().getPluginManager().disablePlugin(this);
@@ -266,15 +320,15 @@ public final class Main extends JavaPlugin {
 
         getLogger().info(String.format(
                 "Initializing dungeon instance server (ID: %s, Floor: %s, Created at: %s)",
-                info.instanceId(),
-                info.floorId(),
-                info.createdAt()
+                info.getInstanceId(),
+                info.getFloorId(),
+                info.getCreatedAt()
         ));
 
         loadInstanceListeners();
 
         // Initialize instance in Redis
-        redisStorageService.initializeInstance(info.instanceId(), info.floorId());
+        redisStorageService.initializeInstance(info.getInstanceId(), info.getFloorId());
 
         // Schedule ready state
         putServerReady();

@@ -9,6 +9,10 @@ import fr.perrier.dungeons.spigot.utils.ServerUtil;
 import fr.perrier.dungeons.spigot.webeditor.ProxyEditorMessageHandler;
 import fr.perrier.dungeons.spigot.webeditor.ProxyBridgeService;
 import lombok.Getter;
+import net.md_5.bungee.api.chat.ClickEvent;
+import net.md_5.bungee.api.chat.ComponentBuilder;
+import net.md_5.bungee.api.chat.HoverEvent;
+import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.entity.Player;
 
 import java.util.HashMap;
@@ -62,7 +66,22 @@ public class DungeonWebEditorManager {
                 player.sendMessage(ChatUtil.translate("&6🏰 &lÉDITEUR WEB DÉMARRÉ (PROXY)"));
                 player.sendMessage(ChatUtil.translate("&7Donjon: &e" + dungeonName));
                 player.sendMessage(ChatUtil.translate("&7Floor: &e" + floorId));
-                player.sendMessage(ChatUtil.translate("&7URL: &b&nhttp://localhost:8080/" + sessionId + "/editor/"));
+
+                // Récupérer le port depuis la config
+                int port = Main.getInstance().getConfig().getInt("webeditor.proxy-port", 7734);
+                String url = "http://localhost:" + port + "/" + sessionId + "/editor/";
+
+                // Créer un message cliquable
+               TextComponent urlMessage = new TextComponent(ChatUtil.translate("&7URL: "));
+                TextComponent urlComponent = new TextComponent(ChatUtil.translate("&b&n" + url));
+                urlComponent.setClickEvent(new ClickEvent(
+                    ClickEvent.Action.OPEN_URL, url));
+                urlComponent.setHoverEvent(new HoverEvent(
+                    HoverEvent.Action.SHOW_TEXT,
+                    new ComponentBuilder("§eCliquez pour ouvrir dans votre navigateur").create()));
+                urlMessage.addExtra(urlComponent);
+                player.spigot().sendMessage(urlMessage);
+
                 player.sendMessage(ChatUtil.translate("&7Arrêt: &c/dungeon admin webeditor stop"));
                 player.sendMessage(ChatUtil.getBar());
                 
@@ -119,13 +138,5 @@ public class DungeonWebEditorManager {
      */
     public int getActiveEditorsCount() {
         return activeEditorSessions.size();
-    }
-
-    /**
-     * Récupère le nom du serveur actuel
-     */
-    private String getCurrentServerName() {
-        ServiceInfoSnapshot currentService = InjectionLayer.ext().instance(ServiceInfoHolder.class).serviceInfo();
-        return currentService.name();
     }
 }

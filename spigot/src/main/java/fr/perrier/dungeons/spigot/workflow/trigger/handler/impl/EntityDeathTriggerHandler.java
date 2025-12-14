@@ -1,5 +1,6 @@
 package fr.perrier.dungeons.spigot.workflow.trigger.handler.impl;
 
+import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.workflow.trigger.Trigger;
 import fr.perrier.dungeons.spigot.workflow.trigger.handler.TriggerEventHandler;
 import fr.perrier.dungeons.spigot.workflow.trigger.impl.EntityDeathTrigger;
@@ -9,7 +10,6 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDeathEvent;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,7 +23,7 @@ public class EntityDeathTriggerHandler implements TriggerEventHandler<EntityDeat
 
     @Override
     public List<String> getSupportedTriggerTypes() {
-        return Arrays.asList("entity_death_trigger");
+        return List.of("entity_death_trigger");
     }
 
     @Override
@@ -32,13 +32,18 @@ public class EntityDeathTriggerHandler implements TriggerEventHandler<EntityDeat
 
         for (Trigger trigger : triggers) {
             if (trigger instanceof EntityDeathTrigger entityDeathTrigger) {
-                checkEntityDeathTrigger(player, entityDeathTrigger, event);
+                if(Main.getInstance().getServer().getPluginManager().getPlugin("MythicMobs") == null) {
+                    checkEntityDeathTrigger(player, entityDeathTrigger, event);
+                } else {
+                    checkMythicMobEntityDeathTrigger(player, entityDeathTrigger, event);
+                }
             }
         }
     }
 
-    private void checkEntityDeathTrigger(Player player, EntityDeathTrigger entityDeathTrigger, EntityDeathEvent event) {
+    private void checkMythicMobEntityDeathTrigger(Player player, EntityDeathTrigger entityDeathTrigger, EntityDeathEvent event) {
         Entity entity = event.getEntity();
+
         ActiveMob mythicMob = MythicBukkit.inst().getMobManager().getMythicMobInstance(entity);
 
         if(mythicMob != null && mythicMob.getType().getInternalName().equalsIgnoreCase(entityDeathTrigger.getEntityType())) {
@@ -46,7 +51,15 @@ public class EntityDeathTriggerHandler implements TriggerEventHandler<EntityDeat
             if (entityDeathTrigger.checkConditions(player, data)) {
                 entityDeathTrigger.execute(player, entity.getLocation(), data);
             }
-        } else if(entity.getType().name().equalsIgnoreCase(entityDeathTrigger.getEntityType())) {
+        } else {
+            checkEntityDeathTrigger(player, entityDeathTrigger, event);
+        }
+    }
+
+    private void checkEntityDeathTrigger(Player player, EntityDeathTrigger entityDeathTrigger, EntityDeathEvent event) {
+        Entity entity = event.getEntity();
+
+        if(entity.getType().name().equalsIgnoreCase(entityDeathTrigger.getEntityType())) {
             Map<String, Object> data = extractEventData(event);
             if (entityDeathTrigger.checkConditions(player, data)) {
                 entityDeathTrigger.execute(player, entity.getLocation(), data);

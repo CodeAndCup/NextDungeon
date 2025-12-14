@@ -34,8 +34,6 @@ public class GhostFactory {
     @Getter
     private boolean closed;
 
-    // Players that are actually ghosts
-    private final Set<String> ghosts = new HashSet<>();
 
     public GhostFactory() {
         // Initialize
@@ -48,7 +46,6 @@ public class GhostFactory {
 
         ghostTeam = board.getTeam(GHOST_TEAM_NAME);
 
-        // Create a new ghost team if needed
         if (ghostTeam == null) {
             ghostTeam = board.registerNewTeam(GHOST_TEAM_NAME);
         }
@@ -63,22 +60,10 @@ public class GhostFactory {
                 if (player != null) {
                     setGhost(player, isGhost(player));
                 } else {
-                    ghosts.remove(member.getName());
                     ghostTeam.removeEntry(Objects.requireNonNull(member.getName()));
                 }
             }
         }, UPDATE_DELAY, UPDATE_DELAY);
-    }
-
-    /**
-     * Remove all existing player members and ghosts.
-     */
-    public void clearMembers() {
-        if (ghostTeam != null) {
-            for (OfflinePlayer player : getMembers()) {
-                ghostTeam.removeEntry(Objects.requireNonNull(player.getName()));
-            }
-        }
     }
 
     /**
@@ -89,7 +74,7 @@ public class GhostFactory {
         validateState();
         if (!ghostTeam.hasEntry(player.getName())) {
             ghostTeam.addEntry(player.getName());
-            player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, Integer.MAX_VALUE, 15));
+            player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, Integer.MAX_VALUE, 15,false, false,false));
         }
     }
 
@@ -99,7 +84,7 @@ public class GhostFactory {
      * @return TRUE if it is, FALSE otherwise.
      */
     public boolean isGhost(Player player) {
-        return player != null && hasPlayer(player) && ghosts.contains(player.getName());
+        return ghostTeam.hasEntry(player.getName());
     }
 
     /**
@@ -117,16 +102,13 @@ public class GhostFactory {
      * @param player - the player to set as a ghost.
      * @param isGhost - TRUE to make the given player into a ghost, FALSE otherwise.
      */
-    public void setGhost(Player player, boolean isGhost) {
-        // Make sure the player is tracked by this manager
+    private void setGhost(Player player, boolean isGhost) {
         if (!hasPlayer(player))
             addPlayer(player);
 
         if (isGhost) {
-            ghosts.add(player.getName());
-            player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, Integer.MAX_VALUE, 15));
+            player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, Integer.MAX_VALUE, 15,false, false,false));
         } else {
-            ghosts.remove(player.getName());
             player.removePotionEffect(PotionEffectType.INVISIBILITY);
         }
     }
@@ -140,19 +122,6 @@ public class GhostFactory {
         if (ghostTeam.removeEntry(player.getName())) {
             player.removePotionEffect(PotionEffectType.INVISIBILITY);
         }
-    }
-
-    /**
-     * Retrieve every ghost currently tracked by this manager.
-     * @return Every tracked ghost.
-     */
-    public OfflinePlayer[] getGhosts() {
-        validateState();
-        Set<OfflinePlayer> players = new HashSet<OfflinePlayer>(ghostTeam.getPlayers());
-
-        // Remove all non-ghost players
-        players.removeIf(offlinePlayer -> !ghosts.contains(offlinePlayer.getName()));
-        return toArray(players);
     }
 
     /**
@@ -172,17 +141,39 @@ public class GhostFactory {
         }
     }
 
-    public void close() {
-        if (!closed) {
-            task.cancel();
-            ghostTeam.unregister();
-            closed = true;
-        }
-    }
-
     private void validateState() {
         if (closed) {
             throw new IllegalStateException("Ghost factory has closed. Cannot reuse instances.");
+        }
+    }
+
+    /**
+     * Close this ghost manager, removing every player from it and cleaning up resources.
+     */
+    public void close() {
+        if (!closed) {
+            closed = true;
+
+            // Remove every player
+            Set<OfflinePlayer> members = new HashSet<>(ghostTeam.getPlayers());
+            for (OfflinePlayer member : members) {
+                Player player = member.getPlayer();
+                if (player != null) {
+                    removePlayer(player);
+                }
+            }
+
+            // Cancel task
+            if (task != null) {
+                task.cancel();
+                task = null;
+            }
+
+            // Unregister team
+            if (ghostTeam != null) {
+                ghostTeam.unregister();
+                ghostTeam = null;
+            }
         }
     }
 }

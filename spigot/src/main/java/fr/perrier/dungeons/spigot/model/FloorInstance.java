@@ -14,24 +14,58 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 @Getter
 public class FloorInstance {
 
-    private static final List<String> LOADING = Arrays.asList(
-            "<gradient:#00AA00>▁▂▃▅▆▇▉▉▇▆▅▃▂▁</gradient:#00EE00>",
-            "<gradient:#009900>▁▁▂▃▅▆▇▉▉▇▆▅▃▂</gradient:#00FF00>",
-            "<gradient:#00AA00>▂▁▁▂▃▅▆▇▉▉▇▆▅▃</gradient:#00EE00>",
-            "<gradient:#00BB00>▃▂▁▁▂▃▅▆▇▉▉▇▆▅</gradient:#00DD00>",
-            "<gradient:#00CC00>▅▃▂▁▁▂▃▅▆▇▉▉▇▆</gradient:#00CC00>",
-            "<gradient:#00DD00>▆▅▃▂▁▁▂▃▅▆▇▉▉▇</gradient:#00BB00>",
-            "<gradient:#00EE00>▇▆▅▃▂▁▁▂▃▅▆▇▉▉</gradient:#00AA00>",
-            "<gradient:#00FF00>▉▇▆▅▃▂▁▁▂▃▅▆▇▉</gradient:#009900>",
-            "<gradient:#00FF00>▉▉▇▆▅▃▂▁▁▂▃▅▆▇</gradient:#00AA00>",
-            "<gradient:#00EE00>▇▉▉▇▆▅▃▂▁▁▂▃▅▆</gradient:#00BB00>",
-            "<gradient:#00DD00>▅▆▇▉▉▇▆▅▃▂▁▁▂▃</gradient:#00CC00>",
-            "<gradient:#00BB00>▂▃▅▆▇▉▉▇▆▅▃▂▁▁</gradient:#00DD00>"
-    );
+    @Getter
+    private enum LoadingBar {
+        WAVE(Arrays.asList(
+                "<gradient:#00AA00>▁▂▃▅▆▇▉▉▇▆▅▃▂▁</gradient:#00EE00>",
+                "<gradient:#009900>▁▁▂▃▅▆▇▉▉▇▆▅▃▂</gradient:#00FF00>",
+                "<gradient:#00AA00>▂▁▁▂▃▅▆▇▉▉▇▆▅▃</gradient:#00EE00>",
+                "<gradient:#00BB00>▃▂▁▁▂▃▅▆▇▉▉▇▆▅</gradient:#00DD00>",
+                "<gradient:#00CC00>▅▃▂▁▁▂▃▅▆▇▉▉▇▆</gradient:#00CC00>",
+                "<gradient:#00DD00>▆▅▃▂▁▁▂▃▅▆▇▉▉▇</gradient:#00BB00>",
+                "<gradient:#00EE00>▇▆▅▃▂▁▁▂▃▅▆▇▉▉</gradient:#00AA00>",
+                "<gradient:#00FF00>▉▇▆▅▃▂▁▁▂▃▅▆▇▉</gradient:#009900>",
+                "<gradient:#00FF00>▉▉▇▆▅▃▂▁▁▂▃▅▆▇</gradient:#00AA00>",
+                "<gradient:#00EE00>▇▉▉▇▆▅▃▂▁▁▂▃▅▆</gradient:#00BB00>",
+                "<gradient:#00DD00>▅▆▇▉▉▇▆▅▃▂▁▁▂▃</gradient:#00CC00>",
+                "<gradient:#00BB00>▂▃▅▆▇▉▉▇▆▅▃▂▁▁</gradient:#00DD00>"
+        )),
+        BOX(Arrays.asList(
+                "&#00DD00▮&0▯▯▯▯▯▯▯▯▯",
+                "&0▯&#00DD00▮&0▯▯▯▯▯▯▯▯",
+                "&0▯▯&#00DD00▮&0▯▯▯▯▯▯▯",
+                "&0▯▯▯&#00DD00▮&0▯▯▯▯▯▯",
+                "&0▯▯▯▯&#00DD00▮&0▯▯▯▯▯",
+                "&0▯▯▯▯▯&#00DD00▮&0▯▯▯▯",
+                "&0▯▯▯▯▯▯&#00DD00▮&0▯▯▯",
+                "&0▯▯▯▯▯▯▯&#00DD00▮&0▯▯",
+                "&0▯▯▯▯▯▯▯▯&#00DD00▮&0▯",
+                "&0▯▯▯▯▯▯▯▯▯&#00DD00▮",
+                "&0▯▯▯▯▯▯▯▯&#00DD00▮&0▯",
+                "&0▯▯▯▯▯▯▯&#00DD00▮&0▯▯",
+                "&0▯▯▯▯▯▯&#00DD00▮&0▯▯▯",
+                "&0▯▯▯▯▯&#00DD00▮&0▯▯▯▯",
+                "&0▯▯▯▯&#00DD00▮&0▯▯▯▯▯",
+                "&0▯▯▯&#00DD00▮&0▯▯▯▯▯▯",
+                "&0▯▯&#00DD00▮&0▯▯▯▯▯▯▯",
+                "&0▯&#00DD00▮&0▯▯▯▯▯▯▯▯"
+        ))
+        ;
+        private final List<String> frames;
+        LoadingBar(List<String> frames) {
+            this.frames = frames;
+        }
+
+        public static LoadingBar getRandom() {
+            LoadingBar[] values = LoadingBar.values();
+            return values[new Random().nextInt(values.length)];
+        }
+    }
 
     private final UUID instanceId;
     private final String floorId;
@@ -40,22 +74,22 @@ public class FloorInstance {
     private final HashMap<UUID, PlayerStats> playerStats = new HashMap<>();
     private final HashMap<UUID, Integer> playerCurrentLives = new HashMap<>();
 
-    public FloorInstance(String floorId) {
+    private FloorInstance(String floorId, boolean editMode) {
         this.floorId = floorId;
-        this.instanceId = generateFloorServer(false);
+        this.instanceId = generateFloorServer(Floor.getFloor(floorId),editMode);
         this.ready = false;
 
         Main.getInstance().getRedisStorageService().syncInstance(this);
     }
 
-    public FloorInstance(String floorId, boolean editMode) {
-        this.floorId = floorId;
-        this.instanceId = generateFloorServer(editMode);
-        this.ready = false;
-
-        Main.getInstance().getRedisStorageService().syncInstance(this);
+    public static void generateNewInstanceAsync(String floorId, boolean editMode, Consumer<FloorInstance> callback) {
+        Bukkit.getScheduler().runTaskAsynchronously(Main.getInstance(), () -> {
+            FloorInstance floorInstance = new FloorInstance(floorId, editMode);
+            Bukkit.getScheduler().runTask(Main.getInstance(), () ->
+                callback.accept(floorInstance)
+            );
+        });
     }
-
 
     /**
      * Generates a unique server instance for the current floor.
@@ -66,8 +100,8 @@ public class FloorInstance {
      *
      * @return the unique UUID of the generated server instance
      */
-    private UUID generateFloorServer(boolean editMode) {
-        return ServerUtil.makeFloorInstance(this,editMode);
+    private UUID generateFloorServer(Floor floor, boolean editMode) {
+        return ServerUtil.makeFloorInstance(floor,editMode);
     }
 
     /**
@@ -148,6 +182,7 @@ public class FloorInstance {
 
         AtomicInteger timerDelay = new AtomicInteger(0);
         AtomicInteger currentLoad = new AtomicInteger(0);
+        List<String> loadingBar = LoadingBar.getRandom().getFrames();
 
         new BukkitRunnable() {
             private final long startTime = System.currentTimeMillis();
@@ -156,8 +191,8 @@ public class FloorInstance {
             @Override
             public void run() {
                 Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
-                    Titles.sendTitle(player, 0, 3, 0, " ", ChatUtil.translate(LOADING.get(currentLoad.get())));
-                    if(currentLoad.get() +1 >= LOADING.size()) {
+                    Titles.sendTitle(player, 0, 3, 0, ChatUtil.translate("&f" + ChatUtil.toSmallCaps("Loading Dungeon..")), ChatUtil.translate(loadingBar.get(currentLoad.get())));
+                    if(currentLoad.get() +1 >= loadingBar.size()) {
                         currentLoad.set(0);
                         return;
                     }
@@ -210,7 +245,7 @@ public class FloorInstance {
 
             ProfileData profileData = Main.getInstance().getProfileService().getProfileData(player.getUniqueId());
             profileData.addCompletedFloor(floorId);
-            profileData.addFloorStat(new ProfileData.FloorStats(floorId, playerStats.getStartTime(), playerStats.getEnemiesKilled(), playerStats.getDeaths()));
+            profileData.addFloorStat(new ProfileData.FloorStats(floorId, System.currentTimeMillis() - playerStats.getStartTime(), playerStats.getEnemiesKilled(), playerStats.getDeaths()));
             Main.getInstance().getProfileService().saveProfileData(player.getUniqueId());
 
             Titles.sendTitle(player, 10, 70, 20,

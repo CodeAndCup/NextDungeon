@@ -6,11 +6,13 @@ import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.event.proxy.ProxyShutdownEvent;
 import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.proxy.ProxyServer;
-import fr.perrier.dungeons.velocity.commands.WebEditorProxyCommand;
 import fr.perrier.dungeons.velocity.messaging.ProxyPidgin;
 import fr.perrier.dungeons.velocity.webeditor.ProxyWebEditorServer;
 import lombok.Getter;
 import org.slf4j.Logger;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 @Plugin(
     id = "nextdungeon-velocity",
@@ -27,6 +29,7 @@ public class NextDungeonVelocity {
 
     private final ProxyServer server;
     private final Logger logger;
+    private final java.nio.file.Path dataDirectory;
 
     private long startTime;
     @Getter
@@ -34,10 +37,13 @@ public class NextDungeonVelocity {
     @Getter
     private ProxyPidgin messaging;
 
+    private int webEditorPort = 7734; // Port par défaut
+
     @Inject
-    public NextDungeonVelocity(ProxyServer server, Logger logger) {
+    public NextDungeonVelocity(ProxyServer server, Logger logger, @com.velocitypowered.api.plugin.annotation.DataDirectory java.nio.file.Path dataDirectory) {
         this.server = server;
         this.logger = logger;
+        this.dataDirectory = dataDirectory;
     }
 
     @Subscribe
@@ -45,6 +51,9 @@ public class NextDungeonVelocity {
         instance = this;
         this.startTime = System.currentTimeMillis();
         
+        // Charger la configuration
+        loadConfig();
+
         // Initialize messaging system
         try {
             // TODO: Read from config file
@@ -60,16 +69,56 @@ public class NextDungeonVelocity {
             logger.error("❌ Erreur initialisation messaging Redis: " + e.getMessage());
         }
         
-        // Démarrer le serveur web centralisé
-        webEditorServer = new ProxyWebEditorServer();
+        // Démarrer le serveur web centralisé avec le port configuré
+        webEditorServer = new ProxyWebEditorServer(webEditorPort);
         if (webEditorServer.startServer()) {
-            logger.info("✅ Serveur web éditeur centralisé démarré");
+            logger.info("✅ Serveur web éditeur centralisé démarré sur le port " + webEditorPort);
         } else {
             logger.error("❌ Impossible de démarrer le serveur web éditeur");
         }
 
-        // Enregistrer les commandes
-        server.getCommandManager().register(server.getCommandManager().metaBuilder("webeditor-proxy").aliases("webeditor").build(), new WebEditorProxyCommand());
+    }
+
+    private void loadConfig() {
+        try {
+            Path configPath = dataDirectory.resolve("config.toml");
+
+            // Créer le dossier si nécessaire
+            if (!Files.exists(dataDirectory)) {
+                Files.createDirectories(dataDirectory);
+            }
+
+            // Créer le fichier de config par défaut s'il n'existe pas
+            if (!Files.exists(configPath)) {
+                try (java.io.InputStream in = getClass().getResourceAsStream("/config.toml")) {
+                    if (in != null) {
+                        Files.copy(in, configPath);
+                        logger.info("Fichier de configuration créé: " + configPath);
+                    }
+                }
+            }
+
+            // Lire la configuration
+            if (Files.exists(configPath)) {
+                String content = Files.readString(configPath);
+                // Parse simple du TOML pour récupérer le port
+                for (String line : content.split("\n")) {
+                    line = line.trim();
+                    if (line.startsWith("port") && line.contains("=")) {
+                        String portStr = line.split("=")[1].trim();
+                        try {
+                            webEditorPort = Integer.parseInt(portStr);
+                            logger.info("Port web éditeur configuré: " + webEditorPort);
+                        } catch (NumberFormatException e) {
+                            logger.warn("Port invalide dans la configuration, utilisation du port par défaut: 7734");
+                        }
+                        break;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("Erreur lors du chargement de la configuration: " + e.getMessage() + ", utilisation des valeurs par défaut");
+        }
     }
 
     @Subscribe

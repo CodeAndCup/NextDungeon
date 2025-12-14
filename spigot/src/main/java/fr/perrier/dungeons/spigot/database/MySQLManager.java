@@ -118,6 +118,12 @@ public class MySQLManager implements DatabaseManager {
                     "data TEXT NOT NULL" +
                     ")");
 
+            // Create triggers table for dungeon floors
+            stmt.execute("CREATE TABLE IF NOT EXISTS floor_triggers (" +
+                    "floor_id VARCHAR(255) PRIMARY KEY, " +
+                    "triggers_data MEDIUMTEXT NOT NULL, " +
+                    "last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" +
+                    ")");
 
         } catch (SQLException e) {
             Main.getInstance().getLogger().severe("&cFailed to create database tables: " + e.getMessage());
@@ -300,5 +306,106 @@ public class MySQLManager implements DatabaseManager {
                 profileData.toJson(),
                 profileData.toJson()
         );
+    }
+
+    // ==================== TRIGGER OPERATIONS ====================
+
+    /**
+     * Charge les triggers d'un floor depuis la base de données.
+     * @param floorId l'ID du floor
+     * @return un CompletableFuture contenant la liste des triggers
+     */
+    @Override
+    public CompletableFuture<java.util.List<fr.perrier.dungeons.spigot.workflow.trigger.Trigger>> loadTriggers(String floorId) {
+        return executeAsync(() -> {
+            try {
+                return executeQuery(
+                        "SELECT triggers_data FROM floor_triggers WHERE floor_id = ?",
+                        rs -> {
+                            if (rs.next()) {
+                                String json = rs.getString("triggers_data");
+                                return TriggerSerializer.deserializeTriggers(json);
+                            }
+                            return new java.util.ArrayList<>();
+                        },
+                        floorId
+                );
+            } catch (SQLException e) {
+                Main.getInstance().getLogger().severe("&cError loading triggers for floor " + floorId + ": " + e.getMessage());
+                return new java.util.ArrayList<>();
+            }
+        }, "Load triggers for " + floorId);
+    }
+
+    /**
+     * Sauvegarde les triggers d'un floor dans la base de données.
+     * @param floorId l'ID du floor
+     * @param triggers la liste des triggers à sauvegarder
+     * @return un CompletableFuture indiquant la fin de l'opération
+     */
+    @Override
+    public CompletableFuture<Void> saveTriggers(String floorId, java.util.List<fr.perrier.dungeons.spigot.workflow.trigger.Trigger> triggers) {
+        return executeAsync(() -> {
+            String json = TriggerSerializer.serializeTriggers(triggers);
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(
+                         "INSERT INTO floor_triggers (floor_id, triggers_data) VALUES (?, ?) " +
+                         "ON DUPLICATE KEY UPDATE triggers_data = ?, last_updated = CURRENT_TIMESTAMP")) {
+
+                stmt.setString(1, floorId);
+                stmt.setString(2, json);
+                stmt.setString(3, json);
+                stmt.executeUpdate();
+
+                Main.getInstance().getLogger().info("Triggers sauvegardés pour " + floorId + " (" + triggers.size() + " triggers)");
+                return null;
+            }
+        }, "Save triggers for " + floorId);
+    }
+
+    /**
+     * Vérifie si des triggers existent pour un floor donné.
+     * @param floorId l'ID du floor
+     * @return un CompletableFuture contenant true si des triggers existent, false sinon
+     */
+    @Override
+    public CompletableFuture<Boolean> triggersExist(String floorId) {
+        return executeAsync(() -> {
+            try {
+                return executeQuery(
+                        "SELECT COUNT(*) as count FROM floor_triggers WHERE floor_id = ?",
+                        rs -> {
+                            if (rs.next()) {
+                                return rs.getInt("count") > 0;
+                            }
+                            return false;
+                        },
+                        floorId
+                );
+            } catch (SQLException e) {
+                Main.getInstance().getLogger().severe("&cError checking triggers existence for floor " + floorId + ": " + e.getMessage());
+                return false;
+            }
+        }, "Check triggers existence for " + floorId);
+    }
+
+    /**
+     * Supprime les triggers d'un floor de la base de données.
+     * @param floorId l'ID du floor
+     * @return un CompletableFuture indiquant la fin de l'opération
+     */
+    @Override
+    public CompletableFuture<Void> deleteTriggers(String floorId) {
+        return executeAsync(() -> {
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement("DELETE FROM floor_triggers WHERE floor_id = ?")) {
+
+                stmt.setString(1, floorId);
+                stmt.executeUpdate();
+
+                Main.getInstance().getLogger().info("Triggers supprimés pour " + floorId);
+                return null;
+            }
+        }, "Delete triggers for " + floorId);
     }
 }

@@ -21,7 +21,7 @@ public class DungeonParty {
 
     private int minLevel;
     private String description;
-    private Party party;
+    private final Party party;
 
     public DungeonParty(String dungeonId, String floorId, int minLevel, String description, Party party) {
         this.dungeonId = dungeonId;

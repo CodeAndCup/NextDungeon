@@ -186,9 +186,9 @@ public class PartyFilterMenu extends GlassMenu {
             }
 
             if(dungeon.getFloors().size() <= 5) {
-                buttons.put(40, new DisplayButton(new ItemStack(Material.AIR)));
+                buttons.put(40, new BackButton(oldMenu));
             } else {
-                buttons.put(49, new DisplayButton(new ItemStack(Material.AIR)));
+                buttons.put(49, new BackButton(oldMenu));
             }
 
             return buttons;

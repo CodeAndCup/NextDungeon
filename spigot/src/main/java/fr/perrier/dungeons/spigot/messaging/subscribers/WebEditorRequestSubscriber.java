@@ -8,8 +8,6 @@ import fr.perrier.dungeons.spigot.messaging.pidgin.IncomingPacketHandler;
 import fr.perrier.dungeons.spigot.messaging.pidgin.PacketListener;
 import fr.perrier.dungeons.spigot.webeditor.ProxyEditorMessageHandler;
 
-import java.util.UUID;
-
 /**
  * Subscriber pour gérer les requêtes de l'éditeur web depuis le proxy
  */
