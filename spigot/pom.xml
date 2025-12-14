@@ -327,9 +327,9 @@
 
         <!-- MySQL Connector/J -->
         <dependency>
-            <groupId>mysql</groupId>
-            <artifactId>mysql-connector-java</artifactId>
-            <version>8.0.28</version>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <version>9.5.0</version>
             <scope>compile</scope>
         </dependency>
 
