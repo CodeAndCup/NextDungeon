@@ -7,9 +7,11 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import fr.perrier.dungeons.bungee.NextDungeonBungee;
+import fr.perrier.dungeons.bungee.dashboard.DashboardService;
 import fr.perrier.dungeons.bungee.messaging.SpigotCommunicationService;
 import fr.perrier.dungeons.bungee.webeditor.EditorSessionManager.EditorSession;
 import lombok.Getter;
+import org.redisson.api.RedissonClient;
 
 import java.io.*;
 import java.net.InetSocketAddress;
@@ -29,12 +31,21 @@ public class ProxyWebEditorServer {
     @Getter
     private final EditorSessionManager sessionManager;
     private final SpigotCommunicationService communicationService;
+    private DashboardService dashboardService;
 
     public ProxyWebEditorServer(int port) {
         this.port = port;
         this.gson = new GsonBuilder().setPrettyPrinting().create();
         this.sessionManager = new EditorSessionManager();
         this.communicationService = new SpigotCommunicationService();
+    }
+    
+    /**
+     * Initialise le service de tableau de bord avec le client Redisson
+     */
+    public void initializeDashboard(RedissonClient redissonClient) {
+        this.dashboardService = new DashboardService(redissonClient, sessionManager);
+        NextDungeonBungee.getInstance().getLogger().info("✅ Service de tableau de bord initialisé");
     }
 
     public int getPort() {
@@ -53,6 +64,9 @@ public class ProxyWebEditorServer {
             
             // API proxy pour communication avec les serveurs Spigot
             server.createContext("/proxy-api/", new ProxyApiHandler());
+            
+            // Dashboard routes
+            server.createContext("/dashboard", new DashboardHandler());
 
             server.setExecutor(Executors.newFixedThreadPool(8));
             server.start();
@@ -387,6 +401,68 @@ public class ProxyWebEditorServer {
                 
             } catch (Exception e) {
                 NextDungeonBungee.getInstance().getLogger().severe("Erreur API proxy: " + e.getMessage());
+                sendErrorResponse(exchange, "Erreur traitement requête: " + e.getMessage());
+            }
+        }
+    }
+    
+    /**
+     * Handler pour le tableau de bord
+     */
+    private class DashboardHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            String path = exchange.getRequestURI().getPath();
+            
+            if (dashboardService == null) {
+                sendErrorResponse(exchange, "Dashboard service not initialized");
+                return;
+            }
+            
+            // Dashboard UI
+            if (path.equals("/dashboard") || path.equals("/dashboard/")) {
+                serveStaticFile(exchange, "dashboard.html");
+                return;
+            }
+            
+            // Dashboard API routes
+            if (path.startsWith("/dashboard/api/")) {
+                handleDashboardApiRequest(exchange, path);
+            } else {
+                sendNotFound(exchange);
+            }
+        }
+        
+        private void handleDashboardApiRequest(HttpExchange exchange, String path) throws IOException {
+            if (!"GET".equals(exchange.getRequestMethod())) {
+                sendMethodNotAllowed(exchange);
+                return;
+            }
+            
+            try {
+                String response = switch (path) {
+                    case "/dashboard/api/floors" -> dashboardService.getFloorsJson();
+                    case "/dashboard/api/instances" -> dashboardService.getInstancesJson();
+                    case "/dashboard/api/sessions" -> dashboardService.getSessionsJson();
+                    case "/dashboard/api/stats" -> dashboardService.getStatsJson();
+                    default -> {
+                        // Handle /dashboard/api/floor/{floorId}
+                        if (path.startsWith("/dashboard/api/floor/")) {
+                            String floorId = path.substring("/dashboard/api/floor/".length());
+                            yield dashboardService.getFloorConfigJson(floorId);
+                        }
+                        yield null;
+                    }
+                };
+                
+                if (response != null) {
+                    sendJsonResponse(exchange, response);
+                } else {
+                    sendNotFound(exchange);
+                }
+            } catch (Exception e) {
+                NextDungeonBungee.getInstance().getLogger().severe("Erreur API dashboard: " + e.getMessage());
+                e.printStackTrace();
                 sendErrorResponse(exchange, "Erreur traitement requête: " + e.getMessage());
             }
         }
