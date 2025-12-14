@@ -12,20 +12,24 @@ icon: shield-check
 * **Minecraft Server**: Spigot, Paper, or compatible fork (1.21.4+ recommended)
 * **Java Version**: Java 21 or newer
 
-### Required Plugins
+### Required Dependencies
 
-The Dungeons Plugin depends on several other plugins for full functionality. Please ensure these are installed:
+The following are core requirements:
 
-* [CloudNet](https://cloudnetservice.eu/) – for dynamic server and instance management _<mark style="color:$danger;">(Need Java 24/25 and version 4.0.0-RC13)</mark>_
-* [Parties](https://www.spigotmc.org/resources/parties.3709/) – for group play and party features
-* [MMOCore](https://www.spigotmc.org/resources/mmocore.87699/) – for RPG elements (classes, skills, etc.)
-* [MythicMobs](https://www.spigotmc.org/resources/mythicmobs.5702/) – for custom mobs, bosses, and abilities
+* **Redis Server** – Required for cross-server communication (especially with CloudNet)
+* **Database** – MySQL or MongoDB for storing dungeon data and player progress
 
-> **Note:** Some features may be limited or unavailable if these plugins are missing or not configured.
+### Integration Plugins
 
-### Optional Plugins
+These plugins provide additional functionality and are **optional** but recommended:
 
-* No optional plugins for now.
+* [CloudNet](https://cloudnetservice.eu/) – For dynamic server and instance management _<mark style="color:orange;">(Requires Java 24/25 and version 4.0.0-RC13)</mark>_
+* [Advanced Slime Paper (ASP)](https://github.com/InfernalSuite/AdvancedSlimePaper) – For optimized world management (alternative to CloudNet)
+* [Parties](https://www.spigotmc.org/resources/parties.3709/) – For group play and party features
+* [MMOCore](https://www.spigotmc.org/resources/mmocore.87699/) – For RPG elements (classes, skills, level requirements)
+* [MythicMobs](https://www.spigotmc.org/resources/mythicmobs.5702/) – For custom mobs, bosses, and abilities
+
+> **Note:** NextDungeon works with vanilla Minecraft world management if CloudNet or ASP are not installed, though this is not recommended for production due to performance considerations.
 
 ### Web Editor
 
