@@ -449,6 +449,10 @@ public class ProxyWebEditorServer {
                         // Handle /dashboard/api/floor/{floorId}
                         if (path.startsWith("/dashboard/api/floor/")) {
                             String floorId = path.substring("/dashboard/api/floor/".length());
+                            // Validate floorId to prevent path traversal
+                            if (floorId.isEmpty() || floorId.contains("..") || floorId.contains("/") || floorId.contains("\\")) {
+                                yield "{\"success\": false, \"error\": \"Invalid floor ID\"}";
+                            }
                             yield dashboardService.getFloorConfigJson(floorId);
                         }
                         yield null;
