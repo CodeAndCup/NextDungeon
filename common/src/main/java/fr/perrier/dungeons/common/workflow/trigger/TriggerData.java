@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @Getter
-public abstract class TriggerData implements Serializable {
+public class TriggerData implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
@@ -31,5 +31,16 @@ public abstract class TriggerData implements Serializable {
         this.name = name;
         this.enabled = true;
         this.actions = new ArrayList<>();
+    }
+
+    @Override
+    public String toString() {
+        return "TriggerData{" +
+               "triggerId=" + triggerId +
+               ", name='" + name + '\'' +
+               ", enabled=" + enabled +
+               ", properties=" + properties +
+               ", actions=" + actions +
+               '}';
     }
 }

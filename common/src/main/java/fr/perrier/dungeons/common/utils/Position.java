@@ -10,4 +10,12 @@ import lombok.Setter;
 public class Position {
     private double x, y, z;
 
+    @Override
+    public String toString() {
+        return "Position{" +
+               "x=" + x +
+               ", y=" + y +
+               ", z=" + z +
+               '}';
+    }
 }

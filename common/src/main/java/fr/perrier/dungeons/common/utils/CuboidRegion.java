@@ -10,4 +10,12 @@ import lombok.Setter;
 public class CuboidRegion {
     private Position position1;
     private Position position2;
+
+    @Override
+    public String toString() {
+        return "CuboidRegion{" +
+               "position1=" + position1 +
+               ", position2=" + position2 +
+               '}';
+    }
 }

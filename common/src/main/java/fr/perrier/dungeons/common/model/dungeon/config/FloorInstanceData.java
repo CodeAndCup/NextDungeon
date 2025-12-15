@@ -37,4 +37,15 @@ public class FloorInstanceData {
     public String getInstanceName() {
         return floorId + "_" + instanceId.toString();
     }
+
+    @Override
+    public String toString() {
+        return "FloorInstanceData{" +
+               "floorId='" + floorId + '\'' +
+               ", instanceId=" + instanceId +
+               ", ready=" + ready +
+               ", playerStats=" + playerStats +
+               ", playerCurrentLives=" + playerCurrentLives +
+               '}';
+    }
 }

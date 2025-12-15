@@ -20,5 +20,25 @@ public class Requirements {
     public static class PartyRequirements {
         private int minSize;
         private int maxSize;
+
+        @Override
+        public String toString() {
+            return "PartyRequirements{" +
+                   "minSize=" + minSize +
+                   ", maxSize=" + maxSize +
+                   '}';
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "Requirements{" +
+               "retryCooldown=" + retryCooldown +
+               ", requiredFloorsId=" + requiredFloorsId +
+               ", partyRequirements=" + partyRequirements +
+               ", requiredItems=" + requiredItems +
+               ", forbiddenItems=" + forbiddenItems +
+               ", minLevel=" + minLevel +
+               '}';
     }
 }

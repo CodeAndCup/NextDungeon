@@ -33,4 +33,14 @@ public class PlayerStats {
     public void incrementDeaths() {
         this.deaths++;
     }
+
+    @Override
+    public String toString() {
+        return "PlayerStats{" +
+               "playerId=" + playerId +
+               ", enemiesKilled=" + enemiesKilled +
+               ", deaths=" + deaths +
+               ", startTime=" + startTime +
+               '}';
+    }
 }

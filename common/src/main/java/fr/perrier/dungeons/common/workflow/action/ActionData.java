@@ -6,7 +6,7 @@ import lombok.Setter;
 import java.io.Serializable;
 
 @Getter
-public abstract class ActionData implements Serializable {
+public class ActionData implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @Setter
@@ -16,5 +16,13 @@ public abstract class ActionData implements Serializable {
     public ActionData(String name, String type) {
         this.name = name;
         this.type = type;
+    }
+
+    @Override
+    public String toString() {
+        return "ActionData{" +
+               "name='" + name + '\'' +
+               ", type='" + type + '\'' +
+               '}';
     }
 }

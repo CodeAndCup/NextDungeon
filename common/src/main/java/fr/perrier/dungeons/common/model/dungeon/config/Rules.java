@@ -10,4 +10,14 @@ public class Rules {
     private String deathBanDuration;
     private String gamemode;
     private boolean allowFlight;
+
+    @Override
+    public String toString() {
+        return "Rules{" +
+                "maxLives=" + maxLives +
+                ", deathBanDuration='" + deathBanDuration + '\'' +
+                ", gamemode='" + gamemode + '\'' +
+                ", allowFlight=" + allowFlight +
+                '}';
+    }
 }
