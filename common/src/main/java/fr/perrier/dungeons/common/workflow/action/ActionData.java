@@ -3,10 +3,12 @@ package fr.perrier.dungeons.common.workflow.action;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.io.Serial;
 import java.io.Serializable;
 
 @Getter
 public class ActionData implements Serializable {
+    @Serial
     private static final long serialVersionUID = 1L;
 
     @Setter
