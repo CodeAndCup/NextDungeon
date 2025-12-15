@@ -308,7 +308,7 @@ public class VanillaProvider implements InstanceProvider {
     public CompletableFuture<Boolean> saveEditWorldToTemplate(Floor floor) {
         CompletableFuture<Boolean> future = new CompletableFuture<>();
 
-        Bukkit.getScheduler().runTaskAsynchronously(Main.getInstance(), () -> {
+        Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
             try {
                 Main.getInstance().getLogger().info("Sauvegarde du monde d'édition pour " + floor.getId() + " (Vanilla)...");
 
