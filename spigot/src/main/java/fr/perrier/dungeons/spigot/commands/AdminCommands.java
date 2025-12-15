@@ -207,7 +207,7 @@ public class AdminCommands {
                 player.sendMessage(ChatUtil.translate("&7Floor ID: &f" + info.getFloorId()));
                 player.sendMessage(ChatUtil.translate("&7Created At: &f" + info.getCreatedAt()));
 
-                FloorInstance instance = Main.getInstance().getRedisStorageService().getCurrentInstance().get();
+                FloorInstance instance = Main.getInstance().getRedisStorageService().getCurrentInstance();
                 if (instance != null) {
                     player.sendMessage(ChatUtil.translate("&7Ready: &f" + instance.isReady()));
                 }

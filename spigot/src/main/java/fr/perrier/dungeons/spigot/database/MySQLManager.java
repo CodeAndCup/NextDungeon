@@ -329,7 +329,7 @@ public class MySQLManager implements DatabaseManager {
                                 String json = rs.getString("triggers_data");
                                 return TriggerSerializer.deserializeTriggers(json);
                             }
-                            return new java.util.ArrayList<>();
+                            return new ArrayList<>();
                         },
                         floorId
                 );

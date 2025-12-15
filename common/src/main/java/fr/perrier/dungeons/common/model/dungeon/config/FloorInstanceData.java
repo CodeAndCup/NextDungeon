@@ -2,6 +2,7 @@ package fr.perrier.dungeons.common.model.dungeon.config;
 
 import fr.perrier.dungeons.common.model.player.PlayerStats;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.util.HashMap;
 import java.util.UUID;
@@ -10,6 +11,7 @@ import java.util.UUID;
 public class FloorInstanceData {
     protected final String floorId;
     protected UUID instanceId;
+    @Setter
     protected boolean ready;
 
     protected final HashMap<UUID, PlayerStats> playerStats = new HashMap<>();

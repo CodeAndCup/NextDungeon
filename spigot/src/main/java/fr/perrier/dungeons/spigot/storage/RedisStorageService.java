@@ -29,10 +29,8 @@ public class RedisStorageService {
     private static final String SYNC_CHANNEL = "dungeons:sync";
 
     // Local references to current floor and instance
-    @Getter
-    private final AtomicReference<Floor> currentFloor = new AtomicReference<>();
-    @Getter
-    private final AtomicReference<FloorInstance> currentInstance = new AtomicReference<>();
+    private final AtomicReference<FloorData> currentFloor = new AtomicReference<>();
+    private final AtomicReference<FloorInstanceData> currentInstance = new AtomicReference<>();
 
     // Redis Maps
     @Getter
@@ -130,27 +128,24 @@ public class RedisStorageService {
      * This method will update the local reference, update the Redis floor map,
      * and notify other servers of the update.
      *
-     * @param floor the floor to synchronize.
+     * @param floorData the floor to synchronize.
      */
-    public void syncFloor(Floor floor) {
-        RedisMessage<Floor> message = RedisMessage.create(
+    public void syncFloor(FloorData floorData) {
+        RedisMessage<FloorData> message = RedisMessage.create(
                 SYNC_CHANNEL,
                 Bukkit.getServer().getName(),
                 RedisMessage.MessageType.FLOOR_UPDATE,
-                floor
+                floorData
         );
 
-        // Update local reference
-        currentFloor.set(floor);
-
         // Update Redis
-        floorsMap.fastPut(floor.getId(), floor);
+        floorsMap.fastPut(floorData.getId(), floorData);
 
         // Notify other servers
         syncTopic.publish(message);
 
         Main.getInstance().getLogger().info(
-                String.format("Synced floor %s to Redis", floor.getId())
+                String.format("Synced floor %s to Redis", floorData.getId())
         );
     }
 
@@ -159,27 +154,24 @@ public class RedisStorageService {
      * This method will update the local reference, update the Redis instance map,
      * and notify other servers of the update.
      *
-     * @param instance the floor instance to synchronize.
+     * @param instanceData the floor instance to synchronize.
      */
-    public void syncInstance(FloorInstance instance) {
-        RedisMessage<FloorInstance> message = RedisMessage.create(
+    public void syncInstance(FloorInstanceData instanceData) {
+        RedisMessage<FloorInstanceData> message = RedisMessage.create(
                 SYNC_CHANNEL,
                 Bukkit.getServer().getIp() + ":" + Bukkit.getServer().getPort(),
                 RedisMessage.MessageType.INSTANCE_UPDATE,
-                instance
+                instanceData
         );
 
-        // Update local reference
-        currentInstance.set(instance);
-
         // Update Redis
-        instancesMap.fastPut(instance.getInstanceId(), instance);
+        instancesMap.fastPut(instanceData.getInstanceId(), instanceData);
 
         // Notify other servers
         syncTopic.publish(message);
 
         Main.getInstance().getLogger().info(
-                String.format("Synced instance %s to Redis", instance.getInstanceId())
+                String.format("Synced instance %s to Redis", instanceData.getInstanceId())
         );
     }
 
@@ -196,35 +188,35 @@ public class RedisStorageService {
         if (!message.getSender().equals(serverIdentity)) { // Don't handle own messages
             switch (message.getType()) {
                 case FLOOR_UPDATE -> {
-                    Floor floor = (Floor) message.getData();
+                    FloorData floorData = (FloorData) message.getData();
                     // Only update if it's our current floor
                     if (currentFloor.get() != null &&
-                            currentFloor.get().getId().equals(floor.getId())) {
-                        currentFloor.set(floor);
+                            currentFloor.get().getId().equals(floorData.getId())) {
+                        currentFloor.set(floorData);
                         Main.getInstance().getLogger().info(
-                                String.format("Updated local floor: %s from Redis", floor.getId())
+                                String.format("Updated local floorData: %s from Redis", floorData.getId())
                         );
                     }
                 }
                 case INSTANCE_UPDATE -> {
-                    FloorInstance instance = (FloorInstance) message.getData();
+                    FloorInstanceData instanceData = (FloorInstanceData) message.getData();
                     // Only update if it's our current instance
                     if (currentInstance.get() != null &&
-                            currentInstance.get().getInstanceId().equals(instance.getInstanceId())) {
-                        currentInstance.set(instance);
+                            currentInstance.get().getInstanceId().equals(instanceData.getInstanceId())) {
+                        currentInstance.set(instanceData);
                         Main.getInstance().getLogger().info(
-                                String.format("Updated local instance: %s from Redis",
-                                        instance.getInstanceId())
+                                String.format("Updated local instanceData: %s from Redis",
+                                        instanceData.getInstanceId())
                         );
                     }
                 }
                 case INSTANCE_REMOVE -> {
-                    FloorInstance instance = (FloorInstance) message.getData();
+                    FloorInstanceData instanceData = (FloorInstanceData) message.getData();
                     if (currentInstance.get() != null &&
-                            currentInstance.get().getInstanceId().equals(instance.getInstanceId())) {
+                            currentInstance.get().getInstanceId().equals(instanceData.getInstanceId())) {
                         currentInstance.set(null);
                         currentFloor.set(null);
-                        Main.getInstance().getLogger().info(String.format("Removed local instance: %s", instance.getInstanceId()));
+                        Main.getInstance().getLogger().info(String.format("Removed local instanceData: %s", instanceData.getInstanceId()));
                     }
                 }
             }
@@ -251,12 +243,14 @@ public class RedisStorageService {
      * @return the Floor object with the given ID, or null if not found
      */
     public @Nullable Floor getFloor(String id) {
-        Floor localFloor = currentFloor.get();
-        if (localFloor != null && localFloor.getId().equals(id)) {
-            return localFloor;
+        FloorData floorData =  floorsMap.get(id);
+
+        if(floorData == null) {
+            Main.getInstance().getLogger().warning(String.format("Floor %s not found in Redis", id));
+            return null;
         }
 
-        return new Floor(floorsMap.get(id));
+        return new Floor(floorData);
     }
 
     /**
@@ -266,17 +260,14 @@ public class RedisStorageService {
      * @return the instance with the given ID, or null if not found
      */
     public FloorInstance getInstance(UUID id) {
-        FloorInstance localInstance = currentInstance.get();
-        if (localInstance != null && localInstance.getInstanceId().equals(id)) {
-            return localInstance;
+        FloorInstanceData instanceData = instancesMap.get(id);
+
+        if(instanceData == null) {
+            Main.getInstance().getLogger().warning(String.format("Instance %s not found in Redis", id));
+            return null;
         }
 
-        localInstance = new FloorInstance(instancesMap.get(id));
-        if (localInstance.getInstanceId() != null && localInstance.getInstanceId().equals(id)) {
-            return localInstance;
-        }
-
-        throw new IllegalArgumentException("Instance not found: " + id);
+        return new FloorInstance(instanceData);
     }
 
     /**
@@ -323,7 +314,7 @@ public class RedisStorageService {
         instancesMap.remove(instanceId);
 
         // Clear local reference if it's our instance
-        FloorInstance localInstance = currentInstance.get();
+        FloorInstanceData localInstance = currentInstance.get();
         if (localInstance != null && localInstance.getInstanceId().equals(instanceId)) {
             currentInstance.set(null);
             currentFloor.set(null);
@@ -355,7 +346,7 @@ public class RedisStorageService {
      * Get the current floor instance state
      */
     public FloorInstanceState getInstanceState() {
-        FloorInstance instance = currentInstance.get();
+        FloorInstanceData instance = currentInstance.get();
         if (instance == null) {
             return FloorInstanceState.NONE;
         }
@@ -366,6 +357,22 @@ public class RedisStorageService {
         NONE,
         PREPARING,
         READY
+    }
+
+    public FloorInstance getCurrentInstance() {
+        FloorInstanceData instanceData = currentInstance.get();
+        if (instanceData == null) {
+            throw new IllegalStateException("No current instance available");
+        }
+        return new FloorInstance(instanceData);
+    }
+
+    public Floor getCurrentFloor() {
+        FloorData floorData = currentFloor.get();
+        if (floorData == null) {
+            throw new IllegalStateException("No current floor available");
+        }
+        return new Floor(floorData);
     }
 
 }

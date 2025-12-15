@@ -384,7 +384,7 @@ public final class Main extends JavaPlugin {
             @Override
             public void run(){
                 Bukkit.getScheduler().runTaskLaterAsynchronously(Main.getInstance(), () -> {
-                    FloorInstance instance = Main.getInstance().getRedisStorageService().getCurrentInstance().get();
+                    FloorInstance instance = Main.getInstance().getRedisStorageService().getCurrentInstance();
                     if (instance != null) {
                         instance.setReady(true);
                         Main.getInstance().getLogger().info("Instance " + instance.getInstanceId() + " is now ready!");

@@ -44,6 +44,9 @@ public class DebugCommands {
         player.sendMessage(ChatUtil.translate("&6Floors:"));
         for (FloorData floorData : Main.getInstance().getRedisStorageService().getFloorsMap().values()) {
             player.sendMessage(ChatUtil.translate("  &8- &e" + floorData.getName() + " &8(&7&o" + floorData.getId() + "&8)"));
+            player.sendMessage(ChatUtil.translate("      &8- &eDescription: &f" + floorData.getDescription()));
+            player.sendMessage(ChatUtil.translate("      &8- &eNumber of Steps: &f" + floorData.getSteps().size()));
+            player.sendMessage(ChatUtil.translate("      &8- &eNumber of Triggers: &f" + floorData.getTriggers().size()));
         }
         player.sendMessage(ChatUtil.getBar());
     }
@@ -72,5 +75,22 @@ public class DebugCommands {
     @Command(names = "dungeon debug print")
     public static void debugDungeonPrintCommand(Player player, @Param(name = "message", wildcard = true) String message) {
         player.sendMessage(ChatUtil.translate(message));
+    }
+
+    @Command(names = "dungeon debug floor")
+    public static void debugDungeonFloorCommand(Player player, @Param(name = "dungeonId")String dungeonId, @Param(name = "floorId") String floorId) {
+        Floor floor = Floor.getFloor(dungeonId + "_" + floorId);
+        if (floor == null) {
+            player.sendMessage(ChatUtil.translate("&cFloor with ID '" + floorId + "' not found."));
+            return;
+        }
+        player.sendMessage(ChatUtil.getBar());
+        player.sendMessage(ChatUtil.translate("&6Floor Info:"));
+        player.sendMessage(ChatUtil.translate("  &8- &eID: &f" + floor.getId()));
+        player.sendMessage(ChatUtil.translate("  &8- &eName: &f" + floor.getName()));
+        player.sendMessage(ChatUtil.translate("  &8- &eDescription: &f" + floor.getDescription()));
+        player.sendMessage(ChatUtil.translate("  &8- &eNumber of Steps: &f" + floor.getSteps().size()));
+        player.sendMessage(ChatUtil.translate("  &8- &eNumber of Triggers: &f" + floor.getTriggers().size()));
+        player.sendMessage(ChatUtil.getBar());
     }
 }

@@ -55,7 +55,7 @@ public class Floor extends FloorData {
      * notifying other servers of the update.
      */
     public void updateMap() {
-        Main.getInstance().getRedisStorageService().syncFloor(this);
+        Main.getInstance().getRedisStorageService().syncFloor(this.toFloorData());
     }
 
     /**
@@ -73,6 +73,19 @@ public class Floor extends FloorData {
             }
         });
         return future;
+    }
+
+    public FloorData toFloorData() {
+        return new FloorData(
+                getId(),
+                getName(),
+                getDescription(),
+                getWorldConfig(),
+                getRequirements(),
+                getRules(),
+                getSteps(),
+                getTriggers()
+        );
     }
 
 

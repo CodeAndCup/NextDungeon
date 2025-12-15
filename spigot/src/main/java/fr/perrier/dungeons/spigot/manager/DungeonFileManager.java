@@ -2,7 +2,6 @@ package fr.perrier.dungeons.spigot.manager;
 
 import fr.perrier.dungeons.common.workflow.trigger.TriggerData;
 import fr.perrier.dungeons.spigot.Main;
-import fr.perrier.dungeons.spigot.workflow.trigger.Trigger;
 
 import java.util.ArrayList;
 import java.util.List;

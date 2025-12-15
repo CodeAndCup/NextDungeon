@@ -71,8 +71,15 @@ public class NextDungeonVelocity {
         
         // Démarrer le serveur web centralisé avec le port configuré
         webEditorServer = new ProxyWebEditorServer(webEditorPort);
+
+        if(messaging != null) {
+            // Initialiser le tableau de bord avec le client Redisson
+            webEditorServer.initializeDashboard(messaging.getClient());
+        }
+
         if (webEditorServer.startServer()) {
             logger.info("✅ Serveur web éditeur centralisé démarré sur le port " + webEditorPort);
+            logger.info("📊 Dashboard disponible sur http://localhost:" + webEditorPort + "/dashboard");
         } else {
             logger.error("❌ Impossible de démarrer le serveur web éditeur");
         }

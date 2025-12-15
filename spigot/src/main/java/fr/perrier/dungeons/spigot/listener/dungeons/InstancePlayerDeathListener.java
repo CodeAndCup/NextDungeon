@@ -74,7 +74,6 @@ public class InstancePlayerDeathListener implements Listener {
                         .replace("{lives}", String.valueOf(
                                 Main.getInstance().getRedisStorageService()
                                         .getCurrentInstance()
-                                        .get()
                                         .getPlayerCurrentLives()
                                         .getOrDefault(player.getUniqueId(), 0)
                         ))
@@ -234,7 +233,7 @@ public class InstancePlayerDeathListener implements Listener {
     }
 
     private void applyDeathTo(Player player) {
-        FloorInstance instance = Main.getInstance().getRedisStorageService().getCurrentInstance().get();
+        FloorInstance instance = Main.getInstance().getRedisStorageService().getCurrentInstance();
 
         PlayerStats stats = instance.getPlayerStats().get(player.getUniqueId());
         if(stats != null) {

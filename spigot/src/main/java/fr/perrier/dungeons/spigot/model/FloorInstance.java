@@ -73,7 +73,7 @@ public class FloorInstance extends FloorInstanceData {
         this.instanceId = generateFloorServer(getFloor(), editMode);
         this.ready = false;
 
-        Main.getInstance().getRedisStorageService().syncInstance(this);
+        Main.getInstance().getRedisStorageService().syncInstance(this.toFloorInstanceData());
     }
 
     public FloorInstance(FloorInstanceData floorInstanceData) {
@@ -128,7 +128,7 @@ public class FloorInstance extends FloorInstanceData {
      */
     public void setReady(boolean ready) {
         this.ready = ready;
-        Main.getInstance().getRedisStorageService().syncInstance(this);
+        Main.getInstance().getRedisStorageService().syncInstance(this.toFloorInstanceData());
     }
 
     /**
@@ -262,7 +262,13 @@ public class FloorInstance extends FloorInstanceData {
         }, 20L * 30);
     }
 
-
+    public FloorInstanceData toFloorInstanceData() {
+        FloorInstanceData data = new FloorInstanceData(this.instanceId, this.floorId);
+        data.setReady(this.ready);
+        data.getPlayerStats().putAll(this.playerStats);
+        data.getPlayerCurrentLives().putAll(this.playerCurrentLives);
+        return data;
+    }
 
     /**
      * Returns a string representation of the FloorInstance.

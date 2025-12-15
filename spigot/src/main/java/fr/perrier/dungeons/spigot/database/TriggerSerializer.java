@@ -1,6 +1,7 @@
 package fr.perrier.dungeons.spigot.database;
 
 import com.google.gson.*;
+import fr.perrier.dungeons.common.workflow.action.ActionData;
 import fr.perrier.dungeons.common.workflow.trigger.TriggerData;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.workflow.action.Action;
@@ -79,10 +80,10 @@ public class TriggerSerializer {
     /**
      * Adaptateur de type pour gérer la polymorphie des Triggers
      */
-    private static class TriggerTypeAdapter implements JsonSerializer<Trigger>, JsonDeserializer<Trigger> {
+    private static class TriggerTypeAdapter implements JsonSerializer<TriggerData>, JsonDeserializer<TriggerData> {
 
         @Override
-        public JsonElement serialize(Trigger src, Type typeOfSrc, JsonSerializationContext context) {
+        public JsonElement serialize(TriggerData src, Type typeOfSrc, JsonSerializationContext context) {
             JsonObject result = new JsonObject();
             result.addProperty("className", src.getClass().getName());
             result.add("data", context.serialize(src, src.getClass()));
@@ -122,10 +123,10 @@ public class TriggerSerializer {
     /**
      * Adaptateur de type pour gérer la polymorphie des Actions
      */
-    private static class ActionTypeAdapter implements JsonSerializer<Action>, JsonDeserializer<Action> {
+    private static class ActionTypeAdapter implements JsonSerializer<ActionData>, JsonDeserializer<ActionData> {
 
         @Override
-        public JsonElement serialize(Action src, Type typeOfSrc, JsonSerializationContext context) {
+        public JsonElement serialize(ActionData src, Type typeOfSrc, JsonSerializationContext context) {
             JsonObject result = new JsonObject();
             result.addProperty("className", src.getClass().getName());
             result.add("data", context.serialize(src, src.getClass()));

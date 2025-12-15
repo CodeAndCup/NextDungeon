@@ -48,4 +48,18 @@ public class FloorData {
         this.steps = steps;
         this.triggers = triggers;
     }
+
+    @Override
+    public String toString() {
+        return "FloorData{" +
+                "id='" + id + '\'' +
+                ", name='" + name + '\'' +
+                ", description='" + description + '\'' +
+                ", worldConfig=" + worldConfig +
+                ", requirements=" + requirements +
+                ", rules=" + rules +
+                ", steps=" + steps +
+                ", triggers=" + triggers +
+                '}';
+    }
 }
