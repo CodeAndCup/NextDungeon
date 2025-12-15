@@ -60,4 +60,19 @@ public abstract class Trigger extends TriggerData {
         new ActionSequenceExecutor(actions, player, location, data).executeNext();
         return true;
     }
+
+    public TriggerData toTriggerData() {
+        return new TriggerData(this.triggerId, this.name, this.enabled, this.properties, new ArrayList<>());
+    }
+
+    @Override
+    public String toString() {
+        return "Trigger{" +
+               "triggerId=" + triggerId +
+               ", name='" + name + '\'' +
+               ", enabled=" + enabled +
+               ", properties=" + properties +
+               ", actions=" + actions +
+               '}';
+    }
 }

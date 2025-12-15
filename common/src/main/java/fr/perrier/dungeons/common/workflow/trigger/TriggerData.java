@@ -33,6 +33,14 @@ public class TriggerData implements Serializable {
         this.actions = new ArrayList<>();
     }
 
+    public TriggerData(UUID triggerId, String name, boolean enabled, Map<String, Object> properties, List<ActionData> actions) {
+        this.triggerId = triggerId;
+        this.name = name;
+        this.enabled = enabled;
+        this.properties = properties;
+        this.actions = actions;
+    }
+
     @Override
     public String toString() {
         return "TriggerData{" +

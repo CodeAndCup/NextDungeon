@@ -98,9 +98,9 @@ public class TriggerFactory {
 
         for (JsonElement element : triggersArray) {
             if (element.isJsonObject()) {
-                TriggerData trigger = createTriggerFromJson(element.getAsJsonObject());
+                Trigger trigger = createTriggerFromJson(element.getAsJsonObject());
                 if (trigger != null) {
-                    triggers.add(trigger);
+                    triggers.add(trigger.toTriggerData());
                     if(trigger instanceof FunctionTrigger functionTrigger) {
                         functionTrigger.registerFunction();
                     }
