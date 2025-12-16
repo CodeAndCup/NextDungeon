@@ -3,13 +3,8 @@ package fr.perrier.dungeons.spigot;
 import com.alessiodp.parties.api.Parties;
 import com.alessiodp.parties.api.interfaces.PartiesAPI;
 import com.github.juliarn.npclib.api.NpcActionController;
-import com.github.juliarn.npclib.api.NpcTracker;
 import com.github.juliarn.npclib.api.Platform;
-import com.github.juliarn.npclib.api.event.manager.NpcEventManager;
-import com.github.juliarn.npclib.api.log.PlatformLogger;
-import com.github.juliarn.npclib.api.profile.ProfileResolver;
 import com.github.juliarn.npclib.bukkit.BukkitPlatform;
-import com.github.juliarn.npclib.bukkit.BukkitVersionAccessor;
 import com.github.juliarn.npclib.bukkit.BukkitWorldAccessor;
 import com.github.juliarn.npclib.bukkit.protocol.BukkitProtocolAdapter;
 import fr.perrier.cupcodeapi.CupCodeAPI;
@@ -39,7 +34,6 @@ import fr.perrier.dungeons.spigot.model.FloorInstance;
 import fr.perrier.dungeons.spigot.storage.ProfileService;
 import fr.perrier.dungeons.spigot.storage.RedisStorageService;
 import fr.perrier.dungeons.spigot.utils.ServerUtil;
-import fr.perrier.dungeons.spigot.webeditor.SpigotProxyBridge;
 import fr.perrier.dungeons.spigot.webserver.DungeonWebEditorManager;
 import lombok.Getter;
 import lombok.Setter;
@@ -82,9 +76,7 @@ public final class Main extends JavaPlugin {
 
     // Web editor manager
     private DungeonWebEditorManager webEditorManager;
-    
-    // Proxy bridge for web editor communication
-    private SpigotProxyBridge proxyBridge;
+
 
     // Global trigger manager
     private GlobalTriggerManager globalTriggerManager;
@@ -95,6 +87,9 @@ public final class Main extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        getLogger().info("Starting NextDungeon plugin...");
+        long startTime = System.currentTimeMillis();
+
         instance = this;
 
         // Save default config
@@ -188,25 +183,23 @@ public final class Main extends JavaPlugin {
         // Loading listeners
         loadGlobalListeners();
 
-        // Initialize trigger system
-        globalTriggerManager = new GlobalTriggerManager();
-        globalTriggerManager.initialize();
-        globalTriggerManager.refreshTriggerCache();
+        // Only on instance servers
+        if(ServerUtil.isInstanceServer()) {
+            // Initialize trigger system
+            globalTriggerManager = new GlobalTriggerManager();
+            globalTriggerManager.initialize();
+            globalTriggerManager.refreshTriggerCache();
 
-        // Initialize variable manager
-        variableManager = new VariableManager();
+            // Initialize variable manager
+            variableManager = new VariableManager();
 
-
-        // Initialize web editor manager
-        webEditorManager = new DungeonWebEditorManager();
-        
-        // Initialize proxy bridge for web editor communication
-        proxyBridge = new SpigotProxyBridge();
-        if (proxyBridge.startBridge()) {
-            getLogger().info("✅ Pont de communication proxy démarré");
-        } else {
-            getLogger().warning("⚠️ Impossible de démarrer le pont proxy");
+            if(ServerUtil.isInEditMode()) {
+                // Initialize web editor manager
+                webEditorManager = new DungeonWebEditorManager();
+            }
         }
+
+        getLogger().info("NextDungeon " + this.getDescription().getVersion()  + " started in " + (System.currentTimeMillis() - startTime) + " ms");
     }
 
     @Override
@@ -235,11 +228,6 @@ public final class Main extends JavaPlugin {
         Pidgin.shutdown();
         webEditorManager.shutdownAllEditors();
         ghostFactory.close();
-        
-        // Arrêter le pont de communication proxy
-        if (proxyBridge != null) {
-            proxyBridge.stopBridge();
-        }
     }
 
     /**

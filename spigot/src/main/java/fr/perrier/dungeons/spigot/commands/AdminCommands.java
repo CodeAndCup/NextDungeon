@@ -158,10 +158,7 @@ public class AdminCommands {
             names = {"dungeon admin webeditor stop", "dungeons admin webeditor stop", "nextdungeon admin webeditor stop", "nextdungeons admin webeditor stop", "nd admin webeditor stop"},
             permission = "nextdungeons.admin")
     public static void adminDungeonWebEditorStopCommand(Player player) {
-        boolean success = Main.getInstance().getWebEditorManager().stopWebEditor(player);
-        if (success) {
-            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&a✓ Web editor stopped."));
-        }
+        Main.getInstance().getWebEditorManager().stopWebEditor(player);
     }
 
     @Command(names = "dungeon admin test")

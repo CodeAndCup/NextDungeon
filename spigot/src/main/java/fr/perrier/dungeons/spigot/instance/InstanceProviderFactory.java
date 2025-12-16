@@ -1,9 +1,7 @@
 package fr.perrier.dungeons.spigot.instance;
 
 import fr.perrier.dungeons.spigot.Main;
-import fr.perrier.dungeons.spigot.instance.impl.ASPProvider;
 import fr.perrier.dungeons.spigot.instance.impl.CloudNetProvider;
-import fr.perrier.dungeons.spigot.instance.impl.VanillaProvider;
 import org.bukkit.Bukkit;
 
 /**
@@ -27,15 +25,9 @@ public class InstanceProviderFactory {
             case "CLOUDNET":
                 return createCloudNetProvider();
 
-            case "ASP":
-                return createASPProvider();
-
-            case "VANILLA":
-                return createVanillaProvider();
-
             default:
-                Main.getInstance().getLogger().warning("Type de provider inconnu: " + providerType + ". Utilisation de VANILLA par défaut.");
-                return createVanillaProvider();
+                Main.getInstance().getLogger().warning("Type de provider inconnu: " + providerType + ".");
+                throw new IllegalStateException("Type de provider inconnu: " + providerType);
         }
     }
 
@@ -54,27 +46,6 @@ public class InstanceProviderFactory {
         }
     }
 
-    /**
-     * Crée un provider ASP si disponible.
-     */
-    private static InstanceProvider createASPProvider() {
-        // Vérifier si ASP est présent
-        if (Bukkit.getPluginManager().getPlugin("SlimeWorldManager") != null) {
-            Main.getInstance().getLogger().info("SlimeWorldManager détecté, utilisation du ASPProvider");
-            return new ASPProvider();
-        } else {
-            Main.getInstance().getLogger().severe("SlimeWorldManager n'est pas disponible sur ce serveur !");
-            throw new IllegalStateException("ASP provider requis mais non disponible");
-        }
-    }
-
-    /**
-     * Crée un provider Vanilla (toujours disponible).
-     */
-    private static InstanceProvider createVanillaProvider() {
-        Main.getInstance().getLogger().info("Utilisation du VanillaProvider (système de mondes natif)");
-        return new VanillaProvider();
-    }
 
     /**
      * Détecte automatiquement le meilleur provider disponible.
@@ -82,7 +53,6 @@ public class InstanceProviderFactory {
      * @return le provider le plus approprié
      */
     public static InstanceProvider autoDetect() {
-        // Ordre de priorité : CloudNet > ASP > Vanilla
 
         try {
             Class.forName("eu.cloudnetservice.driver.inject.InjectionLayer");
@@ -92,13 +62,8 @@ public class InstanceProviderFactory {
             // CloudNet non disponible
         }
 
-        if (Bukkit.getPluginManager().getPlugin("SlimeWorldManager") != null) {
-            Main.getInstance().getLogger().info("Auto-détection: ASP trouvé");
-            return new ASPProvider();
-        }
-
-        Main.getInstance().getLogger().info("Auto-détection: Utilisation de Vanilla");
-        return new VanillaProvider();
+        Main.getInstance().getLogger().info("Auto-détection: Aucun provider disponible.");
+        throw new IllegalStateException("Aucun provider d'instance disponible");
     }
 }
 

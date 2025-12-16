@@ -25,6 +25,7 @@ public class ProxyBridgeService {
         // Essayer de lire le port depuis la config du plugin
         try {
             proxyPort = Main.getInstance().getConfig().getInt("webeditor.proxy-port", 7734);
+            Main.getInstance().getLogger().info("Port proxy pour l'éditeur web défini sur: " + proxyPort);
         } catch (Exception e) {
             Main.getInstance().getLogger().warning("Impossible de lire le port proxy depuis la config, utilisation du port par défaut: 7734");
         }
