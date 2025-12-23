@@ -23,8 +23,10 @@ La communication Redis entre les serveurs de jeu et les proxies n'était pas fia
    - Logs améliorés pour tracer les requêtes vers le bon serveur
 
 4. **Identification automatique du serveur** :
-   - Utilise `Bukkit.getServer().getName()` pour identifier automatiquement chaque serveur
-   - Fonctionne avec les serveurs vanilla, CloudNet, et autres systèmes de gestion
+   - Utilise le système de plugin messaging (canal BungeeCord) pour obtenir le nom du serveur
+   - Récupère le nom tel que défini dans la configuration du proxy (config.yml de BungeeCord/Velocity)
+   - Fonctionne automatiquement avec BungeeCord et Velocity
+   - Fallback vers le nom Bukkit si aucun joueur n'est connecté
    - Aucune configuration manuelle requise
 
 #### Fichiers Modifiés
@@ -32,6 +34,9 @@ La communication Redis entre les serveurs de jeu et les proxies n'était pas fia
 **Spigot :**
 - `spigot/src/main/java/fr/perrier/dungeons/spigot/messaging/packets/webeditor/WebEditorRequestPacket.java`
 - `spigot/src/main/java/fr/perrier/dungeons/spigot/messaging/subscribers/WebEditorRequestSubscriber.java`
+- `spigot/src/main/java/fr/perrier/dungeons/spigot/messaging/ServerNameService.java` (nouveau)
+- `spigot/src/main/java/fr/perrier/dungeons/spigot/webeditor/ProxyBridgeService.java`
+- `spigot/src/main/java/fr/perrier/dungeons/spigot/Main.java`
 - `spigot/src/main/resources/config.yml` (suppression de la configuration manuelle)
 
 **BungeeCord :**
@@ -44,14 +49,18 @@ La communication Redis entre les serveurs de jeu et les proxies n'était pas fia
 
 #### Configuration
 
-Aucune configuration requise ! Le nom du serveur est automatiquement détecté via `Bukkit.getServer().getName()`.
+Aucune configuration requise ! Le nom du serveur est automatiquement détecté via le système de plugin messaging.
 
-Cette méthode fonctionne automatiquement avec :
-- Serveurs Spigot/Paper vanilla
-- CloudNet et autres systèmes de gestion de serveurs
-- Configurations multi-serveurs
+**Comment ça fonctionne :**
+- Le plugin envoie une requête "GetServer" au proxy via le canal BungeeCord
+- Le proxy répond avec le nom du serveur tel que défini dans sa configuration
+- Le nom est mis en cache pour éviter les requêtes répétées
+- Si aucun joueur n'est connecté, un fallback vers le nom Bukkit est utilisé
 
-Le nom du serveur utilisé sera celui configuré dans votre système (server.properties, CloudNet, etc.).
+**Compatibilité :**
+- BungeeCord : Utilise le nom défini dans config.yml
+- Velocity : Utilise le nom défini dans velocity.toml
+- Fonctionne automatiquement sans configuration additionnelle
 
 ### 🎨 Refonte Graphique du Webeditor et Dashboard
 

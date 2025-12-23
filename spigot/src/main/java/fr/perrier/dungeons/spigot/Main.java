@@ -73,6 +73,7 @@ public final class Main extends JavaPlugin {
     private RedisStorageService redisStorageService;
     private ProfileService profileService;
     private DatabaseManager databaseManager;
+    private ServerNameService serverNameService;
 
     // Web editor manager
     private DungeonWebEditorManager webEditorManager;
@@ -175,6 +176,10 @@ public final class Main extends JavaPlugin {
 
         // Enabling messaging system
         this.messaging = new Pidgin(Main.getInstance().getConfig().getString("RedisConfiguration.topic"));
+
+        // Initialize server name service
+        this.serverNameService = new ServerNameService();
+        this.serverNameService.initialize();
 
         // Loading commands
         this.commandHandler = new CommandHandler(this);

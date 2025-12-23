@@ -124,7 +124,7 @@ public class ProxyBridgeService {
      * Récupère le nom du serveur actuel
      */
     private String getCurrentServerName() {
-        // Utiliser le nom du serveur Bukkit ou CloudNet
-        return Bukkit.getServer().getName();
+        // Utiliser le service de récupération du nom du serveur depuis le proxy
+        return Main.getInstance().getServerNameService().getServerName();
     }
 }

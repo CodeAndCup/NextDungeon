@@ -115,8 +115,9 @@ public class WebEditorRequestSubscriber implements PacketListener {
     }
     
     private String getServerName() {
-        // Utiliser le nom du serveur Bukkit automatiquement
-        // Cela fonctionne avec les serveurs vanilla, CloudNet, et autres systèmes de gestion
-        return Bukkit.getServer().getName();
+        // Utiliser le service de récupération du nom du serveur
+        // Celui-ci récupère le nom depuis le proxy (BungeeCord/Velocity)
+        // via le système de plugin messaging
+        return Main.getInstance().getServerNameService().getServerName();
     }
 }

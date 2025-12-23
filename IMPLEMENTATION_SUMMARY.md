@@ -33,14 +33,18 @@ Added a **targeted routing system** for Redis messages:
    - Improved error messages
 
 4. **Automatic Server Identification**
-   - Uses `Bukkit.getServer().getName()` for automatic server identification
+   - Uses BungeeCord/Velocity plugin messaging channel to get server name
+   - Retrieves the name as defined in proxy configuration (config.yml/velocity.toml)
    - No manual configuration required
-   - Works with vanilla servers, CloudNet, and other management systems
-   - Server name is automatically derived from the system configuration
+   - Caches the server name to avoid repeated requests
+   - Fallback to Bukkit name if no players are online
 
 #### Files Modified
 - `spigot/src/main/java/fr/perrier/dungeons/spigot/messaging/packets/webeditor/WebEditorRequestPacket.java`
 - `spigot/src/main/java/fr/perrier/dungeons/spigot/messaging/subscribers/WebEditorRequestSubscriber.java`
+- `spigot/src/main/java/fr/perrier/dungeons/spigot/messaging/ServerNameService.java` (new)
+- `spigot/src/main/java/fr/perrier/dungeons/spigot/webeditor/ProxyBridgeService.java`
+- `spigot/src/main/java/fr/perrier/dungeons/spigot/Main.java`
 - `spigot/src/main/resources/config.yml` (removed manual configuration)
 - `bungeecord/src/main/java/fr/perrier/dungeons/bungee/messaging/packets/webeditor/WebEditorRequestPacket.java`
 - `bungeecord/src/main/java/fr/perrier/dungeons/bungee/messaging/SpigotCommunicationService.java`
@@ -155,16 +159,21 @@ Created comprehensive documentation:
 
 **No manual configuration required!**
 
-The server name is automatically detected using `Bukkit.getServer().getName()`. This works automatically with:
-- Vanilla Spigot/Paper servers (uses server name from server.properties)
-- CloudNet and other server management systems
-- Any system that properly sets the server name
+The server name is automatically detected using the BungeeCord/Velocity plugin messaging system:
 
-The server name will be whatever is configured in your server management system or server.properties file.
+1. **Plugin Messaging**: The plugin sends a "GetServer" request to the proxy
+2. **Proxy Response**: The proxy returns the server name from its configuration
+3. **Caching**: The name is cached to avoid repeated requests
+4. **Fallback**: If no players are online, falls back to Bukkit server name
+
+**How it works:**
+- **BungeeCord**: Returns server name from `config.yml`
+- **Velocity**: Returns server name from `velocity.toml`
+- **Automatic**: Works immediately on server start when first player joins
 
 **Important Notes:**
-- Ensure each server has a unique name in your infrastructure
-- Server names are automatically read from your existing configuration
+- Ensure each server has a unique name in your proxy configuration
+- Server names are automatically read from BungeeCord/Velocity config
 - No additional setup needed in NextDungeon config
 
 ### BungeeCord/Velocity Setup
@@ -179,10 +188,9 @@ No configuration changes required. The proxy automatically includes the target s
    - Note current server names/IPs
 
 2. **Verify Server Names**
-   - Check that each server has a unique name in your infrastructure
-   - For vanilla servers: Check server.properties
-   - For CloudNet: Check CloudNet configuration
-   - For other systems: Check your management system configuration
+   - Check that each server has a unique name in proxy configuration
+   - For BungeeCord: Check `config.yml` server names
+   - For Velocity: Check `velocity.toml` server names
 
 3. **Deploy Updated Plugins**
    - Replace all plugin JARs (Spigot, BungeeCord, Velocity)
@@ -194,7 +202,7 @@ No configuration changes required. The proxy automatically includes the target s
    - Verify startup logs for errors and check detected server names
 
 5. **Verify Functionality**
-   - Test webeditor access
+   - Test webeditor access (requires at least one player online)
    - Create test session
    - Load/save triggers
    - Check dashboard displays
@@ -211,13 +219,15 @@ No configuration changes required. The proxy automatically includes the target s
 ### Redis Communication Issues
 
 **Symptom:** Multiple servers responding to requests
-- **Check:** Each server has a unique name in your infrastructure
-- **Check:** Server names are properly configured in server.properties or CloudNet
+- **Check:** Each server has a unique name in proxy configuration
+- **Check:** BungeeCord/Velocity config.yml has unique server names
 - **Check:** Logs show correct targetServerId
+- **Check:** At least one player is online for server name detection
 
 **Symptom:** No server responding to requests
 - **Check:** Target server is running
 - **Check:** Server name is correctly detected (check logs on startup)
+- **Check:** At least one player online for initial server name detection
 - **Check:** Redis connection is active
 - **Check:** Timeout settings (30s default)
 
