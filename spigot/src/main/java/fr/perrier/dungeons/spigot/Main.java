@@ -30,6 +30,7 @@ import fr.perrier.dungeons.spigot.manager.GhostFactory;
 import fr.perrier.dungeons.spigot.manager.GlobalTriggerManager;
 import fr.perrier.dungeons.spigot.manager.VariableManager;
 import fr.perrier.dungeons.spigot.messaging.Pidgin;
+import fr.perrier.dungeons.spigot.messaging.ServerNameService;
 import fr.perrier.dungeons.spigot.model.FloorInstance;
 import fr.perrier.dungeons.spigot.storage.ProfileService;
 import fr.perrier.dungeons.spigot.storage.RedisStorageService;
@@ -73,6 +74,7 @@ public final class Main extends JavaPlugin {
     private RedisStorageService redisStorageService;
     private ProfileService profileService;
     private DatabaseManager databaseManager;
+    private ServerNameService serverNameService;
 
     // Web editor manager
     private DungeonWebEditorManager webEditorManager;
@@ -175,6 +177,10 @@ public final class Main extends JavaPlugin {
 
         // Enabling messaging system
         this.messaging = new Pidgin(Main.getInstance().getConfig().getString("RedisConfiguration.topic"));
+
+        // Initialize server name service
+        this.serverNameService = new ServerNameService();
+        this.serverNameService.initialize();
 
         // Loading commands
         this.commandHandler = new CommandHandler(this);

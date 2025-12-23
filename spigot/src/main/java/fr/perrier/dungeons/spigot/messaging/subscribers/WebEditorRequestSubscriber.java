@@ -7,6 +7,7 @@ import fr.perrier.dungeons.spigot.messaging.packets.webeditor.WebEditorResponseP
 import fr.perrier.dungeons.spigot.messaging.pidgin.IncomingPacketHandler;
 import fr.perrier.dungeons.spigot.messaging.pidgin.PacketListener;
 import fr.perrier.dungeons.spigot.webeditor.ProxyEditorMessageHandler;
+import org.bukkit.Bukkit;
 
 /**
  * Subscriber pour gérer les requêtes de l'éditeur web depuis le proxy
@@ -22,6 +23,15 @@ public class WebEditorRequestSubscriber implements PacketListener {
 
     @IncomingPacketHandler
     public void onWebEditorRequest(WebEditorRequestPacket packet) {
+        // Vérifier si ce serveur est la cible du message
+        // Si targetServerId est null, le message est broadcast à tous les serveurs (comportement legacy)
+        String currentServerId = getServerName();
+        if (packet.getTargetServerId() != null && !packet.getTargetServerId().equals(currentServerId)) {
+            // Ce message n'est pas pour ce serveur, l'ignorer
+            Main.getInstance().getLogger().fine("Requête ignorée: cible=" + packet.getTargetServerId() + ", serveur=" + currentServerId);
+            return;
+        }
+        
         try {
             String response = processRequest(packet);
             
@@ -105,7 +115,9 @@ public class WebEditorRequestSubscriber implements PacketListener {
     }
     
     private String getServerName() {
-        // Récupérer le nom du serveur Spigot depuis la configuration ou un autre moyen
-        return Main.getInstance().getConfig().getString("server-name", "unknown-spigot");
+        // Utiliser le service de récupération du nom du serveur
+        // Celui-ci récupère le nom depuis le proxy (BungeeCord/Velocity)
+        // via le système de plugin messaging
+        return Main.getInstance().getServerNameService().getServerName();
     }
 }

@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🏰 Éditeur de Triggers - Dungeons</title>
+    
+    <!-- 
+        Browser Requirements:
+        - Modern browsers with ES6+ support (Chrome 51+, Firefox 54+, Safari 10+, Edge 15+)
+        - CSS Variables support required
+        - No IE11 support
+    -->
 
     <!-- Blockly Core -->
     <script src="https://unpkg.com/blockly/blockly_compressed.js"></script>
@@ -12,98 +19,151 @@
     <script src="https://unpkg.com/blockly/msg/js/fr.js"></script>
 
     <style>
+        /* Dark theme inspired by Spark - Modern & Clean */
+        :root {
+            --bg-primary: #1a1d29;
+            --bg-secondary: #242837;
+            --bg-tertiary: #2d3348;
+            --accent-primary: #5e72e4;
+            --accent-secondary: #11cdef;
+            --accent-success: #2dce89;
+            --accent-warning: #fb6340;
+            --accent-danger: #f5365c;
+            --text-primary: #e9ecef;
+            --text-secondary: #adb5bd;
+            --text-muted: #6c757d;
+            --border-color: #3a3f5c;
+            --shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: 'Segoe UI', Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             margin: 0;
             padding: 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #333;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
         }
 
         .header {
-            background: rgba(255,255,255,0.95);
-            padding: 20px;
-            text-align: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            background: var(--bg-secondary);
+            padding: 24px 32px;
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
         }
 
         .header h1 {
             margin: 0;
-            color: #333;
-            font-size: 2.5em;
+            color: var(--text-primary);
+            font-size: 1.75rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
 
         .header p {
-            margin: 10px 0 0 0;
-            color: #666;
-            font-size: 1.1em;
+            margin: 8px 0 0 0;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            font-weight: 400;
         }
 
         .debug-info {
-            background: #e3f2fd;
-            border: 1px solid #2196f3;
-            border-radius: 8px;
-            padding: 12px;
-            margin: 15px 0;
-            font-family: monospace;
-            font-size: 0.9em;
-            color: #1976d2;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--accent-secondary);
+            border-radius: 6px;
+            padding: 12px 16px;
+            margin: 16px 0 0 0;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: var(--accent-secondary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .controls {
-            background: rgba(255,255,255,0.9);
-            padding: 15px;
-            text-align: center;
+            background: var(--bg-secondary);
+            padding: 16px 32px;
             display: flex;
             justify-content: center;
-            gap: 10px;
+            gap: 12px;
             flex-wrap: wrap;
+            border-bottom: 1px solid var(--border-color);
         }
 
         .btn {
-            padding: 12px 24px;
+            padding: 10px 20px;
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 1em;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
         }
 
         .btn.success {
-            background: linear-gradient(45deg, #4caf50, #66bb6a);
+            background: var(--accent-success);
             color: white;
+        }
+
+        .btn.success:hover {
+            background: #26b57c;
         }
 
         .btn.primary {
-            background: linear-gradient(45deg, #2196f3, #42a5f5);
+            background: var(--accent-primary);
             color: white;
+        }
+
+        .btn.primary:hover {
+            background: #5260d6;
         }
 
         .btn.danger {
-            background: linear-gradient(45deg, #f44336, #ef5350);
+            background: var(--accent-danger);
             color: white;
+        }
+
+        .btn.danger:hover {
+            background: #e92f51;
         }
 
         .btn.warning {
-            background: linear-gradient(45deg, #ff9800, #ffb74d);
+            background: var(--accent-warning);
             color: white;
         }
 
+        .btn.warning:hover {
+            background: #f4553a;
+        }
+
         .editor-container {
-            height: 600px;
+            height: calc(100vh - 200px); /* Minimum height calculation - adjust if header/controls change */
+            min-height: 400px; /* Ensure minimum usable height */
             margin: 20px;
-            border-radius: 12px;
+            border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            background: white;
+            box-shadow: var(--shadow);
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
         }
 
         #blocklyDiv {
@@ -113,15 +173,20 @@
 
         .status {
             position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 15px 25px;
-            border-radius: 8px;
+            top: 24px;
+            right: 24px;
+            padding: 12px 20px;
+            border-radius: 6px;
             color: white;
-            font-weight: 600;
-            transform: translateX(100%);
+            font-weight: 500;
+            font-size: 0.9rem;
+            transform: translateX(calc(100% + 40px));
             transition: transform 0.3s ease;
             z-index: 1000;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .status.show {
@@ -129,15 +194,15 @@
         }
 
         .status.success {
-            background: linear-gradient(45deg, #4caf50, #66bb6a);
+            background: var(--accent-success);
         }
 
         .status.error {
-            background: linear-gradient(45deg, #f44336, #ef5350);
+            background: var(--accent-danger);
         }
 
         .status.info {
-            background: linear-gradient(45deg, #2196f3, #42a5f5);
+            background: var(--accent-secondary);
         }
     </style>
 </head>
@@ -226,7 +291,7 @@
     // Chargement dynamique des blocs depuis le serveur Java
     async function loadDynamicBlocks() {
         try {
-            const response = await fetch("../api/blockly.js");
+            const response = await fetch('/api/blockly.js');
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
@@ -285,7 +350,7 @@
         try {
             updateDebugInfo("🧪 Test de l'API...");
 
-            const response = await fetch("../api/trigger-types");
+            const response = await fetch('/api/trigger-types');
             if (response.ok) {
                 const data = await response.json();
                 console.log('Types de triggers:', data);
@@ -313,7 +378,7 @@
             const triggers = generateTriggersFromWorkspace();
             console.log('Triggers à sauvegarder:', triggers);
 
-            const response = await fetch(("../api/save"), {
+            const response = await fetch('/api/save', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -340,7 +405,7 @@
     async function loadTriggers() {
         try {
             updateDebugInfo("📥 Chargement des triggers...");
-            const response = await fetch("../api/triggers");
+            const response = await fetch('/api/triggers');
             const data = await response.json();
 
             /*workspace.clear();
@@ -400,17 +465,7 @@
             }, 3000);
         }
     }
-
-    if (!crypto.randomUUID) {
-        crypto.randomUUID = function() {
-            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-                const r = Math.random() * 16 | 0;
-                const v = c === 'x' ? r : (r & 0x3 | 0x8);
-                return v.toString(16);
-            });
-        };
-    }
 </script>
-<script src="../api/blockly.js"></script>
+<script src="/api/blockly.js"></script>
 </body>
 </html>
