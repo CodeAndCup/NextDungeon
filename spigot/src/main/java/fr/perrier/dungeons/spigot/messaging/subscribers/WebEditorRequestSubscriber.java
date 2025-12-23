@@ -114,7 +114,8 @@ public class WebEditorRequestSubscriber implements PacketListener {
     }
     
     private String getServerName() {
-        // Récupérer le nom du serveur Spigot depuis la configuration ou un autre moyen
-        return Main.getInstance().getConfig().getString("server-name", "unknown-spigot");
+        // Utiliser le nom du serveur Bukkit automatiquement
+        // Cela fonctionne avec les serveurs vanilla, CloudNet, et autres systèmes de gestion
+        return org.bukkit.Bukkit.getServer().getName();
     }
 }

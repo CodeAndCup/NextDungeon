@@ -22,17 +22,16 @@ La communication Redis entre les serveurs de jeu et les proxies n'était pas fia
    - `SpigotCommunicationService` (BungeeCord et Velocity) passe maintenant le serveur cible
    - Logs améliorés pour tracer les requêtes vers le bon serveur
 
-4. **Configuration serveur** :
-   - Nouveau paramètre `server-name` dans `config.yml`
-   - Permet d'identifier de manière unique chaque serveur Spigot
-   - Exemple : `server-name: "dungeon-server-1"`
+4. **Identification automatique du serveur** :
+   - Utilise `Bukkit.getServer().getName()` pour identifier automatiquement chaque serveur
+   - Fonctionne avec les serveurs vanilla, CloudNet, et autres systèmes de gestion
+   - Aucune configuration manuelle requise
 
 #### Fichiers Modifiés
 
 **Spigot :**
 - `spigot/src/main/java/fr/perrier/dungeons/spigot/messaging/packets/webeditor/WebEditorRequestPacket.java`
 - `spigot/src/main/java/fr/perrier/dungeons/spigot/messaging/subscribers/WebEditorRequestSubscriber.java`
-- `spigot/src/main/resources/config.yml`
 
 **BungeeCord :**
 - `bungeecord/src/main/java/fr/perrier/dungeons/bungee/messaging/packets/webeditor/WebEditorRequestPacket.java`
@@ -42,18 +41,16 @@ La communication Redis entre les serveurs de jeu et les proxies n'était pas fia
 - `velocity/src/main/java/fr/perrier/dungeons/velocity/messaging/packets/webeditor/WebEditorRequestPacket.java`
 - `velocity/src/main/java/fr/perrier/dungeons/velocity/messaging/SpigotCommunicationService.java`
 
-#### Configuration Requise
+#### Configuration
 
-Dans chaque serveur Spigot, définir un identifiant unique dans `config.yml` :
+Aucune configuration requise ! Le nom du serveur est automatiquement détecté via `Bukkit.getServer().getName()`.
 
-```yaml
-# ─────────────────────────────────────────────────────
-# 🔧 CONFIGURATION SERVEUR
-# ─────────────────────────────────────────────────────
-# Identifiant unique de ce serveur Spigot pour la communication Redis
-# Doit être unique pour chaque serveur de jeu
-server-name: "dungeon-server-1"
-```
+Cette méthode fonctionne automatiquement avec :
+- Serveurs Spigot/Paper vanilla
+- CloudNet et autres systèmes de gestion de serveurs
+- Configurations multi-serveurs
+
+Le nom du serveur utilisé sera celui configuré dans votre système (server.properties, CloudNet, etc.).
 
 ### 🎨 Refonte Graphique du Webeditor et Dashboard
 

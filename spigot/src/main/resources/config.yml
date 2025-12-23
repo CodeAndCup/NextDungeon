@@ -18,13 +18,6 @@ RedisConfiguration:
     topic: "dungeons:packets" # ⚠️ Ne pas modifier sans savoir ce que vous faites
 
 # ─────────────────────────────────────────────────────
-# 🔧 CONFIGURATION SERVEUR
-# ─────────────────────────────────────────────────────
-# Identifiant unique de ce serveur Spigot pour la communication Redis
-# Doit être unique pour chaque serveur de jeu
-server-name: "dungeon-server-1"
-
-# ─────────────────────────────────────────────────────
 # 🌐 CONFIGURATION WEB EDITOR
 # ─────────────────────────────────────────────────────
 # Configuration du serveur web proxy pour l'éditeur

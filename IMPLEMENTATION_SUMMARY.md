@@ -32,15 +32,15 @@ Added a **targeted routing system** for Redis messages:
    - Enhanced logging to trace request routing
    - Improved error messages
 
-4. **Configuration**
-   - Added `server-name` parameter to `config.yml`
-   - Each Spigot server requires unique identifier
-   - Example: `server-name: "dungeon-server-1"`
+4. **Automatic Server Identification**
+   - Uses `Bukkit.getServer().getName()` for automatic server identification
+   - No manual configuration required
+   - Works with vanilla servers, CloudNet, and other management systems
+   - Server name is automatically derived from the system configuration
 
 #### Files Modified
 - `spigot/src/main/java/fr/perrier/dungeons/spigot/messaging/packets/webeditor/WebEditorRequestPacket.java`
 - `spigot/src/main/java/fr/perrier/dungeons/spigot/messaging/subscribers/WebEditorRequestSubscriber.java`
-- `spigot/src/main/resources/config.yml`
 - `bungeecord/src/main/java/fr/perrier/dungeons/bungee/messaging/packets/webeditor/WebEditorRequestPacket.java`
 - `bungeecord/src/main/java/fr/perrier/dungeons/bungee/messaging/SpigotCommunicationService.java`
 - `velocity/src/main/java/fr/perrier/dungeons/velocity/messaging/packets/webeditor/WebEditorRequestPacket.java`
@@ -152,20 +152,19 @@ Created comprehensive documentation:
 
 ### Spigot Server Setup
 
-Each Spigot server needs a unique identifier in `config.yml`:
+**No manual configuration required!**
 
-```yaml
-# ─────────────────────────────────────────────────────
-# 🔧 CONFIGURATION SERVEUR
-# ─────────────────────────────────────────────────────
-server-name: "dungeon-server-1"  # Must be unique per server
-```
+The server name is automatically detected using `Bukkit.getServer().getName()`. This works automatically with:
+- Vanilla Spigot/Paper servers (uses server name from server.properties)
+- CloudNet and other server management systems
+- Any system that properly sets the server name
+
+The server name will be whatever is configured in your server management system or server.properties file.
 
 **Important Notes:**
-- Server names must be unique across all game servers
-- Use descriptive names (e.g., "dungeon-lobby", "dungeon-floor-1")
-- Keep names consistent across restarts
-- Document server name mappings for your infrastructure
+- Ensure each server has a unique name in your infrastructure
+- Server names are automatically read from your existing configuration
+- No additional setup needed in NextDungeon config
 
 ### BungeeCord/Velocity Setup
 
@@ -178,10 +177,11 @@ No configuration changes required. The proxy automatically includes the target s
    - Backup Redis data if applicable
    - Note current server names/IPs
 
-2. **Update Configuration**
-   - Add `server-name` to each Spigot server's config.yml
-   - Ensure names are unique
-   - Verify Redis connection settings
+2. **Verify Server Names**
+   - Check that each server has a unique name in your infrastructure
+   - For vanilla servers: Check server.properties
+   - For CloudNet: Check CloudNet configuration
+   - For other systems: Check your management system configuration
 
 3. **Deploy Updated Plugins**
    - Replace all plugin JARs (Spigot, BungeeCord, Velocity)
@@ -190,13 +190,14 @@ No configuration changes required. The proxy automatically includes the target s
 4. **Restart Servers**
    - Restart all Spigot servers
    - Restart proxy servers
-   - Verify startup logs for errors
+   - Verify startup logs for errors and check detected server names
 
 5. **Verify Functionality**
    - Test webeditor access
    - Create test session
    - Load/save triggers
    - Check dashboard displays
+   - Verify logs show correct server name detection
 
 6. **Monitor**
    - Watch logs for routing messages
@@ -209,13 +210,13 @@ No configuration changes required. The proxy automatically includes the target s
 ### Redis Communication Issues
 
 **Symptom:** Multiple servers responding to requests
-- **Check:** `server-name` configured in all Spigot servers
-- **Check:** Server names are unique
+- **Check:** Each server has a unique name in your infrastructure
+- **Check:** Server names are properly configured in server.properties or CloudNet
 - **Check:** Logs show correct targetServerId
 
 **Symptom:** No server responding to requests
 - **Check:** Target server is running
-- **Check:** Server name matches configuration
+- **Check:** Server name is correctly detected (check logs on startup)
 - **Check:** Redis connection is active
 - **Check:** Timeout settings (30s default)
 
@@ -253,13 +254,13 @@ No configuration changes required. The proxy automatically includes the target s
 ## 🔄 Migration from Previous Version
 
 ### Breaking Changes
-- New `server-name` configuration required
 - All servers must be updated simultaneously
 - Old clients may not work with new servers
+- No additional configuration required (automatic server name detection)
 
 ### Migration Checklist
 - [ ] Backup all data
-- [ ] Update all server configurations
+- [ ] Verify each server has a unique name
 - [ ] Deploy all updated plugins
 - [ ] Restart all servers
 - [ ] Test basic functionality
