@@ -22,6 +22,14 @@ public class WebEditorRequestSubscriber implements PacketListener {
 
     @IncomingPacketHandler
     public void onWebEditorRequest(WebEditorRequestPacket packet) {
+        // Vérifier si ce serveur est la cible du message
+        String currentServerId = getServerName();
+        if (packet.getTargetServerId() != null && !packet.getTargetServerId().equals(currentServerId)) {
+            // Ce message n'est pas pour ce serveur, l'ignorer
+            Main.getInstance().getLogger().fine("Requête ignorée: cible=" + packet.getTargetServerId() + ", serveur=" + currentServerId);
+            return;
+        }
+        
         try {
             String response = processRequest(packet);
             

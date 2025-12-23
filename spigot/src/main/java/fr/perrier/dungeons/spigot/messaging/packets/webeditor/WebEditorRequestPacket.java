@@ -12,6 +12,7 @@ import java.util.UUID;
 public class WebEditorRequestPacket implements Packet {
     private final String requestId;
     private final String proxyServerId;
+    private final String targetServerId; // ID du serveur Spigot qui doit traiter la requête
     private final WebEditorRequestType requestType;
     private final Object data;
     

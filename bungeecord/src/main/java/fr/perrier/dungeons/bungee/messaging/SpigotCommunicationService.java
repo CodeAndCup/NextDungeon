@@ -147,16 +147,17 @@ public class SpigotCommunicationService {
             requestId, DEFAULT_TIMEOUT_SECONDS
         );
         
-        // Créer et envoyer le packet de requête
+        // Créer et envoyer le packet de requête avec le serveur cible
         WebEditorRequestPacket requestPacket = new WebEditorRequestPacket(
             requestId,
             "bungee-proxy", // TODO: obtenir l'ID du proxy depuis la config
+            spigotServer,   // Serveur cible qui doit traiter la requête
             requestType,
             data
         );
         
         NextDungeonBungee.getInstance().getMessaging().sendPacket(requestPacket);
-        NextDungeonBungee.getInstance().getLogger().info("📤 Requête envoyée: " + requestType + " (ID: " + requestId + ")");
+        NextDungeonBungee.getInstance().getLogger().info("📤 Requête envoyée à " + spigotServer + ": " + requestType + " (ID: " + requestId + ")");
         
         try {
             // Attendre la réponse
