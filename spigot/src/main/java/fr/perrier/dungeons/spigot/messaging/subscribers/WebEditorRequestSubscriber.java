@@ -23,6 +23,7 @@ public class WebEditorRequestSubscriber implements PacketListener {
     @IncomingPacketHandler
     public void onWebEditorRequest(WebEditorRequestPacket packet) {
         // Vérifier si ce serveur est la cible du message
+        // Si targetServerId est null, le message est broadcast à tous les serveurs (comportement legacy)
         String currentServerId = getServerName();
         if (packet.getTargetServerId() != null && !packet.getTargetServerId().equals(currentServerId)) {
             // Ce message n'est pas pour ce serveur, l'ignorer

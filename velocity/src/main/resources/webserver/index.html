@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🏰 Éditeur de Triggers - Dungeons</title>
+    
+    <!-- 
+        Browser Requirements:
+        - Modern browsers with ES6+ support (Chrome 51+, Firefox 54+, Safari 10+, Edge 15+)
+        - CSS Variables support required
+        - No IE11 support
+    -->
 
     <!-- Blockly Core -->
     <script src="https://unpkg.com/blockly/blockly_compressed.js"></script>
@@ -149,7 +156,8 @@
         }
 
         .editor-container {
-            height: calc(100vh - 200px);
+            height: calc(100vh - 200px); /* Minimum height calculation - adjust if header/controls change */
+            min-height: 400px; /* Ensure minimum usable height */
             margin: 20px;
             border-radius: 8px;
             overflow: hidden;
