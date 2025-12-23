@@ -30,6 +30,7 @@ import fr.perrier.dungeons.spigot.manager.GhostFactory;
 import fr.perrier.dungeons.spigot.manager.GlobalTriggerManager;
 import fr.perrier.dungeons.spigot.manager.VariableManager;
 import fr.perrier.dungeons.spigot.messaging.Pidgin;
+import fr.perrier.dungeons.spigot.messaging.ServerNameService;
 import fr.perrier.dungeons.spigot.model.FloorInstance;
 import fr.perrier.dungeons.spigot.storage.ProfileService;
 import fr.perrier.dungeons.spigot.storage.RedisStorageService;
