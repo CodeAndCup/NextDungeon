@@ -41,6 +41,7 @@ Added a **targeted routing system** for Redis messages:
 #### Files Modified
 - `spigot/src/main/java/fr/perrier/dungeons/spigot/messaging/packets/webeditor/WebEditorRequestPacket.java`
 - `spigot/src/main/java/fr/perrier/dungeons/spigot/messaging/subscribers/WebEditorRequestSubscriber.java`
+- `spigot/src/main/resources/config.yml` (removed manual configuration)
 - `bungeecord/src/main/java/fr/perrier/dungeons/bungee/messaging/packets/webeditor/WebEditorRequestPacket.java`
 - `bungeecord/src/main/java/fr/perrier/dungeons/bungee/messaging/SpigotCommunicationService.java`
 - `velocity/src/main/java/fr/perrier/dungeons/velocity/messaging/packets/webeditor/WebEditorRequestPacket.java`

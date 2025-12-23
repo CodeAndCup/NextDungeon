@@ -7,6 +7,7 @@ import fr.perrier.dungeons.spigot.messaging.packets.webeditor.WebEditorResponseP
 import fr.perrier.dungeons.spigot.messaging.pidgin.IncomingPacketHandler;
 import fr.perrier.dungeons.spigot.messaging.pidgin.PacketListener;
 import fr.perrier.dungeons.spigot.webeditor.ProxyEditorMessageHandler;
+import org.bukkit.Bukkit;
 
 /**
  * Subscriber pour gérer les requêtes de l'éditeur web depuis le proxy
@@ -116,6 +117,6 @@ public class WebEditorRequestSubscriber implements PacketListener {
     private String getServerName() {
         // Utiliser le nom du serveur Bukkit automatiquement
         // Cela fonctionne avec les serveurs vanilla, CloudNet, et autres systèmes de gestion
-        return org.bukkit.Bukkit.getServer().getName();
+        return Bukkit.getServer().getName();
     }
 }

@@ -32,6 +32,7 @@ La communication Redis entre les serveurs de jeu et les proxies n'était pas fia
 **Spigot :**
 - `spigot/src/main/java/fr/perrier/dungeons/spigot/messaging/packets/webeditor/WebEditorRequestPacket.java`
 - `spigot/src/main/java/fr/perrier/dungeons/spigot/messaging/subscribers/WebEditorRequestSubscriber.java`
+- `spigot/src/main/resources/config.yml` (suppression de la configuration manuelle)
 
 **BungeeCord :**
 - `bungeecord/src/main/java/fr/perrier/dungeons/bungee/messaging/packets/webeditor/WebEditorRequestPacket.java`
