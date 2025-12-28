@@ -100,7 +100,9 @@ public class TriggerFactory {
             if (element.isJsonObject()) {
                 Trigger trigger = createTriggerFromJson(element.getAsJsonObject());
                 if (trigger != null) {
-                    triggers.add(trigger.toTriggerData());
+                    // Important: garder l'instance Trigger au lieu de convertir en TriggerData
+                    // pour préserver le type concret et les actions
+                    triggers.add(trigger);
                     if(trigger instanceof FunctionTrigger functionTrigger) {
                         functionTrigger.registerFunction();
                     }

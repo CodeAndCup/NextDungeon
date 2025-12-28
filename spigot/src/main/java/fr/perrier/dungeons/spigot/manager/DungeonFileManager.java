@@ -42,7 +42,7 @@ public class DungeonFileManager {
                 return triggers;
             }
 
-            Main.getInstance().getLogger().warning("&eNo trigger found for " + floorId);
+            Main.getInstance().getLogger().warning("&eNo trigger found for " + floorId + " in the trigger list.");
             return new ArrayList<>();
 
         } catch (Exception e) {

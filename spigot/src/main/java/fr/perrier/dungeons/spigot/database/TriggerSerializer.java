@@ -5,6 +5,7 @@ import fr.perrier.dungeons.common.workflow.action.ActionData;
 import fr.perrier.dungeons.common.workflow.trigger.TriggerData;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.workflow.action.Action;
+import fr.perrier.dungeons.spigot.workflow.action.factory.ActionFactory;
 import fr.perrier.dungeons.spigot.workflow.trigger.Trigger;
 
 import java.lang.reflect.Type;
@@ -18,8 +19,10 @@ import java.util.List;
 public class TriggerSerializer {
 
     private static final Gson gson = new GsonBuilder()
-            .registerTypeAdapter(Trigger.class, new TriggerTypeAdapter())
-            .registerTypeAdapter(Action.class, new ActionTypeAdapter())
+            // Utiliser registerTypeHierarchyAdapter pour que les adaptateurs s'appliquent
+            // à toute la hiérarchie de types, y compris les champs imbriqués (List<ActionData>)
+            .registerTypeHierarchyAdapter(TriggerData.class, new TriggerTypeAdapter())
+            .registerTypeHierarchyAdapter(ActionData.class, new ActionTypeAdapter())
             .setPrettyPrinting()
             .create();
 
@@ -37,7 +40,9 @@ public class TriggerSerializer {
         JsonArray jsonArray = new JsonArray();
         for (TriggerData trigger : triggers) {
             if (trigger != null) {
-                JsonElement serialized = gson.toJsonTree(trigger, TriggerData.class);
+                // Utiliser Trigger.class pour activer le TriggerTypeAdapter
+                // qui sauvegarde le className pour la désérialisation
+                JsonElement serialized = gson.toJsonTree(trigger, Trigger.class);
                 jsonArray.add(serialized);
             }
         }
@@ -137,29 +142,38 @@ public class TriggerSerializer {
         public Action deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
             JsonObject jsonObject = json.getAsJsonObject();
 
-            // Validation: vérifier que les champs requis existent
+            // Vérifier si c'est le nouveau format (avec className/data)
             JsonElement classNameElement = jsonObject.get("className");
             JsonElement dataElement = jsonObject.get("data");
 
-            if (classNameElement == null || classNameElement.isJsonNull()) {
-                Main.getInstance().getLogger().warning("&eInvalid JSON action: 'className' field missing or null");
-                return null;
+            if (classNameElement != null && !classNameElement.isJsonNull()
+                && dataElement != null && !dataElement.isJsonNull()) {
+                // Nouveau format avec className/data
+                String className = classNameElement.getAsString();
+                try {
+                    Class<?> clazz = Class.forName(className);
+                    return context.deserialize(dataElement, clazz);
+                } catch (ClassNotFoundException e) {
+                    Main.getInstance().getLogger().warning("&eClass of action unknown: " + className);
+                    return null;
+                }
             }
 
-            if (dataElement == null || dataElement.isJsonNull()) {
-                Main.getInstance().getLogger().warning("&eInvalid JSON action: missing or null 'data' field");
-                return null;
+            // Format legacy : utiliser le champ "type" pour recréer l'action via ActionFactory
+            JsonElement typeElement = jsonObject.get("type");
+            if (typeElement != null && !typeElement.isJsonNull()) {
+                String type = typeElement.getAsString();
+                Main.getInstance().getLogger().info("Deserializing legacy action format with type: " + type);
+                try {
+                    return ActionFactory.createActionFromJson(jsonObject);
+                } catch (Exception e) {
+                    Main.getInstance().getLogger().warning("&eError creating action from legacy format: " + e.getMessage());
+                    return null;
+                }
             }
 
-            String className = classNameElement.getAsString();
-
-            try {
-                Class<?> clazz = Class.forName(className);
-                return context.deserialize(dataElement, clazz);
-            } catch (ClassNotFoundException e) {
-                Main.getInstance().getLogger().warning("&eClass of action unknown: " + className);
-                return null;
-            }
+            Main.getInstance().getLogger().warning("&eInvalid JSON action: neither 'className' nor 'type' field found");
+            return null;
         }
     }
 }

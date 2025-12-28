@@ -114,7 +114,7 @@ public class MongoManager implements DatabaseManager {
                     return triggers;
                 }
 
-                Main.getInstance().getLogger().warning("&eNo trigger found for " + floorId);
+                Main.getInstance().getLogger().warning("&eNo trigger found for " + floorId + " in the trigger list.");
                 return new ArrayList<>();
             } catch (Exception e) {
                 Main.getInstance().getLogger().severe("&cError loading triggers for " + floorId + ": " + e.getMessage());
