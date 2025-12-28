@@ -18,6 +18,8 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class ServerNameService implements PluginMessageListener {
 
+    private static final String DUNGEONS_CHANNEL = "dungeons:main";
+
     private final AtomicReference<String> cachedServerName = new AtomicReference<>(null);
     private final AtomicReference<CompletableFuture<String>> pendingRequest = new AtomicReference<>(null);
 
@@ -25,10 +27,10 @@ public class ServerNameService implements PluginMessageListener {
      * Initialise le service et enregistre le canal de plugin messaging
      */
     public void initialize() {
-        // Enregistrer le canal pour BungeeCord/Velocity
-        Bukkit.getServer().getMessenger().registerOutgoingPluginChannel(Main.getInstance(), "BungeeCord");
-        Bukkit.getServer().getMessenger().registerIncomingPluginChannel(Main.getInstance(), "BungeeCord", this);
-        
+        // Enregistrer le canal pour dungeons:main (communication avec Velocity)
+        Bukkit.getServer().getMessenger().registerOutgoingPluginChannel(Main.getInstance(), DUNGEONS_CHANNEL);
+        Bukkit.getServer().getMessenger().registerIncomingPluginChannel(Main.getInstance(), DUNGEONS_CHANNEL, this);
+
         Main.getInstance().getLogger().info("Service de récupération du nom de serveur initialisé");
     }
 
@@ -77,7 +79,7 @@ public class ServerNameService implements PluginMessageListener {
     }
 
     /**
-     * Envoie une requête pour obtenir le nom du serveur
+     * Envoie une requête pour obtenir le nom du serveur en envoyant l'IP et le port
      */
     private CompletableFuture<String> requestServerName() {
         CompletableFuture<String> existing = pendingRequest.get();
@@ -101,12 +103,23 @@ public class ServerNameService implements PluginMessageListener {
             // Obtenir un joueur pour envoyer le message
             Player player = Bukkit.getOnlinePlayers().iterator().next();
 
-            // Créer le message "GetServer"
-            ByteArrayDataOutput out = ByteStreams.newDataOutput();
-            out.writeUTF("GetServer");
+            // Récupérer l'IP et le port du serveur
+            String serverIp = Bukkit.getServer().getIp();
+            if (serverIp == null || serverIp.isEmpty()) {
+                serverIp = "127.0.0.1"; // Fallback pour localhost
+            }
+            int serverPort = Bukkit.getServer().getPort();
 
-            // Envoyer le message au proxy
-            player.sendPluginMessage(Main.getInstance(), "BungeeCord", out.toByteArray());
+            // Créer le message "GetServerName" avec IP et port
+            ByteArrayDataOutput out = ByteStreams.newDataOutput();
+            out.writeUTF("GetServerName");
+            out.writeUTF(serverIp);
+            out.writeInt(serverPort);
+
+            // Envoyer le message au proxy via le canal dungeons:main
+            Bukkit.getServer().sendPluginMessage(Main.getInstance(), DUNGEONS_CHANNEL, out.toByteArray());
+
+            Main.getInstance().getLogger().info("Requête GetServerName envoyée - IP: " + serverIp + ":" + serverPort);
         } catch (Exception e) {
             newRequest.completeExceptionally(e);
         }
@@ -116,15 +129,15 @@ public class ServerNameService implements PluginMessageListener {
 
     @Override
     public void onPluginMessageReceived(String channel, Player player, byte[] message) {
-        if (!channel.equals("BungeeCord")) {
+        if (!channel.equals(DUNGEONS_CHANNEL)) {
             return;
         }
 
         try {
-            ByteArrayDataInput in = ByteStreams.createDataInput(message);
+            ByteArrayDataInput in = ByteStreams.newDataInput(message);
             String subchannel = in.readUTF();
 
-            if (subchannel.equals("GetServer")) {
+            if (subchannel.equals("ServerName")) {
                 String serverName = in.readUTF();
                 
                 CompletableFuture<String> pending = pendingRequest.get();
@@ -135,7 +148,7 @@ public class ServerNameService implements PluginMessageListener {
                 // Mettre en cache le nom du serveur de manière thread-safe
                 cachedServerName.compareAndSet(null, serverName);
                 
-                Main.getInstance().getLogger().info("Nom du serveur détecté: " + serverName);
+                Main.getInstance().getLogger().info("Nom du serveur reçu depuis le proxy: " + serverName);
             }
         } catch (Exception e) {
             Main.getInstance().getLogger().warning("Erreur lors de la réception du nom du serveur: " + e.getMessage());

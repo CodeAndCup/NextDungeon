@@ -6,6 +6,7 @@ import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.event.proxy.ProxyShutdownEvent;
 import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.proxy.ProxyServer;
+import fr.perrier.dungeons.velocity.messaging.PluginMessageVelocity;
 import fr.perrier.dungeons.velocity.messaging.ProxyPidgin;
 import fr.perrier.dungeons.velocity.webeditor.ProxyWebEditorServer;
 import lombok.Getter;
@@ -29,13 +30,15 @@ public class NextDungeonVelocity {
 
     private final ProxyServer server;
     private final Logger logger;
-    private final java.nio.file.Path dataDirectory;
+    private final Path dataDirectory;
 
     private long startTime;
     @Getter
     private ProxyWebEditorServer webEditorServer;
     @Getter
     private ProxyPidgin messaging;
+    @Getter
+    private PluginMessageVelocity pluginMessageHandler;
 
     private int webEditorPort = 7734; // Port par défaut
 
@@ -53,6 +56,12 @@ public class NextDungeonVelocity {
         
         // Charger la configuration
         loadConfig();
+
+        // Initialiser et enregistrer le gestionnaire de messages plugin
+        pluginMessageHandler = new PluginMessageVelocity();
+        pluginMessageHandler.initialize();
+        server.getEventManager().register(this, pluginMessageHandler);
+        logger.info("✅ Système de messagerie Plugin initialisé");
 
         // Initialize messaging system
         try {
