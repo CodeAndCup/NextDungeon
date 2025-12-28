@@ -114,10 +114,10 @@ public class MongoManager implements DatabaseManager {
                     return triggers;
                 }
 
-                Main.getInstance().getLogger().warning("Aucun trigger trouvé pour " + floorId);
+                Main.getInstance().getLogger().warning("&eNo trigger found for " + floorId);
                 return new ArrayList<>();
             } catch (Exception e) {
-                Main.getInstance().getLogger().severe("&cErreur lors du chargement des triggers pour " + floorId + ": " + e.getMessage());
+                Main.getInstance().getLogger().severe("&cError loading triggers for " + floorId + ": " + e.getMessage());
                 e.printStackTrace();
                 return new ArrayList<>();
             }

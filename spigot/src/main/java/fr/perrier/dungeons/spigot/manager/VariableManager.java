@@ -11,7 +11,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Manager for variables in the dungeon system
+ * Manages variables in the dungeon system, including global and player-specific variables.
  */
 @Getter
 public class VariableManager {
@@ -30,7 +30,10 @@ public class VariableManager {
     // ===== GLOBAL VARIABLES =====
 
     /**
-     * Set a global variable
+     * Sets a global variable.
+     *
+     * @param name  the variable name
+     * @param value the value to set
      */
     public void setGlobalVariable(String name, Object value) {
         if (name == null || name.trim().isEmpty()) {
@@ -41,7 +44,10 @@ public class VariableManager {
     }
 
     /**
-     * Get a global variable
+     * Retrieves a global variable.
+     *
+     * @param name the variable name
+     * @return the value of the global variable, or null if not found
      */
     public Object getGlobalVariable(String name) {
         if (name == null) return null;
@@ -49,7 +55,9 @@ public class VariableManager {
     }
 
     /**
-     * Remove a global variable
+     * Removes a global variable.
+     *
+     * @param name the variable name
      */
     public void removeGlobalVariable(String name) {
         if (name != null) {
@@ -60,7 +68,11 @@ public class VariableManager {
     // ===== PLAYER VARIABLES =====
 
     /**
-     * Set a player-specific variable
+     * Sets a player-specific variable.
+     *
+     * @param player the player
+     * @param name   the variable name
+     * @param value  the value to set
      */
     public void setPlayerVariable(Player player, String name, Object value) {
         if (player == null || name == null || name.trim().isEmpty()) {
@@ -75,7 +87,11 @@ public class VariableManager {
     }
 
     /**
-     * Get a player-specific variable
+     * Retrieves a player-specific variable.
+     *
+     * @param player the player
+     * @param name   the variable name
+     * @return the value of the player variable, or null if not found
      */
     public Object getPlayerVariable(Player player, String name) {
         if (player == null || name == null) return null;
@@ -85,7 +101,10 @@ public class VariableManager {
     }
 
     /**
-     * Remove a player-specific variable
+     * Removes a player-specific variable.
+     *
+     * @param player the player
+     * @param name   the variable name
      */
     public void removePlayerVariable(Player player, String name) {
         if (player == null || name == null) return;
@@ -97,7 +116,9 @@ public class VariableManager {
     }
 
     /**
-     * Clear all variables for a player
+     * Clears all variables for a specific player.
+     *
+     * @param player the player
      */
     public void clearPlayerVariables(Player player) {
         if (player != null) {
@@ -109,7 +130,11 @@ public class VariableManager {
     // ===== GENERAL VARIABLE ACCESS =====
 
     /**
-     * Get a variable with scope priority: player -> instance -> global
+     * Retrieves a variable with scope priority: player, then global.
+     *
+     * @param player the player (can be null)
+     * @param name   the variable name
+     * @return the value of the variable, or null if not found
      */
     public Object getVariable(Player player, String name) {
         if (name == null) return null;
@@ -129,7 +154,12 @@ public class VariableManager {
     }
 
     /**
-     * Set a variable with specified scope
+     * Sets a variable with the specified scope.
+     *
+     * @param player the player (can be null)
+     * @param name   the variable name
+     * @param value  the value to set
+     * @param scope  the scope ("player" or "global")
      */
     public void setVariable(Player player, String name, Object value, String scope) {
         if (name == null || name.trim().isEmpty()) {
@@ -157,7 +187,7 @@ public class VariableManager {
     }
 
     /**
-     * Clear all variables
+     * Clears all variables, both global and player-specific.
      */
     public void clearAllVariables() {
         globalVariables.clear();
@@ -166,7 +196,9 @@ public class VariableManager {
     }
 
     /**
-     * Get variable count for debugging
+     * Gets the total count of all variables (global and player-specific).
+     *
+     * @return the total number of variables
      */
     public int getVariableCount() {
         int total = globalVariables.size();
@@ -176,6 +208,14 @@ public class VariableManager {
         return total;
     }
 
+    /**
+     * Formats a message by replacing variable placeholders with their values.
+     * Placeholders must be in the format {global.varName} or {player.varName}.
+     *
+     * @param message       the message containing placeholders
+     * @param triggerPlayer the player for player-scoped variables
+     * @return the formatted message with variables replaced
+     */
     public String formatVariable(String message, Player triggerPlayer) {
         String regex = "\\{(global|player)\\.([a-zA-Z0-9_]+)\\}";
         Pattern pattern = Pattern.compile(regex);

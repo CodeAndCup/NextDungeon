@@ -66,13 +66,13 @@ public class TriggerSerializer {
                         triggers.add(trigger);
                     }
                 } catch (JsonSyntaxException e) {
-                    Main.getInstance().getLogger().warning("Erreur lors de la désérialisation d'un trigger: " + e.getMessage());
+                    Main.getInstance().getLogger().severe("&cError deserializing a trigger: " + e.getMessage());
                 }
             }
 
             return triggers;
         } catch (JsonSyntaxException e) {
-            Main.getInstance().getLogger().severe("Erreur lors de la désérialisation des triggers: " + e.getMessage());
+            Main.getInstance().getLogger().severe("&cError deserializing triggers: " + e.getMessage());
             return new ArrayList<>();
         }
     }
@@ -99,12 +99,12 @@ public class TriggerSerializer {
             JsonElement dataElement = jsonObject.get("data");
 
             if (classNameElement == null || classNameElement.isJsonNull()) {
-                Main.getInstance().getLogger().warning("Trigger JSON invalide: champ 'className' manquant ou null");
+                Main.getInstance().getLogger().warning("&eInvalid JSON trigger: 'className' field missing or null");
                 return null;
             }
 
             if (dataElement == null || dataElement.isJsonNull()) {
-                Main.getInstance().getLogger().warning("Trigger JSON invalide: champ 'data' manquant ou null");
+                Main.getInstance().getLogger().warning("&eInvalid JSON trigger: 'data' field missing or null");
                 return null;
             }
 
@@ -114,7 +114,7 @@ public class TriggerSerializer {
                 Class<?> clazz = Class.forName(className);
                 return context.deserialize(dataElement, clazz);
             } catch (ClassNotFoundException e) {
-                Main.getInstance().getLogger().warning("Classe de trigger inconnue: " + className);
+                Main.getInstance().getLogger().warning("&eUnknown trigger class: " + className);
                 return null;
             }
         }
@@ -142,12 +142,12 @@ public class TriggerSerializer {
             JsonElement dataElement = jsonObject.get("data");
 
             if (classNameElement == null || classNameElement.isJsonNull()) {
-                Main.getInstance().getLogger().warning("Action JSON invalide: champ 'className' manquant ou null");
+                Main.getInstance().getLogger().warning("&eInvalid JSON action: 'className' field missing or null");
                 return null;
             }
 
             if (dataElement == null || dataElement.isJsonNull()) {
-                Main.getInstance().getLogger().warning("Action JSON invalide: champ 'data' manquant ou null");
+                Main.getInstance().getLogger().warning("&eInvalid JSON action: missing or null 'data' field");
                 return null;
             }
 
@@ -157,7 +157,7 @@ public class TriggerSerializer {
                 Class<?> clazz = Class.forName(className);
                 return context.deserialize(dataElement, clazz);
             } catch (ClassNotFoundException e) {
-                Main.getInstance().getLogger().warning("Classe d'action inconnue: " + className);
+                Main.getInstance().getLogger().warning("&eClass of action unknown: " + className);
                 return null;
             }
         }

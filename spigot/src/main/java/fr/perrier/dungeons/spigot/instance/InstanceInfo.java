@@ -6,39 +6,39 @@ import lombok.Data;
 import java.util.UUID;
 
 /**
- * Classe de données (DTO) contenant les informations d'une instance.
- * Indépendante du provider utilisé.
+ * Data Transfer Object (DTO) class containing information about an instance.
+ * Independent of the provider used.
  */
 @Data
 @AllArgsConstructor
 public class InstanceInfo {
     /**
-     * Identifiant unique de l'instance
+     * Unique identifier of the instance
      */
     private final UUID instanceId;
 
     /**
-     * Identifiant de l'étage (floor)
+     * Identifier of the floor
      */
     private final String floorId;
 
     /**
-     * Date de création de l'instance
+     * Creation date of the instance
      */
     private final String createdAt;
 
     /**
-     * Indique si l'instance est en mode édition
+     * Indicates if the instance is in edit mode
      */
     private boolean editMode;
 
     /**
-     * Indique si l'instance est prête à recevoir des joueurs
+     * Indicates if the instance is ready to receive players
      */
     private boolean ready;
 
     /**
-     * Constructeur sans les flags optionnels
+     * Constructor without optional flags
      */
     public InstanceInfo(UUID instanceId, String floorId, String createdAt) {
         this(instanceId, floorId, createdAt, false, false);

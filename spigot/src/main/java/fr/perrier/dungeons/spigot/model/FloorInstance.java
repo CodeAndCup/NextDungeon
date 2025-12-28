@@ -194,7 +194,7 @@ public class FloorInstance extends FloorInstanceData {
                     FloorInstance instance = Main.getInstance().getRedisStorageService().getInstance(instanceId);
 
                     if (instance == null) {
-                        Main.getInstance().getLogger().warning(String.format("&eInstance %s no longer exists", instanceId));
+                        Main.getInstance().getLogger().warning("&eInstance " + instanceId + "no longer exists.");
                         player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&cThis dungeon instance no longer exists!"));
                         this.cancel();
                         return;
@@ -206,7 +206,7 @@ public class FloorInstance extends FloorInstanceData {
                         this.cancel();
                     } else {
                         if (System.currentTimeMillis() - startTime > TIMEOUT) {
-                            Main.getInstance().getLogger().warning(String.format("&eTimed out waiting for instance %s to be ready", instanceId));
+                            Main.getInstance().getLogger().warning("&eTimed out waiting for instance " + instanceId + " to be ready");
                             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&cTimed out waiting for dungeon instance to be ready!"));
                             this.cancel();
                         }
@@ -262,6 +262,16 @@ public class FloorInstance extends FloorInstanceData {
         }, 20L * 30);
     }
 
+    /**
+     * Converts this FloorInstance to a FloorInstanceData object.
+     *
+     * <p>This method creates a new FloorInstanceData object using the
+     * instanceId and floorId of this FloorInstance. It then sets the
+     * ready state and copies the playerStats and playerCurrentLives
+     * maps to the new object before returning it.</p>
+     *
+     * @return a FloorInstanceData object representing this FloorInstance
+     */
     public FloorInstanceData toFloorInstanceData() {
         FloorInstanceData data = new FloorInstanceData(this.instanceId, this.floorId);
         data.setReady(this.ready);

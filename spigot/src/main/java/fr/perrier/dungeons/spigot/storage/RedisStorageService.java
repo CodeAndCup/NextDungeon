@@ -359,6 +359,10 @@ public class RedisStorageService {
         READY
     }
 
+    /**
+     * Get the current floor instance
+     * @return the current FloorInstance
+     */
     public FloorInstance getCurrentInstance() {
         FloorInstanceData instanceData = currentInstance.get();
         if (instanceData == null) {
@@ -367,6 +371,10 @@ public class RedisStorageService {
         return new FloorInstance(instanceData);
     }
 
+    /**
+     * Get the current floor
+     * @return the current Floor
+     */
     public Floor getCurrentFloor() {
         FloorData floorData = currentFloor.get();
         if (floorData == null) {

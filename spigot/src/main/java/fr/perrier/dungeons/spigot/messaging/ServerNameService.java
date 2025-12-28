@@ -13,8 +13,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Service pour obtenir le nom du serveur depuis le proxy (BungeeCord/Velocity)
- * via le système de plugin messaging
+ * Service for obtaining the server name from the proxy (BungeeCord/Velocity)
+ * via the plugin messaging system.
  */
 public class ServerNameService implements PluginMessageListener {
 
@@ -24,7 +24,7 @@ public class ServerNameService implements PluginMessageListener {
     private final AtomicReference<CompletableFuture<String>> pendingRequest = new AtomicReference<>(null);
 
     /**
-     * Initialise le service et enregistre le canal de plugin messaging
+     * Initializes the service and registers the plugin messaging channel.
      */
     public void initialize() {
         // Enregistrer le canal pour dungeons:main (communication avec Velocity)
@@ -35,51 +35,51 @@ public class ServerNameService implements PluginMessageListener {
     }
 
     /**
-     * Obtient le nom du serveur depuis le proxy
-     * Utilise un cache pour éviter les requêtes répétées
-     * 
-     * @return Le nom du serveur tel que défini dans la configuration du proxy
+     * Gets the server name, either from cache or by requesting it from the proxy.
+     *
+     * @return a CompletableFuture that will be completed with the server name
      */
-    public String getServerName() {
+    public CompletableFuture<String> getServerName() {
         String cached = cachedServerName.get();
         if (cached != null) {
-            return cached;
+            return CompletableFuture.completedFuture(cached);
         }
 
-        // Si aucun joueur n'est connecté, utiliser un fallback
-        if (Bukkit.getOnlinePlayers().isEmpty()) {
-            // Fallback vers le nom Bukkit si aucun joueur n'est connecté
-            String fallback = Bukkit.getServer().getName();
-            Main.getInstance().getLogger().warning("Aucun joueur connecté pour récupérer le nom du serveur, utilisation de: " + fallback);
-            return fallback;
-        }
-
-        // Requête asynchrone avec timeout
+        CompletableFuture<String> future;
         try {
-            CompletableFuture<String> future = requestServerName();
+            future = requestServerName();
             if (future != null) {
-                String serverName = future.get(3, TimeUnit.SECONDS);
-                cachedServerName.set(serverName);
-                Main.getInstance().getLogger().info("Nom du serveur récupéré: " + serverName);
-                return serverName;
+                return future.thenApply(serverName -> {
+                    cachedServerName.set(serverName);
+                    Main.getInstance().getLogger().info("Server name retrieved: " + serverName);
+                    return serverName;
+                }).exceptionally(e -> {
+                    String fallback = Bukkit.getServer().getName();
+                    Main.getInstance().getLogger().severe("Unable to retrieve the server name from the proxy, using: " + fallback);
+                    Main.getInstance().getLogger().severe("Error: " + e.getMessage());
+                    cachedServerName.set(fallback);
+                    return fallback;
+                });
             }
         } catch (Exception e) {
-            // En cas d'erreur, utiliser le nom Bukkit comme fallback
             String fallback = Bukkit.getServer().getName();
-            Main.getInstance().getLogger().warning("Impossible de récupérer le nom du serveur depuis le proxy, utilisation de: " + fallback);
-            Main.getInstance().getLogger().warning("Erreur: " + e.getMessage());
+            Main.getInstance().getLogger().severe("Unable to retrieve the server name from the proxy, using: " + fallback);
+            Main.getInstance().getLogger().severe("Error: " + e.getMessage());
             cachedServerName.set(fallback);
-            return fallback;
+            return CompletableFuture.completedFuture(fallback);
         }
 
-        // Fallback final
         String fallback = Bukkit.getServer().getName();
+        Main.getInstance().getLogger().severe("Unable to retrieve the server name from the proxy, using: " + fallback);
+        Main.getInstance().getLogger().severe("Error: requestServerName returned null");
         cachedServerName.set(fallback);
-        return fallback;
+        return CompletableFuture.completedFuture(fallback);
     }
 
     /**
-     * Envoie une requête pour obtenir le nom du serveur en envoyant l'IP et le port
+     * Sends a request to the proxy to get the server name.
+     *
+     * @return a CompletableFuture that will be completed when the server name is received
      */
     private CompletableFuture<String> requestServerName() {
         CompletableFuture<String> existing = pendingRequest.get();
@@ -148,15 +148,15 @@ public class ServerNameService implements PluginMessageListener {
                 // Mettre en cache le nom du serveur de manière thread-safe
                 cachedServerName.compareAndSet(null, serverName);
                 
-                Main.getInstance().getLogger().info("Nom du serveur reçu depuis le proxy: " + serverName);
+                Main.getInstance().getLogger().info("Server name received from the proxy: " + serverName);
             }
         } catch (Exception e) {
-            Main.getInstance().getLogger().warning("Erreur lors de la réception du nom du serveur: " + e.getMessage());
+            Main.getInstance().getLogger().warning("&eError receiving server name: " + e.getMessage());
         }
     }
 
     /**
-     * Réinitialise le cache (utile pour les tests ou le rechargement)
+     * Clears the cache (useful for tests or reloads).
      */
     public void clearCache() {
         cachedServerName.set(null);

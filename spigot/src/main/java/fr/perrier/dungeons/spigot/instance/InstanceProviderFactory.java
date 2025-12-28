@@ -5,65 +5,61 @@ import fr.perrier.dungeons.spigot.instance.impl.CloudNetProvider;
 import org.bukkit.Bukkit;
 
 /**
- * Factory pour créer le provider d'instances approprié.
- * Utilise le pattern Factory et respecte le principe Open/Closed de SOLID.
+ * Factory for creating instance providers based on configuration.
+ * This class checks for available providers and initializes the appropriate one.
  */
 public class InstanceProviderFactory {
 
     /**
-     * Crée et retourne le provider approprié selon la configuration.
-     *
-     * @return le provider d'instances configuré
-     * @throws IllegalStateException si aucun provider compatible n'est trouvé
+     * Creates an instance provider based on the configuration.
+     * @return the created InstanceProvider
      */
     public static InstanceProvider createProvider() {
         String providerType = Main.getInstance().getConfig().getString("InstanceProvider.type", "CLOUDNET");
 
-        Main.getInstance().getLogger().info("Initialisation du provider: " + providerType);
+        Main.getInstance().getLogger().info("Provider initialization: " + providerType);
 
         switch (providerType.toUpperCase()) {
             case "CLOUDNET":
                 return createCloudNetProvider();
 
             default:
-                Main.getInstance().getLogger().warning("Type de provider inconnu: " + providerType + ".");
-                throw new IllegalStateException("Type de provider inconnu: " + providerType);
+                Main.getInstance().getLogger().warning("&eProvider type unknown: " + providerType + ".");
+                throw new IllegalStateException("Provider type unknown: " + providerType);
         }
     }
 
     /**
-     * Crée un provider CloudNet si disponible.
+     * Creates a CloudNet instance provider.
+     * @return the CloudNet InstanceProvider
      */
     private static InstanceProvider createCloudNetProvider() {
-        // Vérifier si CloudNet est présent
         try {
             Class.forName("eu.cloudnetservice.driver.inject.InjectionLayer");
-            Main.getInstance().getLogger().info("CloudNet détecté, utilisation du CloudNetProvider");
+            Main.getInstance().getLogger().info("CloudNet detected, using CloudNetProvider");
             return new CloudNetProvider();
         } catch (ClassNotFoundException e) {
-            Main.getInstance().getLogger().severe("CloudNet n'est pas disponible sur ce serveur !");
-            throw new IllegalStateException("CloudNet provider requis mais non disponible", e);
+            Main.getInstance().getLogger().severe("&cCloudNet is not available on this server!");
+            throw new IllegalStateException("CloudNet provider required but not available", e);
         }
     }
 
-
     /**
-     * Détecte automatiquement le meilleur provider disponible.
-     *
-     * @return le provider le plus approprié
+     * Auto-detects and creates an instance provider based on available libraries.
+     * @return the detected InstanceProvider
      */
     public static InstanceProvider autoDetect() {
 
         try {
             Class.forName("eu.cloudnetservice.driver.inject.InjectionLayer");
-            Main.getInstance().getLogger().info("Auto-détection: CloudNet trouvé");
+            Main.getInstance().getLogger().info("Auto-detection: CloudNet found");
             return new CloudNetProvider();
         } catch (ClassNotFoundException e) {
             // CloudNet non disponible
         }
 
-        Main.getInstance().getLogger().info("Auto-détection: Aucun provider disponible.");
-        throw new IllegalStateException("Aucun provider d'instance disponible");
+        Main.getInstance().getLogger().info("Auto-detection: No provider available.");
+        throw new IllegalStateException("No instance providers available");
     }
 }
 

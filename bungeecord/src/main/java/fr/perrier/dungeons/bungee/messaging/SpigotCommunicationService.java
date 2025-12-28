@@ -48,10 +48,10 @@ public class SpigotCommunicationService {
         );
         
         if (response != null && response.isSuccess()) {
-            NextDungeonBungee.getInstance().getLogger().info("📥 Triggers chargés pour " + floorId + " depuis " + spigotServer);
+            NextDungeonBungee.getInstance().getLogger().info("📥 Triggers loaded for " + floorId + " from " + spigotServer);
             return response.getData();
         } else {
-            NextDungeonBungee.getInstance().getLogger().warning("❌ Échec chargement triggers pour " + floorId);
+            NextDungeonBungee.getInstance().getLogger().warning("&e❌ Loading triggers failed for" + floorId);
             return createMockTriggersResponse(dungeonName, floorId);
         }
     }
@@ -71,10 +71,10 @@ public class SpigotCommunicationService {
         );
         
         if (response != null && response.isSuccess()) {
-            NextDungeonBungee.getInstance().getLogger().info("📥 Triggers sauvegardés pour " + floorId + " sur " + spigotServer);
+            NextDungeonBungee.getInstance().getLogger().info("📥 Triggers saved for " + floorId + " on " + spigotServer);
             return true;
         } else {
-            NextDungeonBungee.getInstance().getLogger().warning("❌ Échec sauvegarde triggers pour " + floorId);
+            NextDungeonBungee.getInstance().getLogger().warning("&e❌ Saving triggers failed for " + floorId);
             return false;
         }
     }
@@ -157,13 +157,13 @@ public class SpigotCommunicationService {
         );
         
         NextDungeonBungee.getInstance().getMessaging().sendPacket(requestPacket);
-        NextDungeonBungee.getInstance().getLogger().info("📤 Requête envoyée à " + spigotServer + ": " + requestType + " (ID: " + requestId + ")");
+        NextDungeonBungee.getInstance().getLogger().info("Request send to " + spigotServer + ": " + requestType + " (ID: " + requestId + ")");
         
         try {
             // Attendre la réponse
             return future.get(DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         } catch (Exception e) {
-            NextDungeonBungee.getInstance().getLogger().warning("⏱️ Timeout ou erreur attente réponse: " + e.getMessage());
+            NextDungeonBungee.getInstance().getLogger().warning("&eTimeout or error awaiting response: " + e.getMessage());
             return null;
         }
     }

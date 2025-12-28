@@ -7,67 +7,93 @@ import fr.perrier.dungeons.spigot.messaging.packets.webeditor.WebEditorResponseP
 import fr.perrier.dungeons.spigot.messaging.pidgin.IncomingPacketHandler;
 import fr.perrier.dungeons.spigot.messaging.pidgin.PacketListener;
 import fr.perrier.dungeons.spigot.webeditor.ProxyEditorMessageHandler;
-import org.bukkit.Bukkit;
 
 /**
- * Subscriber pour gérer les requêtes de l'éditeur web depuis le proxy
+ * Subscriber for managing web editor requests from the proxy.
+ *
+ * This class handles incoming web editor request packets and routes them to appropriate handlers.
+ * It verifies that requests are targeted to this server before processing them.
  */
 public class WebEditorRequestSubscriber implements PacketListener {
 
     private final ProxyEditorMessageHandler messageHandler;
     private final Gson gson = new Gson();
 
+    /**
+     * Constructs a new WebEditorRequestSubscriber with a ProxyEditorMessageHandler instance.
+     */
     public WebEditorRequestSubscriber() {
         this.messageHandler = new ProxyEditorMessageHandler();
     }
 
+    /**
+     * Handles incoming web editor request packets asynchronously.
+     *
+     * This method retrieves the server name asynchronously and checks if the request
+     * is targeted to this server. If targetServerId is null, the request is broadcast
+     * to all servers (legacy behavior).
+     *
+     * @param packet the incoming WebEditorRequestPacket to process
+     */
     @IncomingPacketHandler
     public void onWebEditorRequest(WebEditorRequestPacket packet) {
-        // Vérifier si ce serveur est la cible du message
-        // Si targetServerId est null, le message est broadcast à tous les serveurs (comportement legacy)
-        String currentServerId = getServerName();
-        if (packet.getTargetServerId() != null && !packet.getTargetServerId().equals(currentServerId)) {
-            // Ce message n'est pas pour ce serveur, l'ignorer
-            Main.getInstance().getLogger().fine("Requête ignorée: cible=" + packet.getTargetServerId() + ", serveur=" + currentServerId);
-            return;
-        }
-        
-        try {
-            String response = processRequest(packet);
-            
-            // Déterminer le type de réponse selon le type de requête
-            WebEditorResponsePacket.WebEditorResponseType responseType = switch (packet.getRequestType()) {
-                case LOAD_TRIGGERS -> WebEditorResponsePacket.WebEditorResponseType.LOAD_TRIGGERS_RESPONSE;
-                case SAVE_TRIGGERS -> WebEditorResponsePacket.WebEditorResponseType.SAVE_TRIGGERS_RESPONSE;
-                case GET_TRIGGER_TYPES -> WebEditorResponsePacket.WebEditorResponseType.GET_TRIGGER_TYPES_RESPONSE;
-                case GENERATE_BLOCKLY_JS -> WebEditorResponsePacket.WebEditorResponseType.GENERATE_BLOCKLY_JS_RESPONSE;
-                case GET_FLOOR_INFO -> WebEditorResponsePacket.WebEditorResponseType.GET_FLOOR_INFO_RESPONSE;
-            };
-            
-            // Envoyer la réponse via Redis
-            WebEditorResponsePacket responsePacket = WebEditorResponsePacket.success(
-                packet.getRequestId(),
-                getServerName(),
-                responseType,
-                response
-            );
-            
-            Main.getInstance().getMessaging().sendPacket(responsePacket);
-            
-        } catch (Exception e) {
-            Main.getInstance().getLogger().severe("Erreur traitement requête web editor: " + e.getMessage());
-            
-            // Envoyer une réponse d'erreur
-            WebEditorResponsePacket errorPacket = WebEditorResponsePacket.error(
-                packet.getRequestId(),
-                getServerName(),
-                "Erreur traitement: " + e.getMessage()
-            );
-            
-            Main.getInstance().getMessaging().sendPacket(errorPacket);
-        }
+        // Asynchronously retrieve the server name and process the request
+        Main.getInstance().getServerNameService().getServerName().thenAccept(currentServerId -> {
+            // Check if this server is the target of the message
+            // If targetServerId is null, the message is broadcast to all servers (legacy behavior)
+            if (packet.getTargetServerId() != null && !packet.getTargetServerId().equals(currentServerId)) {
+                // This message is not for this server, ignore it
+                Main.getInstance().getLogger().fine("Request ignored: target=" + packet.getTargetServerId() + ", server=" + currentServerId);
+                return;
+            }
+
+            try {
+                String response = processRequest(packet);
+
+                // Determine the response type based on the request type
+                WebEditorResponsePacket.WebEditorResponseType responseType = switch (packet.getRequestType()) {
+                    case LOAD_TRIGGERS -> WebEditorResponsePacket.WebEditorResponseType.LOAD_TRIGGERS_RESPONSE;
+                    case SAVE_TRIGGERS -> WebEditorResponsePacket.WebEditorResponseType.SAVE_TRIGGERS_RESPONSE;
+                    case GET_TRIGGER_TYPES -> WebEditorResponsePacket.WebEditorResponseType.GET_TRIGGER_TYPES_RESPONSE;
+                    case GENERATE_BLOCKLY_JS -> WebEditorResponsePacket.WebEditorResponseType.GENERATE_BLOCKLY_JS_RESPONSE;
+                    case GET_FLOOR_INFO -> WebEditorResponsePacket.WebEditorResponseType.GET_FLOOR_INFO_RESPONSE;
+                };
+
+                // Send the response via Redis
+                WebEditorResponsePacket responsePacket = WebEditorResponsePacket.success(
+                        packet.getRequestId(),
+                        currentServerId,
+                        responseType,
+                        response
+                );
+
+                Main.getInstance().getMessaging().sendPacket(responsePacket);
+
+            } catch (Exception e) {
+                Main.getInstance().getLogger().severe("Error processing web editor request: " + e.getMessage());
+
+                // Send an error response
+                WebEditorResponsePacket errorPacket = WebEditorResponsePacket.error(
+                        packet.getRequestId(),
+                        currentServerId,
+                        "Processing error: " + e.getMessage()
+                );
+
+                Main.getInstance().getMessaging().sendPacket(errorPacket);
+            }
+        }).exceptionally(e -> {
+            Main.getInstance().getLogger().severe("Error retrieving server name: " + e.getMessage());
+            return null;
+        });
     }
 
+    /**
+     * Processes the incoming web editor request and returns the response.
+     *
+     * @param packet the WebEditorRequestPacket containing the request data
+     * @return the response string from the handler
+     * @throws IllegalArgumentException if the request type is unknown
+     */
     private String processRequest(WebEditorRequestPacket packet) {
         switch (packet.getRequestType()) {
             case LOAD_TRIGGERS -> {
@@ -110,14 +136,7 @@ public class WebEditorRequestSubscriber implements PacketListener {
                     data.getEditorName()
                 );
             }
-            default -> throw new IllegalArgumentException("Type de requête inconnu: " + packet.getRequestType());
+            default -> throw new IllegalArgumentException("Unknown request type: " + packet.getRequestType());
         }
-    }
-    
-    private String getServerName() {
-        // Utiliser le service de récupération du nom du serveur
-        // Celui-ci récupère le nom depuis le proxy (BungeeCord/Velocity)
-        // via le système de plugin messaging
-        return Main.getInstance().getServerNameService().getServerName();
     }
 }

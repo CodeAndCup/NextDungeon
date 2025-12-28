@@ -19,14 +19,14 @@ public class WebEditorResponseSubscriber implements PacketListener {
 
     @IncomingPacketHandler
     public void onWebEditorResponse(WebEditorResponsePacket packet) {
-        NextDungeonBungee.getInstance().getLogger().info("📥 Réponse reçue pour requête: " + packet.getRequestId());
+        NextDungeonBungee.getInstance().getLogger().info("Response received to request: " + packet.getRequestId());
         
         // Récupérer et compléter la CompletableFuture correspondante
         CompletableFuture<WebEditorResponsePacket> future = pendingRequests.remove(packet.getRequestId());
         if (future != null) {
             future.complete(packet);
         } else {
-            NextDungeonBungee.getInstance().getLogger().warning("Aucune requête en attente trouvée pour l'ID: " + packet.getRequestId());
+            NextDungeonBungee.getInstance().getLogger().warning("&eNo pending requests found for the ID: " + packet.getRequestId());
         }
     }
 

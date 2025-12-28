@@ -21,13 +21,18 @@ import org.bukkit.entity.Player;
 import java.util.List;
 
 /**
- * Service de sauvegarde des triggers depuis Blockly
+ * Manager for saving and loading workflows (triggers and actions)
  */
 public class WorkflowSaveManager {
     private final Gson gson = new Gson();
 
     /**
-     * Sauvegarde les triggers depuis les données JSON de Blockly
+     * Save workflows (triggers and actions) from JSON data
+     * @param dungeonName Name of the dungeon
+     * @param floorId ID of the floor
+     * @param jsonData JSON data containing triggers and actions
+     * @param editor Player who is editing (can be null)
+     * @return True if save was successful, false otherwise
      */
     public boolean saveWorkflows(String dungeonName, String floorId, String jsonData, Player editor) {
         try {
@@ -60,12 +65,12 @@ public class WorkflowSaveManager {
             // Sauvegarder dans la base de données en utilisant DungeonFileManager
             DungeonFileManager.saveTriggers(floorId, triggers).thenAccept(fileSaved -> {
                 if (fileSaved) {
-                    Main.getInstance().getLogger().info("Triggers sauvegardés dans la base de données pour le floor: " + floorId);
+                    Main.getInstance().getLogger().info("Triggers saved in the database for floor: " + floorId);
                 } else {
-                    Main.getInstance().getLogger().warning("&eÉchec de la sauvegarde des triggers dans la base de données pour le floor: " + floorId);
+                    Main.getInstance().getLogger().warning("&eFailed to save triggers in the database for floor: " + floorId);
                 }
             }).exceptionally(ex -> {
-                Main.getInstance().getLogger().severe("&cErreur lors de la sauvegarde des triggers: " + ex.getMessage());
+                Main.getInstance().getLogger().severe("&cAn error occurred during the saving of triggers: " + ex.getMessage());
                 ex.printStackTrace();
                 return null;
             });
@@ -80,8 +85,10 @@ public class WorkflowSaveManager {
                 for (TriggerData triggerData : triggers) {
                     if(triggerData instanceof Trigger trigger)
                         editor.sendMessage(ChatUtil.translate("&8  • &f" + trigger.getName() + " &7(" + trigger.getType() + ")"));
-                    else
+                    else {
                         editor.sendMessage(ChatUtil.translate("&8  • &fUnknown Trigger Type"));
+                        Main.getInstance().getLogger().warning("&eUnknown TriggerData type: " + triggerData.toString());
+                    }
                 }
             }
 
@@ -102,7 +109,10 @@ public class WorkflowSaveManager {
     }
 
     /**
-     * Charge les triggers existants pour l'éditeur web
+     * Load triggers as JSON for Blockly
+     * @param dungeonName Name of the dungeon
+     * @param floorId ID of the floor
+     * @return JSON string representing the triggers
      */
     public String loadTriggersAsJson(String dungeonName, String floorId) {
         try {
@@ -157,6 +167,11 @@ public class WorkflowSaveManager {
         }
     }
 
+    /**
+     * Add specific properties of a trigger to its JSON representation
+     * @param triggerObj JSON object representing the trigger
+     * @param trigger Trigger object
+     */
     private void addPropertyOfTrigger(JsonObject triggerObj, Trigger trigger) {
         if(trigger instanceof RegionTrigger regionTrigger) {
             triggerObj.addProperty("pos1x", regionTrigger.getPos1X());
@@ -175,9 +190,13 @@ public class WorkflowSaveManager {
             triggerObj.addProperty("entitytype", deathTrigger.getEntityType());
 
         }
-        // Ajouter d'autres types de triggers ici
     }
 
+    /**
+     * Add specific properties of an action to its JSON representation
+     * @param actionObj JSON object representing the action
+     * @param actionData Action object
+     */
     private void addPropertyOfAction(JsonObject actionObj, ActionData actionData) {
         if(!(actionData instanceof Action action)) {
             Main.getInstance().getLogger().warning("Unknown ActionData type: " + actionData.getClass().getName());
@@ -257,6 +276,5 @@ public class WorkflowSaveManager {
             default -> {
             }
         }
-        // Ajouter d'autres types d'actions ici
     }
 }

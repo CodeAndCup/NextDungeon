@@ -38,15 +38,15 @@ public class DungeonFileManager {
             List<TriggerData> triggers = future.join();
 
             if (triggers != null && !triggers.isEmpty()) {
-                Main.getInstance().getLogger().info("Triggers chargés pour " + floorId + " (" + triggers.size() + " triggers)");
+                Main.getInstance().getLogger().info("Triggers loaded for " + floorId + " (" + triggers.size() + " triggers)");
                 return triggers;
             }
 
-            Main.getInstance().getLogger().warning("&eAucun trigger trouvé pour " + floorId);
+            Main.getInstance().getLogger().warning("&eNo trigger found for " + floorId);
             return new ArrayList<>();
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("&cErreur lors du chargement des triggers pour " + floorId + ": " + e.getMessage());
+            Main.getInstance().getLogger().severe("&cError loading triggers for " + floorId + ": " + e.getMessage());
             e.printStackTrace();
             return new ArrayList<>();
         }
@@ -59,7 +59,7 @@ public class DungeonFileManager {
         try {
             return Main.getInstance().getDatabaseManager().triggersExist(floorId).join();
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("&cErreur lors de la vérification des triggers pour " + floorId + ": " + e.getMessage());
+            Main.getInstance().getLogger().severe("&cError checking triggers for " + floorId + ": " + e.getMessage());
             return false;
         }
     }
@@ -72,7 +72,7 @@ public class DungeonFileManager {
             Main.getInstance().getDatabaseManager().deleteTriggers(floorId).join();
             return true;
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("&cErreur lors de la suppression des triggers pour " + floorId + ": " + e.getMessage());
+            Main.getInstance().getLogger().severe("&cError deleting triggers for " + floorId + ": " + e.getMessage());
             return false;
         }
     }

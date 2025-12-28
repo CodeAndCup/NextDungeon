@@ -6,13 +6,16 @@ import lombok.Data;
 import java.util.UUID;
 
 /**
- * Packet de base pour les requêtes de l'éditeur web depuis le proxy vers Spigot
+ * Base packet for web editor requests from the proxy to Spigot.
  */
 @Data
 public class WebEditorRequestPacket implements Packet {
     private final String requestId;
     private final String proxyServerId;
-    private final String targetServerId; // ID du serveur Spigot qui doit traiter la requête
+    /**
+     * ID of the Spigot server that should handle the request.
+     */
+    private final String targetServerId;
     private final WebEditorRequestType requestType;
     private final Object data;
     
@@ -25,7 +28,7 @@ public class WebEditorRequestPacket implements Packet {
     }
     
     /**
-     * Données pour la demande de chargement des triggers
+     * Data for the trigger loading request.
      */
     @Data
     public static class LoadTriggersData {
@@ -34,7 +37,7 @@ public class WebEditorRequestPacket implements Packet {
     }
     
     /**
-     * Données pour la sauvegarde des triggers
+     * Data for the trigger saving request.
      */
     @Data
     public static class SaveTriggersData {
@@ -45,7 +48,7 @@ public class WebEditorRequestPacket implements Packet {
     }
     
     /**
-     * Données pour la génération du JavaScript Blockly
+     * Data for the Blockly JavaScript generation request.
      */
     @Data
     public static class GenerateBlocklyJsData {
@@ -53,7 +56,7 @@ public class WebEditorRequestPacket implements Packet {
     }
     
     /**
-     * Données pour les informations du floor
+     * Data for floor information requests.
      */
     @Data
     public static class FloorInfoData {

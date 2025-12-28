@@ -75,6 +75,11 @@ public class Floor extends FloorData {
         return future;
     }
 
+    /**
+     * Converts this Floor object to a FloorData object.
+     *
+     * @return a FloorData representation of this Floor
+     */
     public FloorData toFloorData() {
         return new FloorData(
                 getId(),

@@ -17,7 +17,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Gestionnaire global pour tous les types de triggers
+ * Global manager for all types of triggers.
  */
 public class GlobalTriggerManager implements Listener {
 
@@ -41,7 +41,7 @@ public class GlobalTriggerManager implements Listener {
     }
 
     /**
-     * Initialise le gestionnaire global
+     * Initializes the global trigger manager.
      */
     public void initialize() {
         // Enregistrer ce manager comme listener principal
@@ -62,7 +62,7 @@ public class GlobalTriggerManager implements Listener {
     }
 
     /**
-     * Enregistre les handlers par défaut
+     * Registers the default handlers.
      */
     private void registerDefaultHandlers() {
         registerHandler(new RegionTriggerHandler());
@@ -70,7 +70,10 @@ public class GlobalTriggerManager implements Listener {
     }
 
     /**
-     * Enregistre un nouveau handler
+     * Registers a new handler.
+     *
+     * @param handler the handler to register
+     * @param <T>     the event type
      */
     public <T extends Event> void registerHandler(TriggerEventHandler<T> handler) {
         handlers.put(handler.getEventType(), handler);
@@ -78,7 +81,7 @@ public class GlobalTriggerManager implements Listener {
     }
 
     /**
-     * Rafraîchit le cache des triggers
+     * Refreshes the trigger cache.
      */
     public void refreshTriggerCache() {
         triggersByType.clear();
@@ -89,7 +92,7 @@ public class GlobalTriggerManager implements Listener {
 
             for (TriggerData triggerData : allTriggers) {
                 if( !(triggerData instanceof Trigger trigger)) {
-                    Main.getInstance().getLogger().warning("TriggerData non valide dans le cache: " + triggerData.getName());
+                    Main.getInstance().getLogger().warning("&eInvalid TriggerData in cache: " + triggerData.getName());
                     continue;
                 }
 
@@ -109,12 +112,14 @@ public class GlobalTriggerManager implements Listener {
             Main.getInstance().getLogger().info("Triggers cache refresh complete: " + allTriggers.size() + " triggers");
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("&cErreur lors du rafraîchissement du cache: " + e.getMessage());
+            Main.getInstance().getLogger().severe("&cError refreshing cache: " + e.getMessage());
         }
     }
 
     /**
-     * Register a function definition
+     * Registers a function definition.
+     *
+     * @param function the function trigger to register
      */
     public void registerFunction(FunctionTrigger function) {
         if (function == null || function.getFunctionName() == null) {
@@ -130,9 +135,11 @@ public class GlobalTriggerManager implements Listener {
         Main.getInstance().getLogger().info("Function registered: " + name);
     }
 
-
     /**
-     * Get a registered function
+     * Gets a registered function by name.
+     *
+     * @param name the function name
+     * @return the FunctionTrigger, or null if not found
      */
     public FunctionTrigger getFunction(String name) {
         if (name == null) {
@@ -142,7 +149,9 @@ public class GlobalTriggerManager implements Listener {
     }
 
     /**
-     * Remove a function
+     * Removes a registered function by name.
+     *
+     * @param name the function name
      */
     public void removeFunction(String name) {
         if (name != null) {
@@ -152,7 +161,7 @@ public class GlobalTriggerManager implements Listener {
     }
 
     /**
-     * Clear all registered functions
+     * Clears all registered functions.
      */
     public void clearFunctions() {
         int count = registeredFunctions.size();
@@ -161,28 +170,39 @@ public class GlobalTriggerManager implements Listener {
     }
 
     /**
-     * Get all registered function names
+     * Gets all registered function names.
+     *
+     * @return an array of function names
      */
     public String[] getFunctionNames() {
         return registeredFunctions.keySet().toArray(new String[0]);
     }
 
     /**
-     * Obtient les triggers d'un type spécifique
+     * Gets triggers of a specific type.
+     *
+     * @param type the trigger type
+     * @return a list of triggers of the given type
      */
     public List<Trigger> getTriggersByType(String type) {
         return triggersByType.getOrDefault(type, Collections.emptyList());
     }
 
     /**
-     * Obtient les triggers pour un type d'événement
+     * Gets triggers for a specific event type.
+     *
+     * @param eventType the event class
+     * @return a list of triggers for the given event type
      */
     public List<Trigger> getTriggersForEventType(Class<? extends Event> eventType) {
         return triggersByEventType.getOrDefault(eventType, Collections.emptyList());
     }
 
     /**
-     * Traite un événement générique - appelé automatiquement par les handlers
+     * Processes a generic event - called automatically by the handlers.
+     *
+     * @param event the event to process
+     * @param <T>   the event type
      */
     @SuppressWarnings("unchecked")
     public <T extends Event> void processEvent(T event) {
@@ -196,7 +216,9 @@ public class GlobalTriggerManager implements Listener {
     }
 
     /**
-     * Statistiques du cache
+     * Returns cache statistics.
+     *
+     * @return a map containing cache statistics
      */
     public Map<String, Integer> getCacheStats() {
         Map<String, Integer> stats = new HashMap<>();
