@@ -46,10 +46,10 @@ public class CloudNetProvider implements InstanceProvider {
         try {
             // Vérifier que CloudNet est disponible
             InjectionLayer.boot();
-            Main.getInstance().getLogger().info("CloudNet provider initialisé avec succès");
+            Main.getInstance().getLogger().info("CloudNet provider initialized successfully.");
             future.complete(true);
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("Erreur lors de l'initialisation de CloudNet: " + e.getMessage());
+            Main.getInstance().getLogger().severe("&cAn error occurred during the initialization phase: " + e.getMessage());
             future.complete(false);
         }
 
@@ -68,7 +68,7 @@ public class CloudNetProvider implements InstanceProvider {
                 ServiceTask serviceTask = InjectionLayer.boot().instance(ServiceTaskProvider.class).serviceTask(templateName);
 
                 if (serviceTask == null) {
-                    Main.getInstance().getLogger().severe("Impossible de créer la task pour " + templateName);
+                    Main.getInstance().getLogger().severe("&cCannot create task for " + templateName);
                     future.complete(null);
                     return;
                 }
@@ -83,17 +83,17 @@ public class CloudNetProvider implements InstanceProvider {
                 ServiceCreateResult service = cloudService.createCloudService(config);
 
                 if (service.state() != ServiceCreateResult.State.CREATED) {
-                    Main.getInstance().getLogger().severe("Impossible de créer le service pour " + templateName);
+                    Main.getInstance().getLogger().severe("Cannot create a service for " + templateName);
                     future.complete(null);
                     return;
                 }
 
                 service.serviceInfo().provider().startAsync();
-                Main.getInstance().getLogger().info("Service démarré pour " + templateName + " (editMode=" + editMode + ")");
+                Main.getInstance().getLogger().info("Service started for " + templateName + " (editMode=" + editMode + ")");
 
                 future.complete(service.serviceInfo().serviceId().uniqueId());
             } catch (Exception e) {
-                Main.getInstance().getLogger().severe("Erreur lors de la création de l'instance: " + e.getMessage());
+                Main.getInstance().getLogger().severe("&cAn error occurred during the instance creation: " + e.getMessage());
                 future.complete(null);
             }
         });

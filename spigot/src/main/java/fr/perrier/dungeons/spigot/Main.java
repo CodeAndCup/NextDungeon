@@ -145,8 +145,6 @@ public final class Main extends JavaPlugin {
 
         databaseManager = DatabaseFactory.createDatabase();
 
-        // Load Dungeons
-        ConfigLoader.loadAllDungeons();
 
         // Enabling other plugins API
         CupCodeAPI.enable(this);
@@ -232,8 +230,14 @@ public final class Main extends JavaPlugin {
 
         CupCodeAPI.disable();
         Pidgin.shutdown();
-        webEditorManager.shutdownAllEditors();
-        ghostFactory.close();
+
+        // Ces objets ne sont initialisés que sur les instances
+        if (webEditorManager != null) {
+            webEditorManager.shutdownAllEditors();
+        }
+        if (ghostFactory != null) {
+            ghostFactory.close();
+        }
     }
 
     /**
@@ -358,6 +362,11 @@ public final class Main extends JavaPlugin {
      */
     private void initializeLobbyServer() {
         getLogger().info("Initializing lobby server");
+
+        // Load all dungeons only on lobby server
+        // Instance servers only need to retrieve their specific floor from Redis
+        ConfigLoader.loadAllDungeons();
+
         // Lobby specific initialization if needed
     }
 

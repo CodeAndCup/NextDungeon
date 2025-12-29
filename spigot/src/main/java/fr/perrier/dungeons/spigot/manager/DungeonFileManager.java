@@ -2,6 +2,7 @@ package fr.perrier.dungeons.spigot.manager;
 
 import fr.perrier.dungeons.common.workflow.trigger.TriggerData;
 import fr.perrier.dungeons.spigot.Main;
+import fr.perrier.dungeons.spigot.utils.ServerUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,9 +31,18 @@ public class DungeonFileManager {
     }
 
     /**
-     * Charge les triggers d'un floor depuis la base de données
+     * Charge les triggers d'un floor depuis la base de données.
+     * Cette méthode ne charge les triggers que sur les serveurs lobby.
+     * Sur les instances, les triggers sont récupérés depuis Redis via FloorData.
      */
     public static List<TriggerData> loadTriggers(String floorId) {
+        // Sur une instance, ne pas charger depuis la BDD - les triggers viennent de Redis
+        if (ServerUtil.isInstanceServer()) {
+            Main.getInstance().getLogger().info("Instance server: skipping DB trigger load for " + floorId + " (using Redis data)");
+            return new ArrayList<>();
+        }
+
+        // Sur le lobby, charger les triggers depuis la base de données
         try {
             CompletableFuture<List<TriggerData>> future = Main.getInstance().getDatabaseManager().loadTriggers(floorId);
             List<TriggerData> triggers = future.join();
@@ -42,7 +52,7 @@ public class DungeonFileManager {
                 return triggers;
             }
 
-            Main.getInstance().getLogger().warning("&eNo trigger found for " + floorId + " in the trigger list.");
+            Main.getInstance().getLogger().info("No triggers found for " + floorId + " in the database.");
             return new ArrayList<>();
 
         } catch (Exception e) {
