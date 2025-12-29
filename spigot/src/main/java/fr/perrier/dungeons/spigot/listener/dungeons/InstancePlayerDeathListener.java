@@ -34,11 +34,21 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.Objects;
 
+/**
+ * Listener for player death events in a dungeon instance.
+ * Handles ghost mechanics, corpse NPC creation, health bar display, and revival or ban logic.
+ */
 public class InstancePlayerDeathListener implements Listener {
 
+    /**
+     * Stores ghost data for each player by UUID.
+     */
     @Getter
     private static final Map<UUID,GhostData> GHOST_DATA = new HashMap<>();
 
+    /**
+     * Data class representing a player's ghost state.
+     */
     @Setter
     @Getter
     @AllArgsConstructor
@@ -52,6 +62,9 @@ public class InstancePlayerDeathListener implements Listener {
         private org.bukkit.entity.TextDisplay healthBarDisplay;
     }
 
+    /**
+     * Registers the NPC event handler for corpse NPCs.
+     */
     public InstancePlayerDeathListener() {
         Main.getInstance().getNpcLibPlatform().eventManager().registerEventHandler(ShowNpcEvent.class, showNpcEvent -> {
             var npc = showNpcEvent.npc();
@@ -63,6 +76,12 @@ public class InstancePlayerDeathListener implements Listener {
         });
     }
 
+    /**
+     * Handles the player death event.
+     * Turns the player into a ghost, creates a corpse NPC, and starts the ghost timer.
+     *
+     * @param event the player death event
+     */
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent event) {
         Player player = event.getEntity();
@@ -87,7 +106,6 @@ public class InstancePlayerDeathListener implements Listener {
             UUID uniqueId = UUID.randomUUID();
             GameProfile profile = ((CraftPlayer)player).getProfile();
 
-            System.out.println("Spawning corpse npc for " + player.getName() + " with uuid " + uniqueId);
             Npc<World, Player, ItemStack, Plugin> npc = Main.getInstance().getNpcLibPlatform().newNpcBuilder()
                     .npcSettings(builder ->
                             builder.profileResolver((target, spawnedNpc) ->
@@ -109,7 +127,7 @@ public class InstancePlayerDeathListener implements Listener {
                             Main.getInstance().getNpcLibPlatform().worldAccessor().extractWorldIdentifier(player.getWorld())
                     ))
                     .buildAndTrack();
-            System.out.println("Corpse npc spawned with id " + npc.entityId());
+
             ghostData.setCorpseNpc(npc);
 
             Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
@@ -174,6 +192,12 @@ public class InstancePlayerDeathListener implements Listener {
         }
     }
 
+    /**
+     * Updates the ghost health bar display for the player.
+     *
+     * @param player the ghost player
+     * @param data the ghost data
+     */
     private void updateHealthBar(Player player, GhostData data) {
         int totalTime = Main.getInstance().getConfig().getInt("ReviveSystem.ghostDuration", 15);
         int timeLeft = data.getTimeLeftAsGhost();
@@ -199,6 +223,11 @@ public class InstancePlayerDeathListener implements Listener {
         }
     }
 
+    /**
+     * Revives a ghost player, removing ghost effects and cleaning up NPCs and displays.
+     *
+     * @param player the player to revive
+     */
     public static void revivePlayer(Player player) {
         GhostData data = GHOST_DATA.get(player.getUniqueId());
         if(data != null && !data.isRevived()) {
@@ -232,6 +261,11 @@ public class InstancePlayerDeathListener implements Listener {
         }
     }
 
+    /**
+     * Applies death logic to a player (decrement lives or ban if no lives left).
+     *
+     * @param player the player to process
+     */
     private void applyDeathTo(Player player) {
         FloorInstance instance = Main.getInstance().getRedisStorageService().getCurrentInstance();
 

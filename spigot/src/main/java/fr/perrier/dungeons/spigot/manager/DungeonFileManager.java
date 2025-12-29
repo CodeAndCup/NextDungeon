@@ -9,31 +9,38 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Gestionnaire pour sauvegarder les triggers des donjons dans la base de données.
+ * Manager for saving and loading dungeon triggers in the database.
  */
 public class DungeonFileManager {
 
     /**
-     * Sauvegarde les triggers d'un floor dans la base de données
+     * Saves the triggers for a floor in the database.
+     *
+     * @param floorId the floor ID
+     * @param triggers the list of triggers to save
+     * @return a CompletableFuture indicating success or failure
      */
     public static CompletableFuture<Boolean> saveTriggers(String floorId, List<TriggerData> triggers) {
         return Main.getInstance().getDatabaseManager()
                 .saveTriggers(floorId, triggers)
                 .thenApply(v -> {
-                    Main.getInstance().getLogger().info("Triggers sauvegardés pour " + floorId + " dans la base de données");
+                    Main.getInstance().getLogger().info("Triggers saved for " + floorId + " in the database");
                     return true;
                 })
                 .exceptionally(ex -> {
-                    Main.getInstance().getLogger().severe("&cErreur lors de la sauvegarde des triggers pour " + floorId + ": " + ex.getMessage());
+                    Main.getInstance().getLogger().severe("&cError while saving triggers for " + floorId + ": " + ex.getMessage());
                     ex.printStackTrace();
                     return false;
                 });
     }
 
     /**
-     * Charge les triggers d'un floor depuis la base de données.
-     * Cette méthode ne charge les triggers que sur les serveurs lobby.
-     * Sur les instances, les triggers sont récupérés depuis Redis via FloorData.
+     * Loads the triggers for a floor from the database.
+     * This method only loads triggers on lobby servers.
+     * On instance servers, triggers are retrieved from Redis via FloorData.
+     *
+     * @param floorId the floor ID
+     * @return the list of triggers, or an empty list if none found or on instance servers
      */
     public static List<TriggerData> loadTriggers(String floorId) {
         // Sur une instance, ne pas charger depuis la BDD - les triggers viennent de Redis
@@ -63,7 +70,10 @@ public class DungeonFileManager {
     }
 
     /**
-     * Vérifie si des triggers existent pour un floor
+     * Checks if triggers exist for a floor.
+     *
+     * @param floorId the floor ID
+     * @return true if triggers exist, false otherwise
      */
     public static boolean triggersExist(String floorId) {
         try {
@@ -75,7 +85,10 @@ public class DungeonFileManager {
     }
 
     /**
-     * Supprime les triggers d'un floor de la base de données
+     * Deletes the triggers for a floor from the database.
+     *
+     * @param floorId the floor ID
+     * @return true if deletion was successful, false otherwise
      */
     public static boolean deleteDungeonFile(String floorId) {
         try {

@@ -13,35 +13,30 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Sérialiseur/Désérialiseur pour convertir les triggers en JSON et vice-versa.
- * Utilise Gson avec des adaptateurs personnalisés pour gérer la polymorphie des triggers et actions.
+ * Serializer/Deserializer to convert triggers to and from JSON.
+ * Uses Gson with custom adapters to handle polymorphism of triggers and actions.
  */
 public class TriggerSerializer {
 
     private static final Gson gson = new GsonBuilder()
-            // Utiliser registerTypeHierarchyAdapter pour que les adaptateurs s'appliquent
-            // à toute la hiérarchie de types, y compris les champs imbriqués (List<ActionData>)
             .registerTypeHierarchyAdapter(TriggerData.class, new TriggerTypeAdapter())
             .registerTypeHierarchyAdapter(ActionData.class, new ActionTypeAdapter())
             .setPrettyPrinting()
             .create();
 
     /**
-     * Convertit une liste de triggers en JSON
-     * @param triggers la liste de triggers à sérialiser
-     * @return la chaîne JSON représentant les triggers
+     * Converts a list of triggers to JSON.
+     * @param triggers the list of triggers to serialize
+     * @return the JSON string representing the triggers
      */
     public static String serializeTriggers(List<TriggerData> triggers) {
         if (triggers == null) {
             return "[]";
         }
 
-        // Forcer la sérialisation avec le type Trigger pour que l'adaptateur soit utilisé
         JsonArray jsonArray = new JsonArray();
         for (TriggerData trigger : triggers) {
             if (trigger != null) {
-                // Utiliser Trigger.class pour activer le TriggerTypeAdapter
-                // qui sauvegarde le className pour la désérialisation
                 JsonElement serialized = gson.toJsonTree(trigger, Trigger.class);
                 jsonArray.add(serialized);
             }
@@ -51,9 +46,9 @@ public class TriggerSerializer {
     }
 
     /**
-     * Convertit une chaîne JSON en liste de triggers
-     * @param json la chaîne JSON à désérialiser
-     * @return la liste de triggers désérialisée
+     * Converts a JSON string to a list of triggers.
+     * @param json the JSON string to deserialize
+     * @return the deserialized list of triggers
      */
     public static List<TriggerData> deserializeTriggers(String json) {
         if (json == null || json.trim().isEmpty() || json.equals("[]")) {
@@ -83,7 +78,7 @@ public class TriggerSerializer {
     }
 
     /**
-     * Adaptateur de type pour gérer la polymorphie des Triggers
+     * Type adapter to handle polymorphism of Triggers.
      */
     private static class TriggerTypeAdapter implements JsonSerializer<TriggerData>, JsonDeserializer<TriggerData> {
 
@@ -126,7 +121,7 @@ public class TriggerSerializer {
     }
 
     /**
-     * Adaptateur de type pour gérer la polymorphie des Actions
+     * Type adapter to handle polymorphism of Actions.
      */
     private static class ActionTypeAdapter implements JsonSerializer<ActionData>, JsonDeserializer<ActionData> {
 

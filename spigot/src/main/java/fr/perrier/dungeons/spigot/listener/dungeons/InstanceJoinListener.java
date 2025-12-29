@@ -11,8 +11,18 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 
+/**
+ * Listener for player join events in a dungeon instance.
+ * Teleports the player to the floor spawn and initializes their stats and lives.
+ */
 public class InstanceJoinListener implements Listener {
 
+    /**
+     * Handles the player join event.
+     * Teleports the player to the dungeon spawn and initializes their stats and lives.
+     *
+     * @param event the player join event
+     */
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();

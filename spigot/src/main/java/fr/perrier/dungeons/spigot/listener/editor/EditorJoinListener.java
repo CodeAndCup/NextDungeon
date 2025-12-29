@@ -13,6 +13,12 @@ import org.bukkit.event.player.PlayerJoinEvent;
 public class EditorJoinListener implements Listener {
 
 
+    /**
+     * When a player joins the server, teleport them to the current floor's spawn location
+     * and set their game mode to creative.
+     *
+     * @param event The PlayerJoinEvent triggered when a player joins the server.
+     */
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();

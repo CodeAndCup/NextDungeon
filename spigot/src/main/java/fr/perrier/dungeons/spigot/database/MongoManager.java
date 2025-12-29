@@ -17,8 +17,8 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Gestionnaire de base de données MongoDB pour les donjons.
- * Permet la connexion, la déconnexion, le chargement, la sauvegarde et la suppression des données.
+ * MongoDB database manager for dungeons.
+ * Handles connection, disconnection, loading, saving, and deletion of data.
  */
 @Getter
 public class MongoManager implements DatabaseManager {
@@ -28,7 +28,7 @@ public class MongoManager implements DatabaseManager {
     private MongoCollection<Document> triggersCollection;
 
     /**
-     * Se connecte à la base MongoDB et initialise les collections.
+     * Connects to the MongoDB database and initializes collections.
      */
     @Override
     public void connect() {
@@ -41,7 +41,7 @@ public class MongoManager implements DatabaseManager {
     }
 
     /**
-     * Ferme la connexion au serveur MongoDB.
+     * Closes the connection to the MongoDB server.
      */
     @Override
     public void disconnect() {
@@ -51,7 +51,7 @@ public class MongoManager implements DatabaseManager {
     }
 
     /**
-     * Charge toutes les données depuis la base MongoDB.
+     * Loads all data from the MongoDB database.
      */
     @Override
     public void loadData() {
@@ -59,10 +59,10 @@ public class MongoManager implements DatabaseManager {
     }
 
     /**
-     * Gère une opération asynchrone et log les erreurs éventuelles.
-     * @param future opération asynchrone
-     * @param operationName nom de l'opération
-     * @return le future traité
+     * Handles an asynchronous operation and logs any errors.
+     * @param future the asynchronous operation
+     * @param operationName the name of the operation
+     * @return the processed future
      */
     @Override
     public <T> CompletableFuture<T> handleAsyncOperation(CompletableFuture<T> future, String operationName) {
@@ -74,9 +74,9 @@ public class MongoManager implements DatabaseManager {
     }
 
     /**
-     * Charge les données de profil d'un joueur depuis la base de données.
-     * @param playerId l'UUID du joueur
-     * @return les données de profil du joueur
+     * Loads a player's profile data from the database.
+     * @param playerId the player's UUID
+     * @return the player's profile data
      */
     @Override
     public ProfileData loadProfileData(java.util.UUID playerId) {
@@ -84,9 +84,9 @@ public class MongoManager implements DatabaseManager {
     }
 
     /**
-     * Sauvegarde les données de profil d'un joueur dans la base de données.
-     * @param playerId l'UUID du joueur
-     * @param profileData les données de profil à sauvegarder
+     * Saves a player's profile data to the database.
+     * @param playerId the player's UUID
+     * @param profileData the profile data to save
      */
     @Override
     public void saveProfileData(java.util.UUID playerId, ProfileData profileData) {
@@ -96,9 +96,9 @@ public class MongoManager implements DatabaseManager {
     // ==================== TRIGGER OPERATIONS ====================
 
     /**
-     * Charge les triggers d'un floor depuis MongoDB.
-     * @param floorId l'ID du floor
-     * @return un CompletableFuture contenant la liste des triggers
+     * Loads the triggers for a floor from MongoDB.
+     * @param floorId the floor ID
+     * @return a CompletableFuture containing the list of triggers
      */
     @Override
     public CompletableFuture<List<TriggerData>> loadTriggers(String floorId) {
@@ -110,14 +110,14 @@ public class MongoManager implements DatabaseManager {
                 if (result != null && result.containsKey("triggers_data")) {
                     String json = result.getString("triggers_data");
                     List<TriggerData> triggers = TriggerSerializer.deserializeTriggers(json);
-                    Main.getInstance().getLogger().info("Triggers chargés pour " + floorId + " (" + triggers.size() + " triggers)");
+                    Main.getInstance().getLogger().info("Triggers loaded for " + floorId + " (" + triggers.size() + " triggers)");
                     return triggers;
                 }
 
                 Main.getInstance().getLogger().warning("&eNo trigger found for " + floorId + " in the trigger list.");
                 return new ArrayList<>();
             } catch (Exception e) {
-                Main.getInstance().getLogger().severe("&cError loading triggers for " + floorId + ": " + e.getMessage());
+                Main.getInstance().getLogger().severe("&cAn error occurred during the loading phase of triggers for " + floorId + ": " + e.getMessage());
                 e.printStackTrace();
                 return new ArrayList<>();
             }
@@ -125,10 +125,10 @@ public class MongoManager implements DatabaseManager {
     }
 
     /**
-     * Sauvegarde les triggers d'un floor dans MongoDB.
-     * @param floorId l'ID du floor
-     * @param triggers la liste des triggers à sauvegarder
-     * @return un CompletableFuture indiquant la fin de l'opération
+     * Saves the triggers for a floor to MongoDB.
+     * @param floorId the floor ID
+     * @param triggers the list of triggers to save
+     * @return a CompletableFuture indicating the completion of the operation
      */
     @Override
     public CompletableFuture<Void> saveTriggers(String floorId, List<TriggerData> triggers) {
@@ -144,18 +144,18 @@ public class MongoManager implements DatabaseManager {
 
                 triggersCollection.updateOne(query, update, new com.mongodb.client.model.UpdateOptions().upsert(true));
 
-                Main.getInstance().getLogger().info("Triggers sauvegardés pour " + floorId + " (" + triggers.size() + " triggers)");
+                Main.getInstance().getLogger().info("Triggers saved for " + floorId + " (" + triggers.size() + " triggers)");
             } catch (Exception e) {
-                Main.getInstance().getLogger().severe("&cErreur lors de la sauvegarde des triggers pour " + floorId + ": " + e.getMessage());
+                Main.getInstance().getLogger().severe("&cAn error occurred during the saving phase of triggers for " + floorId + ": " + e.getMessage());
                 e.printStackTrace();
             }
         });
     }
 
     /**
-     * Vérifie si des triggers existent pour un floor donné.
-     * @param floorId l'ID du floor
-     * @return un CompletableFuture contenant true si des triggers existent, false sinon
+     * Checks if triggers exist for a given floor.
+     * @param floorId the floor ID
+     * @return a CompletableFuture containing true if triggers exist, false otherwise
      */
     @Override
     public CompletableFuture<Boolean> triggersExist(String floorId) {
@@ -165,7 +165,7 @@ public class MongoManager implements DatabaseManager {
                 long count = triggersCollection.countDocuments(query);
                 return count > 0;
             } catch (Exception e) {
-                Main.getInstance().getLogger().severe("&cErreur lors de la vérification des triggers pour " + floorId + ": " + e.getMessage());
+                Main.getInstance().getLogger().severe("&cAn error occurred during the verification of triggers for " + floorId + ": " + e.getMessage());
                 e.printStackTrace();
                 return false;
             }
@@ -173,9 +173,9 @@ public class MongoManager implements DatabaseManager {
     }
 
     /**
-     * Supprime les triggers d'un floor de MongoDB.
-     * @param floorId l'ID du floor
-     * @return un CompletableFuture indiquant la fin de l'opération
+     * Deletes the triggers for a floor from MongoDB.
+     * @param floorId the floor ID
+     * @return a CompletableFuture indicating the completion of the operation
      */
     @Override
     public CompletableFuture<Void> deleteTriggers(String floorId) {
@@ -184,9 +184,9 @@ public class MongoManager implements DatabaseManager {
                 Document query = new Document("floor_id", floorId);
                 triggersCollection.deleteOne(query);
 
-                Main.getInstance().getLogger().info("Triggers supprimés pour " + floorId);
+                Main.getInstance().getLogger().info("Triggers delete for " + floorId);
             } catch (Exception e) {
-                Main.getInstance().getLogger().severe("&cErreur lors de la suppression des triggers pour " + floorId + ": " + e.getMessage());
+                Main.getInstance().getLogger().severe("&cAn error occurred during the deletion of triggers for " + floorId + ": " + e.getMessage());
                 e.printStackTrace();
             }
         });

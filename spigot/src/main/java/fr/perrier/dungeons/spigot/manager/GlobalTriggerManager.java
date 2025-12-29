@@ -18,6 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Global manager for all types of triggers.
+ * Handles registration, caching, and event processing for triggers and their handlers.
  */
 public class GlobalTriggerManager implements Listener {
 
@@ -41,7 +42,7 @@ public class GlobalTriggerManager implements Listener {
     }
 
     /**
-     * Initializes the global trigger manager.
+     * Initializes the global trigger manager and registers event listeners for all handlers.
      */
     public void initialize() {
         // Enregistrer ce manager comme listener principal
@@ -58,11 +59,11 @@ public class GlobalTriggerManager implements Listener {
             }
         }
 
-        Main.getInstance().getLogger().info("GlobalTriggerManager initialise avec " + handlers.size() + " handlers");
+        Main.getInstance().getLogger().info("GlobalTriggerManager initialized with " + handlers.size() + " handlers");
     }
 
     /**
-     * Registers the default handlers.
+     * Registers the default trigger handlers.
      */
     private void registerDefaultHandlers() {
         registerHandler(new RegionTriggerHandler());
@@ -70,18 +71,19 @@ public class GlobalTriggerManager implements Listener {
     }
 
     /**
-     * Registers a new handler.
+     * Registers a new trigger handler.
      *
      * @param handler the handler to register
      * @param <T>     the event type
      */
     public <T extends Event> void registerHandler(TriggerEventHandler<T> handler) {
         handlers.put(handler.getEventType(), handler);
-        Main.getInstance().getLogger().info("Handler enregistre pour: " + handler.getEventType().getSimpleName());
+        Main.getInstance().getLogger().info("Handler registered for: " + handler.getEventType().getSimpleName());
     }
 
     /**
-     * Refreshes the trigger cache.
+     * Refreshes the trigger cache from the current floor's triggers.
+     * Populates caches by trigger type and event type.
      */
     public void refreshTriggerCache() {
         triggersByType.clear();
@@ -112,12 +114,12 @@ public class GlobalTriggerManager implements Listener {
             Main.getInstance().getLogger().info("Triggers cache refresh complete: " + allTriggers.size() + " triggers");
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("&cError refreshing cache: " + e.getMessage());
+            Main.getInstance().getLogger().severe("Error refreshing cache: " + e.getMessage());
         }
     }
 
     /**
-     * Registers a function definition.
+     * Registers a function trigger definition.
      *
      * @param function the function trigger to register
      */
@@ -136,7 +138,7 @@ public class GlobalTriggerManager implements Listener {
     }
 
     /**
-     * Gets a registered function by name.
+     * Gets a registered function by its name.
      *
      * @param name the function name
      * @return the FunctionTrigger, or null if not found
@@ -149,7 +151,7 @@ public class GlobalTriggerManager implements Listener {
     }
 
     /**
-     * Removes a registered function by name.
+     * Removes a registered function by its name.
      *
      * @param name the function name
      */

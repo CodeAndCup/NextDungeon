@@ -10,8 +10,18 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+/**
+ * Listener for the revive item system.
+ * Handles player interactions with the revive item and revives nearby ghost players.
+ */
 public class ReviveItemListener implements Listener {
 
+    /**
+     * Handles player interaction events.
+     * If the player uses a revive item, attempts to revive the nearest ghost player within a 10-block radius.
+     *
+     * @param event the player interaction event
+     */
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event) {
         Player player = event.getPlayer();
@@ -44,6 +54,12 @@ public class ReviveItemListener implements Listener {
         }
     }
 
+    /**
+     * Checks if the given item is a revive item based on type and display name.
+     *
+     * @param item the item to check
+     * @return true if the item is a revive item, false otherwise
+     */
     private boolean isReviveItem(ItemStack item) {
         if(item == null || item.getType() == Material.AIR) {
             return false;
@@ -68,6 +84,12 @@ public class ReviveItemListener implements Listener {
         return true;
     }
 
+    /**
+     * Finds the nearest ghost player (not yet revived) within a 10-block radius.
+     *
+     * @param reviver the player attempting to revive
+     * @return the nearest ghost player, or null if none found
+     */
     private Player findNearestGhostPlayer(Player reviver) {
         double searchRadius = 10.0;
         Player nearestGhost = null;
@@ -92,4 +114,3 @@ public class ReviveItemListener implements Listener {
         return nearestGhost;
     }
 }
-
