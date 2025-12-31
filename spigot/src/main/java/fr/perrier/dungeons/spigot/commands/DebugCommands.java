@@ -69,7 +69,7 @@ public class DebugCommands {
 
         Dungeon dungeon = Dungeon.getDungeon("example");
         if(dungeon == null) {
-            player.sendMessage(ChatUtil.translate("&cDungeon 'example' not found."));
+            player.sendMessage(ChatUtil.translate("&#FF0000Dungeon 'example' not found."));
             return;
         }
         new DungeonGateMenu(dungeon).openMenu(player);
@@ -84,7 +84,7 @@ public class DebugCommands {
     public static void debugDungeonFloorCommand(Player player, @Param(name = "dungeonId")String dungeonId, @Param(name = "floorId") String floorId) {
         Floor floor = Floor.getFloor(dungeonId + "_" + floorId);
         if (floor == null) {
-            player.sendMessage(ChatUtil.translate("&cFloor with ID '" + floorId + "' not found."));
+            player.sendMessage(ChatUtil.translate("&#FF0000Floor with ID '" + floorId + "' not found."));
             return;
         }
         player.sendMessage(ChatUtil.getBar());

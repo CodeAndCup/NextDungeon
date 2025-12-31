@@ -31,7 +31,7 @@ public class ServerNameService implements PluginMessageListener {
         Bukkit.getServer().getMessenger().registerOutgoingPluginChannel(Main.getInstance(), DUNGEONS_CHANNEL);
         Bukkit.getServer().getMessenger().registerIncomingPluginChannel(Main.getInstance(), DUNGEONS_CHANNEL, this);
 
-        Main.getInstance().getLogger().info("Service de récupération du nom de serveur initialisé");
+        Main.getInstance().getLogger().info("ServerNameService initialized and plugin messaging channels registered.");
     }
 
     /**
@@ -93,16 +93,7 @@ public class ServerNameService implements PluginMessageListener {
             return pendingRequest.get();
         }
 
-        // Vérifier à nouveau qu'il y a des joueurs (race condition)
-        if (Bukkit.getOnlinePlayers().isEmpty()) {
-            newRequest.completeExceptionally(new IllegalStateException("No players online"));
-            return newRequest;
-        }
-
         try {
-            // Obtenir un joueur pour envoyer le message
-            Player player = Bukkit.getOnlinePlayers().iterator().next();
-
             // Récupérer l'IP et le port du serveur
             String serverIp = Bukkit.getServer().getIp();
             if (serverIp == null || serverIp.isEmpty()) {
@@ -138,7 +129,15 @@ public class ServerNameService implements PluginMessageListener {
             String subchannel = in.readUTF();
 
             if (subchannel.equals("ServerName")) {
+                String ip = in.readUTF();
+                int port = in.readInt();
                 String serverName = in.readUTF();
+
+                // Vérifier que la réponse correspond à ce serveur
+                if(!Bukkit.getIp().equals(ip) && Bukkit.getPort() != port) {
+                    Main.getInstance().getLogger().info("Received ServerName response for different server (" + ip + ":" + port + "): " + serverName);
+                    return;
+                }
                 
                 CompletableFuture<String> pending = pendingRequest.get();
                 if (pending != null && !pending.isDone()) {

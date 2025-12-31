@@ -67,7 +67,7 @@ public class MongoManager implements DatabaseManager {
     @Override
     public <T> CompletableFuture<T> handleAsyncOperation(CompletableFuture<T> future, String operationName) {
         return future.exceptionally(ex -> {
-            Bukkit.getLogger().severe("&cErreur lors de l'operation " + operationName + ": " + ex.getMessage());
+            Bukkit.getLogger().severe("&#FF0000Erreur lors de l'operation " + operationName + ": " + ex.getMessage());
             ex.printStackTrace();
             return null;
         });
@@ -117,7 +117,7 @@ public class MongoManager implements DatabaseManager {
                 Main.getInstance().getLogger().warning("&eNo trigger found for " + floorId + " in the trigger list.");
                 return new ArrayList<>();
             } catch (Exception e) {
-                Main.getInstance().getLogger().severe("&cAn error occurred during the loading phase of triggers for " + floorId + ": " + e.getMessage());
+                Main.getInstance().getLogger().severe("&#FF0000An error occurred during the loading phase of triggers for " + floorId + ": " + e.getMessage());
                 e.printStackTrace();
                 return new ArrayList<>();
             }
@@ -146,7 +146,7 @@ public class MongoManager implements DatabaseManager {
 
                 Main.getInstance().getLogger().info("Triggers saved for " + floorId + " (" + triggers.size() + " triggers)");
             } catch (Exception e) {
-                Main.getInstance().getLogger().severe("&cAn error occurred during the saving phase of triggers for " + floorId + ": " + e.getMessage());
+                Main.getInstance().getLogger().severe("&#FF0000An error occurred during the saving phase of triggers for " + floorId + ": " + e.getMessage());
                 e.printStackTrace();
             }
         });
@@ -165,7 +165,7 @@ public class MongoManager implements DatabaseManager {
                 long count = triggersCollection.countDocuments(query);
                 return count > 0;
             } catch (Exception e) {
-                Main.getInstance().getLogger().severe("&cAn error occurred during the verification of triggers for " + floorId + ": " + e.getMessage());
+                Main.getInstance().getLogger().severe("&#FF0000An error occurred during the verification of triggers for " + floorId + ": " + e.getMessage());
                 e.printStackTrace();
                 return false;
             }
@@ -186,7 +186,7 @@ public class MongoManager implements DatabaseManager {
 
                 Main.getInstance().getLogger().info("Triggers delete for " + floorId);
             } catch (Exception e) {
-                Main.getInstance().getLogger().severe("&cAn error occurred during the deletion of triggers for " + floorId + ": " + e.getMessage());
+                Main.getInstance().getLogger().severe("&#FF0000An error occurred during the deletion of triggers for " + floorId + ": " + e.getMessage());
                 e.printStackTrace();
             }
         });

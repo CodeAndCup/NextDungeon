@@ -27,7 +27,7 @@ public class FloorData {
     public FloorData(String id, String name) {
         this.id = id;
         this.name = name;
-        this.description = "&cNo description";
+        this.description = "&#FF0000No description";
     }
 
     public FloorData(String id, String name, String description) {

@@ -57,6 +57,19 @@ InstanceProvider:
     type: "CLOUDNET"
 
 # ─────────────────────────────────────────────────────
+# 👥 CONFIGURATION DU SYSTÈME DE GROUPES (PARTIES)
+# ─────────────────────────────────────────────────────
+# Gère le système de groupes/parties pour les joueurs.
+#
+# Types disponibles:
+#   • AUTO              - Détection automatique (recommandé)
+#   • AlessioDPParties  - Utilise le plugin AlessioDPParties
+#   • Internal          - Système de groupes interne (sans plugin)
+#
+PartyProvider:
+    type: "AUTO"
+
+# ─────────────────────────────────────────────────────
 # ⚰️  SYSTÈME DE RÉSURRECTION
 # ─────────────────────────────────────────────────────
 # Gère le système de fantôme et de résurrection quand

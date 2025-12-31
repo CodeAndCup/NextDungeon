@@ -41,12 +41,12 @@ public class DungeonWebEditorManager {
         UUID playerId = player.getUniqueId();
 
         if (activeEditorSessions.containsKey(playerId)) {
-            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&cYou already have an active web editor. Please stop it before starting a new one."));
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000You already have an active web editor. Please stop it before starting a new one."));
             return;
         }
 
         if(!ServerUtil.isInEditMode()) {
-            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&cYou can only start the web editor on an editing server."));
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000You can only start the web editor on an editing server."));
             return;
         }
 
@@ -78,20 +78,20 @@ public class DungeonWebEditorManager {
                     urlMessage.addExtra(urlComponent);
                     player.spigot().sendMessage(urlMessage);
 
-                    player.sendMessage(ChatUtil.translate("&7Arrêt: &c/dungeon admin webeditor stop"));
+                    player.sendMessage(ChatUtil.translate("&7Arrêt: &#FF0000/dungeon admin webeditor stop"));
                     player.sendMessage(ChatUtil.getBar());
 
                 } else {
-                    player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&cImpossible de créer la session sur le proxy. Vérifiez que le proxy est démarré."));
+                    player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Impossible de créer la session sur le proxy. Vérifiez que le proxy est démarré."));
                 }
             }).exceptionally(e -> {
                 Main.getInstance().getLogger().severe("An error occurred while requesting the web editor session: " + e.getMessage());
-                player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&cAn error occurred while starting the web editor. Check the server console for details."));
+                player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000An error occurred while starting the web editor. Check the server console for details."));
                 return null;
             });
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("&An error occurred while starting the web editor: " + e.getMessage());
-            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&cAn error occurred while starting the web editor. Check the server console for details."));
+            Main.getInstance().getLogger().severe("&#00FF00n error occurred while starting the web editor: " + e.getMessage());
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000An error occurred while starting the web editor. Check the server console for details."));
         }
     }
 
@@ -105,9 +105,9 @@ public class DungeonWebEditorManager {
         if (sessionId != null) {
             // Informer le proxy que la session doit être supprimée
             bridgeService.requestSessionStop(sessionId);
-            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&a✓ Web editor stopped."));
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#00FF00✓ Web editor stopped."));
         } else {
-            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&cNo web editor is currently active."));
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000No web editor is currently active."));
         }
     }
 

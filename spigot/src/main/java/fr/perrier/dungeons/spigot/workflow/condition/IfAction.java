@@ -87,7 +87,7 @@ public class IfAction extends Action implements BlocklyAction {
             return true;
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("&cError executing If action: " + e.getMessage());
+            Main.getInstance().getLogger().severe("&#FF0000Error executing If action: " + e.getMessage());
             e.printStackTrace();
             return false;
         }

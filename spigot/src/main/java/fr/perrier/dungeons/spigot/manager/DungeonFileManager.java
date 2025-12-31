@@ -28,7 +28,7 @@ public class DungeonFileManager {
                     return true;
                 })
                 .exceptionally(ex -> {
-                    Main.getInstance().getLogger().severe("&cError while saving triggers for " + floorId + ": " + ex.getMessage());
+                    Main.getInstance().getLogger().severe("&#FF0000Error while saving triggers for " + floorId + ": " + ex.getMessage());
                     ex.printStackTrace();
                     return false;
                 });
@@ -63,7 +63,7 @@ public class DungeonFileManager {
             return new ArrayList<>();
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("&cError loading triggers for " + floorId + ": " + e.getMessage());
+            Main.getInstance().getLogger().severe("&#FF0000Error loading triggers for " + floorId + ": " + e.getMessage());
             e.printStackTrace();
             return new ArrayList<>();
         }
@@ -79,7 +79,7 @@ public class DungeonFileManager {
         try {
             return Main.getInstance().getDatabaseManager().triggersExist(floorId).join();
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("&cError checking triggers for " + floorId + ": " + e.getMessage());
+            Main.getInstance().getLogger().severe("&#FF0000Error checking triggers for " + floorId + ": " + e.getMessage());
             return false;
         }
     }
@@ -95,7 +95,7 @@ public class DungeonFileManager {
             Main.getInstance().getDatabaseManager().deleteTriggers(floorId).join();
             return true;
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("&cError deleting triggers for " + floorId + ": " + e.getMessage());
+            Main.getInstance().getLogger().severe("&#FF0000Error deleting triggers for " + floorId + ": " + e.getMessage());
             return false;
         }
     }

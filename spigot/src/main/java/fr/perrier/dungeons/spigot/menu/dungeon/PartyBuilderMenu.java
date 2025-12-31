@@ -11,7 +11,7 @@ import fr.perrier.cupcodeapi.utils.ChatUtil;
 import fr.perrier.cupcodeapi.utils.ItemBuilder;
 import fr.perrier.dungeons.spigot.model.Dungeon;
 import fr.perrier.dungeons.spigot.model.Floor;
-import fr.perrier.dungeons.spigot.parties.DungeonParty;
+import fr.perrier.dungeons.spigot.parties.impl.DungeonPartyImpl;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Material;
@@ -73,7 +73,7 @@ public class PartyBuilderMenu extends GlassMenu {
                     .setLore(
                             "&7Select the floor you want to play on.",
                             "",
-                            "&7Current floor: &#90FFFF" + (floorId.isEmpty() ? "&cNone" : floorId),
+                            "&7Current floor: &#90FFFF" + (floorId.isEmpty() ? "&#FF0000None" : floorId),
                             "",
                             "&#FFC700Click to select a floor."
                     ).toItemStack();
@@ -94,7 +94,7 @@ public class PartyBuilderMenu extends GlassMenu {
                                 "&7know what your party to do.",
                                 "",
                                 "&7Current description:",
-                                "&#90FFFF" + (description.isEmpty() ? "&cNone" : description),
+                                "&#90FFFF" + (description.isEmpty() ? "&#FF0000None" : description),
                                 "",
                                 "&#FFC700Click to edit the description."
                         )
@@ -105,10 +105,10 @@ public class PartyBuilderMenu extends GlassMenu {
                     String description = result.getRight();
                     if(description.length() <= 32) {
                         this.description = description;
-                        player.sendRawMessage(ChatUtil.translate("&aDescription updated to: &f" + description));
+                        player.sendRawMessage(ChatUtil.translate("&#00FF00Description updated to: &f" + description));
                         this.openMenu(player);
                     } else {
-                        player.sendRawMessage(ChatUtil.translate("&cYou can not have more than 32 characters in the description."));
+                        player.sendRawMessage(ChatUtil.translate("&#FF0000You can not have more than 32 characters in the description."));
                     }
                 }
         );
@@ -135,18 +135,18 @@ public class PartyBuilderMenu extends GlassMenu {
                     if(StringUtils.isNumeric(minLevel)) {
                         int minLevelInt = Integer.parseInt(minLevel);
                         if(minLevelInt < 0) {
-                            player.sendRawMessage(ChatUtil.translate("&cYou can not have a negative minimum player level."));
+                            player.sendRawMessage(ChatUtil.translate("&#FF0000You can not have a negative minimum player level."));
                             return;
                         }
                         if(minLevelInt < Floor.getFloor(floorId).getRequirements().getMinLevel()) {
-                            player.sendRawMessage(ChatUtil.translate("&cYou can not have a minimum player level lower than the floor minimum level: &f" + Floor.getFloor(floorId).getRequirements().getMinLevel()));
+                            player.sendRawMessage(ChatUtil.translate("&#FF0000You can not have a minimum player level lower than the floor minimum level: &f" + Floor.getFloor(floorId).getRequirements().getMinLevel()));
                             return;
                         }
                         this.minLevel = Integer.parseInt(minLevel);
-                        player.sendRawMessage(ChatUtil.translate("&aMinimum player level updated to: &f" + minLevel));
+                        player.sendRawMessage(ChatUtil.translate("&#00FF00Minimum player level updated to: &f" + minLevel));
                         this.openMenu(player);
                     } else {
-                        player.sendRawMessage(ChatUtil.translate("&cYou must enter a number."));
+                        player.sendRawMessage(ChatUtil.translate("&#FF0000You must enter a number."));
                     }
                 }
         );
@@ -187,7 +187,7 @@ public class PartyBuilderMenu extends GlassMenu {
 
         @Override
         public void clicked(Player player, int slot, ClickType clickType, int hotbarButton) {
-            DungeonParty party = new DungeonParty.Builder()
+            DungeonPartyImpl party = new DungeonPartyImpl.Builder()
                     .setDungeonId(dungeonId)
                     .setFloorId(floorId)
                     .setMinLevel(minLevel)
@@ -195,7 +195,7 @@ public class PartyBuilderMenu extends GlassMenu {
                     .setLeader(player)
                     .build();
             player.closeInventory();
-            player.sendMessage(ChatUtil.translate("&aYour party has been created and has been queued in the dungeon finder!"));
+            player.sendMessage(ChatUtil.translate("&#00FF00Your party has been created and has been queued in the dungeon finder!"));
         }
     }
 

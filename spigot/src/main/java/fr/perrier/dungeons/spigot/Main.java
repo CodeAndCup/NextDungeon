@@ -50,6 +50,7 @@ import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
 import fr.perrier.dungeons.spigot.instance.InstanceProvider;
 import fr.perrier.dungeons.spigot.instance.InstanceProviderFactory;
+import fr.perrier.dungeons.spigot.parties.PartyService;
 
 @Getter
 public final class Main extends JavaPlugin {
@@ -87,6 +88,9 @@ public final class Main extends JavaPlugin {
     // Instance provider (CloudNet, ASP, ou Vanilla)
     private InstanceProvider instanceProvider;
 
+    // Party service
+    private PartyService partyService;
+
     @Override
     public void onEnable() {
         getLogger().info("Starting NextDungeon plugin...");
@@ -122,7 +126,7 @@ public final class Main extends JavaPlugin {
             getLogger().info("Profile service initialized successfully");
 
         } catch (Exception e) {
-            getLogger().severe("&cFailed to initialize Redis services: " + e.getMessage());
+            getLogger().severe("&#FF0000Failed to initialize Redis services: " + e.getMessage());
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
@@ -151,6 +155,10 @@ public final class Main extends JavaPlugin {
         menuAPI = new MenuAPI(this);
         partiesAPI = Parties.getApi();
         ghostFactory = new GhostFactory();
+
+        // Initialize Party Service (uses config for provider selection)
+        partyService = new PartyService();
+
         npcLibPlatform = BukkitPlatform.bukkitNpcPlatformBuilder()
                 .extension(this)
                 .debug(true)
@@ -211,6 +219,11 @@ public final class Main extends JavaPlugin {
         // Shutdown instance provider
         if (instanceProvider != null) {
             instanceProvider.shutdown();
+        }
+
+        // Shutdown party service
+        if (partyService != null) {
+            partyService.shutdown();
         }
 
         // If this is an instance server, cleanup the instance data
@@ -311,7 +324,7 @@ public final class Main extends JavaPlugin {
     private void initializeInstanceServer() {
         InstanceInfo info = ServerUtil.getInstanceInfo();
         if (info == null) {
-            getLogger().severe("&cFailed to get instance information");
+            getLogger().severe("&#FF0000Failed to get instance information");
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
@@ -392,7 +405,7 @@ public final class Main extends JavaPlugin {
                         instance.setReady(true);
                         Main.getInstance().getLogger().info("Instance " + instance.getInstanceId() + " is now ready!");
                     } else {
-                        Main.getInstance().getLogger().severe("&cNo instance found!");
+                        Main.getInstance().getLogger().severe("&#FF0000No instance found!");
                     }
                 }, 100L);
             }

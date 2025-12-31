@@ -70,14 +70,14 @@ public class WorkflowSaveManager {
                     Main.getInstance().getLogger().warning("&eFailed to save triggers in the database for floor: " + floorId);
                 }
             }).exceptionally(ex -> {
-                Main.getInstance().getLogger().severe("&cAn error occurred during the saving of triggers: " + ex.getMessage());
+                Main.getInstance().getLogger().severe("&#FF0000An error occurred during the saving of triggers: " + ex.getMessage());
                 ex.printStackTrace();
                 return null;
             });
 
             // Notifier l'éditeur
             if (editor != null && editor.isOnline()) {
-                editor.sendMessage(ChatUtil.translate("&a✓ Triggers sauvegardés avec succès !"));
+                editor.sendMessage(ChatUtil.translate("&#00FF00✓ Triggers sauvegardés avec succès !"));
                 editor.sendMessage(ChatUtil.translate("&7➤ " + triggers.size() + " trigger(s) sauvegardé(s)"));
                 editor.sendMessage(ChatUtil.translate("&7➤ Base de données: &e" + Main.getInstance().getConfig().getString("DatabaseConfiguration.type")));
 
@@ -96,12 +96,12 @@ public class WorkflowSaveManager {
             return true;
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("&cAn error occurred while saving triggers: " + e.getMessage());
+            Main.getInstance().getLogger().severe("&#FF0000An error occurred while saving triggers: " + e.getMessage());
             e.printStackTrace();
 
             if (editor != null && editor.isOnline()) {
-                editor.sendMessage(ChatUtil.translate("&c❌ Erreur lors de la sauvegarde !"));
-                editor.sendMessage(ChatUtil.translate("&c" + e.getMessage()));
+                editor.sendMessage(ChatUtil.translate("&#FF0000❌ Erreur lors de la sauvegarde !"));
+                editor.sendMessage(ChatUtil.translate("&#FF0000" + e.getMessage()));
             }
 
             return false;
@@ -158,7 +158,7 @@ public class WorkflowSaveManager {
             return gson.toJson(result);
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("&cErreur lors du chargement des triggers: " + e.getMessage());
+            Main.getInstance().getLogger().severe("&#FF0000Erreur lors du chargement des triggers: " + e.getMessage());
             e.printStackTrace();
 
             JsonObject error = new JsonObject();

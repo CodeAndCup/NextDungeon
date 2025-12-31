@@ -49,7 +49,7 @@ public class CloudNetProvider implements InstanceProvider {
             Main.getInstance().getLogger().info("CloudNet provider initialized successfully.");
             future.complete(true);
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("&cAn error occurred during the initialization phase: " + e.getMessage());
+            Main.getInstance().getLogger().severe("&#FF0000An error occurred during the initialization phase: " + e.getMessage());
             future.complete(false);
         }
 
@@ -68,7 +68,7 @@ public class CloudNetProvider implements InstanceProvider {
                 ServiceTask serviceTask = InjectionLayer.boot().instance(ServiceTaskProvider.class).serviceTask(templateName);
 
                 if (serviceTask == null) {
-                    Main.getInstance().getLogger().severe("&cCannot create task for " + templateName);
+                    Main.getInstance().getLogger().severe("&#FF0000Cannot create task for " + templateName);
                     future.complete(null);
                     return;
                 }
@@ -93,7 +93,7 @@ public class CloudNetProvider implements InstanceProvider {
 
                 future.complete(service.serviceInfo().serviceId().uniqueId());
             } catch (Exception e) {
-                Main.getInstance().getLogger().severe("&cAn error occurred during the instance creation: " + e.getMessage());
+                Main.getInstance().getLogger().severe("&#FF0000An error occurred during the instance creation: " + e.getMessage());
                 future.complete(null);
             }
         });
@@ -119,7 +119,7 @@ public class CloudNetProvider implements InstanceProvider {
                     future.complete(false);
                 }
             } catch (Exception e) {
-                Main.getInstance().getLogger().severe("&cError deleting instance: " + e.getMessage());
+                Main.getInstance().getLogger().severe("&#FF0000Error deleting instance: " + e.getMessage());
                 future.complete(false);
             }
         });
@@ -272,7 +272,7 @@ public class CloudNetProvider implements InstanceProvider {
                         serviceTaskProvider.addServiceTask(serviceTask);
                         future.complete(true);
                     } else {
-                        Main.getInstance().getLogger().severe("&cUnable to copy the template for " + floor.getId());
+                        Main.getInstance().getLogger().severe("&#FF0000Unable to copy the template for " + floor.getId());
                         future.complete(false);
                     }
                 })
@@ -306,7 +306,7 @@ public class CloudNetProvider implements InstanceProvider {
 
                 future.complete(true);
             } catch (Exception e) {
-                Main.getInstance().getLogger().severe("&cError sending player: " + e.getMessage());
+                Main.getInstance().getLogger().severe("&#FF0000Error sending player: " + e.getMessage());
                 future.complete(false);
             }
         });
@@ -344,7 +344,7 @@ public class CloudNetProvider implements InstanceProvider {
                 Main.getInstance().getLogger().info("World saved in the CloudNet template for " + floor.getId());
                 future.complete(true);
             } catch (Exception e) {
-                Main.getInstance().getLogger().severe("&cError during CloudNet backup: " + e.getMessage());
+                Main.getInstance().getLogger().severe("&#FF0000Error during CloudNet backup: " + e.getMessage());
                 e.printStackTrace();
                 future.complete(false);
             }
@@ -376,7 +376,7 @@ public class CloudNetProvider implements InstanceProvider {
             try {
                 ZipInputStream zipInputStream = sourceTemplateStorage.openZipInputStream(sourceTemplate);
                 if (zipInputStream == null) {
-                    Main.getInstance().getLogger().severe("&cUnable to open the template zip file " + sourceTemplate.name());
+                    Main.getInstance().getLogger().severe("&#FF0000Unable to open the template zip file " + sourceTemplate.name());
                     future.complete(false);
                     return;
                 }
@@ -404,7 +404,7 @@ public class CloudNetProvider implements InstanceProvider {
                                 try {
                                     Files.createDirectories(file);
                                 } catch (IOException e) {
-                                    Main.getInstance().getLogger().severe("&cUnable to create the folder " + file);
+                                    Main.getInstance().getLogger().severe("&#FF0000Unable to create the folder " + file);
                                 }
                             }
                         } else {
@@ -419,7 +419,7 @@ public class CloudNetProvider implements InstanceProvider {
                                     }
                                 }
                             } catch (IOException e) {
-                                Main.getInstance().getLogger().severe("&cCopying was not possible. " + entryDeploy.getName());
+                                Main.getInstance().getLogger().severe("&#FF0000Copying was not possible. " + entryDeploy.getName());
                             }
                         }
                         zipInputStream.closeEntry();

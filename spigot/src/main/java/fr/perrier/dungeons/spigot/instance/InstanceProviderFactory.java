@@ -39,7 +39,7 @@ public class InstanceProviderFactory {
             Main.getInstance().getLogger().info("CloudNet detected, using CloudNetProvider");
             return new CloudNetProvider();
         } catch (ClassNotFoundException e) {
-            Main.getInstance().getLogger().severe("&cCloudNet is not available on this server!");
+            Main.getInstance().getLogger().severe("&#FF0000CloudNet is not available on this server!");
             throw new IllegalStateException("CloudNet provider required but not available", e);
         }
     }

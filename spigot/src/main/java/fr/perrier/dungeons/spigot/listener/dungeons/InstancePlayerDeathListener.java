@@ -88,7 +88,7 @@ public class InstancePlayerDeathListener implements Listener {
         player.setRespawnLocation(player.getLocation().clone().add(0,2,0));
 
         Bukkit.broadcastMessage(ChatUtil.translate(
-                Main.getInstance().getConfig().getString("ReviveSystem.deathMessage", "&c{player} has fallen! Becoming a ghost...")
+                Main.getInstance().getConfig().getString("ReviveSystem.deathMessage", "&#FF0000{player} has fallen! Becoming a ghost...")
                         .replace("{player}", player.getName())
                         .replace("{lives}", String.valueOf(
                                 Main.getInstance().getRedisStorageService()
@@ -249,7 +249,7 @@ public class InstancePlayerDeathListener implements Listener {
 
                 // Téléporter et afficher message
                 player.teleport(data.getDeathLocation());
-                String reviveMessage = Main.getInstance().getConfig().getString("ReviveSystem.reviveMessage", "&a{player} has been revived!");
+                String reviveMessage = Main.getInstance().getConfig().getString("ReviveSystem.reviveMessage", "&#00FF00{player} has been revived!");
                 Bukkit.broadcastMessage(ChatUtil.translate(reviveMessage.replace("{player}", player.getName())));
 
                 // Nettoyer

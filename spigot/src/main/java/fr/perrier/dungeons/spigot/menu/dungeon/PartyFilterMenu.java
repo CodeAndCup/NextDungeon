@@ -62,7 +62,7 @@ public class PartyFilterMenu extends GlassMenu {
                     .setLore(
                             "&7Select the floor you want to play on.",
                             "",
-                            "&7Current floor: &#90FFFF" + (config.getFloorFilter().isEmpty() ? "&cNone" : config.getFloorFilter()),
+                            "&7Current floor: &#90FFFF" + (config.getFloorFilter().isEmpty() ? "&#FF0000None" : config.getFloorFilter()),
                             "",
                             "&#FFC700Click to select a floor."
                     ).toItemStack();
@@ -85,7 +85,7 @@ public class PartyFilterMenu extends GlassMenu {
                                 "&7know what your party to do.",
                                 "",
                                 "&7Current description:",
-                                "&#90FFFF" + (config.getDescriptionFilter().isEmpty() ? "&cNone" : config.getDescriptionFilter()),
+                                "&#90FFFF" + (config.getDescriptionFilter().isEmpty() ? "&#FF0000None" : config.getDescriptionFilter()),
                                 "",
                                 "&#FFC700Click to edit the description."
                         )
@@ -96,10 +96,10 @@ public class PartyFilterMenu extends GlassMenu {
                     String description = result.getRight();
                     if(description.length() <= 32) {
                         config.setDescriptionFilter(description);
-                        player.sendRawMessage(ChatUtil.translate("&aDescription updated to: &f" + description));
+                        player.sendRawMessage(ChatUtil.translate("&#00FF00Description updated to: &f" + description));
                         this.openMenu(player);
                     } else {
-                        player.sendRawMessage(ChatUtil.translate("&cYou can not have more than 32 characters in the description."));
+                        player.sendRawMessage(ChatUtil.translate("&#FF0000You can not have more than 32 characters in the description."));
                     }
                 }
         );
@@ -116,7 +116,7 @@ public class PartyFilterMenu extends GlassMenu {
                                 "&7to join your party so only players with",
                                 "&7at least this level are able to join.",
                                 "",
-                                "&7Current minimum player level: " + (config.getMinimumLevelFilter() == -1 ? "&cNone" : "&#90FFFF" + config.getMinimumLevelFilter()),
+                                "&7Current minimum player level: " + (config.getMinimumLevelFilter() == -1 ? "&#FF0000None" : "&#90FFFF" + config.getMinimumLevelFilter()),
                                 "",
                                 "&#FFC700Click to edit the minimum player level."
                         )
@@ -128,14 +128,14 @@ public class PartyFilterMenu extends GlassMenu {
                     if(StringUtils.isNumeric(minLevel)) {
                         int minLevelInt = Integer.parseInt(minLevel);
                         if(minLevelInt < 0) {
-                            player.sendRawMessage(ChatUtil.translate("&cYou can not have a negative minimum player level."));
+                            player.sendRawMessage(ChatUtil.translate("&#FF0000You can not have a negative minimum player level."));
                             return;
                         }
                         config.setMinimumLevelFilter(minLevelInt);
-                        player.sendRawMessage(ChatUtil.translate("&aMinimum player level updated to: &f" + minLevel));
+                        player.sendRawMessage(ChatUtil.translate("&#00FF00Minimum player level updated to: &f" + minLevel));
                         this.openMenu(player);
                     } else {
-                        player.sendRawMessage(ChatUtil.translate("&cYou must enter a number."));
+                        player.sendRawMessage(ChatUtil.translate("&#FF0000You must enter a number."));
                     }
                 }
         );

@@ -54,7 +54,7 @@ public class TriggerFactory {
             return trigger;
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("&cAn error occurred while creating trigger from JSON: " + e.getMessage());
+            Main.getInstance().getLogger().severe("&#FF0000An error occurred while creating trigger from JSON: " + e.getMessage());
             e.printStackTrace();
             return null;
         }

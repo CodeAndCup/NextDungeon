@@ -59,7 +59,7 @@ public class MySQLManager implements DatabaseManager {
     @Override
     public void connect() {
         HikariConfig config = new HikariConfig();
-        config.setJdbcUrl("jdbc:mysql://" + host + ":" + port + "/" + database + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC");
+        config.setJdbcUrl("jdbc:mysql://" + host + ":" + port + "/" + database + "?useSSL=false&#00FF00llowPublicKeyRetrieval=true&serverTimezone=UTC");
         config.setUsername(username);
         config.setPassword(password);
 
@@ -121,7 +121,7 @@ public class MySQLManager implements DatabaseManager {
                     ")");
 
         } catch (SQLException e) {
-            Main.getInstance().getLogger().severe("&cFailed to create database tables: " + e.getMessage());
+            Main.getInstance().getLogger().severe("&#FF0000Failed to create database tables: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -160,7 +160,7 @@ public class MySQLManager implements DatabaseManager {
                 future.complete(result);
             } catch (Exception e) {
                 if (!isShuttingDown) {
-                    Main.getInstance().getLogger().severe("&cError in " + operationName + ": " + e.getMessage());
+                    Main.getInstance().getLogger().severe("&#FF0000Error in " + operationName + ": " + e.getMessage());
                 }
                 future.completeExceptionally(e);
             } finally {
@@ -191,7 +191,7 @@ public class MySQLManager implements DatabaseManager {
             }
         }, "Update: " + query).exceptionally(e -> {
             if (!isShuttingDown) {
-                Main.getInstance().getLogger().severe("&cError executing update: " + query);
+                Main.getInstance().getLogger().severe("&#FF0000Error executing update: " + query);
                 e.printStackTrace();
             }
             return (Integer) 0;
@@ -245,7 +245,7 @@ public class MySQLManager implements DatabaseManager {
         return future.whenComplete((result, error) -> {
             try {
                 if (error != null && !isShuttingDown) {
-                    Main.getInstance().getLogger().severe("&cError in " + operationName + ": " + error.getMessage());
+                    Main.getInstance().getLogger().severe("&#FF0000Error in " + operationName + ": " + error.getMessage());
                 }
             } finally {
                 if (activeOperations.decrementAndGet() == 0 && isShuttingDown) {
@@ -280,7 +280,7 @@ public class MySQLManager implements DatabaseManager {
             );
         }catch (SQLException e) {
             if (!isShuttingDown) {
-                Main.getInstance().getLogger().severe("&cError loading profile data for player " + playerId + ": " + e.getMessage());
+                Main.getInstance().getLogger().severe("&#FF0000Error loading profile data for player " + playerId + ": " + e.getMessage());
                 e.printStackTrace();
             }
             return null;
@@ -326,7 +326,7 @@ public class MySQLManager implements DatabaseManager {
                         floorId
                 );
             } catch (SQLException e) {
-                Main.getInstance().getLogger().severe("&cError loading triggers for floor " + floorId + ": " + e.getMessage());
+                Main.getInstance().getLogger().severe("&#FF0000Error loading triggers for floor " + floorId + ": " + e.getMessage());
                 return new ArrayList<>();
             }
         }, "Load triggers for " + floorId);
@@ -378,7 +378,7 @@ public class MySQLManager implements DatabaseManager {
                         floorId
                 );
             } catch (SQLException e) {
-                Main.getInstance().getLogger().severe("&cError checking triggers existence for floor " + floorId + ": " + e.getMessage());
+                Main.getInstance().getLogger().severe("&#FF0000Error checking triggers existence for floor " + floorId + ": " + e.getMessage());
                 return false;
             }
         }, "Check triggers existence for " + floorId);

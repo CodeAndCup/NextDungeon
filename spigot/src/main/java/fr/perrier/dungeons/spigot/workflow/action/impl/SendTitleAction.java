@@ -34,7 +34,7 @@ public class SendTitleAction extends Action implements BlocklyAction {
     private String targetPlayer;
 
     @BlocklyField(type = BlocklyField.FieldType.TEXT_INPUT, label = "Title (optionnel):",
-            defaultValue = "&aBonjour {player}!", order = 2)
+            defaultValue = "&#00FF00Bonjour {player}!", order = 2)
     private String title;
 
     @BlocklyField(type = BlocklyField.FieldType.TEXT_INPUT, label = "Subtitle (optionnel):",

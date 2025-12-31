@@ -47,9 +47,9 @@ public class ReviveItemListener implements Listener {
 
                 // Message de confirmation
                 String reviveMessage = Main.getInstance().getConfig().getString("ReviveSystem.reviveMessage", "&f{player} has been revived!");
-                player.sendMessage(ChatUtil.translate("&a✓ " + reviveMessage.replace("{player}", deadPlayer.getName())));
+                player.sendMessage(ChatUtil.translate("&#00FF00✓ " + reviveMessage.replace("{player}", deadPlayer.getName())));
             } else {
-                player.sendMessage(ChatUtil.translate("&c✗ &fNo ghost player nearby to revive!"));
+                player.sendMessage(ChatUtil.translate("&#FF0000✗ &fNo ghost player nearby to revive!"));
             }
         }
     }
@@ -74,7 +74,7 @@ public class ReviveItemListener implements Listener {
         // Vérifier le nom de l'item (optionnel)
         ItemMeta meta = item.getItemMeta();
         if(meta != null && meta.hasDisplayName()) {
-            String configuredName = Main.getInstance().getConfig().getString("ReviveSystem.ReviveItem.displayName", "&c&lRevive Item");
+            String configuredName = Main.getInstance().getConfig().getString("ReviveSystem.ReviveItem.displayName", "&#FF0000&lRevive Item");
             String translatedConfigName = ChatUtil.translate(configuredName);
 
             // Comparer les noms après traduction

@@ -6,7 +6,7 @@ import fr.perrier.cupcodeapi.utils.TimeUtil;
 import fr.perrier.dungeons.common.model.dungeon.config.FloorInstanceData;
 import fr.perrier.dungeons.common.model.player.PlayerStats;
 import fr.perrier.dungeons.spigot.Main;
-import fr.perrier.dungeons.spigot.parties.DungeonParty;
+import fr.perrier.dungeons.spigot.parties.IDungeonParty;
 import fr.perrier.dungeons.spigot.utils.ServerUtil;
 import lombok.Getter;
 import org.bukkit.Bukkit;
@@ -134,7 +134,7 @@ public class FloorInstance extends FloorInstanceData {
     /**
      * Sends all members of the given dungeon party to the cloud service associated with this instance.
      * <p>
-     * This method first checks if all members of the party are online using {@link DungeonParty#hasAllMembersOnline()}.
+     * This method first checks if all members of the party are online using {@link IDungeonParty#areAllMembersOnline()}.
      * If they are, it iterates through each member's UUID, retrieves the corresponding Player object using
      * {@link Bukkit#getPlayer(UUID)}, and sends them to the instance using {@link #sendToServer(Player)}.
      * If not all members are online, it sends a message to the party leader informing them that all members
@@ -142,17 +142,17 @@ public class FloorInstance extends FloorInstanceData {
      * </p>
      * @param dungeonParty the dungeon party whose members are to be sent to the cloud service
      */
-    public void sendToServer(DungeonParty dungeonParty) {
-        if(dungeonParty.hasAllMembersOnline()) {
-            for (UUID uuid : dungeonParty.getParty().getMembers()) {
+    public void sendToServer(IDungeonParty dungeonParty) {
+        if(dungeonParty.areAllMembersOnline()) {
+            for (UUID uuid : dungeonParty.getMemberIds()) {
                 Player player = Bukkit.getPlayer(uuid);
                 if (player != null)
                     sendToServer(player);
             }
         }else {
-            Player leader = Bukkit.getPlayer(Objects.requireNonNull(dungeonParty.getLeader()));
+            Player leader = Bukkit.getPlayer(Objects.requireNonNull(dungeonParty.getLeaderId()));
             if (leader != null)
-                leader.sendMessage(ChatUtil.translate(Main.getPrefix() + "&cAll your party members must be online to join the instance!"));
+                leader.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000All your party members must be online to join the instance!"));
         }
     }
 
@@ -195,19 +195,19 @@ public class FloorInstance extends FloorInstanceData {
 
                     if (instance == null) {
                         Main.getInstance().getLogger().warning("&eInstance " + instanceId + "no longer exists.");
-                        player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&cThis dungeon instance no longer exists!"));
+                        player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000This dungeon instance no longer exists!"));
                         this.cancel();
                         return;
                     }
 
                     if (instance.isReady()) {
-                        player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&fInstance is &aready&f! Sending you to the dungeon..."));
+                        player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&fInstance is &#00FF00ready&f! Sending you to the dungeon..."));
                         ServerUtil.sendToServer(player, instanceId);
                         this.cancel();
                     } else {
                         if (System.currentTimeMillis() - startTime > TIMEOUT) {
                             Main.getInstance().getLogger().warning("&eTimed out waiting for instance " + instanceId + " to be ready");
-                            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&cTimed out waiting for dungeon instance to be ready!"));
+                            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Timed out waiting for dungeon instance to be ready!"));
                             this.cancel();
                         }
                     }
@@ -254,7 +254,7 @@ public class FloorInstance extends FloorInstanceData {
             player.sendMessage(ChatUtil.getBar());
         }
 
-        Bukkit.broadcastMessage(ChatUtil.translate(Main.getPrefix() + "&fThe dungeon instance &e" + getInstanceName() + " &fwill shut down in &c30 &fseconds."));
+        Bukkit.broadcastMessage(ChatUtil.translate(Main.getPrefix() + "&fThe dungeon instance &e" + getInstanceName() + " &fwill shut down in &#FF000030 &fseconds."));
 
         Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
             Main.getInstance().getRedisStorageService().removeInstance(this.instanceId);

@@ -112,6 +112,8 @@ public class PluginMessageVelocity {
     private void sendServerNameResponse(ServerConnection serverConnection, String serverName) {
         ByteArrayDataOutput out = ByteStreams.newDataOutput();
         out.writeUTF("ServerName");
+        out.writeUTF(serverConnection.getServerInfo().getAddress().getHostString());
+        out.writeInt(serverConnection.getServerInfo().getAddress().getPort());
         out.writeUTF(serverName);
 
         serverConnection.sendPluginMessage(DUNGEONS_CHANNEL, out.toByteArray());

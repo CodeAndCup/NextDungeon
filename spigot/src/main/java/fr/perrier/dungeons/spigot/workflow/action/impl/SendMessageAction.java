@@ -34,7 +34,7 @@ public class SendMessageAction extends Action implements BlocklyAction {
     private String targetPlayer;
 
     @BlocklyField(type = BlocklyField.FieldType.TEXT_INPUT, label = "Message:",
-            defaultValue = "&aBonjour {player}!", order = 2)
+            defaultValue = "&#00FF00Bonjour {player}!", order = 2)
     private String message;
 
     public SendMessageAction(String targetPlayer, String message) {

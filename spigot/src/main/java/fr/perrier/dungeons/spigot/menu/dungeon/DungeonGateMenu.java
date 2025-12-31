@@ -9,7 +9,7 @@ import fr.perrier.dungeons.spigot.model.Dungeon;
 import fr.perrier.dungeons.spigot.model.Floor;
 import fr.perrier.dungeons.spigot.model.FloorInstance;
 import fr.perrier.dungeons.spigot.model.ProfileData;
-import fr.perrier.dungeons.spigot.parties.DungeonParty;
+import fr.perrier.dungeons.spigot.parties.impl.DungeonPartyImpl;
 import lombok.RequiredArgsConstructor;
 import net.Indyuce.mmocore.api.player.PlayerData;
 import org.bukkit.Material;
@@ -89,19 +89,19 @@ public class DungeonGateMenu extends GlassMenu {
         public void clicked(Player player, int slot, ClickType clickType, int hotbarButton) {
             //TODO: Make that can't be click if dungeon already loading
             if(Objects.requireNonNull(Objects.requireNonNull(getButtonItem(player).getItemMeta()).getLore()).stream().anyMatch(s -> s.contains("✘"))) {
-                player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&cYou do not meet the requirements to enter this floor."));
+                player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000You do not meet the requirements to enter this floor."));
                 return;
             }
-            if(DungeonParty.hasLeadParty(player)) {
-                if(DungeonParty.getDungeonPartyOf(player).getMembers().size() > floor.getRequirements().getPartyRequirements().getMaxSize()) {
-                    player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&cYour party is too big to enter this floor."));
+            if(DungeonPartyImpl.hasLeadParty(player)) {
+                if(DungeonPartyImpl.getDungeonPartyOf(player).getMembers().size() > floor.getRequirements().getPartyRequirements().getMaxSize()) {
+                    player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Your party is too big to enter this floor."));
                     return;
                 }
-                if (DungeonParty.getDungeonPartyOf(player).getMembers().size() < floor.getRequirements().getPartyRequirements().getMinSize()) {
-                    player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&cYour party is too small to enter this floor."));
+                if (DungeonPartyImpl.getDungeonPartyOf(player).getMembers().size() < floor.getRequirements().getPartyRequirements().getMinSize()) {
+                    player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Your party is too small to enter this floor."));
                     return;
                 }
-                FloorInstance.generateNewInstanceAsync(floor.getId(),false, floorInstance -> floorInstance.sendToServer(DungeonParty.getDungeonPartyOf(player)));
+                FloorInstance.generateNewInstanceAsync(floor.getId(),false, floorInstance -> floorInstance.sendToServer(DungeonPartyImpl.getDungeonPartyOf(player)));
                 player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&fPlease wait while the instance is being prepared..."));
             }
         }
@@ -184,18 +184,18 @@ public class DungeonGateMenu extends GlassMenu {
         lore.add("&7Requirements:");
         if(floor.getRequirements().getMinLevel() > 0) {
             if(playerData.getLevel() >= floor.getRequirements().getMinLevel()) {
-                lore.add("&a✔ Level: " + floor.getRequirements().getMinLevel());
+                lore.add("&#00FF00✔ Level: " + floor.getRequirements().getMinLevel());
             } else {
-                lore.add("&c✘ Level: " + floor.getRequirements().getMinLevel());
+                lore.add("&#FF0000✘ Level: " + floor.getRequirements().getMinLevel());
             }
         }
         if(floor.getRequirements().getRequiredFloorsId() != null && !floor.getRequirements().getRequiredFloorsId().isEmpty()) {
             for(String requiredFloorId : floor.getRequirements().getRequiredFloorsId()) {
                 Floor requiredFloor = Floor.getFloor(requiredFloorId);
                 if(profileData.getCompletedFloors().contains(requiredFloorId)) {
-                    lore.add("&a✔ " + requiredFloor.getName() + " Completion.");
+                    lore.add("&#00FF00✔ " + requiredFloor.getName() + " Completion.");
                 } else {
-                    lore.add("&c✘ " + requiredFloor.getName() + " Completion.");
+                    lore.add("&#FF0000✘ " + requiredFloor.getName() + " Completion.");
                 }
             }
         }
@@ -203,9 +203,9 @@ public class DungeonGateMenu extends GlassMenu {
             for(String requiredItem : floor.getRequirements().getRequiredItems()) {
                 boolean hasItem = Arrays.stream(player.getInventory().getContents()).anyMatch(itemStack -> itemStack != null && Objects.requireNonNull(itemStack.getItemMeta()).getDisplayName().equals(requiredItem));
                 if(hasItem) {
-                    lore.add("&a✔ Possess " + requiredItem);
+                    lore.add("&#00FF00✔ Possess " + requiredItem);
                 } else {
-                    lore.add("&c✘ Possess " + requiredItem);
+                    lore.add("&#FF0000✘ Possess " + requiredItem);
                 }
             }
         }
@@ -213,9 +213,9 @@ public class DungeonGateMenu extends GlassMenu {
             for(String forbiddenItem : floor.getRequirements().getForbiddenItems()) {
                 boolean hasItem = Arrays.stream(player.getInventory().getContents()).anyMatch(itemStack -> itemStack != null && Objects.requireNonNull(itemStack.getItemMeta()).getDisplayName().equals(forbiddenItem));
                 if(hasItem) {
-                    lore.add("&c✘ Do not possess " + forbiddenItem);
+                    lore.add("&#FF0000✘ Do not possess " + forbiddenItem);
                 } else {
-                    lore.add("&a✔ Do not possess " + forbiddenItem);
+                    lore.add("&#00FF00✔ Do not possess " + forbiddenItem);
                 }
             }
         }
