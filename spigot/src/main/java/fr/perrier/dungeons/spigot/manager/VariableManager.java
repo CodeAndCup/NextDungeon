@@ -40,7 +40,9 @@ public class VariableManager {
             return;
         }
         globalVariables.put(name.trim(), value);
-        Main.getInstance().getLogger().info("Set global variable: " + name + " = " + value);
+        if (Main.isDebug()) {
+            Main.getInstance().getLogger().info("Set global variable: " + name + " = " + value);
+        }
     }
 
     /**
@@ -83,7 +85,9 @@ public class VariableManager {
         playerVariables.computeIfAbsent(playerId, k -> new ConcurrentHashMap<>());
         playerVariables.get(playerId).put(name.trim(), value);
 
-        Main.getInstance().getLogger().info("Set player variable for " + player.getName() + ": " + name + " = " + value);
+        if (Main.isDebug()) {
+            Main.getInstance().getLogger().info("Set player variable for " + player.getName() + ": " + name + " = " + value);
+        }
     }
 
     /**
@@ -123,7 +127,9 @@ public class VariableManager {
     public void clearPlayerVariables(Player player) {
         if (player != null) {
             playerVariables.remove(player.getUniqueId());
-            Main.getInstance().getLogger().info("Cleared all variables for player: " + player.getName());
+            if (Main.isDebug()) {
+                Main.getInstance().getLogger().info("Cleared all variables for player: " + player.getName());
+            }
         }
     }
 
@@ -192,7 +198,9 @@ public class VariableManager {
     public void clearAllVariables() {
         globalVariables.clear();
         playerVariables.clear();
-        Main.getInstance().getLogger().info("Cleared all variables");
+        if (Main.isDebug()) {
+            Main.getInstance().getLogger().info("Cleared all variables");
+        }
     }
 
     /**

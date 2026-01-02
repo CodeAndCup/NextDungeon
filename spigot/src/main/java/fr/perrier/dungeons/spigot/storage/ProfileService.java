@@ -79,15 +79,19 @@ public class ProfileService {
         ProfileData profileData = profilesMap.get(playerId);
         if(profileData != null) {
             Main.getInstance().getDatabaseManager().saveProfileData(playerId, profileData);
-            Main.getInstance().getLogger().info(String.format(
-                    "Saved profile data for player %s to Database",
-                    playerId
-            ));
+            if (Main.isDebug()) {
+                Main.getInstance().getLogger().info(String.format(
+                        "Saved profile data for player %s to Database",
+                        playerId
+                ));
+            }
             profilesMap.fastRemove(playerId);
-            Main.getInstance().getLogger().info(String.format(
-                    "Removed profile data for player %s from Redis cache",
-                    playerId
-            ));
+            if (Main.isDebug()) {
+                Main.getInstance().getLogger().info(String.format(
+                        "Removed profile data for player %s from Redis cache",
+                        playerId
+                ));
+            }
         } else {
             Main.getInstance().getLogger().warning(String.format(
                     "No profile data found for player %s to save",

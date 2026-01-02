@@ -118,9 +118,11 @@ public class RedisStorageService {
         // Update Redis
         dungeonsMap.fastPut(dungeon.getId(),dungeon);
 
-        Main.getInstance().getLogger().info(
-                String.format("Synced dungeon %s to Redis", dungeon.getId())
-        );
+        if (Main.isDebug()) {
+            Main.getInstance().getLogger().info(
+                    String.format("Synced dungeon %s to Redis", dungeon.getId())
+            );
+        }
     }
 
     /**
@@ -286,7 +288,9 @@ public class RedisStorageService {
     public void removeDungeon(String id) {
         // Remove from Redis
         dungeonsMap.remove(id);
-        Main.getInstance().getLogger().info(String.format("Removed dungeon %s from Redis", id));
+        if (Main.isDebug()) {
+            Main.getInstance().getLogger().info(String.format("Removed dungeon %s from Redis", id));
+        }
     }
 
     /**

@@ -24,7 +24,9 @@ public class TriggerFactory {
             String type = triggerData.get("type").getAsString();
             String name = triggerData.has("name") ? triggerData.get("name").getAsString() : "Trigger_" + System.currentTimeMillis();
 
-            Main.getInstance().getLogger().info("Creating trigger: " + type + " - " + name);
+            if (Main.isDebug()) {
+                Main.getInstance().getLogger().info("Creating trigger: " + type + " - " + name);
+            }
 
             Trigger trigger = switch (type) {
                 case "region_trigger" -> createRegionTrigger(triggerData, name);
@@ -48,7 +50,9 @@ public class TriggerFactory {
                     trigger.setActions(ActionFactory.parseActionsFromJson(actionsArray));
                 }
 
-                Main.getInstance().getLogger().info("Trigger created with success: " + trigger.getName() + " with " + trigger.getActions().size() + " action(s)");
+                if (Main.isDebug()) {
+                    Main.getInstance().getLogger().info("Trigger created with success: " + trigger.getName() + " with " + trigger.getActions().size() + " action(s)");
+                }
             }
 
             return trigger;
@@ -110,7 +114,9 @@ public class TriggerFactory {
             }
         }
 
-        Main.getInstance().getLogger().info("Parsing triggers: " + triggers.size() + " trigger(s) created");
+        if (Main.isDebug()) {
+            Main.getInstance().getLogger().info("Parsing triggers: " + triggers.size() + " trigger(s) created");
+        }
         return triggers;
     }
 }

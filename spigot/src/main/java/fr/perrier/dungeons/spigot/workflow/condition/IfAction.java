@@ -71,7 +71,9 @@ public class IfAction extends Action implements BlocklyAction {
             // Evaluate condition
             boolean conditionResult = evaluateCondition(resolvedLeft, operator, resolvedRight);
 
-            Main.getInstance().getLogger().info("If condition: " + resolvedLeft + " " + operator + " " + resolvedRight + " = " + conditionResult);
+            if (Main.isDebug()) {
+                Main.getInstance().getLogger().info("If condition: " + resolvedLeft + " " + operator + " " + resolvedRight + " = " + conditionResult);
+            }
 
             // Execute appropriate actions
             List<Action> actionsToExecute = conditionResult ? ifActions : elseActions;

@@ -45,11 +45,6 @@
             <artifactId>gson</artifactId>
         </dependency>
 
-        <!-- WebSocket -->
-        <dependency>
-            <groupId>org.java-websocket</groupId>
-            <artifactId>Java-WebSocket</artifactId>
-        </dependency>
 
         <!-- Lombok -->
         <dependency>

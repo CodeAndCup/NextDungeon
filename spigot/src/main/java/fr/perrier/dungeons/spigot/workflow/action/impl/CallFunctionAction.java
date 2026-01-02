@@ -57,16 +57,20 @@ public class CallFunctionAction extends Action implements BlocklyAction {
             return false;
         }
 
-        Main.getInstance().getLogger().info("Calling function: " + trimmedFunctionName);
+        if (Main.isDebug()) {
+            Main.getInstance().getLogger().info("Calling function: " + trimmedFunctionName);
+        }
 
         // Execute the function
         try {
             boolean result = function.executeFunction(triggerPlayer, location, data);
 
-            if (result) {
-                Main.getInstance().getLogger().info("Function " + trimmedFunctionName + " executed successfully");
-            } else {
-                Main.getInstance().getLogger().warning("&eFunction " + trimmedFunctionName + " execution failed");
+            if (Main.isDebug()) {
+                if (result) {
+                    Main.getInstance().getLogger().info("Function " + trimmedFunctionName + " executed successfully");
+                } else {
+                    Main.getInstance().getLogger().warning("&eFunction " + trimmedFunctionName + " execution failed");
+                }
             }
 
             return result;

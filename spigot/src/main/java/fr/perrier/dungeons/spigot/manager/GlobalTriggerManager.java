@@ -78,7 +78,9 @@ public class GlobalTriggerManager implements Listener {
      */
     public <T extends Event> void registerHandler(TriggerEventHandler<T> handler) {
         handlers.put(handler.getEventType(), handler);
-        Main.getInstance().getLogger().info("Handler registered for: " + handler.getEventType().getSimpleName());
+        if (Main.isDebug()) {
+            Main.getInstance().getLogger().info("Handler registered for: " + handler.getEventType().getSimpleName());
+        }
     }
 
     /**
@@ -168,7 +170,9 @@ public class GlobalTriggerManager implements Listener {
     public void clearFunctions() {
         int count = registeredFunctions.size();
         registeredFunctions.clear();
-        Main.getInstance().getLogger().info("Cleared " + count + " registered functions");
+        if (Main.isDebug()) {
+            Main.getInstance().getLogger().info("Cleared " + count + " registered functions");
+        }
     }
 
     /**

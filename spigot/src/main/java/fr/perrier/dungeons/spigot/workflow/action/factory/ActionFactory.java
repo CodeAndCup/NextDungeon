@@ -177,7 +177,9 @@ public class ActionFactory {
             }
         }
 
-        Main.getInstance().getLogger().info("Actions parsees: " + actions.size() + " action(s) creee(s)");
+        if (Main.isDebug()) {
+            Main.getInstance().getLogger().info("Actions parsees: " + actions.size() + " action(s) creee(s)");
+        }
         return actions;
     }
 
