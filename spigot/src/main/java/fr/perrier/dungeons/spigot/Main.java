@@ -227,7 +227,7 @@ public final class Main extends JavaPlugin {
         }
 
         // If this is an instance server, cleanup the instance data
-        if (ServerUtil.isInstanceServer()) {
+        if (getInstanceProvider() != null && ServerUtil.isInstanceServer()) {
             InstanceInfo info = ServerUtil.getInstanceInfo();
             if (info != null) {
                 // Remove instance from Redis
