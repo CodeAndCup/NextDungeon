@@ -117,15 +117,37 @@ public final class Main extends JavaPlugin {
                 .setUsername(Main.getInstance().getConfig().getString("RedisConfiguration.username"))
                 .setPassword(Main.getInstance().getConfig().getString("RedisConfiguration.password"));
 
-        try {
-            // Create Redis client
-            RedissonClient redissonClient = Redisson.create(config);
+        // Create Redis client
+        RedissonClient redissonClient = Redisson.create(config);
 
+        try {
             // Initialize Redis storage service
             redisStorageService = new RedisStorageService(redissonClient);
             redisStorageService.initialize();
             getLogger().info("Redis storage service initialized successfully");
+        }catch (Exception e) {
+            getLogger().severe("&#FF0000Failed to initialize Redis: " + e.getMessage());
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
 
+        // Initialize Instance Provider
+        try {
+            instanceProvider = InstanceProviderFactory.createProvider();
+            instanceProvider.initialize().thenAccept(success -> {
+                if (success) {
+                    getLogger().info("✅ Instance provider initialisé: " + instanceProvider.getType());
+                } else {
+                    getLogger().severe("❌ Échec de l'initialisation du provider");
+                }
+            });
+        } catch (Exception e) {
+            getLogger().severe("&#FF0000Failed to initialize instance provider: " + e.getMessage());
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+
+        try {
 
             // Initialize Profile service
             profileService = new ProfileService(redissonClient);
@@ -146,22 +168,6 @@ public final class Main extends JavaPlugin {
 
         } catch (Exception e) {
             getLogger().severe("&#FF0000Failed to initialize Redis services: " + e.getMessage());
-            getServer().getPluginManager().disablePlugin(this);
-            return;
-        }
-
-        // Initialize Instance Provider
-        try {
-            instanceProvider = InstanceProviderFactory.createProvider();
-            instanceProvider.initialize().thenAccept(success -> {
-                if (success) {
-                    getLogger().info("✅ Instance provider initialisé: " + instanceProvider.getType());
-                } else {
-                    getLogger().severe("❌ Échec de l'initialisation du provider");
-                }
-            });
-        } catch (Exception e) {
-            getLogger().severe("Erreur lors de la création du provider: " + e.getMessage());
             getServer().getPluginManager().disablePlugin(this);
             return;
         }

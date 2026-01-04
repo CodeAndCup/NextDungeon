@@ -32,7 +32,7 @@ dungeon:
         death_ban: "15m"
         gamemode: "SURVIVAL"
         allow_flight: false
-        max_instance: 2
+        max_instance: 1
 
       steps:
         - id: "step1"

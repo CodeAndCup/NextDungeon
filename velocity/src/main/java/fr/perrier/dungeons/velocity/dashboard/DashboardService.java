@@ -6,6 +6,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import fr.perrier.dungeons.velocity.webeditor.EditorSessionManager;
 import fr.perrier.dungeons.common.model.dungeon.FloorData;
+import fr.perrier.dungeons.common.model.dungeon.FloorMetadata;
 import fr.perrier.dungeons.common.model.dungeon.config.FloorInstanceData;
 import lombok.RequiredArgsConstructor;
 import org.redisson.api.RMap;
@@ -25,18 +26,18 @@ public class DashboardService {
     private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
     
     // Redis Maps keys (same as in RedisStorageService)
-    private static final String FLOOR_MAP = "dungeons:floors";
+    private static final String FLOOR_METADATA_MAP = "dungeons:floor_metadata";
     private static final String INSTANCE_MAP = "dungeons:instances";
     
     /**
      * Récupère tous les floors depuis Redis
      */
     public String getFloorsJson() {
-        RMap<String, FloorData> floorsMap = redissonClient.getMap(FLOOR_MAP);
-        
+        RMap<String, FloorMetadata> floorsMap = redissonClient.getMap(FLOOR_METADATA_MAP);
+
         JsonArray floorsArray = new JsonArray();
-        for (Map.Entry<String, FloorData> entry : floorsMap.entrySet()) {
-            FloorData floor = entry.getValue();
+        for (Map.Entry<String, FloorMetadata> entry : floorsMap.entrySet()) {
+            FloorMetadata floor = entry.getValue();
             JsonObject floorJson = new JsonObject();
             floorJson.addProperty("id", floor.getId());
             floorJson.addProperty("name", floor.getName());
@@ -119,7 +120,7 @@ public class DashboardService {
      * Génère les statistiques pour les graphiques
      */
     public String getStatsJson() {
-        RMap<String, FloorData> floorsMap = redissonClient.getMap(FLOOR_MAP);
+        RMap<String, FloorMetadata> floorsMap = redissonClient.getMap(FLOOR_METADATA_MAP);
         RMap<UUID, FloorInstanceData> instancesMap = redissonClient.getMap(INSTANCE_MAP);
         
         // Distribution des instances par floor
@@ -135,7 +136,7 @@ public class DashboardService {
         JsonArray instanceChartLabels = new JsonArray();
         for (Map.Entry<String, Long> entry : instanceDistribution.entrySet()) {
             String floorId = entry.getKey();
-            FloorData floor = floorsMap.get(floorId);
+            FloorMetadata floor = floorsMap.get(floorId);
             String floorName = floor != null ? floor.getName() : floorId;
             
             instanceChartLabels.add(floorName);
@@ -154,7 +155,7 @@ public class DashboardService {
         
         for (Map.Entry<String, Long> entry : sortedSessions) {
             String floorId = entry.getKey();
-            FloorData floor = floorsMap.get(floorId);
+            FloorMetadata floor = floorsMap.get(floorId);
             String floorName = floor != null ? floor.getName() : floorId;
             
             editChartLabels.add(floorName);
@@ -187,23 +188,15 @@ public class DashboardService {
     
     /**
      * Récupère la configuration complète d'un floor
+     * NOTE: Temporairement désactivé pour éviter les problèmes de désérialisation avec les triggers Spigot
      */
     public String getFloorConfigJson(String floorId) {
-        RMap<String, FloorData> floorsMap = redissonClient.getMap(FLOOR_MAP);
-        FloorData floor = floorsMap.get(floorId);
-        
-        if (floor == null) {
-            JsonObject error = new JsonObject();
-            error.addProperty("success", false);
-            error.addProperty("error", "Floor not found: " + floorId);
-            return gson.toJson(error);
-        }
-        
-        JsonObject response = new JsonObject();
-        response.addProperty("success", true);
-        response.add("floor", gson.toJsonTree(floor));
-        
-        return gson.toJson(response);
+        // Cette méthode n'est pas disponible sur Velocity car elle nécessite l'accès aux
+        // classes spécifiques à Spigot (triggers, etc.)
+        JsonObject error = new JsonObject();
+        error.addProperty("success", false);
+        error.addProperty("error", "Floor config not available on Velocity. Please use Spigot editor.");
+        return gson.toJson(error);
     }
     
     /**

@@ -224,6 +224,7 @@ public class AdminCommands {
             }
         } else if (isDefaultInstance) {
             player.sendMessage(ChatUtil.translate("&7Server Type: &#00FF00Lobby"));
+            player.sendMessage(ChatUtil.translate("&7Server Name: &f" + Main.getInstance().getServerNameService().getCachedServerName()));
         } else {
             FloorInstance instance = Main.getInstance().getRedisStorageService().getInstance(UUID.fromString(instanceId));
             if (instance == null) {

@@ -1,6 +1,7 @@
 package fr.perrier.dungeons.spigot.commands;
 
 import fr.perrier.cupcodeapi.commands.annotations.Command;
+import fr.perrier.cupcodeapi.commands.annotations.Param;
 import fr.perrier.cupcodeapi.utils.ChatUtil;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.model.Dungeon;
@@ -31,7 +32,7 @@ public class PlayerCommands {
     }
 
     @Command(names = {"dungeon join", "dungeons join", "nd join"})
-    public static void onDungeonJoinCommand(CommandSender sender, String floorId) {
+    public static void onDungeonJoinCommand(CommandSender sender, @Param(name = "Floor ID", wildcard = true)String floorId) {
         if (!(sender instanceof Player player)) {
             sender.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000This command can only be used by players"));
             return;
@@ -57,7 +58,7 @@ public class PlayerCommands {
     }
 
     @Command(names = {"dungeon leave", "dungeons leave", "nd leave"})
-    public static void onDungeonLeaveCommand(CommandSender sender, String floorId) {
+    public static void onDungeonLeaveCommand(CommandSender sender, @Param(name = "Floor ID", wildcard = true) String floorId) {
         if (!(sender instanceof Player player)) {
             sender.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000This command can only be used by players"));
             return;

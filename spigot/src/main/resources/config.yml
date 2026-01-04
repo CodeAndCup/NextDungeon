@@ -21,7 +21,7 @@ RedisConfiguration:
 # 🌐 CONFIGURATION WEB EDITOR
 # ─────────────────────────────────────────────────────
 # Configuration du serveur web proxy pour l'éditeur
-webeditor:
+WebEditor:
     proxy-port: 7734 # Port du serveur web proxy (Velocity/BungeeCord)
 
 # ─────────────────────────────────────────────────────
@@ -58,6 +58,15 @@ DatabaseConfiguration:
         host: "localhost"
         port: 27017
         database: "dungeons"
+
+# ─────────────────────────────────────────────────────
+# ⚙️  CONFIGURATION DES INSTANCES
+# ─────────────────────────────────────────────────────
+# Gère les paramètres liés aux instances de donjons.
+#
+
+InstanceSettings:
+    loadingTimeout: 120  # Temps en secondes avant qu'une instance en chargement n'échoue
 
 # ─────────────────────────────────────────────────────
 # ☁️  CONFIGURATION DU PROVIDER D'INSTANCES

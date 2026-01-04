@@ -177,7 +177,7 @@ public class FloorInstance extends FloorInstanceData {
 
         new BukkitRunnable() {
             private final long startTime = System.currentTimeMillis();
-            private static final long TIMEOUT = 60000;
+            private final long TIMEOUT = Main.getInstance().getConfig().getInt("InstanceSettings.loadingTimeout",120) * 1000L;
 
             @Override
             public void run() {

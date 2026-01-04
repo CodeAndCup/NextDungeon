@@ -34,6 +34,13 @@ public class ServerNameService implements PluginMessageListener {
         Main.getInstance().getLogger().info("ServerNameService initialized and plugin messaging channels registered.");
     }
 
+    public String getCachedServerName() {
+        if(cachedServerName.get() == null) {
+            return "NOT_SET";
+        }
+        return cachedServerName.get();
+    }
+
     /**
      * Gets the server name, either from cache or by requesting it from the proxy.
      *

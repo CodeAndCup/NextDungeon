@@ -3,7 +3,7 @@ package fr.perrier.dungeons.spigot.queue;
 import fr.perrier.cupcodeapi.utils.ChatUtil;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.model.Floor;
-import fr.perrier.dungeons.spigot.utils.ServerUtil;
+import fr.perrier.dungeons.spigot.model.FloorInstance;
 import lombok.RequiredArgsConstructor;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -118,7 +118,10 @@ public class QueueManager {
      * @return true if an instance can be created
      */
     public boolean canCreateInstance(Floor floor) {
-        int maxInstances = floor.getRules() != null ? floor.getRules().getMaxInstance() : 0;
+        if(floor.getRules() == null)
+            throw new IllegalStateException("Floor rules are not defined for floor: " + floor.getId());
+
+        int maxInstances = floor.getRules().getMaxInstance();
         if (maxInstances <= 0) {
             // No limit set
             return true;
@@ -130,38 +133,25 @@ public class QueueManager {
 
     /**
      * Requests an instance for a player, adding them to queue if necessary.
-     * 
+     * <p>
      * Note: There is a potential race condition between checking instance availability
      * and creating the instance. In practice, this is acceptable as the queue processor
      * will handle the player when an instance becomes available.
      *
      * @param player the player requesting the instance
-     * @param floor the floor to create instance for
-     * @return a future that completes with the instance ID, or null if queued
+     * @param floor  the floor to create instance for
      */
-    public CompletableFuture<UUID> requestInstance(Player player, Floor floor) {
-        CompletableFuture<UUID> future = new CompletableFuture<>();
-
+    public void requestInstance(Player player, Floor floor) {
         // Check if we can create an instance immediately
         if (canCreateInstance(floor)) {
             // Create instance - it will register itself when it starts
-            Main.getInstance().getInstanceProvider().createInstance(floor, false)
-                .thenAccept(instanceId -> {
-                    if (instanceId != null) {
-                        notifyPlayer(player, "Creating your dungeon instance...");
-                        future.complete(instanceId);
-                    } else {
-                        notifyPlayer(player, "Failed to create instance. Please try again.");
-                        future.complete(null);
-                    }
-                });
+            FloorInstance.generateNewInstanceAsync(floor.getId(),false, floorInstance -> {
+                floorInstance.sendToServer(player);
+            });
         } else {
             // Add to queue
             addPlayerToQueue(player, floor);
-            future.complete(null);
         }
-
-        return future;
     }
 
     /**
@@ -209,38 +199,11 @@ public class QueueManager {
             }
 
             // Create instance for player - it will register itself when it starts
-            Main.getInstance().getInstanceProvider().createInstance(floor, false)
-                .thenAccept(instanceId -> {
-                    if (instanceId != null) {
-                        notifyPlayer(player, "Your turn! Creating dungeon instance...");
-                        
-                        // Send player to instance once it's ready
-                        waitForInstanceReady(player, instanceId, floor);
-                    } else {
-                        notifyPlayer(player, "Failed to create instance. Please try again.");
-                    }
-                });
+            FloorInstance.generateNewInstanceAsync(floor.getId(),false, floorInstance -> {
+                notifyPlayer(player, "Your turn! Creating dungeon instance...");
+                floorInstance.sendToServer(player);
+            });
         });
-    }
-
-    /**
-     * Waits for an instance to be ready and then sends the player to it.
-     *
-     * @param player the player to send
-     * @param instanceId the instance ID
-     * @param floor the floor
-     */
-    private void waitForInstanceReady(Player player, UUID instanceId, Floor floor) {
-        Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
-            Main.getInstance().getInstanceProvider().sendPlayerToInstance(player, instanceId)
-                .thenAccept(success -> {
-                    if (success) {
-                        notifyPlayer(player, "Teleporting to " + floor.getName() + "...");
-                    } else {
-                        notifyPlayer(player, "Failed to teleport to instance.");
-                    }
-                });
-        }, 100L); // Wait 100 ticks (5 seconds) for instance to be ready
     }
 
     /**

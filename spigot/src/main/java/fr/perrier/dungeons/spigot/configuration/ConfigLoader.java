@@ -90,6 +90,7 @@ public class ConfigLoader {
                 rules.setDeathBanDuration(rulesSec.getString("death_ban"));
                 rules.setGamemode(rulesSec.getString("gamemode"));
                 rules.setAllowFlight(rulesSec.getBoolean("allow_flight"));
+                rules.setMaxInstance(rulesSec.getInt("max_instance"));
                 floor.setRules(rules);
             }
 
