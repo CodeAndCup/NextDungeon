@@ -12,7 +12,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Manages the dungeon queue and player notifications.
@@ -62,7 +61,7 @@ public class QueueManager {
             return false;
         }
 
-        QueueEntry entry = new QueueEntry(
+        fr.perrier.dungeons.common.queue.QueueEntry entry = new fr.perrier.dungeons.common.queue.QueueEntry(
             player.getUniqueId(),
             player.getName(),
             floor.getId(),
@@ -181,7 +180,7 @@ public class QueueManager {
         }
 
         // Get next player from queue
-        QueueEntry entry = queueService.pollNext(floorId);
+        fr.perrier.dungeons.common.queue.QueueEntry entry = queueService.pollNext(floorId);
         if (entry == null) {
             return;
         }

@@ -1,4 +1,4 @@
-package fr.perrier.dungeons.spigot.queue;
+package fr.perrier.dungeons.common.queue;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

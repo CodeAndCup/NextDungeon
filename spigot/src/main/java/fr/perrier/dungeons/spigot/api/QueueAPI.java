@@ -1,7 +1,7 @@
 package fr.perrier.dungeons.spigot.api;
 
 import fr.perrier.dungeons.spigot.Main;
-import fr.perrier.dungeons.spigot.queue.QueueEntry;
+import fr.perrier.dungeons.common.queue.QueueEntry;
 import lombok.Data;
 
 import java.util.*;
