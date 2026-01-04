@@ -34,6 +34,8 @@ public class AdminCommands {
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin webeditor stop"));
         // Test commands
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin test &#D63333<dungeon> <floor>"));
+        // Queue commands
+        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin queue &8- &fQueue management"));
         // Other commands
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin import &#D63333<world> <dungeon> <floor>"));
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin load &#D63333<config>"));
@@ -222,6 +224,7 @@ public class AdminCommands {
             }
         } else if (isDefaultInstance) {
             player.sendMessage(ChatUtil.translate("&7Server Type: &#00FF00Lobby"));
+            player.sendMessage(ChatUtil.translate("&7Server Name: &f" + Main.getInstance().getServerNameService().getCachedServerName()));
         } else {
             FloorInstance instance = Main.getInstance().getRedisStorageService().getInstance(UUID.fromString(instanceId));
             if (instance == null) {
@@ -235,6 +238,100 @@ public class AdminCommands {
                 player.sendMessage(ChatUtil.translate("&7Ready: &f" + instance.isReady()));
             }
         }
+        player.sendMessage(ChatUtil.getBar());
+    }
+
+    @Command(names = {"dungeon admin queue", "dungeons admin queue", "nd admin queue"}, permission = "nextdungeons.admin")
+    public static void adminQueueCommand(Player player) {
+        player.sendMessage(ChatUtil.getBar());
+        player.sendMessage(ChatUtil.translate("<gradient:#8B0000:bold>NextDungeon</gradient:#D10000> &8| &fQueue Management"));
+        player.sendMessage("");
+        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin queue status"));
+        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin queue clear &#D63333<floor_id>"));
+        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin queue list &#D63333<floor_id>"));
+        player.sendMessage("");
+        player.sendMessage(ChatUtil.getBar());
+    }
+
+    @Command(names = {"dungeon admin queue status", "dungeons admin queue status", "nd admin queue status"}, permission = "nextdungeons.admin")
+    public static void adminQueueStatusCommand(Player player) {
+        if (Main.getInstance().getDungeonQueueService() == null) {
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Queue service not available"));
+            return;
+        }
+
+        player.sendMessage(ChatUtil.getBar());
+        player.sendMessage(ChatUtil.translate("<gradient:#8B0000:bold>NextDungeon</gradient:#D10000> &8| &fQueue Status"));
+        player.sendMessage("");
+
+        for (String floorId : Main.getInstance().getDungeonQueueService().getActiveQueueFloors()) {
+            Floor floor = Floor.getFloor(floorId);
+            String floorName = floor != null ? floor.getName() : floorId;
+            int queueSize = Main.getInstance().getDungeonQueueService().getQueueSize(floorId);
+            int activeInstances = Main.getInstance().getDungeonQueueService().getActiveInstanceCount(floorId);
+            int maxInstances = floor != null && floor.getRules() != null ? floor.getRules().getMaxInstance() : 0;
+
+            player.sendMessage(ChatUtil.translate(String.format(
+                "&#D10000%s &7(ID: %s)",
+                floorName,
+                floorId
+            )));
+            player.sendMessage(ChatUtil.translate(String.format(
+                "  &7Queue Size: &e%d &7| Active Instances: &e%d/%s",
+                queueSize,
+                activeInstances,
+                maxInstances > 0 ? String.valueOf(maxInstances) : "∞"
+            )));
+        }
+
+        player.sendMessage("");
+        player.sendMessage(ChatUtil.getBar());
+    }
+
+    @Command(names = {"dungeon admin queue clear", "dungeons admin queue clear", "nd admin queue clear"}, permission = "nextdungeons.admin")
+    public static void adminQueueClearCommand(Player player, @Param(name = "Floor ID") String floorId) {
+        if (Main.getInstance().getDungeonQueueService() == null) {
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Queue service not available"));
+            return;
+        }
+
+        Main.getInstance().getDungeonQueueService().clearQueue(floorId);
+        player.sendMessage(ChatUtil.translate(Main.getPrefix() + "Queue cleared for floor: " + floorId));
+    }
+
+    @Command(names = {"dungeon admin queue list", "dungeons admin queue list", "nd admin queue list"}, permission = "nextdungeons.admin")
+    public static void adminQueueListCommand(Player player, @Param(name = "Floor ID") String floorId) {
+        if (Main.getInstance().getDungeonQueueService() == null) {
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Queue service not available"));
+            return;
+        }
+
+        Floor floor = Floor.getFloor(floorId);
+        if (floor == null) {
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Floor not found: " + floorId));
+            return;
+        }
+
+        player.sendMessage(ChatUtil.getBar());
+        player.sendMessage(ChatUtil.translate("<gradient:#8B0000:bold>NextDungeon</gradient:#D10000> &8| &fQueue for " + floor.getName()));
+        player.sendMessage("");
+
+        var entries = Main.getInstance().getDungeonQueueService().getQueueEntries(floorId);
+        if (entries.isEmpty()) {
+            player.sendMessage(ChatUtil.translate("&7No players in queue"));
+        } else {
+            for (int i = 0; i < entries.size(); i++) {
+                var entry = entries.get(i);
+                player.sendMessage(ChatUtil.translate(String.format(
+                    "&7%d. &f%s &7(Server: %s)",
+                    i + 1,
+                    entry.getPlayerName(),
+                    entry.getServerName()
+                )));
+            }
+        }
+
+        player.sendMessage("");
         player.sendMessage(ChatUtil.getBar());
     }
 }

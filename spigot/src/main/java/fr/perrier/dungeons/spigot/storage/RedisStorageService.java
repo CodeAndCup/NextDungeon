@@ -1,6 +1,7 @@
 package fr.perrier.dungeons.spigot.storage;
 
 import fr.perrier.dungeons.common.model.dungeon.FloorData;
+import fr.perrier.dungeons.common.model.dungeon.FloorMetadata;
 import fr.perrier.dungeons.common.model.dungeon.config.FloorInstanceData;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.model.Dungeon;
@@ -25,6 +26,7 @@ public class RedisStorageService {
     // Redis Maps and Topics
     private static final String DUNGEON_MAP = "dungeons:dungeons";
     private static final String FLOOR_MAP = "dungeons:floors";
+    private static final String FLOOR_METADATA_MAP = "dungeons:floor_metadata";
     private static final String INSTANCE_MAP = "dungeons:instances";
     private static final String SYNC_CHANNEL = "dungeons:sync";
 
@@ -37,6 +39,8 @@ public class RedisStorageService {
     private RMap<String, Dungeon> dungeonsMap;
     @Getter
     private RMap<String, FloorData> floorsMap;
+    @Getter
+    private RMap<String, FloorMetadata> floorMetadataMap;
     @Getter
     private RMap<UUID, FloorInstanceData> instancesMap;
 
@@ -52,6 +56,7 @@ public class RedisStorageService {
     public void initialize() {
         this.dungeonsMap = redissonClient.getMap(DUNGEON_MAP);
         this.floorsMap = redissonClient.getMap(FLOOR_MAP);
+        this.floorMetadataMap = redissonClient.getMap(FLOOR_METADATA_MAP);
         this.instancesMap = redissonClient.getMap(INSTANCE_MAP);
         this.syncTopic = redissonClient.getTopic(SYNC_CHANNEL);
 
@@ -142,6 +147,10 @@ public class RedisStorageService {
 
         // Update Redis
         floorsMap.fastPut(floorData.getId(), floorData);
+
+        // Also update metadata for dashboard
+        FloorMetadata metadata = FloorMetadata.from(floorData);
+        floorMetadataMap.fastPut(floorData.getId(), metadata);
 
         // Notify other servers
         syncTopic.publish(message);

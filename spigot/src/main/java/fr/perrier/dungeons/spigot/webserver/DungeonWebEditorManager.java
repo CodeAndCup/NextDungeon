@@ -64,7 +64,7 @@ public class DungeonWebEditorManager {
                     player.sendMessage(ChatUtil.translate("&7Floor: &e" + floorId));
 
                     // Récupérer le port depuis la config
-                    int port = Main.getInstance().getConfig().getInt("webeditor.proxy-port", 7734);
+                    int port = Main.getInstance().getConfig().getInt("WebEditor.proxy-port", 7734);
                     String url = "http://localhost:" + port + "/" + sessionId + "/editor/";
 
                     // Créer un message cliquable

@@ -434,7 +434,21 @@ public class ProxyWebEditorServer {
         }
         
         private void handleDashboardApiRequest(HttpExchange exchange, String path) throws IOException {
-            if (!"GET".equals(exchange.getRequestMethod())) {
+            String method = exchange.getRequestMethod();
+            
+            // Handle POST requests for queue clear
+            if ("POST".equals(method) && path.startsWith("/dashboard/api/queue/clear/")) {
+                String floorId = path.substring("/dashboard/api/queue/clear/".length());
+                if (floorId.isEmpty() || floorId.contains("..") || floorId.contains("/") || floorId.contains("\\")) {
+                    sendJsonResponse(exchange, "{\"success\": false, \"error\": \"Invalid floor ID\"}");
+                    return;
+                }
+                String response = dashboardService.clearQueueForFloor(floorId);
+                sendJsonResponse(exchange, response);
+                return;
+            }
+            
+            if (!"GET".equals(method)) {
                 sendMethodNotAllowed(exchange);
                 return;
             }
@@ -445,6 +459,7 @@ public class ProxyWebEditorServer {
                     case "/dashboard/api/instances" -> dashboardService.getInstancesJson();
                     case "/dashboard/api/sessions" -> dashboardService.getSessionsJson();
                     case "/dashboard/api/stats" -> dashboardService.getStatsJson();
+                    case "/dashboard/api/queue" -> dashboardService.getQueueJson();
                     default -> {
                         // Handle /dashboard/api/floor/{floorId}
                         if (path.startsWith("/dashboard/api/floor/")) {
