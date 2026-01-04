@@ -117,6 +117,9 @@ public class DungeonQueueService {
 
     /**
      * Gets a player's position in the queue.
+     * 
+     * Note: This operation has O(n) complexity. For large queues with frequent
+     * position lookups, consider using a Redis sorted set for better performance.
      *
      * @param playerId the player's UUID
      * @param floorId the floor ID

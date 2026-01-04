@@ -130,6 +130,10 @@ public class QueueManager {
 
     /**
      * Requests an instance for a player, adding them to queue if necessary.
+     * 
+     * Note: There is a potential race condition between checking instance availability
+     * and creating the instance. In practice, this is acceptable as the queue processor
+     * will handle the player when an instance becomes available.
      *
      * @param player the player requesting the instance
      * @param floor the floor to create instance for
@@ -236,7 +240,7 @@ public class QueueManager {
                         notifyPlayer(player, "Failed to teleport to instance.");
                     }
                 });
-        }, 100L); // Wait 5 seconds for instance to be ready
+        }, 100L); // Wait 100 ticks (5 seconds) for instance to be ready
     }
 
     /**

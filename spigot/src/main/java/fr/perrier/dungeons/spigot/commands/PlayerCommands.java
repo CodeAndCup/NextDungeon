@@ -126,15 +126,13 @@ public class PlayerCommands {
         sender.sendMessage(ChatUtil.translate("<gradient:#8B0000:bold>NextDungeon</gradient:#D10000> &8| &fAvailable Dungeons"));
         sender.sendMessage("");
 
+        var queueService = Main.getInstance().getDungeonQueueService();
+        
         for (Dungeon dungeon : Dungeon.getDungeons()) {
             sender.sendMessage(ChatUtil.translate("&#D10000" + dungeon.getName() + " &7(" + dungeon.getId() + ")"));
             for (Floor floor : dungeon.getFloors()) {
-                int queueSize = Main.getInstance().getDungeonQueueService() != null 
-                    ? Main.getInstance().getDungeonQueueService().getQueueSize(floor.getId()) 
-                    : 0;
-                int activeInstances = Main.getInstance().getDungeonQueueService() != null 
-                    ? Main.getInstance().getDungeonQueueService().getActiveInstanceCount(floor.getId()) 
-                    : 0;
+                int queueSize = queueService != null ? queueService.getQueueSize(floor.getId()) : 0;
+                int activeInstances = queueService != null ? queueService.getActiveInstanceCount(floor.getId()) : 0;
                 int maxInstances = floor.getRules() != null ? floor.getRules().getMaxInstance() : 0;
                 
                 sender.sendMessage(ChatUtil.translate(String.format(
