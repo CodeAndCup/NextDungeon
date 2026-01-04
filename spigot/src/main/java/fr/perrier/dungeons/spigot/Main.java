@@ -374,6 +374,12 @@ public final class Main extends JavaPlugin {
         // Initialize instance in Redis
         redisStorageService.initializeInstance(info.getInstanceId(), info.getFloorId());
 
+        // Register instance with queue system
+        if (dungeonQueueService != null) {
+            dungeonQueueService.registerInstance(info.getFloorId(), info.getInstanceId());
+            getLogger().info(String.format("Registered instance %s with queue system", info.getInstanceId()));
+        }
+
         // Schedule ready state
         putServerReady();
     }
