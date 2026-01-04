@@ -312,6 +312,11 @@ public final class Main extends JavaPlugin {
         pluginManager.registerEvents(new GlobalPartyListener(), this);
         pluginManager.registerEvents(new GlobalJoinListener(), this);
         pluginManager.registerEvents(new GlobalLeaveListener(), this);
+        
+        // Queue listener (only on lobby servers)
+        if (!ServerUtil.isInstanceServer() && queueManager != null) {
+            pluginManager.registerEvents(new fr.perrier.dungeons.spigot.listener.queue.QueueLeaveListener(), this);
+        }
     }
 
     /**

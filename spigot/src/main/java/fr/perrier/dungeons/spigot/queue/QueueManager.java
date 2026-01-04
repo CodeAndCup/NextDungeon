@@ -140,11 +140,10 @@ public class QueueManager {
 
         // Check if we can create an instance immediately
         if (canCreateInstance(floor)) {
-            // Create instance
+            // Create instance - it will register itself when it starts
             Main.getInstance().getInstanceProvider().createInstance(floor, false)
                 .thenAccept(instanceId -> {
                     if (instanceId != null) {
-                        queueService.registerInstance(floor.getId(), instanceId);
                         notifyPlayer(player, "Creating your dungeon instance...");
                         future.complete(instanceId);
                     } else {
@@ -205,11 +204,10 @@ public class QueueManager {
                 return;
             }
 
-            // Create instance for player
+            // Create instance for player - it will register itself when it starts
             Main.getInstance().getInstanceProvider().createInstance(floor, false)
                 .thenAccept(instanceId -> {
                     if (instanceId != null) {
-                        queueService.registerInstance(floorId, instanceId);
                         notifyPlayer(player, "Your turn! Creating dungeon instance...");
                         
                         // Send player to instance once it's ready
