@@ -224,4 +224,131 @@ public class DashboardService {
             .filter(session -> session.getFloorId().equals(floorId))
             .count();
     }
+    
+    /**
+     * Récupère les données de la queue depuis Redis
+     */
+    public String getQueueJson() {
+        // Redis keys for queue data
+        String queuePrefix = "dungeons:queue:";
+        String instanceCountPrefix = "dungeons:instance_count:";
+        
+        try {
+            JsonObject response = new JsonObject();
+            response.addProperty("success", true);
+            
+            // Get all queue keys
+            Iterable<String> queueKeys = redissonClient.getKeys().getKeysByPattern(queuePrefix + "*");
+            
+            JsonObject queuesData = new JsonObject();
+            int totalQueued = 0;
+            int totalInstances = 0;
+            int activeFloors = 0;
+            
+            for (String queueKey : queueKeys) {
+                String floorId = queueKey.substring(queuePrefix.length());
+                
+                // Get queue for this floor
+                org.redisson.api.RDeque<Object> queue = redissonClient.getDeque(queueKey);
+                int queueSize = queue.size();
+                
+                if (queueSize > 0) {
+                    activeFloors++;
+                }
+                
+                // Get instance count for this floor
+                org.redisson.api.RMap<UUID, String> instanceMap = redissonClient.getMap(instanceCountPrefix + floorId);
+                int activeInstances = instanceMap.size();
+                
+                totalQueued += queueSize;
+                totalInstances += activeInstances;
+                
+                // Build queue info for this floor
+                JsonObject queueInfo = new JsonObject();
+                queueInfo.addProperty("queueSize", queueSize);
+                queueInfo.addProperty("activeInstances", activeInstances);
+                
+                // Get player list
+                JsonArray playersArray = new JsonArray();
+                int position = 1;
+                for (Object entry : queue) {
+                    try {
+                        // Parse the queue entry
+                        JsonObject playerJson = new JsonObject();
+                        
+                        // Use reflection to get fields from QueueEntry
+                        if (entry != null) {
+                            try {
+                                java.lang.reflect.Method getPlayerId = entry.getClass().getMethod("getPlayerId");
+                                java.lang.reflect.Method getPlayerName = entry.getClass().getMethod("getPlayerName");
+                                java.lang.reflect.Method getServerName = entry.getClass().getMethod("getServerName");
+                                java.lang.reflect.Method getTimestamp = entry.getClass().getMethod("getTimestamp");
+                                
+                                playerJson.addProperty("position", position);
+                                playerJson.addProperty("playerId", String.valueOf(getPlayerId.invoke(entry)));
+                                playerJson.addProperty("playerName", String.valueOf(getPlayerName.invoke(entry)));
+                                playerJson.addProperty("serverName", String.valueOf(getServerName.invoke(entry)));
+                                playerJson.addProperty("timestamp", ((Long) getTimestamp.invoke(entry)));
+                                
+                                playersArray.add(playerJson);
+                            } catch (Exception e) {
+                                // If reflection fails, skip this entry
+                                continue;
+                            }
+                        }
+                        position++;
+                    } catch (Exception e) {
+                        // Skip invalid entries
+                        continue;
+                    }
+                }
+                
+                queueInfo.add("players", playersArray);
+                queuesData.add(floorId, queueInfo);
+            }
+            
+            response.add("queues", queuesData);
+            
+            // Add statistics
+            JsonObject stats = new JsonObject();
+            stats.addProperty("activeFloors", activeFloors);
+            stats.addProperty("totalQueued", totalQueued);
+            stats.addProperty("totalInstances", totalInstances);
+            response.add("stats", stats);
+            
+            return gson.toJson(response);
+            
+        } catch (Exception e) {
+            JsonObject error = new JsonObject();
+            error.addProperty("success", false);
+            error.addProperty("error", "Failed to load queue data: " + e.getMessage());
+            return gson.toJson(error);
+        }
+    }
+    
+    /**
+     * Vide la queue pour un floor spécifique
+     */
+    public String clearQueueForFloor(String floorId) {
+        String queueKey = "dungeons:queue:" + floorId;
+        
+        try {
+            org.redisson.api.RDeque<Object> queue = redissonClient.getDeque(queueKey);
+            int size = queue.size();
+            queue.clear();
+            
+            JsonObject response = new JsonObject();
+            response.addProperty("success", true);
+            response.addProperty("message", "Queue cleared for floor: " + floorId);
+            response.addProperty("clearedCount", size);
+            
+            return gson.toJson(response);
+            
+        } catch (Exception e) {
+            JsonObject error = new JsonObject();
+            error.addProperty("success", false);
+            error.addProperty("error", "Failed to clear queue: " + e.getMessage());
+            return gson.toJson(error);
+        }
+    }
 }
