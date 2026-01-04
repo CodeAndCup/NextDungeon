@@ -25,6 +25,20 @@ webeditor:
     proxy-port: 7734 # Port du serveur web proxy (Velocity/BungeeCord)
 
 # ─────────────────────────────────────────────────────
+# 📢 NOTIFICATION CONFIGURATION
+# ─────────────────────────────────────────────────────
+# Configure how players receive notifications about queue
+# and dungeon events.
+#
+# Types available:
+#   • ACTION_BAR  - Shows messages in the action bar above hotbar
+#   • CHAT        - Sends messages in the chat
+#   • TITLE       - Displays messages as titles
+#
+NotificationConfiguration:
+    type: "ACTION_BAR"
+
+# ─────────────────────────────────────────────────────
 # 💾 CONFIGURATION BASE DE DONNÉES
 # ─────────────────────────────────────────────────────
 # Types disponibles: mongodb, mysql

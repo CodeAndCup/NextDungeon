@@ -10,6 +10,7 @@ public class Rules {
     private String deathBanDuration;
     private String gamemode;
     private boolean allowFlight;
+    private int maxInstance;
 
     @Override
     public String toString() {
@@ -18,6 +19,7 @@ public class Rules {
                 ", deathBanDuration='" + deathBanDuration + '\'' +
                 ", gamemode='" + gamemode + '\'' +
                 ", allowFlight=" + allowFlight +
+                ", maxInstance=" + maxInstance +
                 '}';
     }
 }
