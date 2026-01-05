@@ -1,78 +1,101 @@
 package fr.perrier.dungeons.spigot.manager;
 
+import fr.perrier.dungeons.common.workflow.trigger.TriggerData;
 import fr.perrier.dungeons.spigot.Main;
-import fr.perrier.dungeons.spigot.workflow.trigger.Trigger;
+import fr.perrier.dungeons.spigot.utils.ServerUtil;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Gestionnaire pour sauvegarder les triggers des donjons dans la base de données.
+ * Manager for saving and loading dungeon triggers in the database.
  */
 public class DungeonFileManager {
 
     /**
-     * Sauvegarde les triggers d'un floor dans la base de données
+     * Saves the triggers for a floor in the database.
+     *
+     * @param floorId the floor ID
+     * @param triggers the list of triggers to save
+     * @return a CompletableFuture indicating success or failure
      */
-    public static CompletableFuture<Boolean> saveTriggers(String floorId, List<Trigger> triggers) {
+    public static CompletableFuture<Boolean> saveTriggers(String floorId, List<TriggerData> triggers) {
         return Main.getInstance().getDatabaseManager()
                 .saveTriggers(floorId, triggers)
                 .thenApply(v -> {
-                    Main.getInstance().getLogger().info("Triggers sauvegardés pour " + floorId + " dans la base de données");
+                    Main.getInstance().getLogger().info("Triggers saved for " + floorId + " in the database");
                     return true;
                 })
                 .exceptionally(ex -> {
-                    Main.getInstance().getLogger().severe("&cErreur lors de la sauvegarde des triggers pour " + floorId + ": " + ex.getMessage());
+                    Main.getInstance().getLogger().severe("&#FF0000Error while saving triggers for " + floorId + ": " + ex.getMessage());
                     ex.printStackTrace();
                     return false;
                 });
     }
 
     /**
-     * Charge les triggers d'un floor depuis la base de données
+     * Loads the triggers for a floor from the database.
+     * This method only loads triggers on lobby servers.
+     * On instance servers, triggers are retrieved from Redis via FloorData.
+     *
+     * @param floorId the floor ID
+     * @return the list of triggers, or an empty list if none found or on instance servers
      */
-    public static List<Trigger> loadTriggers(String floorId) {
+    public static List<TriggerData> loadTriggers(String floorId) {
+        // Sur une instance, ne pas charger depuis la BDD - les triggers viennent de Redis
+        if (ServerUtil.isInstanceServer()) {
+            Main.getInstance().getLogger().info("Instance server: skipping DB trigger load for " + floorId + " (using Redis data)");
+            return new ArrayList<>();
+        }
+
+        // Sur le lobby, charger les triggers depuis la base de données
         try {
-            CompletableFuture<List<Trigger>> future = Main.getInstance().getDatabaseManager().loadTriggers(floorId);
-            List<Trigger> triggers = future.join();
+            CompletableFuture<List<TriggerData>> future = Main.getInstance().getDatabaseManager().loadTriggers(floorId);
+            List<TriggerData> triggers = future.join();
 
             if (triggers != null && !triggers.isEmpty()) {
-                Main.getInstance().getLogger().info("Triggers chargés pour " + floorId + " (" + triggers.size() + " triggers)");
+                Main.getInstance().getLogger().info("Triggers loaded for " + floorId + " (" + triggers.size() + " triggers)");
                 return triggers;
             }
 
-            Main.getInstance().getLogger().warning("&eAucun trigger trouvé pour " + floorId);
+            Main.getInstance().getLogger().info("No triggers found for " + floorId + " in the database.");
             return new ArrayList<>();
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("&cErreur lors du chargement des triggers pour " + floorId + ": " + e.getMessage());
+            Main.getInstance().getLogger().severe("&#FF0000Error loading triggers for " + floorId + ": " + e.getMessage());
             e.printStackTrace();
             return new ArrayList<>();
         }
     }
 
     /**
-     * Vérifie si des triggers existent pour un floor
+     * Checks if triggers exist for a floor.
+     *
+     * @param floorId the floor ID
+     * @return true if triggers exist, false otherwise
      */
     public static boolean triggersExist(String floorId) {
         try {
             return Main.getInstance().getDatabaseManager().triggersExist(floorId).join();
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("&cErreur lors de la vérification des triggers pour " + floorId + ": " + e.getMessage());
+            Main.getInstance().getLogger().severe("&#FF0000Error checking triggers for " + floorId + ": " + e.getMessage());
             return false;
         }
     }
 
     /**
-     * Supprime les triggers d'un floor de la base de données
+     * Deletes the triggers for a floor from the database.
+     *
+     * @param floorId the floor ID
+     * @return true if deletion was successful, false otherwise
      */
     public static boolean deleteDungeonFile(String floorId) {
         try {
             Main.getInstance().getDatabaseManager().deleteTriggers(floorId).join();
             return true;
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("&cErreur lors de la suppression des triggers pour " + floorId + ": " + e.getMessage());
+            Main.getInstance().getLogger().severe("&#FF0000Error deleting triggers for " + floorId + ": " + e.getMessage());
             return false;
         }
     }

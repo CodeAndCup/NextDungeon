@@ -1,5 +1,6 @@
 package fr.perrier.dungeons.spigot.database;
 
+import fr.perrier.dungeons.common.workflow.trigger.TriggerData;
 import fr.perrier.dungeons.spigot.model.ProfileData;
 import fr.perrier.dungeons.spigot.workflow.trigger.Trigger;
 
@@ -23,8 +24,8 @@ public interface DatabaseManager {
     void saveProfileData(UUID playerId, ProfileData profileData);
 
     // Trigger operations (for dungeon floors)
-    CompletableFuture<List<Trigger>> loadTriggers(String floorId);
-    CompletableFuture<Void> saveTriggers(String floorId, List<Trigger> triggers);
+    CompletableFuture<List<TriggerData>> loadTriggers(String floorId);
+    CompletableFuture<Void> saveTriggers(String floorId, List<TriggerData> triggers);
     CompletableFuture<Boolean> triggersExist(String floorId);
     CompletableFuture<Void> deleteTriggers(String floorId);
 

@@ -1,6 +1,7 @@
 package fr.perrier.dungeons.spigot.workflow.action.factory;
 
 import com.google.gson.JsonPrimitive;
+import fr.perrier.dungeons.common.workflow.action.ActionData;
 import fr.perrier.dungeons.spigot.workflow.action.impl.*;
 import fr.perrier.dungeons.spigot.workflow.action.Action;
 import fr.perrier.dungeons.spigot.Main;
@@ -156,19 +157,19 @@ public class ActionFactory {
             };
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("&cErreur lors de la creation de l'action: " + e.getMessage());
+            Main.getInstance().getLogger().severe("&#FF0000Erreur lors de la creation de l'action: " + e.getMessage());
             e.printStackTrace();
             return null;
         }
     }
 
-    public static List<Action> parseActionsFromJson(JsonArray actionsArray) {
-        List<Action> actions = new ArrayList<>();
+    public static List<ActionData> parseActionsFromJson(JsonArray actionsArray) {
+        List<ActionData> actions = new ArrayList<>();
 
         if (actionsArray != null) {
             for (JsonElement element : actionsArray) {
                 if (element.isJsonObject()) {
-                    Action action = createActionFromJson(element.getAsJsonObject());
+                    ActionData action = createActionFromJson(element.getAsJsonObject());
                     if (action != null) {
                         actions.add(action);
                     }
@@ -176,7 +177,9 @@ public class ActionFactory {
             }
         }
 
-        Main.getInstance().getLogger().info("Actions parsees: " + actions.size() + " action(s) creee(s)");
+        if (Main.isDebug()) {
+            Main.getInstance().getLogger().info("Actions parsees: " + actions.size() + " action(s) creee(s)");
+        }
         return actions;
     }
 

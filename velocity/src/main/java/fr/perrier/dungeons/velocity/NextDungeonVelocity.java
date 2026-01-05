@@ -6,6 +6,7 @@ import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.event.proxy.ProxyShutdownEvent;
 import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.proxy.ProxyServer;
+import fr.perrier.dungeons.velocity.messaging.PluginMessageVelocity;
 import fr.perrier.dungeons.velocity.messaging.ProxyPidgin;
 import fr.perrier.dungeons.velocity.webeditor.ProxyWebEditorServer;
 import lombok.Getter;
@@ -29,13 +30,15 @@ public class NextDungeonVelocity {
 
     private final ProxyServer server;
     private final Logger logger;
-    private final java.nio.file.Path dataDirectory;
+    private final Path dataDirectory;
 
     private long startTime;
     @Getter
     private ProxyWebEditorServer webEditorServer;
     @Getter
     private ProxyPidgin messaging;
+    @Getter
+    private PluginMessageVelocity pluginMessageHandler;
 
     private int webEditorPort = 7734; // Port par défaut
 
@@ -54,6 +57,12 @@ public class NextDungeonVelocity {
         // Charger la configuration
         loadConfig();
 
+        // Initialiser et enregistrer le gestionnaire de messages plugin
+        pluginMessageHandler = new PluginMessageVelocity();
+        pluginMessageHandler.initialize();
+        server.getEventManager().register(this, pluginMessageHandler);
+        logger.info("✅ Système de messagerie Plugin initialisé");
+
         // Initialize messaging system
         try {
             // TODO: Read from config file
@@ -71,8 +80,15 @@ public class NextDungeonVelocity {
         
         // Démarrer le serveur web centralisé avec le port configuré
         webEditorServer = new ProxyWebEditorServer(webEditorPort);
+
+        if(messaging != null) {
+            // Initialiser le tableau de bord avec le client Redisson
+            webEditorServer.initializeDashboard(messaging.getClient());
+        }
+
         if (webEditorServer.startServer()) {
             logger.info("✅ Serveur web éditeur centralisé démarré sur le port " + webEditorPort);
+            logger.info("📊 Dashboard disponible sur http://localhost:" + webEditorPort + "/dashboard");
         } else {
             logger.error("❌ Impossible de démarrer le serveur web éditeur");
         }

@@ -9,7 +9,8 @@ import fr.perrier.cupcodeapi.utils.ItemBuilder;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.menu.utils.PartyButton;
 import fr.perrier.dungeons.spigot.model.Dungeon;
-import fr.perrier.dungeons.spigot.parties.DungeonParty;
+import fr.perrier.dungeons.spigot.parties.IDungeonParty;
+import fr.perrier.dungeons.spigot.parties.impl.DungeonPartyImpl;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -35,7 +36,7 @@ public class PartyFinderMenu extends PaginatedMenu {
 
         PartyFinderConfiguration config = PartyFinderConfiguration.getConfigForPlayer(player.getUniqueId(),dungeon.getId());
 
-        for(DungeonParty dungeonParty : DungeonParty.getParties().values()) {
+        for(IDungeonParty dungeonParty : DungeonPartyImpl.getDungeonParties().values()) {
             if(!dungeonParty.getDungeonId().equals(dungeon.getId())) continue;
 
             if(!dungeonParty.getFloorId().contains(config.getFloorFilter())) continue;
@@ -91,8 +92,8 @@ public class PartyFinderMenu extends PaginatedMenu {
                             "&#9C9C9CChange your search settings to",
                             "&7parties suited to you!",
                             "",
-                            "&7Floor&f: &#90FFFF" + (config.getFloorFilter().isEmpty() ? "&cNone" : Main.getInstance().getRedisStorageService().getFloor(config.getFloorFilter()).getName()),
-                            "&7Description&f &#90FFFF" + (config.getDescriptionFilter().isEmpty() ? "&cNone" : config.getDescriptionFilter()),
+                            "&7Floor&f: &#90FFFF" + (config.getFloorFilter().isEmpty() ? "&#FF0000None" : Main.getInstance().getRedisStorageService().getFloor(config.getFloorFilter()).getName()),
+                            "&7Description&f &#90FFFF" + (config.getDescriptionFilter().isEmpty() ? "&#FF0000None" : config.getDescriptionFilter()),
                             "&7Minimum Level&f: &#90FFFF" + config.getMinimumLevelFilter(),
                             "",
                             "&#FFC700Click to edit these settings."

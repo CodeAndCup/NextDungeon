@@ -1,5 +1,6 @@
 package fr.perrier.dungeons.spigot.workflow.action;
 
+import fr.perrier.dungeons.common.workflow.action.ActionData;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.entity.Player;
@@ -12,16 +13,10 @@ import java.util.Map;
  * Action exécutable par un trigger
  */
 @Getter
-public abstract class Action implements Serializable {
-    private static final long serialVersionUID = 1L;
-
-    @Setter
-    protected String name;
-    protected String type;
+public abstract class Action extends ActionData {
 
     public Action(String name, String type) {
-        this.name = name;
-        this.type = type;
+        super(name, type);
     }
 
     /**

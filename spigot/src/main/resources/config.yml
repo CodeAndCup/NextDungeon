@@ -52,34 +52,22 @@ DatabaseConfiguration:
 #
 # Types disponibles:
 #   • CLOUDNET   - Utilise CloudNet (nécessite CloudNet installé)
-#   • ASP        - Advanced Slime World Manager (léger & performant)
-#   • VANILLA    - Système natif de Minecraft (toujours disponible)
 #
 InstanceProvider:
     type: "CLOUDNET"
 
-    # Configuration ASP (Advanced Slime World Manager)
-    ASP:
-        loaderType: "FILE" # FILE, MYSQL, ou MONGODB
-
-        mysql:
-            url: "jdbc:mysql://localhost:3306/asm"
-            host: "localhost"
-            port: 3306
-            database: "asm"
-            useSSL: false
-            username: "root"
-            password: "root"
-
-        mongodb:
-            database: "asm"
-            collection: "worlds"
-            username: ""
-            password: ""
-            authSource: ""
-            host: "localhost"
-            port: 27017
-            uri: ""
+# ─────────────────────────────────────────────────────
+# 👥 CONFIGURATION DU SYSTÈME DE GROUPES (PARTIES)
+# ─────────────────────────────────────────────────────
+# Gère le système de groupes/parties pour les joueurs.
+#
+# Types disponibles:
+#   • AUTO              - Détection automatique (recommandé)
+#   • AlessioDPParties  - Utilise le plugin AlessioDPParties
+#   • Internal          - Système de groupes interne (sans plugin)
+#
+PartyProvider:
+    type: "AUTO"
 
 # ─────────────────────────────────────────────────────
 # ⚰️  SYSTÈME DE RÉSURRECTION

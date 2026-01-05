@@ -1,7 +1,7 @@
 package fr.perrier.dungeons.spigot.database;
 
 /**
- * Classe utilitaire pour construire une URI de connexion MongoDB.
+ * Utility class to build a MongoDB connection URI.
  */
 public class MongoShared {
 
@@ -12,9 +12,9 @@ public class MongoShared {
     private final String password;
 
     /**
-     * Crée une instance sans authentification.
-     * @param host hôte MongoDB
-     * @param port port MongoDB
+     * Creates an instance without authentication.
+     * @param host MongoDB host
+     * @param port MongoDB port
      */
     public MongoShared(String host, int port) {
         this.host = host;
@@ -25,11 +25,11 @@ public class MongoShared {
     }
 
     /**
-     * Crée une instance avec authentification.
-     * @param host hôte MongoDB
-     * @param port port MongoDB
-     * @param username nom d'utilisateur
-     * @param password mot de passe
+     * Creates an instance with authentication.
+     * @param host MongoDB host
+     * @param port MongoDB port
+     * @param username Username
+     * @param password Password
      */
     public MongoShared(String host, int port, String username, String password) {
         this.host = host;
@@ -40,8 +40,8 @@ public class MongoShared {
     }
 
     /**
-     * Retourne l'URI de connexion pour le serveur MongoDB.
-     * @return URI de connexion MongoDB
+     * Returns the connection URI for the MongoDB server.
+     * @return MongoDB connection URI
      */
     public String getURI() {
         if (!auth) return "mongodb://" + host + ":" + port;

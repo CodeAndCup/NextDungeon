@@ -1,5 +1,6 @@
 package fr.perrier.dungeons.spigot.workflow.trigger.factory;
 
+import fr.perrier.dungeons.common.workflow.trigger.TriggerData;
 import fr.perrier.dungeons.spigot.workflow.action.factory.ActionFactory;
 import fr.perrier.dungeons.spigot.workflow.trigger.Trigger;
 import fr.perrier.dungeons.spigot.workflow.trigger.impl.FunctionTrigger;
@@ -23,7 +24,9 @@ public class TriggerFactory {
             String type = triggerData.get("type").getAsString();
             String name = triggerData.has("name") ? triggerData.get("name").getAsString() : "Trigger_" + System.currentTimeMillis();
 
-            Main.getInstance().getLogger().info("Creating trigger: " + type + " - " + name);
+            if (Main.isDebug()) {
+                Main.getInstance().getLogger().info("Creating trigger: " + type + " - " + name);
+            }
 
             Trigger trigger = switch (type) {
                 case "region_trigger" -> createRegionTrigger(triggerData, name);
@@ -47,13 +50,15 @@ public class TriggerFactory {
                     trigger.setActions(ActionFactory.parseActionsFromJson(actionsArray));
                 }
 
-                Main.getInstance().getLogger().info("Trigger created with success: " + trigger.getName() + " with " + trigger.getActions().size() + " action(s)");
+                if (Main.isDebug()) {
+                    Main.getInstance().getLogger().info("Trigger created with success: " + trigger.getName() + " with " + trigger.getActions().size() + " action(s)");
+                }
             }
 
             return trigger;
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("&cAn error occurred while creating trigger from JSON: " + e.getMessage());
+            Main.getInstance().getLogger().severe("&#FF0000An error occurred while creating trigger from JSON: " + e.getMessage());
             e.printStackTrace();
             return null;
         }
@@ -92,13 +97,15 @@ public class TriggerFactory {
         return trigger;
     }
 
-    public static List<Trigger> parseTriggersFromJson(JsonArray triggersArray) {
-        List<Trigger> triggers = new ArrayList<>();
+    public static List<TriggerData> parseTriggersFromJson(JsonArray triggersArray) {
+        List<TriggerData> triggers = new ArrayList<>();
 
         for (JsonElement element : triggersArray) {
             if (element.isJsonObject()) {
                 Trigger trigger = createTriggerFromJson(element.getAsJsonObject());
                 if (trigger != null) {
+                    // Important: garder l'instance Trigger au lieu de convertir en TriggerData
+                    // pour préserver le type concret et les actions
                     triggers.add(trigger);
                     if(trigger instanceof FunctionTrigger functionTrigger) {
                         functionTrigger.registerFunction();
@@ -107,7 +114,9 @@ public class TriggerFactory {
             }
         }
 
-        Main.getInstance().getLogger().info("Parsing triggers: " + triggers.size() + " trigger(s) created");
+        if (Main.isDebug()) {
+            Main.getInstance().getLogger().info("Parsing triggers: " + triggers.size() + " trigger(s) created");
+        }
         return triggers;
     }
 }

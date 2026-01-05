@@ -5,7 +5,7 @@ import com.alessiodp.parties.api.events.bukkit.player.BukkitPartiesPlayerPreLeav
 import com.alessiodp.parties.api.interfaces.Party;
 import fr.perrier.cupcodeapi.utils.ChatUtil;
 import fr.perrier.dungeons.spigot.Main;
-import fr.perrier.dungeons.spigot.parties.DungeonParty;
+import fr.perrier.dungeons.spigot.parties.impl.DungeonPartyImpl;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -27,9 +27,9 @@ public class GlobalPartyListener implements Listener {
         party.getMembers().forEach(uuid -> {
             Player member = Bukkit.getPlayer(uuid);
             if (member != null)
-                member.sendMessage(ChatUtil.translate(Main.getPrefix() + "&cYour party has been removed from the party finder!"));
+                member.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Your party has been removed from the party finder!"));
         });
-        DungeonParty.getParties().remove(party.getLeader());
+        DungeonPartyImpl.getDungeonParties().remove(party.getLeader());
     }
 
     /**
@@ -43,12 +43,12 @@ public class GlobalPartyListener implements Listener {
     public void onPartyLeaderLeave(BukkitPartiesPlayerPreLeaveEvent event) {
         Party party = event.getParty();
         if(Objects.equals(party.getLeader(), event.getPartyPlayer().getPlayerUUID())) {
-            if(DungeonParty.getParties().containsKey(party.getLeader())) {
-                DungeonParty.getParties().remove(party.getLeader());
+            if(DungeonPartyImpl.getDungeonParties().containsKey(party.getLeader())) {
+                DungeonPartyImpl.getDungeonParties().remove(party.getLeader());
                 party.getMembers().forEach(uuid -> {
                     Player member = Bukkit.getPlayer(uuid);
                     if (member != null)
-                        member.sendMessage(ChatUtil.translate(Main.getPrefix() + "&cYour party has been removed from the party finder!"));
+                        member.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Your party has been removed from the party finder!"));
                 });
             }
         }

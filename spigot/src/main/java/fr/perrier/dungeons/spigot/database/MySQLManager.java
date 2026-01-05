@@ -2,17 +2,20 @@ package fr.perrier.dungeons.spigot.database;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import fr.perrier.dungeons.common.workflow.trigger.TriggerData;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.model.ProfileData;
 
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Gestionnaire de base de données MySQL utilisant HikariCP pour la gestion des connexions.
- * Toutes les opérations de base de données sont effectuées de manière asynchrone pour éviter de bloquer le thread principal.
+ * MySQL database manager using HikariCP for connection pooling.
+ * All database operations are performed asynchronously to avoid blocking the main thread.
  */
 public class MySQLManager implements DatabaseManager {
     private HikariDataSource dataSource;
@@ -28,12 +31,12 @@ public class MySQLManager implements DatabaseManager {
     private final String password;
 
     /**
-     * Initialise le gestionnaire MySQL avec les paramètres de connexion.
-     * @param host hôte MySQL
-     * @param port port MySQL
-     * @param database nom de la base
-     * @param username utilisateur
-     * @param password mot de passe
+     * Initializes the MySQL manager with connection parameters.
+     * @param host MySQL host
+     * @param port MySQL port
+     * @param database database name
+     * @param username user
+     * @param password password
      */
     public MySQLManager(String host, int port, String database, String username, String password) {
         this.host = host;
@@ -51,29 +54,21 @@ public class MySQLManager implements DatabaseManager {
     }
 
     /**
-     * Établit la connexion à la base MySQL et crée les tables si besoin.
+     * Establishes the connection to MySQL and creates tables if needed.
      */
     @Override
     public void connect() {
         HikariConfig config = new HikariConfig();
-        config.setJdbcUrl("jdbc:mysql://" + host + ":" + port + "/" + database + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC");
+        config.setJdbcUrl("jdbc:mysql://" + host + ":" + port + "/" + database + "?useSSL=false&#00FF00llowPublicKeyRetrieval=true&serverTimezone=UTC");
         config.setUsername(username);
         config.setPassword(password);
-       /* config.addDataSourceProperty("cachePrepStmts", "true");
-        config.addDataSourceProperty("prepStmtCacheSize", "250");
-        config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
-        config.setMaximumPoolSize(10);
-        config.setMinimumIdle(2);
-        config.setConnectionTimeout(30000);
-        config.setIdleTimeout(600000);
-        config.setMaxLifetime(1800000);*/
 
         this.dataSource = new HikariDataSource(config);
         createTables();
     }
 
     /**
-     * Ferme la connexion MySQL et attend la fin des opérations en cours.
+     * Closes the MySQL connection and waits for ongoing operations to finish.
      */
     @Override
     public void disconnect() {
@@ -106,7 +101,7 @@ public class MySQLManager implements DatabaseManager {
     }
 
     /**
-     * Crée les tables nécessaires dans la base MySQL si elles n'existent pas.
+     * Creates the necessary tables in the MySQL database if they do not exist.
      */
     private void createTables() {
         try (Connection conn = dataSource.getConnection();
@@ -126,13 +121,13 @@ public class MySQLManager implements DatabaseManager {
                     ")");
 
         } catch (SQLException e) {
-            Main.getInstance().getLogger().severe("&cFailed to create database tables: " + e.getMessage());
+            Main.getInstance().getLogger().severe("&#FF0000Failed to create database tables: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
     /**
-     * Méthode dépréciée. Utilisez les méthodes spécifiques de chargement.
+     * Deprecated method. Use specific load methods instead.
      */
     @Deprecated
     @Override
@@ -141,10 +136,10 @@ public class MySQLManager implements DatabaseManager {
     }
 
     /**
-     * Exécute une tâche asynchrone dans le pool de threads.
-     * @param task tâche à exécuter
-     * @param operationName nom de l'opération pour le log
-     * @return un CompletableFuture du résultat
+     * Executes an asynchronous task in the thread pool.
+     * @param task the task to execute
+     * @param operationName operation name for logging
+     * @return a CompletableFuture of the result
      */
     private <T> CompletableFuture<T> executeAsync(Callable<T> task, String operationName) {
         if (isShuttingDown) {
@@ -165,7 +160,7 @@ public class MySQLManager implements DatabaseManager {
                 future.complete(result);
             } catch (Exception e) {
                 if (!isShuttingDown) {
-                    Main.getInstance().getLogger().severe("&cError in " + operationName + ": " + e.getMessage());
+                    Main.getInstance().getLogger().severe("&#FF0000Error in " + operationName + ": " + e.getMessage());
                 }
                 future.completeExceptionally(e);
             } finally {
@@ -179,9 +174,9 @@ public class MySQLManager implements DatabaseManager {
     }
 
     /**
-     * Exécute une requête de mise à jour (INSERT, UPDATE, DELETE) de façon asynchrone.
-     * @param query requête SQL
-     * @param params paramètres de la requête
+     * Executes an update query (INSERT, UPDATE, DELETE) asynchronously.
+     * @param query SQL query
+     * @param params query parameters
      */
     private void executeUpdate(String query, Object... params) {
         executeAsync(() -> {
@@ -196,7 +191,7 @@ public class MySQLManager implements DatabaseManager {
             }
         }, "Update: " + query).exceptionally(e -> {
             if (!isShuttingDown) {
-                Main.getInstance().getLogger().severe("&cError executing update: " + query);
+                Main.getInstance().getLogger().severe("&#FF0000Error executing update: " + query);
                 e.printStackTrace();
             }
             return (Integer) 0;
@@ -204,12 +199,12 @@ public class MySQLManager implements DatabaseManager {
     }
 
     /**
-     * Exécute une requête SQL et traite le résultat avec un processeur.
-     * @param query requête SQL
-     * @param processor processeur de résultat
-     * @param params paramètres de la requête
-     * @return résultat du processeur
-     * @throws SQLException en cas d'erreur SQL
+     * Executes an SQL query and processes the result with a processor.
+     * @param query SQL query
+     * @param processor result processor
+     * @param params query parameters
+     * @return result from the processor
+     * @throws SQLException if an SQL error occurs
      */
     private <T> T executeQuery(String query, ResultSetProcessor<T> processor, Object... params) throws SQLException {
         try (Connection conn = dataSource.getConnection();
@@ -226,8 +221,8 @@ public class MySQLManager implements DatabaseManager {
     }
 
     /**
-     * Interface fonctionnelle pour traiter un ResultSet.
-     * @param <T> type de retour du traitement
+     * Functional interface for processing a ResultSet.
+     * @param <T> return type of the processing
      */
     @FunctionalInterface
     private interface ResultSetProcessor<T> {
@@ -235,10 +230,10 @@ public class MySQLManager implements DatabaseManager {
     }
 
     /**
-     * Gère une opération asynchrone et log les erreurs éventuelles.
-     * @param future opération asynchrone
-     * @param operationName nom de l'opération
-     * @return le future traité
+     * Handles an asynchronous operation and logs any errors.
+     * @param future asynchronous operation
+     * @param operationName operation name
+     * @return the processed future
      */
     @Override
     public <T> CompletableFuture<T> handleAsyncOperation(CompletableFuture<T> future, String operationName) {
@@ -250,7 +245,7 @@ public class MySQLManager implements DatabaseManager {
         return future.whenComplete((result, error) -> {
             try {
                 if (error != null && !isShuttingDown) {
-                    Main.getInstance().getLogger().severe("&cError in " + operationName + ": " + error.getMessage());
+                    Main.getInstance().getLogger().severe("&#FF0000Error in " + operationName + ": " + error.getMessage());
                 }
             } finally {
                 if (activeOperations.decrementAndGet() == 0 && isShuttingDown) {
@@ -261,10 +256,10 @@ public class MySQLManager implements DatabaseManager {
     }
 
     /**
-     * Charge les données de profil d'un joueur depuis la base MySQL.
-     * Si aucune donnée n'existe, retourne un nouveau ProfileData.
-     * @param playerId l'UUID du joueur
-     * @return les données de profil du joueur
+     * Loads a player's profile data from the MySQL database.
+     * If no data exists, returns a new ProfileData.
+     * @param playerId the player's UUID
+     * @return the player's profile data
      */
     @Override
     public ProfileData loadProfileData(UUID playerId) {
@@ -285,7 +280,7 @@ public class MySQLManager implements DatabaseManager {
             );
         }catch (SQLException e) {
             if (!isShuttingDown) {
-                Main.getInstance().getLogger().severe("&cError loading profile data for player " + playerId + ": " + e.getMessage());
+                Main.getInstance().getLogger().severe("&#FF0000Error loading profile data for player " + playerId + ": " + e.getMessage());
                 e.printStackTrace();
             }
             return null;
@@ -293,10 +288,10 @@ public class MySQLManager implements DatabaseManager {
     }
 
     /**
-     * Sauvegarde les données de profil d'un joueur dans la base MySQL.
-     * Utilise une requête INSERT ... ON DUPLICATE KEY UPDATE pour insérer ou mettre à jour les données.
-     * @param playerId l'UUID du joueur
-     * @param profileData les données de profil à sauvegarder
+     * Saves a player's profile data to the MySQL database.
+     * Uses an INSERT ... ON DUPLICATE KEY UPDATE query to insert or update the data.
+     * @param playerId the player's UUID
+     * @param profileData the profile data to save
      */
     @Override
     public void saveProfileData(UUID playerId, ProfileData profileData) {
@@ -311,12 +306,12 @@ public class MySQLManager implements DatabaseManager {
     // ==================== TRIGGER OPERATIONS ====================
 
     /**
-     * Charge les triggers d'un floor depuis la base de données.
-     * @param floorId l'ID du floor
-     * @return un CompletableFuture contenant la liste des triggers
+     * Loads the triggers for a floor from the database.
+     * @param floorId the floor ID
+     * @return a CompletableFuture containing the list of triggers
      */
     @Override
-    public CompletableFuture<java.util.List<fr.perrier.dungeons.spigot.workflow.trigger.Trigger>> loadTriggers(String floorId) {
+    public CompletableFuture<List<TriggerData>> loadTriggers(String floorId) {
         return executeAsync(() -> {
             try {
                 return executeQuery(
@@ -326,25 +321,25 @@ public class MySQLManager implements DatabaseManager {
                                 String json = rs.getString("triggers_data");
                                 return TriggerSerializer.deserializeTriggers(json);
                             }
-                            return new java.util.ArrayList<>();
+                            return new ArrayList<>();
                         },
                         floorId
                 );
             } catch (SQLException e) {
-                Main.getInstance().getLogger().severe("&cError loading triggers for floor " + floorId + ": " + e.getMessage());
-                return new java.util.ArrayList<>();
+                Main.getInstance().getLogger().severe("&#FF0000Error loading triggers for floor " + floorId + ": " + e.getMessage());
+                return new ArrayList<>();
             }
         }, "Load triggers for " + floorId);
     }
 
     /**
-     * Sauvegarde les triggers d'un floor dans la base de données.
-     * @param floorId l'ID du floor
-     * @param triggers la liste des triggers à sauvegarder
-     * @return un CompletableFuture indiquant la fin de l'opération
+     * Saves the triggers for a floor to the database.
+     * @param floorId the floor ID
+     * @param triggers the list of triggers to save
+     * @return a CompletableFuture indicating the completion of the operation
      */
     @Override
-    public CompletableFuture<Void> saveTriggers(String floorId, java.util.List<fr.perrier.dungeons.spigot.workflow.trigger.Trigger> triggers) {
+    public CompletableFuture<Void> saveTriggers(String floorId, List<TriggerData> triggers) {
         return executeAsync(() -> {
             String json = TriggerSerializer.serializeTriggers(triggers);
             try (Connection conn = dataSource.getConnection();
@@ -357,16 +352,16 @@ public class MySQLManager implements DatabaseManager {
                 stmt.setString(3, json);
                 stmt.executeUpdate();
 
-                Main.getInstance().getLogger().info("Triggers sauvegardés pour " + floorId + " (" + triggers.size() + " triggers)");
+                Main.getInstance().getLogger().info("Triggers saved for " + floorId + " (" + triggers.size() + " triggers)");
                 return null;
             }
         }, "Save triggers for " + floorId);
     }
 
     /**
-     * Vérifie si des triggers existent pour un floor donné.
-     * @param floorId l'ID du floor
-     * @return un CompletableFuture contenant true si des triggers existent, false sinon
+     * Checks if triggers exist for a given floor.
+     * @param floorId the floor ID
+     * @return a CompletableFuture containing true if triggers exist, false otherwise
      */
     @Override
     public CompletableFuture<Boolean> triggersExist(String floorId) {
@@ -383,16 +378,16 @@ public class MySQLManager implements DatabaseManager {
                         floorId
                 );
             } catch (SQLException e) {
-                Main.getInstance().getLogger().severe("&cError checking triggers existence for floor " + floorId + ": " + e.getMessage());
+                Main.getInstance().getLogger().severe("&#FF0000Error checking triggers existence for floor " + floorId + ": " + e.getMessage());
                 return false;
             }
         }, "Check triggers existence for " + floorId);
     }
 
     /**
-     * Supprime les triggers d'un floor de la base de données.
-     * @param floorId l'ID du floor
-     * @return un CompletableFuture indiquant la fin de l'opération
+     * Deletes the triggers for a floor from the database.
+     * @param floorId the floor ID
+     * @return a CompletableFuture indicating the completion of the operation
      */
     @Override
     public CompletableFuture<Void> deleteTriggers(String floorId) {
@@ -403,7 +398,7 @@ public class MySQLManager implements DatabaseManager {
                 stmt.setString(1, floorId);
                 stmt.executeUpdate();
 
-                Main.getInstance().getLogger().info("Triggers supprimés pour " + floorId);
+                Main.getInstance().getLogger().info("Triggers deleted for " + floorId);
                 return null;
             }
         }, "Delete triggers for " + floorId);

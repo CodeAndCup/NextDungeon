@@ -7,10 +7,10 @@
 
     <parent>
         <groupId>fr.perrier</groupId>
-        <artifactId>dungeons</artifactId>
-        <version>1.0.1-SNAPSHOT</version>
+        <artifactId>NextDungeon</artifactId>
+        <version>1.0.2-SNAPSHOT</version>
     </parent>
-    <artifactId>NextDungeonVelocity</artifactId>
+    <artifactId>NextDungeon-Velocity</artifactId>
     <packaging>jar</packaging>
 
     <name>NextDungeon Velocity</name>
@@ -45,11 +45,6 @@
             <artifactId>gson</artifactId>
         </dependency>
 
-        <!-- WebSocket -->
-        <dependency>
-            <groupId>org.java-websocket</groupId>
-            <artifactId>Java-WebSocket</artifactId>
-        </dependency>
 
         <!-- Lombok -->
         <dependency>
@@ -63,6 +58,12 @@
             <artifactId>redisson</artifactId>
             <version>3.22.0</version>
             <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>fr.perrier</groupId>
+            <artifactId>NextDungeon-Common</artifactId>
+            <version>1.0.2-SNAPSHOT</version>
         </dependency>
     </dependencies>
 

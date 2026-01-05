@@ -77,7 +77,9 @@ public class SetVariableAction extends Action implements BlocklyAction {
         // Also store in the current data context for immediate use
         data.put(trimmedName, parsedValue);
 
-        Main.getInstance().getLogger().info("Set variable " + trimmedName + " = " + parsedValue + " (scope: " + scopeToUse + ")");
+        if (Main.isDebug()) {
+            Main.getInstance().getLogger().info("Set variable " + trimmedName + " = " + parsedValue + " (scope: " + scopeToUse + ")");
+        }
 
         return true;
     }

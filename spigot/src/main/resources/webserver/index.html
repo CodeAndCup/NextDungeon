@@ -226,7 +226,7 @@
     // Chargement dynamique des blocs depuis le serveur Java
     async function loadDynamicBlocks() {
         try {
-            const response = await fetch('/api/blockly.js');
+            const response = await fetch('../api/blockly.js');
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
@@ -285,7 +285,7 @@
         try {
             updateDebugInfo("🧪 Test de l'API...");
 
-            const response = await fetch('/api/trigger-types');
+            const response = await fetch('../api/trigger-types');
             if (response.ok) {
                 const data = await response.json();
                 console.log('Types de triggers:', data);
@@ -313,7 +313,7 @@
             const triggers = generateTriggersFromWorkspace();
             console.log('Triggers à sauvegarder:', triggers);
 
-            const response = await fetch('/api/save', {
+            const response = await fetch('../api/save', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -340,7 +340,7 @@
     async function loadTriggers() {
         try {
             updateDebugInfo("📥 Chargement des triggers...");
-            const response = await fetch('/api/triggers');
+            const response = await fetch('../api/triggers');
             const data = await response.json();
 
             /*workspace.clear();
@@ -401,6 +401,6 @@
         }
     }
 </script>
-<script src="/api/blockly.js"></script>
+<script src="../api/blockly.js"></script>
 </body>
 </html>

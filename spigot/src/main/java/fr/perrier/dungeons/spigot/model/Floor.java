@@ -1,9 +1,11 @@
 package fr.perrier.dungeons.spigot.model;
 
+import fr.perrier.dungeons.common.model.dungeon.FloorData;
+import fr.perrier.dungeons.common.model.dungeon.Step;
 import fr.perrier.dungeons.spigot.Main;
-import fr.perrier.dungeons.spigot.configuration.Requirements;
-import fr.perrier.dungeons.spigot.configuration.Rules;
-import fr.perrier.dungeons.spigot.configuration.WorldConfig;
+import fr.perrier.dungeons.common.model.dungeon.config.Requirements;
+import fr.perrier.dungeons.common.model.dungeon.config.Rules;
+import fr.perrier.dungeons.common.model.dungeon.config.WorldConfig;
 import fr.perrier.dungeons.spigot.manager.DungeonFileManager;
 import fr.perrier.dungeons.spigot.workflow.trigger.Trigger;
 import fr.perrier.dungeons.spigot.utils.ServerUtil;
@@ -17,32 +19,24 @@ import java.util.concurrent.CompletableFuture;
 
 @Getter
 @Setter
-public class Floor {
-
-    private String id;
-
-    private String name;
-    private String description;
-
-    private WorldConfig worldConfig;
-    private Requirements requirements;
-    private Rules rules;
-    private List<Step> steps;
-    private List<Trigger> triggers;
+public class Floor extends FloorData {
 
     public Floor(String id, String name) {
-        this.id = id;
-        this.name = name;
-        this.description = "&cNo description";
-        this.triggers = DungeonFileManager.loadTriggers(id);
+        super(id, name);
+        super.setTriggers(DungeonFileManager.loadTriggers(id));
         updateMap();
     }
 
     public Floor(String id, String name, String description) {
-        this.id = id;
-        this.name = name;
-        this.description = description;
-        this.triggers = DungeonFileManager.loadTriggers(id);
+        super(id, name, description);
+        super.setTriggers(DungeonFileManager.loadTriggers(id));
+        updateMap();
+    }
+
+    public Floor(FloorData floorData) {
+        super(floorData.getId(), floorData.getName(), floorData.getDescription(),
+                floorData.getWorldConfig(), floorData.getRequirements(),
+                floorData.getRules(), floorData.getSteps(), floorData.getTriggers());
         updateMap();
     }
 
@@ -61,7 +55,7 @@ public class Floor {
      * notifying other servers of the update.
      */
     public void updateMap() {
-        Main.getInstance().getRedisStorageService().syncFloor(this);
+        Main.getInstance().getRedisStorageService().syncFloor(this.toFloorData());
     }
 
     /**
@@ -81,6 +75,24 @@ public class Floor {
         return future;
     }
 
+    /**
+     * Converts this Floor object to a FloorData object.
+     *
+     * @return a FloorData representation of this Floor
+     */
+    public FloorData toFloorData() {
+        return new FloorData(
+                getId(),
+                getName(),
+                getDescription(),
+                getWorldConfig(),
+                getRequirements(),
+                getRules(),
+                getSteps(),
+                getTriggers()
+        );
+    }
+
 
     /**
      * A string representation of the floor, including its ID, name, world configuration,
@@ -91,12 +103,12 @@ public class Floor {
     @Override
     public String toString() {
         return "Floor{" +
-                "id='" + id + '\'' +
-                ", name='" + name + '\'' +
-                ", worldConfig=" + worldConfig +
-                ", requirements=" + requirements +
-                ", rules=" + rules +
-                ", steps=" + steps +
+                "id='" + getId() + '\'' +
+                ", name='" + getName() + '\'' +
+                ", worldConfig=" + getWorldConfig() +
+                ", requirements=" + getRequirements() +
+                ", rules=" + getRules() +
+                ", steps=" + getSteps() +
                 '}';
     }
 }

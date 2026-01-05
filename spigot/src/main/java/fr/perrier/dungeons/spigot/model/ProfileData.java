@@ -105,9 +105,9 @@ public class ProfileData {
          */
         public List<String> getStatsSummary() {
             return List.of(
-                "&7Fastest Time: &a" + TimeUtil.getDuration(fastestCompletionTime),
-                "&7Total Enemies Killed: &a" + totalEnemiesKilled,
-                "&7Total Deaths: &a" + totalDeaths
+                "&7Fastest Time: &#00FF00" + TimeUtil.getDuration(fastestCompletionTime),
+                "&7Total Enemies Killed: &#00FF00" + totalEnemiesKilled,
+                "&7Total Deaths: &#00FF00" + totalDeaths
             );
         }
 

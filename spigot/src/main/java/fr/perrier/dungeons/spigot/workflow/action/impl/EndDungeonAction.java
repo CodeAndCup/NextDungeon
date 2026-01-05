@@ -30,7 +30,7 @@ public class EndDungeonAction extends Action implements BlocklyAction {
 
     @Override
     public boolean execute(Player triggerPlayer, Location location, Map<String, Object> data) {
-        FloorInstance floorInstance = Main.getInstance().getRedisStorageService().getCurrentInstance().get();
+        FloorInstance floorInstance = Main.getInstance().getRedisStorageService().getCurrentInstance();
         floorInstance.complete();
         return true;
     }

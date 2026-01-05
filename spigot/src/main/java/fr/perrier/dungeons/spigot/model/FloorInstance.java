@@ -3,11 +3,12 @@ package fr.perrier.dungeons.spigot.model;
 import com.cryptomorin.xseries.messages.Titles;
 import fr.perrier.cupcodeapi.utils.ChatUtil;
 import fr.perrier.cupcodeapi.utils.TimeUtil;
+import fr.perrier.dungeons.common.model.dungeon.config.FloorInstanceData;
+import fr.perrier.dungeons.common.model.player.PlayerStats;
 import fr.perrier.dungeons.spigot.Main;
-import fr.perrier.dungeons.spigot.parties.DungeonParty;
+import fr.perrier.dungeons.spigot.parties.IDungeonParty;
 import fr.perrier.dungeons.spigot.utils.ServerUtil;
 import lombok.Getter;
-import lombok.Setter;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -17,7 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 @Getter
-public class FloorInstance {
+public class FloorInstance extends FloorInstanceData {
 
     @Getter
     private enum LoadingBar {
@@ -67,19 +68,19 @@ public class FloorInstance {
         }
     }
 
-    private final UUID instanceId;
-    private final String floorId;
-    private boolean ready;
-
-    private final HashMap<UUID, PlayerStats> playerStats = new HashMap<>();
-    private final HashMap<UUID, Integer> playerCurrentLives = new HashMap<>();
-
     private FloorInstance(String floorId, boolean editMode) {
-        this.floorId = floorId;
-        this.instanceId = generateFloorServer(Floor.getFloor(floorId),editMode);
+        super(floorId);
+        this.instanceId = generateFloorServer(getFloor(), editMode);
         this.ready = false;
 
-        Main.getInstance().getRedisStorageService().syncInstance(this);
+        Main.getInstance().getRedisStorageService().syncInstance(this.toFloorInstanceData());
+    }
+
+    public FloorInstance(FloorInstanceData floorInstanceData) {
+        super(floorInstanceData.getInstanceId(), floorInstanceData.getFloorId());
+        this.ready = floorInstanceData.isReady();
+        this.playerStats.putAll(floorInstanceData.getPlayerStats());
+        this.playerCurrentLives.putAll(floorInstanceData.getPlayerCurrentLives());
     }
 
     public static void generateNewInstanceAsync(String floorId, boolean editMode, Consumer<FloorInstance> callback) {
@@ -105,16 +106,6 @@ public class FloorInstance {
     }
 
     /**
-     * Gets the name of this instance.
-     * <p>
-     * The name is in the format of {@code <floorId>_<instanceId>}.
-     * @return the name of this instance
-     */
-    public String getInstanceName() {
-        return floorId + "_" + instanceId.toString();
-    }
-
-    /**
      * Retrieves the Floor object associated with this FloorInstance.
      *
      * <p>This method utilizes the floorId of this instance to fetch
@@ -137,13 +128,13 @@ public class FloorInstance {
      */
     public void setReady(boolean ready) {
         this.ready = ready;
-        Main.getInstance().getRedisStorageService().syncInstance(this);
+        Main.getInstance().getRedisStorageService().syncInstance(this.toFloorInstanceData());
     }
 
     /**
      * Sends all members of the given dungeon party to the cloud service associated with this instance.
      * <p>
-     * This method first checks if all members of the party are online using {@link DungeonParty#hasAllMembersOnline()}.
+     * This method first checks if all members of the party are online using {@link IDungeonParty#areAllMembersOnline()}.
      * If they are, it iterates through each member's UUID, retrieves the corresponding Player object using
      * {@link Bukkit#getPlayer(UUID)}, and sends them to the instance using {@link #sendToServer(Player)}.
      * If not all members are online, it sends a message to the party leader informing them that all members
@@ -151,17 +142,17 @@ public class FloorInstance {
      * </p>
      * @param dungeonParty the dungeon party whose members are to be sent to the cloud service
      */
-    public void sendToServer(DungeonParty dungeonParty) {
-        if(dungeonParty.hasAllMembersOnline()) {
-            for (UUID uuid : dungeonParty.getParty().getMembers()) {
+    public void sendToServer(IDungeonParty dungeonParty) {
+        if(dungeonParty.areAllMembersOnline()) {
+            for (UUID uuid : dungeonParty.getMemberIds()) {
                 Player player = Bukkit.getPlayer(uuid);
                 if (player != null)
                     sendToServer(player);
             }
         }else {
-            Player leader = Bukkit.getPlayer(Objects.requireNonNull(dungeonParty.getLeader()));
+            Player leader = Bukkit.getPlayer(Objects.requireNonNull(dungeonParty.getLeaderId()));
             if (leader != null)
-                leader.sendMessage(ChatUtil.translate(Main.getPrefix() + "&cAll your party members must be online to join the instance!"));
+                leader.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000All your party members must be online to join the instance!"));
         }
     }
 
@@ -203,20 +194,20 @@ public class FloorInstance {
                     FloorInstance instance = Main.getInstance().getRedisStorageService().getInstance(instanceId);
 
                     if (instance == null) {
-                        Main.getInstance().getLogger().warning(String.format("&eInstance %s no longer exists", instanceId));
-                        player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&cThis dungeon instance no longer exists!"));
+                        Main.getInstance().getLogger().warning("&eInstance " + instanceId + "no longer exists.");
+                        player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000This dungeon instance no longer exists!"));
                         this.cancel();
                         return;
                     }
 
                     if (instance.isReady()) {
-                        player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&fInstance is &aready&f! Sending you to the dungeon..."));
+                        player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&fInstance is &#00FF00ready&f! Sending you to the dungeon..."));
                         ServerUtil.sendToServer(player, instanceId);
                         this.cancel();
                     } else {
                         if (System.currentTimeMillis() - startTime > TIMEOUT) {
-                            Main.getInstance().getLogger().warning(String.format("&eTimed out waiting for instance %s to be ready", instanceId));
-                            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&cTimed out waiting for dungeon instance to be ready!"));
+                            Main.getInstance().getLogger().warning("&eTimed out waiting for instance " + instanceId + " to be ready");
+                            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Timed out waiting for dungeon instance to be ready!"));
                             this.cancel();
                         }
                     }
@@ -263,7 +254,7 @@ public class FloorInstance {
             player.sendMessage(ChatUtil.getBar());
         }
 
-        Bukkit.broadcastMessage(ChatUtil.translate(Main.getPrefix() + "&fThe dungeon instance &e" + getInstanceName() + " &fwill shut down in &c30 &fseconds."));
+        Bukkit.broadcastMessage(ChatUtil.translate(Main.getPrefix() + "&fThe dungeon instance &e" + getInstanceName() + " &fwill shut down in &#FF000030 &fseconds."));
 
         Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
             Main.getInstance().getRedisStorageService().removeInstance(this.instanceId);
@@ -271,36 +262,23 @@ public class FloorInstance {
         }, 20L * 30);
     }
 
-    @Getter
-    @Setter
-    public static class PlayerStats {
-        private final UUID playerId;
-        private int enemiesKilled;
-        private int deaths;
-        private long startTime;
-
-        public PlayerStats(UUID playerId) {
-            this.playerId = playerId;
-            this.enemiesKilled = 0;
-            this.deaths = 0;
-            this.startTime = System.currentTimeMillis();
-        }
-
-        /**
-         * Increments the count of enemies killed by the player.
-         */
-        public void incrementEnemiesKilled() {
-            this.enemiesKilled++;
-        }
-
-        /**
-         * Increments the count of deaths for the player.
-         */
-        public void incrementDeaths() {
-            this.deaths++;
-        }
+    /**
+     * Converts this FloorInstance to a FloorInstanceData object.
+     *
+     * <p>This method creates a new FloorInstanceData object using the
+     * instanceId and floorId of this FloorInstance. It then sets the
+     * ready state and copies the playerStats and playerCurrentLives
+     * maps to the new object before returning it.</p>
+     *
+     * @return a FloorInstanceData object representing this FloorInstance
+     */
+    public FloorInstanceData toFloorInstanceData() {
+        FloorInstanceData data = new FloorInstanceData(this.instanceId, this.floorId);
+        data.setReady(this.ready);
+        data.getPlayerStats().putAll(this.playerStats);
+        data.getPlayerCurrentLives().putAll(this.playerCurrentLives);
+        return data;
     }
-
 
     /**
      * Returns a string representation of the FloorInstance.

@@ -6,115 +6,113 @@ import org.bukkit.entity.Player;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-
 /**
- * Abstraction principale pour gérer les instances de donjons.
- * Cette interface suit le principe d'inversion de dépendance (DIP) de SOLID.
- *
- * Les implémentations peuvent utiliser différents systèmes :
- * - CloudNet (services cloud)
+ * Main abstraction for managing dungeon instances.
+ * This interface follows the Dependency Inversion Principle (DIP) from SOLID.
+ * Implementations can use different systems:
+ * - CloudNet (cloud services)
  * - ASP (Advanced Slime World Manager)
- * - Vanilla (mondes Minecraft optimisés)
+ * - Vanilla (optimized Minecraft worlds)
  */
 public interface InstanceProvider {
 
     /**
-     * Initialise le provider et vérifie que toutes les dépendances sont disponibles.
+     * Initializes the provider and checks that all dependencies are available.
      *
-     * @return CompletableFuture qui se termine avec true si l'initialisation réussit
+     * @return CompletableFuture that completes with true if initialization succeeds
      */
     CompletableFuture<Boolean> initialize();
 
     /**
-     * Crée une nouvelle instance pour un étage de donjon.
+     * Creates a new instance for a dungeon floor.
      *
-     * @param floor l'étage pour lequel créer l'instance
-     * @param editMode true si l'instance doit être créée en mode édition
-     * @return CompletableFuture contenant l'UUID de l'instance créée, ou null si échec
+     * @param floor the floor for which to create the instance
+     * @param editMode true if the instance should be created in edit mode
+     * @return CompletableFuture containing the UUID of the created instance, or null if failed
      */
     CompletableFuture<UUID> createInstance(Floor floor, boolean editMode);
 
     /**
-     * Supprime une instance de donjon.
+     * Deletes a dungeon instance.
      *
-     * @param instanceId l'UUID de l'instance à supprimer
-     * @return CompletableFuture qui se termine avec true si la suppression réussit
+     * @param instanceId the UUID of the instance to delete
+     * @return CompletableFuture that completes with true if deletion succeeds
      */
     CompletableFuture<Boolean> deleteInstance(UUID instanceId);
 
     /**
-     * Vérifie si le serveur actuel est une instance de donjon.
+     * Checks if the current server is a dungeon instance.
      *
-     * @return true si c'est une instance
+     * @return true if it is an instance
      */
     boolean isInstanceServer();
 
     /**
-     * Vérifie si le serveur actuel est en mode édition.
+     * Checks if the current server is in edit mode.
      *
-     * @return true si en mode édition
+     * @return true if in edit mode
      */
     boolean isEditMode();
 
     /**
-     * Récupère les informations de l'instance actuelle.
+     * Retrieves the information of the current instance.
      *
-     * @return les informations de l'instance ou null
+     * @return the instance information or null
      */
     InstanceInfo getCurrentInstanceInfo();
 
     /**
-     * Récupère les informations d'une instance par son ID.
+     * Retrieves the information of an instance by its ID.
      *
-     * @param instanceId l'UUID de l'instance
-     * @return les informations de l'instance ou null
+     * @param instanceId the UUID of the instance
+     * @return the instance information or null
      */
     InstanceInfo getInstanceInfo(UUID instanceId);
 
     /**
-     * Vérifie si un template/monde existe pour un étage donné.
+     * Checks if a template/world exists for a given floor.
      *
-     * @param floor l'étage à vérifier
-     * @return true si le template existe
+     * @param floor the floor to check
+     * @return true if the template exists
      */
     boolean templateExists(Floor floor);
 
     /**
-     * Crée un template/monde pour un étage.
+     * Creates a template/world for a floor.
      *
-     * @param floor l'étage pour lequel créer le template
-     * @return CompletableFuture qui se termine avec true si la création réussit
+     * @param floor the floor for which to create the template
+     * @return CompletableFuture that completes with true if creation succeeds
      */
     CompletableFuture<Boolean> createTemplate(Floor floor);
 
     /**
-     * Téléporte un joueur vers une instance.
+     * Teleports a player to an instance.
      *
-     * @param player le joueur à téléporter
-     * @param instanceId l'UUID de l'instance de destination
-     * @return CompletableFuture qui se termine avec true si la téléportation réussit
+     * @param player the player to teleport
+     * @param instanceId the UUID of the destination instance
+     * @return CompletableFuture that completes with true if teleportation succeeds
      */
     CompletableFuture<Boolean> sendPlayerToInstance(Player player, UUID instanceId);
 
     /**
-     * Récupère le type de provider.
+     * Gets the provider type.
      *
-     * @return le type de provider
+     * @return the provider type
      */
     ProviderType getType();
 
     /**
-     * Sauvegarde le monde d'édition actuel dans le template.
-     * Cette méthode copie le monde actuel vers le template du floor,
-     * en adaptant la logique selon le provider (CloudNet, ASP, Vanilla).
+     * Saves the current edit world to the template.
+     * This method copies the current world to the floor's template,
+     * adapting the logic according to the provider (CloudNet, ASP, Vanilla).
      *
-     * @param floor le floor dont il faut sauvegarder le template
-     * @return CompletableFuture qui se termine avec true si la sauvegarde réussit
+     * @param floor the floor whose template should be saved
+     * @return CompletableFuture that completes with true if saving succeeds
      */
     CompletableFuture<Boolean> saveEditWorldToTemplate(Floor floor);
 
     /**
-     * Arrête proprement le provider et libère les ressources.
+     * Properly shuts down the provider and releases resources.
      */
     void shutdown();
 }

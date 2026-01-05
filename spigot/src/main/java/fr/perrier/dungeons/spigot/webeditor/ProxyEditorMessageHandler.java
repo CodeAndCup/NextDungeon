@@ -14,7 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 /**
- * Handler pour traiter les requêtes de l'éditeur web depuis le proxy
+ * Handler for processing web editor requests from the proxy.
  */
 public class ProxyEditorMessageHandler {
 
@@ -28,7 +28,11 @@ public class ProxyEditorMessageHandler {
     }
 
     /**
-     * Traite une requête de chargement de triggers
+     * Handles a trigger loading request.
+     *
+     * @param dungeonName the name of the dungeon
+     * @param floorId     the floor identifier
+     * @return the triggers as JSON, or an error response
      */
     public String handleLoadTriggersRequest(String dungeonName, String floorId) {
         try {
@@ -41,7 +45,13 @@ public class ProxyEditorMessageHandler {
     }
 
     /**
-     * Traite une requête de sauvegarde de triggers
+     * Handles a trigger saving request.
+     *
+     * @param dungeonName   the name of the dungeon
+     * @param floorId       the floor identifier
+     * @param triggersJson  the triggers in JSON format
+     * @param editorUuid    the UUID of the editor
+     * @return a JSON response indicating success or error
      */
     public String handleSaveTriggersRequest(String dungeonName, String floorId, String triggersJson, UUID editorUuid) {
         try {
@@ -62,7 +72,9 @@ public class ProxyEditorMessageHandler {
     }
 
     /**
-     * Traite une requête des types de triggers
+     * Handles a request for trigger types.
+     *
+     * @return a JSON response containing available trigger types
      */
     public String handleGetTriggerTypesRequest() {
         try {
@@ -97,7 +109,10 @@ public class ProxyEditorMessageHandler {
     }
 
     /**
-     * Traite une requête de génération JavaScript Blockly
+     * Handles a Blockly JavaScript generation request.
+     *
+     * @param editorUuid the UUID of the editor
+     * @return the generated JavaScript as a Base64 string, or an error message
      */
     public String handleGenerateBlocklyJsRequest(UUID editorUuid) {
         try {
@@ -116,7 +131,12 @@ public class ProxyEditorMessageHandler {
     }
 
     /**
-     * Traite une requête d'informations de floor
+     * Handles a floor information request.
+     *
+     * @param dungeonName the name of the dungeon
+     * @param floorId     the floor identifier
+     * @param editorName  the name of the editor
+     * @return a JSON response containing floor information
      */
     public String handleGetFloorInfoRequest(String dungeonName, String floorId, String editorName) {
         try {
@@ -143,7 +163,10 @@ public class ProxyEditorMessageHandler {
     }
 
     /**
-     * Crée une réponse d'erreur
+     * Creates an error response.
+     *
+     * @param message the error message
+     * @return a JSON error response
      */
     private String createErrorResponse(String message) {
         JsonObject error = new JsonObject();

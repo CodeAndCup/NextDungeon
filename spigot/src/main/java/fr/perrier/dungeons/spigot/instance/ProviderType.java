@@ -1,21 +1,12 @@
 package fr.perrier.dungeons.spigot.instance;
 
 /**
- * Énumération des types de providers supportés.
+ * Types of instance providers available for managing Minecraft worlds or server.
  */
 public enum ProviderType {
     /**
-     * CloudNet - Système de gestion de services cloud
+     * CloudNet - System for managing Minecraft server networks
      */
     CLOUDNET,
-
-    /**
-     * Advanced Slime World Paper - Système de mondes slime
-     */
-    ASP,
-
-    /**
-     * Vanilla - Système de mondes Minecraft natif optimisé
-     */
-    VANILLA
+    ;
 }

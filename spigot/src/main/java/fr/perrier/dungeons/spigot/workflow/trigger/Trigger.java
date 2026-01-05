@@ -1,5 +1,6 @@
 package fr.perrier.dungeons.spigot.workflow.trigger;
 
+import fr.perrier.dungeons.common.workflow.trigger.TriggerData;
 import fr.perrier.dungeons.spigot.workflow.action.Action;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.workflow.action.ActionSequenceExecutor;
@@ -19,25 +20,10 @@ import java.util.UUID;
  * Classe abstraite pour tous les triggers de donjon
  */
 @Getter
-public abstract class Trigger implements Serializable {
-    @Serial
-    private static final long serialVersionUID = 1L;
-
-    protected UUID triggerId;
-    @Setter
-    protected String name;
-    @Setter
-    protected boolean enabled;
-    @Setter
-    protected Map<String, Object> properties;
-    @Setter
-    protected List<Action> actions;
+public abstract class Trigger extends TriggerData {
 
     public Trigger(String name) {
-        this.triggerId = UUID.randomUUID();
-        this.name = name;
-        this.enabled = true;
-        this.actions = new ArrayList<>();
+        super(name);
     }
 
     /**
@@ -73,5 +59,20 @@ public abstract class Trigger implements Serializable {
         // Nouvelle exécution asynchrone
         new ActionSequenceExecutor(actions, player, location, data).executeNext();
         return true;
+    }
+
+    public TriggerData toTriggerData() {
+        return new TriggerData(this.triggerId, this.name, this.enabled, this.properties, new ArrayList<>());
+    }
+
+    @Override
+    public String toString() {
+        return "Trigger{" +
+               "triggerId=" + triggerId +
+               ", name='" + name + '\'' +
+               ", enabled=" + enabled +
+               ", properties=" + properties +
+               ", actions=" + actions +
+               '}';
     }
 }

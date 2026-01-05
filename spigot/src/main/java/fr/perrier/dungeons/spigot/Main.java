@@ -3,13 +3,8 @@ package fr.perrier.dungeons.spigot;
 import com.alessiodp.parties.api.Parties;
 import com.alessiodp.parties.api.interfaces.PartiesAPI;
 import com.github.juliarn.npclib.api.NpcActionController;
-import com.github.juliarn.npclib.api.NpcTracker;
 import com.github.juliarn.npclib.api.Platform;
-import com.github.juliarn.npclib.api.event.manager.NpcEventManager;
-import com.github.juliarn.npclib.api.log.PlatformLogger;
-import com.github.juliarn.npclib.api.profile.ProfileResolver;
 import com.github.juliarn.npclib.bukkit.BukkitPlatform;
-import com.github.juliarn.npclib.bukkit.BukkitVersionAccessor;
 import com.github.juliarn.npclib.bukkit.BukkitWorldAccessor;
 import com.github.juliarn.npclib.bukkit.protocol.BukkitProtocolAdapter;
 import fr.perrier.cupcodeapi.CupCodeAPI;
@@ -35,11 +30,11 @@ import fr.perrier.dungeons.spigot.manager.GhostFactory;
 import fr.perrier.dungeons.spigot.manager.GlobalTriggerManager;
 import fr.perrier.dungeons.spigot.manager.VariableManager;
 import fr.perrier.dungeons.spigot.messaging.Pidgin;
+import fr.perrier.dungeons.spigot.messaging.ServerNameService;
 import fr.perrier.dungeons.spigot.model.FloorInstance;
 import fr.perrier.dungeons.spigot.storage.ProfileService;
 import fr.perrier.dungeons.spigot.storage.RedisStorageService;
 import fr.perrier.dungeons.spigot.utils.ServerUtil;
-import fr.perrier.dungeons.spigot.webeditor.SpigotProxyBridge;
 import fr.perrier.dungeons.spigot.webserver.DungeonWebEditorManager;
 import lombok.Getter;
 import lombok.Setter;
@@ -55,6 +50,7 @@ import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
 import fr.perrier.dungeons.spigot.instance.InstanceProvider;
 import fr.perrier.dungeons.spigot.instance.InstanceProviderFactory;
+import fr.perrier.dungeons.spigot.parties.PartyService;
 
 @Getter
 public final class Main extends JavaPlugin {
@@ -79,12 +75,11 @@ public final class Main extends JavaPlugin {
     private RedisStorageService redisStorageService;
     private ProfileService profileService;
     private DatabaseManager databaseManager;
+    private ServerNameService serverNameService;
 
     // Web editor manager
     private DungeonWebEditorManager webEditorManager;
-    
-    // Proxy bridge for web editor communication
-    private SpigotProxyBridge proxyBridge;
+
 
     // Global trigger manager
     private GlobalTriggerManager globalTriggerManager;
@@ -93,8 +88,14 @@ public final class Main extends JavaPlugin {
     // Instance provider (CloudNet, ASP, ou Vanilla)
     private InstanceProvider instanceProvider;
 
+    // Party service
+    private PartyService partyService;
+
     @Override
     public void onEnable() {
+        getLogger().info("Starting NextDungeon plugin...");
+        long startTime = System.currentTimeMillis();
+
         instance = this;
 
         // Save default config
@@ -125,7 +126,7 @@ public final class Main extends JavaPlugin {
             getLogger().info("Profile service initialized successfully");
 
         } catch (Exception e) {
-            getLogger().severe("&cFailed to initialize Redis services: " + e.getMessage());
+            getLogger().severe("&#FF0000Failed to initialize Redis services: " + e.getMessage());
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
@@ -148,14 +149,16 @@ public final class Main extends JavaPlugin {
 
         databaseManager = DatabaseFactory.createDatabase();
 
-        // Load Dungeons
-        ConfigLoader.loadAllDungeons();
 
         // Enabling other plugins API
         CupCodeAPI.enable(this);
         menuAPI = new MenuAPI(this);
         partiesAPI = Parties.getApi();
         ghostFactory = new GhostFactory();
+
+        // Initialize Party Service (uses config for provider selection)
+        partyService = new PartyService();
+
         npcLibPlatform = BukkitPlatform.bukkitNpcPlatformBuilder()
                 .extension(this)
                 .debug(true)
@@ -181,6 +184,10 @@ public final class Main extends JavaPlugin {
         // Enabling messaging system
         this.messaging = new Pidgin(Main.getInstance().getConfig().getString("RedisConfiguration.topic"));
 
+        // Initialize server name service
+        this.serverNameService = new ServerNameService();
+        this.serverNameService.initialize();
+
         // Loading commands
         this.commandHandler = new CommandHandler(this);
         loadCommands();
@@ -188,25 +195,23 @@ public final class Main extends JavaPlugin {
         // Loading listeners
         loadGlobalListeners();
 
-        // Initialize trigger system
-        globalTriggerManager = new GlobalTriggerManager();
-        globalTriggerManager.initialize();
-        globalTriggerManager.refreshTriggerCache();
+        // Only on instance servers
+        if(ServerUtil.isInstanceServer()) {
+            // Initialize trigger system
+            globalTriggerManager = new GlobalTriggerManager();
+            globalTriggerManager.initialize();
+            globalTriggerManager.refreshTriggerCache();
 
-        // Initialize variable manager
-        variableManager = new VariableManager();
+            // Initialize variable manager
+            variableManager = new VariableManager();
 
-
-        // Initialize web editor manager
-        webEditorManager = new DungeonWebEditorManager();
-        
-        // Initialize proxy bridge for web editor communication
-        proxyBridge = new SpigotProxyBridge();
-        if (proxyBridge.startBridge()) {
-            getLogger().info("✅ Pont de communication proxy démarré");
-        } else {
-            getLogger().warning("⚠️ Impossible de démarrer le pont proxy");
+            if(ServerUtil.isInEditMode()) {
+                // Initialize web editor manager
+                webEditorManager = new DungeonWebEditorManager();
+            }
         }
+
+        getLogger().info("NextDungeon " + this.getDescription().getVersion()  + " started in " + (System.currentTimeMillis() - startTime) + " ms");
     }
 
     @Override
@@ -216,8 +221,13 @@ public final class Main extends JavaPlugin {
             instanceProvider.shutdown();
         }
 
+        // Shutdown party service
+        if (partyService != null) {
+            partyService.shutdown();
+        }
+
         // If this is an instance server, cleanup the instance data
-        if (ServerUtil.isInstanceServer()) {
+        if (getInstanceProvider() != null && ServerUtil.isInstanceServer()) {
             InstanceInfo info = ServerUtil.getInstanceInfo();
             if (info != null) {
                 // Remove instance from Redis
@@ -233,12 +243,13 @@ public final class Main extends JavaPlugin {
 
         CupCodeAPI.disable();
         Pidgin.shutdown();
-        webEditorManager.shutdownAllEditors();
-        ghostFactory.close();
-        
-        // Arrêter le pont de communication proxy
-        if (proxyBridge != null) {
-            proxyBridge.stopBridge();
+
+        // Ces objets ne sont initialisés que sur les instances
+        if (webEditorManager != null) {
+            webEditorManager.shutdownAllEditors();
+        }
+        if (ghostFactory != null) {
+            ghostFactory.close();
         }
     }
 
@@ -313,7 +324,7 @@ public final class Main extends JavaPlugin {
     private void initializeInstanceServer() {
         InstanceInfo info = ServerUtil.getInstanceInfo();
         if (info == null) {
-            getLogger().severe("&cFailed to get instance information");
+            getLogger().severe("&#FF0000Failed to get instance information");
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
@@ -364,6 +375,11 @@ public final class Main extends JavaPlugin {
      */
     private void initializeLobbyServer() {
         getLogger().info("Initializing lobby server");
+
+        // Load all dungeons only on lobby server
+        // Instance servers only need to retrieve their specific floor from Redis
+        ConfigLoader.loadAllDungeons();
+
         // Lobby specific initialization if needed
     }
 
@@ -384,12 +400,12 @@ public final class Main extends JavaPlugin {
             @Override
             public void run(){
                 Bukkit.getScheduler().runTaskLaterAsynchronously(Main.getInstance(), () -> {
-                    FloorInstance instance = Main.getInstance().getRedisStorageService().getCurrentInstance().get();
+                    FloorInstance instance = Main.getInstance().getRedisStorageService().getCurrentInstance();
                     if (instance != null) {
                         instance.setReady(true);
                         Main.getInstance().getLogger().info("Instance " + instance.getInstanceId() + " is now ready!");
                     } else {
-                        Main.getInstance().getLogger().severe("&cNo instance found!");
+                        Main.getInstance().getLogger().severe("&#FF0000No instance found!");
                     }
                 }, 100L);
             }

@@ -149,16 +149,17 @@ public class SpigotCommunicationService {
             requestId, DEFAULT_TIMEOUT_SECONDS
         );
         
-        // Créer et envoyer le packet de requête
+        // Créer et envoyer le packet de requête avec le serveur cible
         WebEditorRequestPacket requestPacket = new WebEditorRequestPacket(
             requestId,
             "velocity-proxy", // TODO: obtenir l'ID du proxy depuis la config
+            spigotServer,     // Serveur cible qui doit traiter la requête
             requestType,
             data
         );
         
         NextDungeonVelocity.getInstance().getMessaging().sendPacket(requestPacket);
-        NextDungeonVelocity.getInstance().getLogger().info("📤 Request sent: " + requestType + " (ID: " + requestId + ")");
+        NextDungeonVelocity.getInstance().getLogger().info("📤 Request sent to " + spigotServer + ": " + requestType + " (ID: " + requestId + ")");
         
         try {
             // Attendre la réponse
