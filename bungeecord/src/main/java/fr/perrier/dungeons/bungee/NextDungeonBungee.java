@@ -1,7 +1,9 @@
 package fr.perrier.dungeons.bungee;
 
-import fr.perrier.dungeons.bungee.messaging.ProxyPidgin;
+import fr.perrier.dungeons.bungee.messaging.packets.webeditor.WebEditorResponsePacket;
+import fr.perrier.dungeons.bungee.messaging.subscribers.WebEditorResponseSubscriber;
 import fr.perrier.dungeons.bungee.webeditor.ProxyWebEditorServer;
+import fr.perrier.dungeons.common.messaging.Pidgin;
 import lombok.Getter;
 import net.md_5.bungee.api.plugin.Plugin;
 import java.io.File;
@@ -17,7 +19,7 @@ public class NextDungeonBungee extends Plugin {
     @Getter
     private ProxyWebEditorServer webEditorServer;
     @Getter
-    private ProxyPidgin messaging;
+    private Pidgin messaging;
     
     private int webEditorPort = 7734; // Port par défaut
 
@@ -32,13 +34,14 @@ public class NextDungeonBungee extends Plugin {
         // Initialize messaging system
         try {
             // TODO: Read from config file
-            this.messaging = new ProxyPidgin(
+            this.messaging = new Pidgin(
                 "dungeons:packets",  // topic name
                 "localhost",  // redis host
                 6379,  // redis port
                 null,  // redis username
                 null   // redis password
             );
+            this.messaging.registerAdapter(WebEditorResponsePacket.class, new WebEditorResponseSubscriber());
             getLogger().info("✅ Système de messagerie Redis initialisé");
         } catch (Exception e) {
             getLogger().severe("❌ Erreur initialisation messaging Redis: " + e.getMessage());
@@ -100,7 +103,7 @@ public class NextDungeonBungee extends Plugin {
             webEditorServer.stopServer();
         }
         if (messaging != null) {
-            ProxyPidgin.shutdown();
+            Pidgin.shutdown();
         }
         getLogger().info("🛑 NextDungeon BungeeCord désactivé");
     }

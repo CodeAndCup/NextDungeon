@@ -6,8 +6,11 @@ import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.event.proxy.ProxyShutdownEvent;
 import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.proxy.ProxyServer;
+import fr.perrier.dungeons.common.messaging.Pidgin;
 import fr.perrier.dungeons.velocity.messaging.PluginMessageVelocity;
-import fr.perrier.dungeons.velocity.messaging.ProxyPidgin;
+import fr.perrier.dungeons.velocity.messaging.packets.webeditor.WebEditorRequestPacket;
+import fr.perrier.dungeons.velocity.messaging.packets.webeditor.WebEditorResponsePacket;
+import fr.perrier.dungeons.velocity.messaging.subscribers.WebEditorResponseSubscriber;
 import fr.perrier.dungeons.velocity.webeditor.ProxyWebEditorServer;
 import lombok.Getter;
 import org.slf4j.Logger;
@@ -36,7 +39,7 @@ public class NextDungeonVelocity {
     @Getter
     private ProxyWebEditorServer webEditorServer;
     @Getter
-    private ProxyPidgin messaging;
+    private Pidgin messaging;
     @Getter
     private PluginMessageVelocity pluginMessageHandler;
 
@@ -66,13 +69,15 @@ public class NextDungeonVelocity {
         // Initialize messaging system
         try {
             // TODO: Read from config file
-            this.messaging = new ProxyPidgin(
+            this.messaging = new Pidgin(
                 "dungeons:packets",  // topic name
                 "localhost",  // redis host
                 6379,  // redis port
                 null,  // redis username
                 null   // redis password
             );
+            this.messaging.registerAdapter(WebEditorRequestPacket.class, null);
+            this.messaging.registerAdapter(WebEditorResponsePacket.class, new WebEditorResponseSubscriber());
             logger.info("✅ Système de messagerie Redis initialisé");
         } catch (Exception e) {
             logger.error("❌ Erreur initialisation messaging Redis: " + e.getMessage());
@@ -143,7 +148,7 @@ public class NextDungeonVelocity {
             webEditorServer.stopServer();
         }
         if (messaging != null) {
-            ProxyPidgin.shutdown();
+            Pidgin.shutdown();
         }
         logger.info("🛑 NextDungeon Velocity désactivé");
     }

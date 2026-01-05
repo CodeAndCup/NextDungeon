@@ -1,12 +1,9 @@
-package fr.perrier.dungeons.bungee.messaging;
+package fr.perrier.dungeons.common.messaging;
 
 import com.google.gson.Gson;
-import fr.perrier.dungeons.bungee.NextDungeonBungee;
-import fr.perrier.dungeons.bungee.messaging.packets.webeditor.WebEditorResponsePacket;
 import fr.perrier.dungeons.common.messaging.pidgin.IncomingPacketHandler;
 import fr.perrier.dungeons.common.messaging.pidgin.Packet;
 import fr.perrier.dungeons.common.messaging.pidgin.PacketListener;
-import fr.perrier.dungeons.bungee.messaging.subscribers.WebEditorResponseSubscriber;
 import lombok.Getter;
 import org.redisson.Redisson;
 import org.redisson.api.RTopic;
@@ -23,7 +20,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 @Getter
-public class ProxyPidgin {
+public class Pidgin {
 
     private final RedissonClient client;
     private final RTopic topic;
@@ -35,7 +32,7 @@ public class ProxyPidgin {
 
     private static final ExecutorService executorService = Executors.newFixedThreadPool(10);
 
-    public ProxyPidgin(String topicName, String redisHost, int redisPort, String redisUsername, String redisPassword) {
+    public Pidgin(String topicName, String redisHost, int redisPort, String redisUsername, String redisPassword) {
         Config config = new Config();
         config.useSingleServer().setAddress("redis://" + redisHost + ":" + redisPort)
                 .setUsername(redisUsername)
@@ -49,12 +46,17 @@ public class ProxyPidgin {
         this.cTypes = new HashMap<>();
         this.topic.addListener(String.class, new MessagingListener());
 
-        // Enregistrer le subscriber pour les réponses web editor
-        this.registerAdapter(WebEditorResponsePacket.class, new WebEditorResponseSubscriber());
     }
 
     /**
      * Registers a packet adapter.
+     * <p>
+     * This method will link the given packet class to the given packet listener.
+     * When a packet is received and the packet's class matches the given packet
+     * class, the packet listener will be called with the packet as the argument.
+     *
+     * @param clazz the packet class to register
+     * @param listener the packet listener to register
      */
     public void registerAdapter(Class<? extends Packet> clazz, PacketListener listener) {
         this.adapters.put(clazz, listener);
@@ -65,6 +67,15 @@ public class ProxyPidgin {
 
     /**
      * Publishes the given packet to the messaging topic.
+     * <p>
+     * The packet is serialized to JSON and sent to the messaging topic.
+     * The packet's class name is prepended to the JSON string as a unique
+     * identifier for the packet type.
+     * <p>
+     * The call is asynchronous, meaning that the method will return immediately
+     * and the packet will be sent in a separate thread.
+     *
+     * @param packet the packet to send
      */
     public void sendPacket(Packet packet) {
         executorService.submit(() ->
@@ -73,7 +84,13 @@ public class ProxyPidgin {
     }
 
     /**
-     * Shuts down the executor service.
+     * Shuts down the Pidgin executor service.
+     * <p>
+     * This method is used to shut down the messaging service.
+     * It is called automatically when the plugin is disabled.
+     * <p>
+     * The method will wait 60 seconds for any active tasks to complete.
+     * If any tasks are still active after that time, they will be interrupted.
      */
     public static void shutdown() {
         executorService.shutdown();
@@ -87,6 +104,18 @@ public class ProxyPidgin {
     }
 
     private class MessagingListener implements MessageListener<String> {
+        /**
+         * Handles incoming messages from the Redis topic.
+         * <p>
+         * This method is triggered when a message is received. It extracts the packet ID
+         * and deserializes the packet data. It then identifies the appropriate packet class
+         * and listener, and invokes methods annotated with {@link IncomingPacketHandler} on
+         * the listener, passing the packet as an argument.
+         * </p>
+         *
+         * @param charSequence the topic name as a character sequence
+         * @param s the message received, containing the packet ID and serialized packet data
+         */
         @Override
         public void onMessage(CharSequence charSequence, String s) {
             executorService.submit(() -> {
@@ -102,19 +131,17 @@ public class ProxyPidgin {
                     }
 
                     PacketListener listener = adapters.get(clazz);
-                    if (listener == null) return;
 
                     for (Method m : listener.getClass().getDeclaredMethods()) {
                         if (m.getDeclaredAnnotation(IncomingPacketHandler.class) != null) {
                             try {
                                 m.invoke(listener, packet);
                             } catch (IllegalAccessException | InvocationTargetException e) {
-                                NextDungeonBungee.getInstance().getLogger().severe("Erreur invocation packet handler: " + e.getMessage());
+                                throw new RuntimeException(e);
                             }
                         }
                     }
-                } catch (Exception e) {
-                    NextDungeonBungee.getInstance().getLogger().severe("Erreur traitement message Redis: " + e.getMessage());
+                } catch (Exception ignored) {
                 }
             });
         }

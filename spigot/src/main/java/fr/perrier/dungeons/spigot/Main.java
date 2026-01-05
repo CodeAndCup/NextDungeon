@@ -29,8 +29,13 @@ import fr.perrier.dungeons.spigot.listener.global.GlobalPartyListener;
 import fr.perrier.dungeons.spigot.manager.GhostFactory;
 import fr.perrier.dungeons.spigot.manager.GlobalTriggerManager;
 import fr.perrier.dungeons.spigot.manager.VariableManager;
-import fr.perrier.dungeons.spigot.messaging.Pidgin;
+import fr.perrier.dungeons.common.messaging.Pidgin;
 import fr.perrier.dungeons.spigot.messaging.ServerNameService;
+import fr.perrier.dungeons.spigot.messaging.packets.PlayerSwitchServerPacket;
+import fr.perrier.dungeons.spigot.messaging.packets.webeditor.WebEditorRequestPacket;
+import fr.perrier.dungeons.spigot.messaging.packets.webeditor.WebEditorResponsePacket;
+import fr.perrier.dungeons.spigot.messaging.subscribers.PlayerSwitchServerSubscriber;
+import fr.perrier.dungeons.spigot.messaging.subscribers.WebEditorRequestSubscriber;
 import fr.perrier.dungeons.spigot.model.Floor;
 import fr.perrier.dungeons.spigot.model.FloorInstance;
 import fr.perrier.dungeons.spigot.storage.ProfileService;
@@ -207,7 +212,16 @@ public final class Main extends JavaPlugin {
         }
 
         // Enabling messaging system
-        this.messaging = new Pidgin(Main.getInstance().getConfig().getString("RedisConfiguration.topic"));
+        this.messaging = new Pidgin(
+                Main.getInstance().getConfig().getString("RedisConfiguration.topic"),
+                Main.getInstance().getConfig().getString("RedisConfiguration.host"),
+                Main.getInstance().getConfig().getInt("RedisConfiguration.port"),
+                Main.getInstance().getConfig().getString("RedisConfiguration.username"),
+                Main.getInstance().getConfig().getString("RedisConfiguration.password")
+        );
+        this.messaging.registerAdapter(PlayerSwitchServerPacket.class, new PlayerSwitchServerSubscriber());
+        this.messaging.registerAdapter(WebEditorRequestPacket.class, new WebEditorRequestSubscriber());
+        this.messaging.registerAdapter(WebEditorResponsePacket.class, null);
 
         // Initialize server name service
         this.serverNameService = new ServerNameService();

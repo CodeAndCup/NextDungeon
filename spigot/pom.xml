@@ -267,23 +267,11 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- Redis API -->
-        <dependency>
-            <groupId>org.redisson</groupId>
-            <artifactId>redisson</artifactId>
-            <version>3.22.0</version>
-            <scope>compile</scope>
-        </dependency>
-
         <!-- Persistance -->
         <dependency>
             <groupId>org.mongodb</groupId>
             <artifactId>mongo-java-driver</artifactId>
             <version>3.12.11</version>
-        </dependency>
-        <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
         </dependency>
 
         <!-- MySQL Connector/J -->
