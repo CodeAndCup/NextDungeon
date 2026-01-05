@@ -1,4 +1,4 @@
-package fr.perrier.dungeons.spigot.parties.impl;
+package fr.perrier.dungeons.spigot.parties.impl.alessio;
 
 import com.alessiodp.parties.api.Parties;
 import com.alessiodp.parties.api.interfaces.PartiesAPI;

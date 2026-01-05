@@ -1,8 +1,8 @@
 package fr.perrier.dungeons.spigot.parties;
 
 import fr.perrier.dungeons.spigot.Main;
-import fr.perrier.dungeons.spigot.parties.impl.AlessioDPPartyProvider;
-import fr.perrier.dungeons.spigot.parties.impl.InternalPartyProvider;
+import fr.perrier.dungeons.spigot.parties.impl.alessio.AlessioDPPartyProvider;
+import fr.perrier.dungeons.spigot.parties.impl.internal.InternalPartyProvider;
 import org.bukkit.entity.Player;
 
 import java.util.*;

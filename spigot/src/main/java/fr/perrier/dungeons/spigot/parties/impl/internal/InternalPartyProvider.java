@@ -1,4 +1,4 @@
-package fr.perrier.dungeons.spigot.parties.impl;
+package fr.perrier.dungeons.spigot.parties.impl.internal;
 
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.parties.IParty;

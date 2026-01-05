@@ -1,4 +1,4 @@
-package fr.perrier.dungeons.spigot.parties.impl;
+package fr.perrier.dungeons.spigot.parties.impl.internal;
 
 import java.util.UUID;
 

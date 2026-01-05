@@ -21,13 +21,28 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+/**
+ * Utility class for loading dungeon configurations from YAML files.
+ */
 public class ConfigLoader {
 
+    /**
+     * Loads a dungeon configuration by its name.
+     *
+     * @param name the name of the dungeon (YAML file name without extension)
+     * @return the loaded Dungeon object
+     */
     public static Dungeon loadDungeon(String name) {
         File file = new File(Main.getInstance().getDataFolder(), "/dungeons/" + name + ".yml");
         return loadDungeon(file);
     }
 
+    /**
+     * Loads a dungeon configuration from a YAML file.
+     *
+     * @param file the YAML file containing the dungeon configuration
+     * @return the loaded Dungeon object
+     */
     public static Dungeon loadDungeon(File file) {
         YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
         ConfigurationSection dungeonSection = config.getConfigurationSection("dungeon");
@@ -124,6 +139,12 @@ public class ConfigLoader {
         return dungeon;
     }
 
+    /**
+     * Reads a Position from a ConfigurationSection.
+     *
+     * @param section the configuration section
+     * @return the Position object
+     */
     private static Position readPosition(ConfigurationSection section) {
         if (section == null) return new Position(0, 0, 0);
         return new Position(
@@ -133,6 +154,12 @@ public class ConfigLoader {
         );
     }
 
+    /**
+     * Converts a Map to a ConfigurationSection recursively.
+     *
+     * @param map the map to convert
+     * @return the resulting ConfigurationSection
+     */
     private static ConfigurationSection mapToSection(Map<?, ?> map) {
         ConfigurationSection section = new MemoryConfiguration();
         for (Map.Entry<?, ?> entry : map.entrySet()) {
@@ -148,6 +175,9 @@ public class ConfigLoader {
         return section;
     }
 
+    /**
+     * Loads all dungeon configurations from the dungeons folder.
+     */
     public static void loadAllDungeons() {
         File file = new File(Main.getInstance().getDataFolder() + "/dungeons/");
         if(!file.isDirectory()) throw new RuntimeException("Dungeons folder not found");
