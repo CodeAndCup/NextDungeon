@@ -9,14 +9,10 @@ import fr.perrier.dungeons.spigot.instance.InstanceInfo;
 import fr.perrier.dungeons.spigot.model.Dungeon;
 import fr.perrier.dungeons.spigot.model.FloorInstance;
 import fr.perrier.dungeons.spigot.model.Floor;
-import fr.perrier.dungeons.spigot.storage.RedisStorageService;
 import fr.perrier.dungeons.spigot.utils.ServerUtil;
-import jodd.io.FileUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
-import java.io.File;
-import java.util.Objects;
 import java.util.UUID;
 
 public class AdminCommands {
@@ -215,7 +211,7 @@ public class AdminCommands {
                 player.sendMessage(ChatUtil.translate("&7Floor ID: &f" + info.getFloorId()));
                 player.sendMessage(ChatUtil.translate("&7Created At: &f" + info.getCreatedAt()));
 
-                FloorInstance instance = Main.getInstance().getRedisStorageService().getCurrentInstance();
+                FloorInstance instance = Main.getInstance().getDungeonService().getCurrentInstance();
                 if (instance != null) {
                     player.sendMessage(ChatUtil.translate("&7Ready: &f" + instance.isReady()));
                 }
@@ -226,7 +222,7 @@ public class AdminCommands {
             player.sendMessage(ChatUtil.translate("&7Server Type: &#00FF00Lobby"));
             player.sendMessage(ChatUtil.translate("&7Server Name: &f" + Main.getInstance().getServerNameService().getCachedServerName()));
         } else {
-            FloorInstance instance = Main.getInstance().getRedisStorageService().getInstance(UUID.fromString(instanceId));
+            FloorInstance instance = Main.getInstance().getDungeonService().getInstance(UUID.fromString(instanceId));
             if (instance == null) {
                 player.sendMessage(ChatUtil.translate("&#FF0000Instance not found"));
             } else {

@@ -92,7 +92,7 @@ public class GlobalTriggerManager implements Listener {
         triggersByEventType.clear();
 
         try {
-            List<TriggerData> allTriggers = Main.getInstance().getRedisStorageService().getCurrentFloor().getTriggers();
+            List<TriggerData> allTriggers = Main.getInstance().getDungeonService().getCurrentFloor().getTriggers();
 
             for (TriggerData triggerData : allTriggers) {
                 if( !(triggerData instanceof Trigger trigger)) {

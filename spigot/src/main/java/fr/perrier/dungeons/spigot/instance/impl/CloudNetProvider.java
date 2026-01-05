@@ -179,7 +179,7 @@ public class CloudNetProvider implements InstanceProvider {
     @Override
     public InstanceInfo getInstanceInfo(UUID instanceId) {
         try {
-            FloorInstance instance = Main.getInstance().getRedisStorageService().getInstance(instanceId);
+            FloorInstance instance = Main.getInstance().getDungeonService().getInstance(instanceId);
             if (instance == null) {
                 return null;
             }

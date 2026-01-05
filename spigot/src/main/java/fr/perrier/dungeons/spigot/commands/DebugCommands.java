@@ -1,7 +1,5 @@
 package fr.perrier.dungeons.spigot.commands;
 
-import com.google.common.io.ByteArrayDataOutput;
-import com.google.common.io.ByteStreams;
 import fr.perrier.cupcodeapi.commands.annotations.Command;
 import fr.perrier.cupcodeapi.commands.annotations.Param;
 import fr.perrier.cupcodeapi.utils.ChatUtil;
@@ -9,10 +7,8 @@ import fr.perrier.dungeons.common.model.dungeon.FloorData;
 import fr.perrier.dungeons.common.model.dungeon.config.FloorInstanceData;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.menu.dungeon.DungeonGateMenu;
-import fr.perrier.dungeons.spigot.model.FloorInstance;
 import fr.perrier.dungeons.spigot.model.Dungeon;
 import fr.perrier.dungeons.spigot.model.Floor;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 public class DebugCommands {
@@ -35,7 +31,7 @@ public class DebugCommands {
     public static void debugDungeonListInstancesCommand(Player player) {
         player.sendMessage(ChatUtil.getBar());
         player.sendMessage(ChatUtil.translate("&6Instances:"));
-        for (FloorInstanceData instanceData : Main.getInstance().getRedisStorageService().getInstancesMap().values()) {
+        for (FloorInstanceData instanceData : Main.getInstance().getDungeonService().getInstancesMap().values()) {
             player.sendMessage(ChatUtil.translate("  &8- &e" + instanceData.getInstanceName() + " &8(&7&o" + instanceData.getInstanceId() + "&8)"));
         }
         player.sendMessage(ChatUtil.getBar());
@@ -45,7 +41,7 @@ public class DebugCommands {
     public static void debugDungeonListFloorsCommand(Player player) {
         player.sendMessage(ChatUtil.getBar());
         player.sendMessage(ChatUtil.translate("&6Floors:"));
-        for (FloorData floorData : Main.getInstance().getRedisStorageService().getFloorsMap().values()) {
+        for (FloorData floorData : Main.getInstance().getDungeonService().getFloorsMap().values()) {
             player.sendMessage(ChatUtil.translate("  &8- &e" + floorData.getName() + " &8(&7&o" + floorData.getId() + "&8)"));
             player.sendMessage(ChatUtil.translate("      &8- &eDescription: &f" + floorData.getDescription()));
             player.sendMessage(ChatUtil.translate("      &8- &eNumber of Steps: &f" + floorData.getSteps().size()));

@@ -36,7 +36,7 @@ WebEditor:
 #   • TITLE       - Displays messages as titles
 #
 NotificationConfiguration:
-    type: "ACTION_BAR"
+    type: "CHAT"
 
 # ─────────────────────────────────────────────────────
 # 💾 CONFIGURATION BASE DE DONNÉES

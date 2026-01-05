@@ -1,6 +1,7 @@
 package fr.perrier.dungeons.spigot.queue;
 
 import fr.perrier.cupcodeapi.utils.ChatUtil;
+import fr.perrier.dungeons.common.queue.QueueEntry;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.model.Floor;
 import fr.perrier.dungeons.spigot.model.FloorInstance;
@@ -61,7 +62,7 @@ public class QueueManager {
             return false;
         }
 
-        fr.perrier.dungeons.common.queue.QueueEntry entry = new fr.perrier.dungeons.common.queue.QueueEntry(
+        QueueEntry entry = new QueueEntry(
             player.getUniqueId(),
             player.getName(),
             floor.getId(),
@@ -180,7 +181,7 @@ public class QueueManager {
         }
 
         // Get next player from queue
-        fr.perrier.dungeons.common.queue.QueueEntry entry = queueService.pollNext(floorId);
+        QueueEntry entry = queueService.pollNext(floorId);
         if (entry == null) {
             return;
         }
@@ -203,6 +204,19 @@ public class QueueManager {
                 floorInstance.sendToServer(player);
             });
         });
+
+        queueService.executeForEachInQueue(floorId, (queueEntry) -> {
+            Player queuedPlayer = Bukkit.getPlayer(queueEntry.getPlayerId());
+            if (queuedPlayer != null && queuedPlayer.isOnline()) {
+                QueuePosition queuePosition = queueService.getQueuePosition(queuedPlayer.getUniqueId(), floorId);
+                notifyPlayer(queuedPlayer, String.format(
+                    "Queue Update for %s - Position: %d/%d",
+                    floor.getName(),
+                    queuePosition.getPosition(),
+                    queuePosition.getTotalInQueue()
+                ));
+            }
+        });
     }
 
     /**
@@ -212,7 +226,7 @@ public class QueueManager {
      * @param message the message to send
      */
     public void notifyPlayer(Player player, String message) {
-        String configType = Main.getInstance().getConfig().getString("NotificationConfiguration.type", "ACTION_BAR");
+        String configType = Main.getInstance().getConfig().getString("NotificationConfiguration.type", "CHAT");
         NotificationType type;
         
         try {

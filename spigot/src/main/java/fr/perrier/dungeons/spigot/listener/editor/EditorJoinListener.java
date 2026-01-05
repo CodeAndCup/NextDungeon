@@ -23,7 +23,7 @@ public class EditorJoinListener implements Listener {
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
 
-        Floor floor = Main.getInstance().getRedisStorageService().getCurrentFloor();
+        Floor floor = Main.getInstance().getDungeonService().getCurrentFloor();
         Location spawnLocation = new Location(
                 Bukkit.getWorld("world"),
                 floor.getWorldConfig().getSpawn().getX(),

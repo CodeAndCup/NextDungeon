@@ -1,5 +1,6 @@
 package fr.perrier.dungeons.spigot.queue;
 
+import fr.perrier.dungeons.common.queue.QueueEntry;
 import fr.perrier.dungeons.spigot.Main;
 import lombok.RequiredArgsConstructor;
 import org.redisson.api.RDeque;
@@ -7,6 +8,7 @@ import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
 
 import java.util.*;
+import java.util.function.Consumer;
 
 /**
  * Service that manages the global dungeon queue in Redis.
@@ -32,7 +34,7 @@ public class DungeonQueueService {
      * @param floorId the floor ID
      * @return the queue deque
      */
-    private RDeque<fr.perrier.dungeons.common.queue.QueueEntry> getQueue(String floorId) {
+    private RDeque<QueueEntry> getQueue(String floorId) {
         return redissonClient.getDeque(QUEUE_PREFIX + floorId);
     }
 
@@ -52,8 +54,8 @@ public class DungeonQueueService {
      * @param entry the queue entry to add
      * @return true if added successfully, false if already in queue
      */
-    public boolean addToQueue(fr.perrier.dungeons.common.queue.QueueEntry entry) {
-        RDeque<fr.perrier.dungeons.common.queue.QueueEntry> queue = getQueue(entry.getFloorId());
+    public boolean addToQueue(QueueEntry entry) {
+        RDeque<QueueEntry> queue = getQueue(entry.getFloorId());
         
         // Check if player is already in queue
         if (isPlayerInQueue(entry.getPlayerId(), entry.getFloorId())) {
@@ -61,13 +63,14 @@ public class DungeonQueueService {
         }
 
         queue.offer(entry);
-        Main.getInstance().getLogger().info(String.format(
-            "Added player %s to queue for floor %s (Position: %d/%d)",
-            entry.getPlayerName(),
-            entry.getFloorId(),
-            queue.size(),
-            queue.size()
-        ));
+        if(Main.isDebug())
+            Main.getInstance().getLogger().info(String.format(
+                "Added player %s to queue for floor %s (Position: %d/%d)",
+                entry.getPlayerName(),
+                entry.getFloorId(),
+                queue.size(),
+                queue.size()
+            ));
         return true;
     }
 
@@ -79,10 +82,10 @@ public class DungeonQueueService {
      * @return true if removed successfully
      */
     public boolean removeFromQueue(UUID playerId, String floorId) {
-        RDeque<fr.perrier.dungeons.common.queue.QueueEntry> queue = getQueue(floorId);
+        RDeque<QueueEntry> queue = getQueue(floorId);
         boolean removed = queue.removeIf(entry -> entry.getPlayerId().equals(playerId));
         
-        if (removed) {
+        if (removed && Main.isDebug()) {
             Main.getInstance().getLogger().info(String.format(
                 "Removed player %s from queue for floor %s",
                 playerId,
@@ -99,11 +102,11 @@ public class DungeonQueueService {
      * @param floorId the floor ID
      * @return the next queue entry, or null if queue is empty
      */
-    public fr.perrier.dungeons.common.queue.QueueEntry pollNext(String floorId) {
-        RDeque<fr.perrier.dungeons.common.queue.QueueEntry> queue = getQueue(floorId);
-        fr.perrier.dungeons.common.queue.QueueEntry entry = queue.poll();
+    public QueueEntry pollNext(String floorId) {
+        RDeque<QueueEntry> queue = getQueue(floorId);
+        QueueEntry entry = queue.poll();
         
-        if (entry != null) {
+        if (entry != null && Main.isDebug()) {
             Main.getInstance().getLogger().info(String.format(
                 "Polled player %s from queue for floor %s",
                 entry.getPlayerName(),
@@ -125,8 +128,8 @@ public class DungeonQueueService {
      * @return the queue position, or null if not in queue
      */
     public QueuePosition getQueuePosition(UUID playerId, String floorId) {
-        RDeque<fr.perrier.dungeons.common.queue.QueueEntry> queue = getQueue(floorId);
-        List<fr.perrier.dungeons.common.queue.QueueEntry> queueList = new ArrayList<>(queue);
+        RDeque<QueueEntry> queue = getQueue(floorId);
+        List<QueueEntry> queueList = new ArrayList<>(queue);
         
         int position = -1;
         for (int i = 0; i < queueList.size(); i++) {
@@ -151,7 +154,7 @@ public class DungeonQueueService {
      * @return true if player is in queue
      */
     public boolean isPlayerInQueue(UUID playerId, String floorId) {
-        RDeque<fr.perrier.dungeons.common.queue.QueueEntry> queue = getQueue(floorId);
+        RDeque<QueueEntry> queue = getQueue(floorId);
         return queue.stream().anyMatch(entry -> entry.getPlayerId().equals(playerId));
     }
 
@@ -175,13 +178,14 @@ public class DungeonQueueService {
     public void registerInstance(String floorId, UUID instanceId) {
         RMap<UUID, String> instanceMap = getInstanceCountMap(floorId);
         instanceMap.put(instanceId, floorId);
-        
-        Main.getInstance().getLogger().info(String.format(
-            "Registered instance %s for floor %s (Total: %d)",
-            instanceId,
-            floorId,
-            instanceMap.size()
-        ));
+
+        if (Main.isDebug())
+            Main.getInstance().getLogger().info(String.format(
+                "Registered instance %s for floor %s (Total: %d)",
+                instanceId,
+                floorId,
+                instanceMap.size()
+            ));
     }
 
     /**
@@ -193,13 +197,13 @@ public class DungeonQueueService {
     public void unregisterInstance(String floorId, UUID instanceId) {
         RMap<UUID, String> instanceMap = getInstanceCountMap(floorId);
         instanceMap.remove(instanceId);
-        
-        Main.getInstance().getLogger().info(String.format(
-            "Unregistered instance %s for floor %s (Total: %d)",
-            instanceId,
-            floorId,
-            instanceMap.size()
-        ));
+        if (Main.isDebug())
+            Main.getInstance().getLogger().info(String.format(
+                "Unregistered instance %s for floor %s (Total: %d)",
+                instanceId,
+                floorId,
+                instanceMap.size()
+            ));
     }
 
     /**
@@ -209,7 +213,7 @@ public class DungeonQueueService {
      * @return the queue size
      */
     public int getQueueSize(String floorId) {
-        RDeque<fr.perrier.dungeons.common.queue.QueueEntry> queue = getQueue(floorId);
+        RDeque<QueueEntry> queue = getQueue(floorId);
         return queue.size();
     }
 
@@ -219,8 +223,8 @@ public class DungeonQueueService {
      * @param floorId the floor ID
      * @return list of queue entries
      */
-    public List<fr.perrier.dungeons.common.queue.QueueEntry> getQueueEntries(String floorId) {
-        RDeque<fr.perrier.dungeons.common.queue.QueueEntry> queue = getQueue(floorId);
+    public List<QueueEntry> getQueueEntries(String floorId) {
+        RDeque<QueueEntry> queue = getQueue(floorId);
         return new ArrayList<>(queue);
     }
 
@@ -233,7 +237,7 @@ public class DungeonQueueService {
         Set<String> floors = new HashSet<>();
         for (String key : redissonClient.getKeys().getKeysByPattern(QUEUE_PREFIX + "*")) {
             String floorId = key.substring(QUEUE_PREFIX.length());
-            RDeque<fr.perrier.dungeons.common.queue.QueueEntry> queue = getQueue(floorId);
+            RDeque<QueueEntry> queue = getQueue(floorId);
             if (!queue.isEmpty()) {
                 floors.add(floorId);
             }
@@ -242,19 +246,33 @@ public class DungeonQueueService {
     }
 
     /**
+     * Executes an action for each entry in the queue for a specific floor.
+     *
+     * @param floorId the floor ID
+     * @param action the action to execute
+     */
+    public void executeForEachInQueue(String floorId, Consumer<QueueEntry> action) {
+        RDeque<QueueEntry> queue = getQueue(floorId);
+        for (QueueEntry entry : queue) {
+            action.accept(entry);
+        }
+    }
+
+    /**
      * Clears the queue for a specific floor.
      *
      * @param floorId the floor ID
      */
     public void clearQueue(String floorId) {
-        RDeque<fr.perrier.dungeons.common.queue.QueueEntry> queue = getQueue(floorId);
+        RDeque<QueueEntry> queue = getQueue(floorId);
         int size = queue.size();
         queue.clear();
-        
-        Main.getInstance().getLogger().info(String.format(
-            "Cleared queue for floor %s (%d entries removed)",
-            floorId,
-            size
-        ));
+
+        if (Main.isDebug())
+            Main.getInstance().getLogger().info(String.format(
+                "Cleared queue for floor %s (%d entries removed)",
+                floorId,
+                size
+            ));
     }
 }

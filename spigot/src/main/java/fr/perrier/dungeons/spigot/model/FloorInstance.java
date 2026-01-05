@@ -73,7 +73,7 @@ public class FloorInstance extends FloorInstanceData {
         this.instanceId = generateFloorServer(getFloor(), editMode);
         this.ready = false;
 
-        Main.getInstance().getRedisStorageService().syncInstance(this.toFloorInstanceData());
+        Main.getInstance().getDungeonService().syncInstance(this.toFloorInstanceData());
     }
 
     public FloorInstance(FloorInstanceData floorInstanceData) {
@@ -128,7 +128,7 @@ public class FloorInstance extends FloorInstanceData {
      */
     public void setReady(boolean ready) {
         this.ready = ready;
-        Main.getInstance().getRedisStorageService().syncInstance(this.toFloorInstanceData());
+        Main.getInstance().getDungeonService().syncInstance(this.toFloorInstanceData());
     }
 
     /**
@@ -191,7 +191,7 @@ public class FloorInstance extends FloorInstanceData {
                 });
 
                 if (timerDelay.get() == 9) {
-                    FloorInstance instance = Main.getInstance().getRedisStorageService().getInstance(instanceId);
+                    FloorInstance instance = Main.getInstance().getDungeonService().getInstance(instanceId);
 
                     if (instance == null) {
                         Main.getInstance().getLogger().warning("&eInstance " + instanceId + "no longer exists.");
@@ -257,7 +257,7 @@ public class FloorInstance extends FloorInstanceData {
         Bukkit.broadcastMessage(ChatUtil.translate(Main.getPrefix() + "&fThe dungeon instance &e" + getInstanceName() + " &fwill shut down in &#FF000030 &fseconds."));
 
         Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
-            Main.getInstance().getRedisStorageService().removeInstance(this.instanceId);
+            Main.getInstance().getDungeonService().removeInstance(this.instanceId);
             Bukkit.shutdown();
         }, 20L * 30);
     }

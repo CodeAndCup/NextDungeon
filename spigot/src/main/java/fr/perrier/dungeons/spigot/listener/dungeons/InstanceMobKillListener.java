@@ -28,7 +28,7 @@ public class InstanceMobKillListener implements Listener {
         if(entity instanceof Player) return;
 
         if(killer != null) {
-            PlayerStats stats = Main.getInstance().getRedisStorageService().getCurrentInstance()
+            PlayerStats stats = Main.getInstance().getDungeonService().getCurrentInstance()
                     .getPlayerStats().get(killer.getUniqueId());
             if(stats != null)
                 stats.incrementEnemiesKilled();

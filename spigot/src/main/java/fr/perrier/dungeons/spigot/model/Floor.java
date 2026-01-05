@@ -1,20 +1,14 @@
 package fr.perrier.dungeons.spigot.model;
 
 import fr.perrier.dungeons.common.model.dungeon.FloorData;
-import fr.perrier.dungeons.common.model.dungeon.Step;
 import fr.perrier.dungeons.spigot.Main;
-import fr.perrier.dungeons.common.model.dungeon.config.Requirements;
-import fr.perrier.dungeons.common.model.dungeon.config.Rules;
-import fr.perrier.dungeons.common.model.dungeon.config.WorldConfig;
 import fr.perrier.dungeons.spigot.manager.DungeonFileManager;
-import fr.perrier.dungeons.spigot.workflow.trigger.Trigger;
 import fr.perrier.dungeons.spigot.utils.ServerUtil;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Bukkit;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 @Getter
@@ -24,20 +18,17 @@ public class Floor extends FloorData {
     public Floor(String id, String name) {
         super(id, name);
         super.setTriggers(DungeonFileManager.loadTriggers(id));
-        updateMap();
     }
 
     public Floor(String id, String name, String description) {
         super(id, name, description);
         super.setTriggers(DungeonFileManager.loadTriggers(id));
-        updateMap();
     }
 
     public Floor(FloorData floorData) {
         super(floorData.getId(), floorData.getName(), floorData.getDescription(),
                 floorData.getWorldConfig(), floorData.getRequirements(),
                 floorData.getRules(), floorData.getSteps(), floorData.getTriggers());
-        updateMap();
     }
 
     /**
@@ -47,7 +38,7 @@ public class Floor extends FloorData {
      * @return the floor with the given ID, or null if not found
      */
     public static @Nullable Floor getFloor(String id) {
-        return Main.getInstance().getRedisStorageService().getFloor(id);
+        return Main.getInstance().getDungeonService().getFloor(id);
     }
 
     /**
@@ -55,7 +46,7 @@ public class Floor extends FloorData {
      * notifying other servers of the update.
      */
     public void updateMap() {
-        Main.getInstance().getRedisStorageService().syncFloor(this.toFloorData());
+        Main.getInstance().getDungeonService().syncFloor(this.toFloorData());
     }
 
     /**

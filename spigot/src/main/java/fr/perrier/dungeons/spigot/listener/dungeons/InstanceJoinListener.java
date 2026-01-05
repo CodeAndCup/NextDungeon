@@ -27,7 +27,7 @@ public class InstanceJoinListener implements Listener {
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
 
-        Floor floor = Main.getInstance().getRedisStorageService().getCurrentFloor();
+        Floor floor = Main.getInstance().getDungeonService().getCurrentFloor();
         Location spawnLocation =  new Location(
                 Bukkit.getWorld("world"),
                 floor.getWorldConfig().getSpawn().getX(),
@@ -36,7 +36,7 @@ public class InstanceJoinListener implements Listener {
         );
         player.teleport(spawnLocation);
 
-        FloorInstance instance = Main.getInstance().getRedisStorageService().getCurrentInstance();
+        FloorInstance instance = Main.getInstance().getDungeonService().getCurrentInstance();
         instance.getPlayerStats().put(player.getUniqueId(), new PlayerStats(player.getUniqueId()));
 
         // Initialize player's lives if not already present

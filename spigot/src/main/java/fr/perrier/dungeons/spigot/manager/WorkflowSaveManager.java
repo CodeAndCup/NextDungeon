@@ -55,9 +55,9 @@ public class WorkflowSaveManager {
             Main.getInstance().getLogger().info("Number of triggers parsed: " + triggers.size());
 
             // Sauvegarder les triggers dans la mémoire
-            Floor floor = Main.getInstance().getRedisStorageService().getCurrentFloor();
+            Floor floor = Main.getInstance().getDungeonService().getCurrentFloor();
             floor.setTriggers(triggers);
-            Main.getInstance().getRedisStorageService().syncFloor(floor.toFloorData());
+            Main.getInstance().getDungeonService().syncFloor(floor.toFloorData());
             Main.getInstance().getLogger().info("Trigger saved in memory for floor: " + floorId);
 
             Main.getInstance().getGlobalTriggerManager().refreshTriggerCache();
@@ -116,7 +116,7 @@ public class WorkflowSaveManager {
      */
     public String loadTriggersAsJson(String dungeonName, String floorId) {
         try {
-            List<TriggerData> triggers = Main.getInstance().getRedisStorageService().getCurrentFloor().getTriggers();
+            List<TriggerData> triggers = Main.getInstance().getDungeonService().getCurrentFloor().getTriggers();
 
             // Convertir en format JSON pour Blockly
             JsonArray triggersArray = new JsonArray();

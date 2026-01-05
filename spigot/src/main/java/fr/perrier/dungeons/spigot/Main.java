@@ -34,7 +34,7 @@ import fr.perrier.dungeons.spigot.messaging.ServerNameService;
 import fr.perrier.dungeons.spigot.model.Floor;
 import fr.perrier.dungeons.spigot.model.FloorInstance;
 import fr.perrier.dungeons.spigot.storage.ProfileService;
-import fr.perrier.dungeons.spigot.storage.RedisStorageService;
+import fr.perrier.dungeons.spigot.storage.DungeonService;
 import fr.perrier.dungeons.spigot.queue.DungeonQueueService;
 import fr.perrier.dungeons.spigot.queue.QueueManager;
 import fr.perrier.dungeons.spigot.utils.ServerUtil;
@@ -75,7 +75,7 @@ public final class Main extends JavaPlugin {
 
     // Plugin packets pub/sub and sync storage
     private Pidgin messaging;
-    private RedisStorageService redisStorageService;
+    private DungeonService dungeonService;
     private ProfileService profileService;
     private DatabaseManager databaseManager;
     private ServerNameService serverNameService;
@@ -122,8 +122,8 @@ public final class Main extends JavaPlugin {
 
         try {
             // Initialize Redis storage service
-            redisStorageService = new RedisStorageService(redissonClient);
-            redisStorageService.initialize();
+            dungeonService = new DungeonService(redissonClient);
+            dungeonService.initialize();
             getLogger().info("Redis storage service initialized successfully");
         }catch (Exception e) {
             getLogger().severe("&#FF0000Failed to initialize Redis: " + e.getMessage());
@@ -261,7 +261,7 @@ public final class Main extends JavaPlugin {
             InstanceInfo info = ServerUtil.getInstanceInfo();
             if (info != null) {
                 // Remove instance from Redis
-                redisStorageService.removeInstance(info.getInstanceId());
+                dungeonService.removeInstance(info.getInstanceId());
                 
                 // Unregister from queue system
                 if (dungeonQueueService != null) {
@@ -276,8 +276,8 @@ public final class Main extends JavaPlugin {
         }
 
         // Clear local Redis data
-        if (redisStorageService != null) {
-            redisStorageService.clearLocal();
+        if (dungeonService != null) {
+            dungeonService.clearLocal();
         }
 
         CupCodeAPI.disable();
@@ -383,7 +383,7 @@ public final class Main extends JavaPlugin {
         loadInstanceListeners();
 
         // Initialize instance in Redis
-        redisStorageService.initializeInstance(info.getInstanceId(), info.getFloorId());
+        dungeonService.initializeInstance(info.getInstanceId(), info.getFloorId());
 
         // Register instance with queue system
         if (dungeonQueueService != null) {
@@ -450,7 +450,7 @@ public final class Main extends JavaPlugin {
             @Override
             public void run(){
                 Bukkit.getScheduler().runTaskLaterAsynchronously(Main.getInstance(), () -> {
-                    FloorInstance instance = Main.getInstance().getRedisStorageService().getCurrentInstance();
+                    FloorInstance instance = Main.getInstance().getDungeonService().getCurrentInstance();
                     if (instance != null) {
                         instance.setReady(true);
                         Main.getInstance().getLogger().info("Instance " + instance.getInstanceId() + " is now ready!");

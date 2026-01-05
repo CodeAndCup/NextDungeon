@@ -20,7 +20,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 @RequiredArgsConstructor
-public class RedisStorageService {
+public class DungeonService {
     private final RedissonClient redissonClient;
 
     // Redis Maps and Topics
