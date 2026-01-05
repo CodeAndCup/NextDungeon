@@ -1,6 +1,6 @@
 package fr.perrier.dungeons.velocity.messaging.packets.webeditor;
 
-import fr.perrier.dungeons.velocity.messaging.pidgin.Packet;
+import fr.perrier.dungeons.common.messaging.pidgin.Packet;
 import lombok.Data;
 
 import java.util.UUID;

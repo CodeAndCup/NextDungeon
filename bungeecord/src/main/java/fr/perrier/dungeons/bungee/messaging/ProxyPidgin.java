@@ -2,11 +2,10 @@ package fr.perrier.dungeons.bungee.messaging;
 
 import com.google.gson.Gson;
 import fr.perrier.dungeons.bungee.NextDungeonBungee;
-import fr.perrier.dungeons.bungee.messaging.packets.webeditor.WebEditorRequestPacket;
 import fr.perrier.dungeons.bungee.messaging.packets.webeditor.WebEditorResponsePacket;
-import fr.perrier.dungeons.bungee.messaging.pidgin.IncomingPacketHandler;
-import fr.perrier.dungeons.bungee.messaging.pidgin.Packet;
-import fr.perrier.dungeons.bungee.messaging.pidgin.PacketListener;
+import fr.perrier.dungeons.common.messaging.pidgin.IncomingPacketHandler;
+import fr.perrier.dungeons.common.messaging.pidgin.Packet;
+import fr.perrier.dungeons.common.messaging.pidgin.PacketListener;
 import fr.perrier.dungeons.bungee.messaging.subscribers.WebEditorResponseSubscriber;
 import lombok.Getter;
 import org.redisson.Redisson;

@@ -1,4 +1,4 @@
-package fr.perrier.dungeons.spigot.messaging.pidgin;
+package fr.perrier.dungeons.common.messaging.pidgin;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

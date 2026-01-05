@@ -1,4 +1,4 @@
-package fr.perrier.dungeons.bungee.messaging.pidgin;
+package fr.perrier.dungeons.common.messaging.pidgin;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
