@@ -6,6 +6,7 @@ import fr.perrier.dungeons.spigot.workflow.trigger.Trigger;
 import fr.perrier.dungeons.spigot.workflow.trigger.handler.TriggerEventHandler;
 import fr.perrier.dungeons.spigot.workflow.trigger.handler.impl.EntityDeathTriggerHandler;
 import fr.perrier.dungeons.spigot.workflow.trigger.handler.impl.RegionTriggerHandler;
+import fr.perrier.dungeons.spigot.workflow.trigger.handler.impl.BlockClickTriggerHandler;
 import fr.perrier.dungeons.spigot.workflow.trigger.impl.FunctionTrigger;
 import org.bukkit.Bukkit;
 import org.bukkit.event.Event;
@@ -68,6 +69,7 @@ public class GlobalTriggerManager implements Listener {
     private void registerDefaultHandlers() {
         registerHandler(new RegionTriggerHandler());
         registerHandler(new EntityDeathTriggerHandler());
+        registerHandler(new BlockClickTriggerHandler());
     }
 
     /**

@@ -6,6 +6,7 @@ import fr.perrier.dungeons.spigot.workflow.trigger.Trigger;
 import fr.perrier.dungeons.spigot.workflow.trigger.impl.FunctionTrigger;
 import fr.perrier.dungeons.spigot.workflow.trigger.impl.RegionTrigger;
 import fr.perrier.dungeons.spigot.workflow.trigger.impl.EntityDeathTrigger;
+import fr.perrier.dungeons.spigot.workflow.trigger.impl.BlockClickTrigger;
 import fr.perrier.dungeons.spigot.Main;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonArray;
@@ -32,6 +33,7 @@ public class TriggerFactory {
                 case "region_trigger" -> createRegionTrigger(triggerData, name);
                 case "function_trigger" -> createFunctionTrigger(triggerData, name);
                 case "entity_death_trigger" -> createEntityDeathTrigger(triggerData, name);
+                case "block_click_trigger" -> createBlockClickTrigger(triggerData, name);
                 default -> {
                     Main.getInstance().getLogger().warning("&eTrigger type unknown: " + type);
                     yield null;
@@ -93,6 +95,21 @@ public class TriggerFactory {
         EntityDeathTrigger trigger = new EntityDeathTrigger(name);
 
         if (data.has("entitytype")) trigger.setEntityType(data.get("entitytype").getAsString());
+
+        return trigger;
+    }
+
+    private static BlockClickTrigger createBlockClickTrigger(JsonObject data, String name) {
+        BlockClickTrigger trigger = new BlockClickTrigger(name);
+
+        if (data.has("clicktype")) trigger.setClickType(data.get("clicktype").getAsString());
+        if (data.has("detectiontype")) trigger.setDetectionType(data.get("detectiontype").getAsString());
+        if (data.has("blockmaterial")) trigger.setBlockMaterial(data.get("blockmaterial").getAsString());
+        if (data.has("blockx")) trigger.setBlockX(data.get("blockx").getAsInt());
+        if (data.has("blocky")) trigger.setBlockY(data.get("blocky").getAsInt());
+        if (data.has("blockz")) trigger.setBlockZ(data.get("blockz").getAsInt());
+        if (data.has("worldname")) trigger.setWorldName(data.get("worldname").getAsString());
+        if (data.has("exactpositiononly")) trigger.setExactPositionOnly(data.get("exactpositiononly").getAsBoolean());
 
         return trigger;
     }

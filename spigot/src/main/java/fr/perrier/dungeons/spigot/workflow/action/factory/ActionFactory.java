@@ -150,6 +150,30 @@ public class ActionFactory {
                         actionData.get("ticks").getAsInt() : 20;
                     yield new DelayAction(ticks);
                 }
+                case "get_variable_action" -> {
+                    String sourceVariableName = actionData.has("sourcevariablename") ?
+                            actionData.get("sourcevariablename").getAsString() : "ma_variable";
+                    String destinationVariableName = actionData.has("destinationvariablename") ?
+                            actionData.get("destinationvariablename").getAsString() : "resultat_variable";
+                    String sourceScope = actionData.has("sourcescope") ?
+                            actionData.get("sourcescope").getAsString() : "player";
+                    String destinationScope = actionData.has("destinationscope") ?
+                            actionData.get("destinationscope").getAsString() : "player";
+                    yield new GetVariableAction(sourceVariableName, destinationVariableName, sourceScope, destinationScope);
+                }
+                case "math_operation_action" -> {
+                    String firstValue = actionData.has("firstvalue") ?
+                            actionData.get("firstvalue").getAsString() : "5";
+                    String operation = actionData.has("operation") ?
+                            actionData.get("operation").getAsString() : "add";
+                    String secondValue = actionData.has("secondvalue") ?
+                            actionData.get("secondvalue").getAsString() : "3";
+                    String resultVariableName = actionData.has("resultvariablename") ?
+                            actionData.get("resultvariablename").getAsString() : "resultat";
+                    String resultScope = actionData.has("resultscope") ?
+                            actionData.get("resultscope").getAsString() : "player";
+                    yield new MathOperationAction(firstValue, operation, secondValue, resultVariableName, resultScope);
+                }
                 default -> {
                     Main.getInstance().getLogger().warning("&eType d'action inconnu: " + type);
                     yield null;
