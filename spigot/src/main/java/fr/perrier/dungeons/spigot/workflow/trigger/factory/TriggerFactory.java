@@ -7,6 +7,10 @@ import fr.perrier.dungeons.spigot.workflow.trigger.impl.FunctionTrigger;
 import fr.perrier.dungeons.spigot.workflow.trigger.impl.RegionTrigger;
 import fr.perrier.dungeons.spigot.workflow.trigger.impl.EntityDeathTrigger;
 import fr.perrier.dungeons.spigot.workflow.trigger.impl.BlockClickTrigger;
+import fr.perrier.dungeons.spigot.workflow.trigger.impl.PlayerDamageTrigger;
+import fr.perrier.dungeons.spigot.workflow.trigger.impl.ItemPickupTrigger;
+import fr.perrier.dungeons.spigot.workflow.trigger.impl.ChatMessageTrigger;
+import fr.perrier.dungeons.spigot.workflow.trigger.impl.PlayerJumpTrigger;
 import fr.perrier.dungeons.spigot.Main;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonArray;
@@ -34,6 +38,10 @@ public class TriggerFactory {
                 case "function_trigger" -> createFunctionTrigger(triggerData, name);
                 case "entity_death_trigger" -> createEntityDeathTrigger(triggerData, name);
                 case "block_click_trigger" -> createBlockClickTrigger(triggerData, name);
+                case "player_damage_trigger" -> createPlayerDamageTrigger(triggerData, name);
+                case "item_pickup_trigger" -> createItemPickupTrigger(triggerData, name);
+                case "chat_message_trigger" -> createChatMessageTrigger(triggerData, name);
+                case "player_jump_trigger" -> createPlayerJumpTrigger(triggerData, name);
                 default -> {
                     Main.getInstance().getLogger().warning("&eTrigger type unknown: " + type);
                     yield null;
@@ -110,6 +118,46 @@ public class TriggerFactory {
         if (data.has("blockz")) trigger.setBlockZ(data.get("blockz").getAsInt());
         if (data.has("worldname")) trigger.setWorldName(data.get("worldname").getAsString());
         if (data.has("exactpositiononly")) trigger.setExactPositionOnly(data.get("exactpositiononly").getAsBoolean());
+
+        return trigger;
+    }
+
+    private static PlayerDamageTrigger createPlayerDamageTrigger(JsonObject data, String name) {
+        PlayerDamageTrigger trigger = new PlayerDamageTrigger(name);
+
+        if (data.has("damagetype")) trigger.setDamageType(data.get("damagetype").getAsString());
+        if (data.has("mindamage")) trigger.setMinDamage(data.get("mindamage").getAsDouble());
+        if (data.has("canceldamage")) trigger.setCancelDamage(data.get("canceldamage").getAsBoolean());
+
+        return trigger;
+    }
+
+    private static ItemPickupTrigger createItemPickupTrigger(JsonObject data, String name) {
+        ItemPickupTrigger trigger = new ItemPickupTrigger(name);
+
+        if (data.has("itemmaterial")) trigger.setItemMaterial(data.get("itemmaterial").getAsString());
+        if (data.has("minamount")) trigger.setMinAmount(data.get("minamount").getAsInt());
+        if (data.has("cancelpickup")) trigger.setCancelPickup(data.get("cancelpickup").getAsBoolean());
+
+        return trigger;
+    }
+
+    private static ChatMessageTrigger createChatMessageTrigger(JsonObject data, String name) {
+        ChatMessageTrigger trigger = new ChatMessageTrigger(name);
+
+        if (data.has("keyword")) trigger.setKeyword(data.get("keyword").getAsString());
+        if (data.has("casesensitive")) trigger.setCaseSensitive(data.get("casesensitive").getAsBoolean());
+        if (data.has("cancelmessage")) trigger.setCancelMessage(data.get("cancelmessage").getAsBoolean());
+        if (data.has("matchtype")) trigger.setMatchType(data.get("matchtype").getAsString());
+
+        return trigger;
+    }
+
+    private static PlayerJumpTrigger createPlayerJumpTrigger(JsonObject data, String name) {
+        PlayerJumpTrigger trigger = new PlayerJumpTrigger(name);
+
+        if (data.has("cooldownseconds")) trigger.setCooldownSeconds(data.get("cooldownseconds").getAsInt());
+        if (data.has("onlyonce")) trigger.setOnlyOnce(data.get("onlyonce").getAsBoolean());
 
         return trigger;
     }

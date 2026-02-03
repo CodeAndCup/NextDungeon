@@ -174,6 +174,69 @@ public class ActionFactory {
                             actionData.get("resultscope").getAsString() : "player";
                     yield new MathOperationAction(firstValue, operation, secondValue, resultVariableName, resultScope);
                 }
+                case "play_sound_action" -> {
+                    String sound = actionData.has("sound") ?
+                            actionData.get("sound").getAsString() : "ENTITY_PLAYER_LEVELUP";
+                    float volume = actionData.has("volume") ?
+                            actionData.get("volume").getAsFloat() : 1.0f;
+                    float pitch = actionData.has("pitch") ?
+                            actionData.get("pitch").getAsFloat() : 1.0f;
+                    String target = actionData.has("target") ?
+                            actionData.get("target").getAsString() : "player";
+                    yield new PlaySoundAction(sound, volume, pitch, target);
+                }
+                case "give_item_action" -> {
+                    String itemMaterial = actionData.has("itemmaterial") ?
+                            actionData.get("itemmaterial").getAsString() : "DIAMOND";
+                    int amount = actionData.has("amount") ?
+                            actionData.get("amount").getAsInt() : 1;
+                    String customName = actionData.has("customname") ?
+                            actionData.get("customname").getAsString() : "";
+                    String target = actionData.has("target") ?
+                            actionData.get("target").getAsString() : "player";
+                    yield new GiveItemAction(itemMaterial, amount, customName, target);
+                }
+                case "apply_potion_effect_action" -> {
+                    String effectType = actionData.has("effecttype") ?
+                            actionData.get("effecttype").getAsString() : "SPEED";
+                    int duration = actionData.has("duration") ?
+                            actionData.get("duration").getAsInt() : 10;
+                    int amplifier = actionData.has("amplifier") ?
+                            actionData.get("amplifier").getAsInt() : 1;
+                    boolean ambient = actionData.has("ambient") ?
+                            actionData.get("ambient").getAsBoolean() : false;
+                    boolean particles = actionData.has("particles") ?
+                            actionData.get("particles").getAsBoolean() : true;
+                    String target = actionData.has("target") ?
+                            actionData.get("target").getAsString() : "player";
+                    yield new ApplyPotionEffectAction(effectType, duration, amplifier, ambient, particles, target);
+                }
+                case "set_health_action" -> {
+                    String operation = actionData.has("operation") ?
+                            actionData.get("operation").getAsString() : "set";
+                    double value = actionData.has("value") ?
+                            actionData.get("value").getAsDouble() : 20;
+                    String target = actionData.has("target") ?
+                            actionData.get("target").getAsString() : "player";
+                    yield new SetHealthAction(operation, value, target);
+                }
+                case "spawn_particle_action" -> {
+                    String particleType = actionData.has("particletype") ?
+                            actionData.get("particletype").getAsString() : "FLAME";
+                    int count = actionData.has("count") ?
+                            actionData.get("count").getAsInt() : 10;
+                    double offsetX = actionData.has("offsetx") ?
+                            actionData.get("offsetx").getAsDouble() : 0.5;
+                    double offsetY = actionData.has("offsety") ?
+                            actionData.get("offsety").getAsDouble() : 0.5;
+                    double offsetZ = actionData.has("offsetz") ?
+                            actionData.get("offsetz").getAsDouble() : 0.5;
+                    double speed = actionData.has("speed") ?
+                            actionData.get("speed").getAsDouble() : 0.1;
+                    String locationSource = actionData.has("locationsource") ?
+                            actionData.get("locationsource").getAsString() : "player";
+                    yield new SpawnParticleAction(particleType, count, offsetX, offsetY, offsetZ, speed, locationSource);
+                }
                 default -> {
                     Main.getInstance().getLogger().warning("&eType d'action inconnu: " + type);
                     yield null;

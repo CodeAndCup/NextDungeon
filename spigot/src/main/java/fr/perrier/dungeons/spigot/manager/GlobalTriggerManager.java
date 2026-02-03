@@ -7,6 +7,10 @@ import fr.perrier.dungeons.spigot.workflow.trigger.handler.TriggerEventHandler;
 import fr.perrier.dungeons.spigot.workflow.trigger.handler.impl.EntityDeathTriggerHandler;
 import fr.perrier.dungeons.spigot.workflow.trigger.handler.impl.RegionTriggerHandler;
 import fr.perrier.dungeons.spigot.workflow.trigger.handler.impl.BlockClickTriggerHandler;
+import fr.perrier.dungeons.spigot.workflow.trigger.handler.impl.PlayerDamageTriggerHandler;
+import fr.perrier.dungeons.spigot.workflow.trigger.handler.impl.ItemPickupTriggerHandler;
+import fr.perrier.dungeons.spigot.workflow.trigger.handler.impl.ChatMessageTriggerHandler;
+import fr.perrier.dungeons.spigot.workflow.trigger.handler.impl.PlayerJumpTriggerHandler;
 import fr.perrier.dungeons.spigot.workflow.trigger.impl.FunctionTrigger;
 import org.bukkit.Bukkit;
 import org.bukkit.event.Event;
@@ -70,6 +74,10 @@ public class GlobalTriggerManager implements Listener {
         registerHandler(new RegionTriggerHandler());
         registerHandler(new EntityDeathTriggerHandler());
         registerHandler(new BlockClickTriggerHandler());
+        registerHandler(new PlayerDamageTriggerHandler());
+        registerHandler(new ItemPickupTriggerHandler());
+        registerHandler(new ChatMessageTriggerHandler());
+        registerHandler(new PlayerJumpTriggerHandler());
     }
 
     /**
