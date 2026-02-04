@@ -9,5 +9,5 @@ api-version: '1.21'
 authors: [ PerrierBottle ]
 website: https://cupcode.fr/
 
-depend: [ MMOCore ]
+depend: [ MMOCore, packetevents ]
 softdepend: [ Parties, MythicMobs,  CloudNet-Bridge ]

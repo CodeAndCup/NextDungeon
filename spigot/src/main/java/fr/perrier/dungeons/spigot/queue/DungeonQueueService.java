@@ -8,6 +8,7 @@ import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 /**
@@ -20,6 +21,9 @@ public class DungeonQueueService {
 
     private static final String QUEUE_PREFIX = "dungeons:queue:";
     private static final String INSTANCE_COUNT_PREFIX = "dungeons:instance_count:";
+
+    // Cache of active queue floors to avoid expensive Redis pattern matching
+    private final Set<String> activeQueueFloorsCache = ConcurrentHashMap.newKeySet();
 
     /**
      * Initializes the queue service.
@@ -63,6 +67,9 @@ public class DungeonQueueService {
         }
 
         queue.offer(entry);
+        // Update cache to include this floor
+        activeQueueFloorsCache.add(entry.getFloorId());
+
         if(Main.isDebug())
             Main.getInstance().getLogger().info(String.format(
                 "Added player %s to queue for floor %s (Position: %d/%d)",
@@ -85,6 +92,11 @@ public class DungeonQueueService {
         RDeque<QueueEntry> queue = getQueue(floorId);
         boolean removed = queue.removeIf(entry -> entry.getPlayerId().equals(playerId));
         
+        // Update cache if queue is now empty
+        if (removed && queue.isEmpty()) {
+            activeQueueFloorsCache.remove(floorId);
+        }
+
         if (removed && Main.isDebug()) {
             Main.getInstance().getLogger().info(String.format(
                 "Removed player %s from queue for floor %s",
@@ -106,6 +118,11 @@ public class DungeonQueueService {
         RDeque<QueueEntry> queue = getQueue(floorId);
         QueueEntry entry = queue.poll();
         
+        // Update cache if queue is now empty
+        if (queue.isEmpty()) {
+            activeQueueFloorsCache.remove(floorId);
+        }
+
         if (entry != null && Main.isDebug()) {
             Main.getInstance().getLogger().info(String.format(
                 "Polled player %s from queue for floor %s",
@@ -230,19 +247,12 @@ public class DungeonQueueService {
 
     /**
      * Gets all floors that have active queues.
+     * This uses a cached set of floors to avoid expensive Redis pattern matching queries.
      *
-     * @return set of floor IDs
+     * @return set of floor IDs with active queues
      */
     public Set<String> getActiveQueueFloors() {
-        Set<String> floors = new HashSet<>();
-        for (String key : redissonClient.getKeys().getKeysByPattern(QUEUE_PREFIX + "*")) {
-            String floorId = key.substring(QUEUE_PREFIX.length());
-            RDeque<QueueEntry> queue = getQueue(floorId);
-            if (!queue.isEmpty()) {
-                floors.add(floorId);
-            }
-        }
-        return floors;
+        return new HashSet<>(activeQueueFloorsCache);
     }
 
     /**
@@ -267,6 +277,8 @@ public class DungeonQueueService {
         RDeque<QueueEntry> queue = getQueue(floorId);
         int size = queue.size();
         queue.clear();
+        // Update cache to remove this floor
+        activeQueueFloorsCache.remove(floorId);
 
         if (Main.isDebug())
             Main.getInstance().getLogger().info(String.format(
