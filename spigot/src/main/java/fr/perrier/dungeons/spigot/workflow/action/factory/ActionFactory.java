@@ -237,6 +237,13 @@ public class ActionFactory {
                             actionData.get("locationsource").getAsString() : "player";
                     yield new SpawnParticleAction(particleType, count, offsetX, offsetY, offsetZ, speed, locationSource);
                 }
+                case "teleport_location_action" -> {
+                    String targetPlayer = actionData.has("targetplayer") ?
+                            actionData.get("targetplayer").getAsString() : "player";
+                    fr.perrier.dungeons.spigot.workflow.blocks.LocationBlock location =
+                            fr.perrier.dungeons.spigot.workflow.blocks.LocationBlockParser.parseFromJson(actionData, "location");
+                    yield new TeleportLocationAction(targetPlayer, location);
+                }
                 default -> {
                     Main.getInstance().getLogger().warning("&eType d'action inconnu: " + type);
                     yield null;

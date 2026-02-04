@@ -304,6 +304,15 @@ public class BlocklyJavaScriptGenerator {
                         .append(field.defaultValue().equalsIgnoreCase("true") ? "true" : "false")
                         .append("), \"").append(field.fieldName().toUpperCase()).append("\");\n");
                 break;
+            case LOCATION_INPUT:
+                // Champ de type location avec connexion à un bloc de location
+                js.append("        this.appendValueInput(\"").append(field.fieldName().toUpperCase()).append("\")\n");
+                js.append("            .setCheck(\"Location\")");
+                if (!field.label().isEmpty()) {
+                    js.append("\n            .appendField(\"").append(escapeJavaScript(field.label())).append("\")");
+                }
+                js.append(";\n");
+                return; // Pas besoin de fermer avec appendDummyInput
         }
     }
 
@@ -375,6 +384,76 @@ public class BlocklyJavaScriptGenerator {
                         this.setOutput(true, null);
                         this.setColour('#5C6BC0');
                         this.setTooltip('Bloc de texte pour valeurs');
+                    }
+                };
+                
+                // Location Blocks
+                Blockly.Blocks['location_xyz'] = {
+                    init: function() {
+                        this.appendDummyInput()
+                            .appendField("📍 Position");
+                        this.appendDummyInput()
+                            .appendField("X:")
+                            .appendField(new Blockly.FieldNumber(0), "X");
+                        this.appendDummyInput()
+                            .appendField("Y:")
+                            .appendField(new Blockly.FieldNumber(64), "Y");
+                        this.appendDummyInput()
+                            .appendField("Z:")
+                            .appendField(new Blockly.FieldNumber(0), "Z");
+                        this.setOutput(true, "Location");
+                        this.setColour('#FF9800');
+                        this.setTooltip('Définit une position avec coordonnées X, Y, Z');
+                    }
+                };
+                
+                Blockly.Blocks['location_xyz_world'] = {
+                    init: function() {
+                        this.appendDummyInput()
+                            .appendField("🌍 Position + Monde");
+                        this.appendDummyInput()
+                            .appendField("X:")
+                            .appendField(new Blockly.FieldNumber(0), "X");
+                        this.appendDummyInput()
+                            .appendField("Y:")
+                            .appendField(new Blockly.FieldNumber(64), "Y");
+                        this.appendDummyInput()
+                            .appendField("Z:")
+                            .appendField(new Blockly.FieldNumber(0), "Z");
+                        this.appendDummyInput()
+                            .appendField("Monde:")
+                            .appendField(new Blockly.FieldTextInput("world"), "WORLD");
+                        this.setOutput(true, "Location");
+                        this.setColour('#FF9800');
+                        this.setTooltip('Définit une position avec coordonnées et monde');
+                    }
+                };
+                
+                Blockly.Blocks['location_full'] = {
+                    init: function() {
+                        this.appendDummyInput()
+                            .appendField("🎯 Position Complète");
+                        this.appendDummyInput()
+                            .appendField("X:")
+                            .appendField(new Blockly.FieldNumber(0), "X");
+                        this.appendDummyInput()
+                            .appendField("Y:")
+                            .appendField(new Blockly.FieldNumber(64), "Y");
+                        this.appendDummyInput()
+                            .appendField("Z:")
+                            .appendField(new Blockly.FieldNumber(0), "Z");
+                        this.appendDummyInput()
+                            .appendField("Monde:")
+                            .appendField(new Blockly.FieldTextInput("world"), "WORLD");
+                        this.appendDummyInput()
+                            .appendField("Yaw:")
+                            .appendField(new Blockly.FieldNumber(0), "YAW");
+                        this.appendDummyInput()
+                            .appendField("Pitch:")
+                            .appendField(new Blockly.FieldNumber(0), "PITCH");
+                        this.setOutput(true, "Location");
+                        this.setColour('#FF9800');
+                        this.setTooltip('Définit une position avec coordonnées, monde et rotation');
                     }
                 };
                         
@@ -506,7 +585,11 @@ public class BlocklyJavaScriptGenerator {
                             "contents": [
                                 {"kind": "block", "type": "boolean_true"},
                                 {"kind": "block", "type": "boolean_false"},
-                                {"kind": "block", "type": "text"}
+                                {"kind": "block", "type": "text"},
+                                {"kind": "label", "text": "Locations"},
+                                {"kind": "block", "type": "location_xyz"},
+                                {"kind": "block", "type": "location_xyz_world"},
+                                {"kind": "block", "type": "location_full"}
                             ]
                         }
                     ]
@@ -959,6 +1042,29 @@ public class BlocklyJavaScriptGenerator {
                 js.append(field.fieldName().toLowerCase())
                         .append(": ").append(blockVariable).append(".getFieldValue('").append(fieldName).append("') === 'TRUE'");
                 break;
+
+            case LOCATION_INPUT:
+                // Extraction d'un bloc de location avec tous ses paramètres
+                js.append(field.fieldName().toLowerCase())
+                        .append(": (() => {\n");
+                js.append("                            const locBlock = ").append(blockVariable).append(".getInputTargetBlock('").append(fieldName).append("');\n");
+                js.append("                            if (!locBlock) return null;\n");
+                js.append("                            const location = {};\n");
+                js.append("                            location.x = parseFloat(locBlock.getFieldValue('X')) || 0;\n");
+                js.append("                            location.y = parseFloat(locBlock.getFieldValue('Y')) || 64;\n");
+                js.append("                            location.z = parseFloat(locBlock.getFieldValue('Z')) || 0;\n");
+                js.append("                            if (locBlock.type === 'location_xyz_world' || locBlock.type === 'location_full') {\n");
+                js.append("                                location.world = locBlock.getFieldValue('WORLD') || 'world';\n");
+                js.append("                                location.hasWorld = true;\n");
+                js.append("                            }\n");
+                js.append("                            if (locBlock.type === 'location_full') {\n");
+                js.append("                                location.yaw = parseFloat(locBlock.getFieldValue('YAW')) || 0;\n");
+                js.append("                                location.pitch = parseFloat(locBlock.getFieldValue('PITCH')) || 0;\n");
+                js.append("                                location.hasRotation = true;\n");
+                js.append("                            }\n");
+                js.append("                            return location;\n");
+                js.append("                        })()");
+                break;
         }
     }
 
@@ -1009,6 +1115,34 @@ public class BlocklyJavaScriptGenerator {
                 // Charge une valeur de type case à cocher (vrai/faux)
                 js.append("                    ").append(blockType).append("Block.setFieldValue(").append(blockType).append(".").append(objectField)
                         .append(" ? 'TRUE' : 'FALSE', '").append(fieldName).append("');\n");
+                break;
+
+            case LOCATION_INPUT:
+                // Charge un bloc de location avec tous ses paramètres
+                js.append("                    if (").append(blockType).append(".").append(objectField).append(") {\n");
+                js.append("                        const loc = ").append(blockType).append(".").append(objectField).append(";\n");
+                js.append("                        let locBlockType = 'location_xyz';\n");
+                js.append("                        if (loc.hasRotation) {\n");
+                js.append("                            locBlockType = 'location_full';\n");
+                js.append("                        } else if (loc.hasWorld) {\n");
+                js.append("                            locBlockType = 'location_xyz_world';\n");
+                js.append("                        }\n");
+                js.append("                        const locBlock = workspace.newBlock(locBlockType);\n");
+                js.append("                        locBlock.setFieldValue((loc.x || 0).toString(), 'X');\n");
+                js.append("                        locBlock.setFieldValue((loc.y || 64).toString(), 'Y');\n");
+                js.append("                        locBlock.setFieldValue((loc.z || 0).toString(), 'Z');\n");
+                js.append("                        if (locBlockType === 'location_xyz_world' || locBlockType === 'location_full') {\n");
+                js.append("                            locBlock.setFieldValue((loc.world || 'world').toString(), 'WORLD');\n");
+                js.append("                        }\n");
+                js.append("                        if (locBlockType === 'location_full') {\n");
+                js.append("                            locBlock.setFieldValue((loc.yaw || 0).toString(), 'YAW');\n");
+                js.append("                            locBlock.setFieldValue((loc.pitch || 0).toString(), 'PITCH');\n");
+                js.append("                        }\n");
+                js.append("                        locBlock.initSvg();\n");
+                js.append("                        locBlock.render();\n");
+                js.append("                        ").append(blockType).append("Block.getInput('").append(fieldName)
+                        .append("').connection.connect(locBlock.outputConnection);\n");
+                js.append("                    }\n");
                 break;
         }
     }

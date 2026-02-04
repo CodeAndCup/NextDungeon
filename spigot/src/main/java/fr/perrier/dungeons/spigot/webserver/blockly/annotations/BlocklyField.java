@@ -15,7 +15,8 @@ public @interface BlocklyField {
         DROPDOWN,
         BOOLEAN_INPUT,
         COLOR_INPUT,
-        CHECKBOX
+        CHECKBOX,
+        LOCATION_INPUT
     }
 
     /**
