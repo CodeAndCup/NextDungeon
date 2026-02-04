@@ -8,7 +8,7 @@ import fr.perrier.dungeons.spigot.Main;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
-import fr.perrier.dungeons.spigot.workflow.condition.IfAction;
+import fr.perrier.dungeons.spigot.workflow.condition.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -114,6 +114,280 @@ public class ActionFactory {
                     }
 
                     yield ifAction;
+                }
+                case "player_has_item_condition" -> {
+                    PlayerHasItemCondition condition = new PlayerHasItemCondition();
+
+                    if (actionData.has("itemmaterial")) {
+                        condition.setItemMaterial(actionData.get("itemmaterial").getAsString());
+                    }
+                    if (actionData.has("minamount")) {
+                        condition.setMinAmount(actionData.get("minamount").getAsInt());
+                    }
+                    if (actionData.has("checkname")) {
+                        condition.setCheckName(actionData.get("checkname").getAsBoolean());
+                    }
+                    if (actionData.has("itemname")) {
+                        condition.setItemName(actionData.get("itemname").getAsString());
+                    }
+
+                    // Load IF actions
+                    if (actionData.has("ifactions")) {
+                        JsonArray ifActionsArray = actionData.getAsJsonArray("ifactions");
+                        for (JsonElement actionElement : ifActionsArray) {
+                            Action action = createActionFromJson(actionElement.getAsJsonObject());
+                            if (action != null) {
+                                condition.addIfAction(action);
+                            }
+                        }
+                    }
+
+                    // Load ELSE actions
+                    if (actionData.has("elseactions")) {
+                        JsonArray elseActionsArray = actionData.getAsJsonArray("elseactions");
+                        for (JsonElement actionElement : elseActionsArray) {
+                            Action action = createActionFromJson(actionElement.getAsJsonObject());
+                            if (action != null) {
+                                condition.addElseAction(action);
+                            }
+                        }
+                    }
+
+                    yield condition;
+                }
+                case "location_is_safe_condition" -> {
+                    LocationIsSafeCondition condition = new LocationIsSafeCondition();
+
+                    if (actionData.has("location")) {
+                        condition.setLocation(fr.perrier.dungeons.spigot.workflow.blocks.LocationBlockParser.parseFromJson(actionData, "location"));
+                    }
+                    if (actionData.has("checksolidground")) {
+                        condition.setCheckSolidGround(actionData.get("checksolidground").getAsBoolean());
+                    }
+                    if (actionData.has("checkdangerousblocks")) {
+                        condition.setCheckDangerousBlocks(actionData.get("checkdangerousblocks").getAsBoolean());
+                    }
+
+                    // Load IF actions
+                    if (actionData.has("ifactions")) {
+                        JsonArray ifActionsArray = actionData.getAsJsonArray("ifactions");
+                        for (JsonElement actionElement : ifActionsArray) {
+                            Action action = createActionFromJson(actionElement.getAsJsonObject());
+                            if (action != null) {
+                                condition.addIfAction(action);
+                            }
+                        }
+                    }
+
+                    // Load ELSE actions
+                    if (actionData.has("elseactions")) {
+                        JsonArray elseActionsArray = actionData.getAsJsonArray("elseactions");
+                        for (JsonElement actionElement : elseActionsArray) {
+                            Action action = createActionFromJson(actionElement.getAsJsonObject());
+                            if (action != null) {
+                                condition.addElseAction(action);
+                            }
+                        }
+                    }
+
+                    yield condition;
+                }
+                case "time_of_day_condition" -> {
+                    TimeOfDayCondition condition = new TimeOfDayCondition();
+
+                    if (actionData.has("timeperiod")) {
+                        condition.setTimePeriod(actionData.get("timeperiod").getAsString());
+                    }
+                    if (actionData.has("customtime")) {
+                        condition.setCustomTime(actionData.get("customtime").getAsLong());
+                    }
+                    if (actionData.has("operator")) {
+                        condition.setOperator(actionData.get("operator").getAsString());
+                    }
+
+                    // Load IF actions
+                    if (actionData.has("ifactions")) {
+                        JsonArray ifActionsArray = actionData.getAsJsonArray("ifactions");
+                        for (JsonElement actionElement : ifActionsArray) {
+                            Action action = createActionFromJson(actionElement.getAsJsonObject());
+                            if (action != null) {
+                                condition.addIfAction(action);
+                            }
+                        }
+                    }
+
+                    // Load ELSE actions
+                    if (actionData.has("elseactions")) {
+                        JsonArray elseActionsArray = actionData.getAsJsonArray("elseactions");
+                        for (JsonElement actionElement : elseActionsArray) {
+                            Action action = createActionFromJson(actionElement.getAsJsonObject());
+                            if (action != null) {
+                                condition.addElseAction(action);
+                            }
+                        }
+                    }
+
+                    yield condition;
+                }
+                case "entity_type_is_condition" -> {
+                    EntityTypeIsCondition condition = new EntityTypeIsCondition();
+
+                    if (actionData.has("entitytype")) {
+                        condition.setEntityType(actionData.get("entitytype").getAsString());
+                    }
+                    if (actionData.has("comparison")) {
+                        condition.setComparison(actionData.get("comparison").getAsString());
+                    }
+
+                    // Load IF actions
+                    if (actionData.has("ifactions")) {
+                        JsonArray ifActionsArray = actionData.getAsJsonArray("ifactions");
+                        for (JsonElement actionElement : ifActionsArray) {
+                            Action action = createActionFromJson(actionElement.getAsJsonObject());
+                            if (action != null) {
+                                condition.addIfAction(action);
+                            }
+                        }
+                    }
+
+                    // Load ELSE actions
+                    if (actionData.has("elseactions")) {
+                        JsonArray elseActionsArray = actionData.getAsJsonArray("elseactions");
+                        for (JsonElement actionElement : elseActionsArray) {
+                            Action action = createActionFromJson(actionElement.getAsJsonObject());
+                            if (action != null) {
+                                condition.addElseAction(action);
+                            }
+                        }
+                    }
+
+                    yield condition;
+                }
+                case "player_in_region_condition" -> {
+                    PlayerInRegionCondition condition = new PlayerInRegionCondition();
+
+                    if (actionData.has("pos1x")) {
+                        condition.setPos1X(actionData.get("pos1x").getAsDouble());
+                    }
+                    if (actionData.has("pos1y")) {
+                        condition.setPos1Y(actionData.get("pos1y").getAsDouble());
+                    }
+                    if (actionData.has("pos1z")) {
+                        condition.setPos1Z(actionData.get("pos1z").getAsDouble());
+                    }
+                    if (actionData.has("pos2x")) {
+                        condition.setPos2X(actionData.get("pos2x").getAsDouble());
+                    }
+                    if (actionData.has("pos2y")) {
+                        condition.setPos2Y(actionData.get("pos2y").getAsDouble());
+                    }
+                    if (actionData.has("pos2z")) {
+                        condition.setPos2Z(actionData.get("pos2z").getAsDouble());
+                    }
+                    if (actionData.has("comparison")) {
+                        condition.setComparison(actionData.get("comparison").getAsString());
+                    }
+
+                    // Load IF actions
+                    if (actionData.has("ifactions")) {
+                        JsonArray ifActionsArray = actionData.getAsJsonArray("ifactions");
+                        for (JsonElement actionElement : ifActionsArray) {
+                            Action action = createActionFromJson(actionElement.getAsJsonObject());
+                            if (action != null) {
+                                condition.addIfAction(action);
+                            }
+                        }
+                    }
+
+                    // Load ELSE actions
+                    if (actionData.has("elseactions")) {
+                        JsonArray elseActionsArray = actionData.getAsJsonArray("elseactions");
+                        for (JsonElement actionElement : elseActionsArray) {
+                            Action action = createActionFromJson(actionElement.getAsJsonObject());
+                            if (action != null) {
+                                condition.addElseAction(action);
+                            }
+                        }
+                    }
+
+                    yield condition;
+                }
+                case "block_type_is_condition" -> {
+                    BlockTypeIsCondition condition = new BlockTypeIsCondition();
+
+                    if (actionData.has("x")) {
+                        condition.setX(actionData.get("x").getAsDouble());
+                    }
+                    if (actionData.has("y")) {
+                        condition.setY(actionData.get("y").getAsDouble());
+                    }
+                    if (actionData.has("z")) {
+                        condition.setZ(actionData.get("z").getAsDouble());
+                    }
+                    if (actionData.has("blocktype")) {
+                        condition.setBlockType(actionData.get("blocktype").getAsString());
+                    }
+                    if (actionData.has("comparison")) {
+                        condition.setComparison(actionData.get("comparison").getAsString());
+                    }
+
+                    // Load IF actions
+                    if (actionData.has("ifactions")) {
+                        JsonArray ifActionsArray = actionData.getAsJsonArray("ifactions");
+                        for (JsonElement actionElement : ifActionsArray) {
+                            Action action = createActionFromJson(actionElement.getAsJsonObject());
+                            if (action != null) {
+                                condition.addIfAction(action);
+                            }
+                        }
+                    }
+
+                    // Load ELSE actions
+                    if (actionData.has("elseactions")) {
+                        JsonArray elseActionsArray = actionData.getAsJsonArray("elseactions");
+                        for (JsonElement actionElement : elseActionsArray) {
+                            Action action = createActionFromJson(actionElement.getAsJsonObject());
+                            if (action != null) {
+                                condition.addElseAction(action);
+                            }
+                        }
+                    }
+
+                    yield condition;
+                }
+                case "player_permission_condition" -> {
+                    PlayerPermissionCondition condition = new PlayerPermissionCondition();
+
+                    if (actionData.has("permission")) {
+                        condition.setPermission(actionData.get("permission").getAsString());
+                    }
+                    if (actionData.has("comparison")) {
+                        condition.setComparison(actionData.get("comparison").getAsString());
+                    }
+
+                    // Load IF actions
+                    if (actionData.has("ifactions")) {
+                        JsonArray ifActionsArray = actionData.getAsJsonArray("ifactions");
+                        for (JsonElement actionElement : ifActionsArray) {
+                            Action action = createActionFromJson(actionElement.getAsJsonObject());
+                            if (action != null) {
+                                condition.addIfAction(action);
+                            }
+                        }
+                    }
+
+                    // Load ELSE actions
+                    if (actionData.has("elseactions")) {
+                        JsonArray elseActionsArray = actionData.getAsJsonArray("elseactions");
+                        for (JsonElement actionElement : elseActionsArray) {
+                            Action action = createActionFromJson(actionElement.getAsJsonObject());
+                            if (action != null) {
+                                condition.addElseAction(action);
+                            }
+                        }
+                    }
+
+                    yield condition;
                 }
                 case "end_dungeon_action" -> new EndDungeonAction();
                 case "summon_mob_action" -> {
