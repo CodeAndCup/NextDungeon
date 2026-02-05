@@ -92,4 +92,19 @@ public class DebugCommands {
         player.sendMessage(ChatUtil.translate("  &8- &eNumber of Triggers: &f" + floor.getTriggers().size()));
         player.sendMessage(ChatUtil.getBar());
     }
+
+    @Command(names = "dungeon debug trigger")
+    public static void debugDungeonTriggerCommand(Player player, @Param(name = "dungeonId")String dungeonId, @Param(name = "floorId") String floorId) {
+        Floor floor = Floor.getFloor(dungeonId + "_" + floorId);
+        if (floor == null) {
+            player.sendMessage(ChatUtil.translate("&#FF0000Floor with ID '" + floorId + "' not found."));
+            return;
+        }
+        player.sendMessage(ChatUtil.getBar());
+        player.sendMessage(ChatUtil.translate("&6Triggers for Floor: &e" + floor.getName()));
+        floor.getTriggers().forEach(trigger -> {
+            player.sendMessage(ChatUtil.translate("  &b" + trigger.toString()));
+        });
+        player.sendMessage(ChatUtil.getBar());
+    }
 }

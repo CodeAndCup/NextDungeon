@@ -27,7 +27,6 @@ public class PlayerJumpTriggerHandler implements TriggerEventHandler<PlayerMoveE
         return Collections.singletonList("player_jump_trigger");
     }
 
-    @EventHandler(priority = EventPriority.MONITOR)
     @Override
     public void handleEvent(PlayerMoveEvent event, List<Trigger> triggers) {
         Player player = event.getPlayer();

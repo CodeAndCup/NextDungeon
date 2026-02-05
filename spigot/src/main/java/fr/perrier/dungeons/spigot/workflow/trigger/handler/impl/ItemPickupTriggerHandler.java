@@ -26,7 +26,6 @@ public class ItemPickupTriggerHandler implements TriggerEventHandler<EntityPicku
         return Collections.singletonList("item_pickup_trigger");
     }
 
-    @EventHandler(priority = EventPriority.HIGH)
     @Override
     public void handleEvent(EntityPickupItemEvent event, List<Trigger> triggers) {
         // Vérifier que c'est un joueur qui ramasse l'item

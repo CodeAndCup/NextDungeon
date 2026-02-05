@@ -4,6 +4,7 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import fr.perrier.dungeons.common.workflow.trigger.TriggerData;
 import fr.perrier.dungeons.spigot.Main;
+import fr.perrier.dungeons.spigot.manager.InstanceWorkflowSerializer;
 import fr.perrier.dungeons.spigot.model.ProfileData;
 
 import java.sql.*;
@@ -319,7 +320,7 @@ public class MySQLManager implements DatabaseManager {
                         rs -> {
                             if (rs.next()) {
                                 String json = rs.getString("triggers_data");
-                                return TriggerSerializer.deserializeTriggers(json);
+                                return InstanceWorkflowSerializer.deserializeTriggers(json);
                             }
                             return new ArrayList<>();
                         },
@@ -341,7 +342,7 @@ public class MySQLManager implements DatabaseManager {
     @Override
     public CompletableFuture<Void> saveTriggers(String floorId, List<TriggerData> triggers) {
         return executeAsync(() -> {
-            String json = TriggerSerializer.serializeTriggers(triggers);
+            String json = InstanceWorkflowSerializer.serializeTriggers(triggers);
             try (Connection conn = dataSource.getConnection();
                  PreparedStatement stmt = conn.prepareStatement(
                          "INSERT INTO floor_triggers (floor_id, triggers_data) VALUES (?, ?) " +

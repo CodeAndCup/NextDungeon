@@ -26,7 +26,6 @@ public class PlayerDamageTriggerHandler implements TriggerEventHandler<EntityDam
         return Collections.singletonList("player_damage_trigger");
     }
 
-    @EventHandler(priority = EventPriority.HIGH)
     @Override
     public void handleEvent(EntityDamageEvent event, List<Trigger> triggers) {
         // Vérifier que c'est un joueur qui prend des dégâts

@@ -33,8 +33,8 @@ public class GlobalTriggerManager implements Listener {
     // Cache des triggers par type d'événement
     private final Map<Class<? extends Event>, List<Trigger>> triggersByEventType = new ConcurrentHashMap<>();
 
-    // Handlers enregistrés
-    private final Map<Class<? extends Event>, TriggerEventHandler<?>> handlers = new HashMap<>();
+    // Handlers enregistrés - multiple handlers per event type
+    private final Map<Class<? extends Event>, List<TriggerEventHandler<?>>> handlers = new HashMap<>();
 
     private final Map<String, FunctionTrigger> registeredFunctions = new HashMap<>();
 
@@ -59,8 +59,11 @@ public class GlobalTriggerManager implements Listener {
         for (Class<? extends Event> eventClass : handlers.keySet()) {
             try {
                 Bukkit.getPluginManager().registerEvent(eventClass, dummyListener, EventPriority.NORMAL, executor, Main.getInstance());
-            } catch (Exception ignored) {
+            } catch (Exception e) {
                 // Handle registration failures
+                if(Main.isDebug()) {
+                    Main.getInstance().getLogger().severe("Failed to register event listener for: " + eventClass.getSimpleName() + " - " + e.getMessage());
+                }
             }
         }
 
@@ -87,7 +90,7 @@ public class GlobalTriggerManager implements Listener {
      * @param <T>     the event type
      */
     public <T extends Event> void registerHandler(TriggerEventHandler<T> handler) {
-        handlers.put(handler.getEventType(), handler);
+        handlers.computeIfAbsent(handler.getEventType(), k -> new ArrayList<>()).add(handler);
         if (Main.isDebug()) {
             Main.getInstance().getLogger().info("Handler registered for: " + handler.getEventType().getSimpleName());
         }
@@ -116,9 +119,12 @@ public class GlobalTriggerManager implements Listener {
                 triggersByType.computeIfAbsent(trigger.getType(), k -> new ArrayList<>()).add(trigger);
 
                 // Cache par type d'événement
-                for (Map.Entry<Class<? extends Event>, TriggerEventHandler<?>> entry : handlers.entrySet()) {
-                    if (entry.getValue().getSupportedTriggerTypes().contains(trigger.getType())) {
-                        triggersByEventType.computeIfAbsent(entry.getKey(), k -> new ArrayList<>()).add(trigger);
+                for (Map.Entry<Class<? extends Event>, List<TriggerEventHandler<?>>> entry : handlers.entrySet()) {
+                    for (TriggerEventHandler<?> handler : entry.getValue()) {
+                        if (handler.getSupportedTriggerTypes().contains(trigger.getType())) {
+                            triggersByEventType.computeIfAbsent(entry.getKey(), k -> new ArrayList<>()).add(trigger);
+                            break; // Add trigger only once per event type
+                        }
                     }
                 }
             }
@@ -222,11 +228,20 @@ public class GlobalTriggerManager implements Listener {
      */
     @SuppressWarnings("unchecked")
     public <T extends Event> void processEvent(T event) {
-        TriggerEventHandler<T> handler = (TriggerEventHandler<T>) handlers.get(event.getClass());
-        if (handler != null) {
+        List<TriggerEventHandler<?>> eventHandlers = handlers.get(event.getClass());
+        if (eventHandlers != null && !eventHandlers.isEmpty()) {
             List<Trigger> triggers = getTriggersForEventType(event.getClass());
+            if(Main.isDebug()) {
+                Main.getInstance().getLogger().info("Processing event: " + event.getEventName() + " with " + triggers.size() + " triggers");
+            }
             if (!triggers.isEmpty()) {
-                handler.handleEvent(event, triggers);
+                for (TriggerEventHandler<?> handler : eventHandlers) {
+                    if(Main.isDebug()) {
+                        Main.getInstance().getLogger().info("Invoking handler: " + handler.getClass().getSimpleName() + " for event: " + event.getEventName());
+                    }
+                    TriggerEventHandler<T> typedHandler = (TriggerEventHandler<T>) handler;
+                    typedHandler.handleEvent(event, triggers);
+                }
             }
         }
     }

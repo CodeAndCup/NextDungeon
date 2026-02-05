@@ -8,6 +8,8 @@ import fr.perrier.dungeons.spigot.Main;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import fr.perrier.dungeons.spigot.workflow.blocks.LocationBlock;
+import fr.perrier.dungeons.spigot.workflow.blocks.LocationBlockParser;
 import fr.perrier.dungeons.spigot.workflow.condition.*;
 
 import java.util.ArrayList;
@@ -393,15 +395,8 @@ public class ActionFactory {
                 case "summon_mob_action" -> {
                     String mobType = actionData.has("mobtype") ?
                             actionData.get("mobtype").getAsString() : "ZOMBIE";
-                    float x = actionData.has("x") ?
-                            actionData.get("x").getAsFloat() : 0;
-                    float y = actionData.has("y") ?
-                            actionData.get("y").getAsFloat() : 0;
-                    float z = actionData.has("z") ?
-                            actionData.get("z").getAsFloat() : 0;
-                    String worldName = actionData.has("worldname") ?
-                            actionData.get("worldname").getAsString() : "world";
-                    yield new SummonMobAction(mobType, x, y, z, worldName);
+                    LocationBlock location = LocationBlockParser.parseFromJson(actionData, "location");
+                    yield new SummonMobAction(mobType, location);
                 }
                 case "worldedit_schematic_action" -> {
                     String filename = actionData.has("filename") ?
@@ -514,8 +509,7 @@ public class ActionFactory {
                 case "teleport_location_action" -> {
                     String targetPlayer = actionData.has("targetplayer") ?
                             actionData.get("targetplayer").getAsString() : "player";
-                    fr.perrier.dungeons.spigot.workflow.blocks.LocationBlock location =
-                            fr.perrier.dungeons.spigot.workflow.blocks.LocationBlockParser.parseFromJson(actionData, "location");
+                    LocationBlock location = LocationBlockParser.parseFromJson(actionData, "location");
                     yield new TeleportLocationAction(targetPlayer, location);
                 }
                 default -> {

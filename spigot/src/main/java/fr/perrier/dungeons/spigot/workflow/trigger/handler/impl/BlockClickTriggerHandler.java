@@ -1,11 +1,10 @@
 package fr.perrier.dungeons.spigot.workflow.trigger.handler.impl;
 
+import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.workflow.trigger.Trigger;
 import fr.perrier.dungeons.spigot.workflow.trigger.impl.BlockClickTrigger;
 import fr.perrier.dungeons.spigot.workflow.trigger.handler.TriggerEventHandler;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 
@@ -26,7 +25,6 @@ public class BlockClickTriggerHandler implements TriggerEventHandler<PlayerInter
         return Collections.singletonList("block_click_trigger");
     }
 
-    @EventHandler(priority = EventPriority.HIGH)
     @Override
     public void handleEvent(PlayerInteractEvent event, List<Trigger> triggers) {
         Player player = event.getPlayer();
@@ -34,6 +32,10 @@ public class BlockClickTriggerHandler implements TriggerEventHandler<PlayerInter
         // Ignorer si pas de bloc cliqué
         if (event.getClickedBlock() == null) {
             return;
+        }
+
+        if (Main.isDebug()) {
+            Main.getInstance().getLogger().info("PlayerInteractEvent detected: " + event.getAction() + " on block " + event.getClickedBlock().getType());
         }
 
         // Déterminer le type de clic
@@ -52,6 +54,10 @@ public class BlockClickTriggerHandler implements TriggerEventHandler<PlayerInter
             clickType = (event.getAction() == Action.LEFT_CLICK_AIR) ? "left_click" : "right_click";
         } else {
             return; // Action non gérée
+        }
+
+        if(Main.isDebug()) {
+            Main.getInstance().getLogger().info("Detected click type: " + clickType + ", detection type: " + detectionType);
         }
 
         for (Trigger trigger : triggers) {

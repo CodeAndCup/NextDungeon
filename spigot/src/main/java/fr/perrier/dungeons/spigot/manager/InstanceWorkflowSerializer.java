@@ -1,4 +1,4 @@
-package fr.perrier.dungeons.spigot.database;
+package fr.perrier.dungeons.spigot.manager;
 
 import com.google.gson.*;
 import fr.perrier.dungeons.common.workflow.action.ActionData;
@@ -15,7 +15,7 @@ import java.util.List;
  * Serializer/Deserializer to convert triggers to and from JSON.
  * Uses Gson with custom adapters to handle polymorphism of triggers and actions.
  */
-public class TriggerSerializer {
+public class InstanceWorkflowSerializer {
 
     // Gson pour la sérialisation de base (sans les adapters custom pour éviter les boucles)
     private static final Gson baseGson = new GsonBuilder()
@@ -91,6 +91,10 @@ public class TriggerSerializer {
                 try {
                     TriggerData trigger = deserializeTrigger(element);
                     if (trigger != null) {
+                        if(Main.isDebug()) {
+                            Main.getInstance().getLogger().info("Deserialized trigger: " + trigger.getName() + " of type: " + trigger.getClass().getName());
+                            Main.getInstance().getLogger().info("Trigger data: " + baseGson.toJson(trigger));
+                        }
                         triggers.add(trigger);
                     }
                 } catch (Exception e) {
@@ -152,6 +156,10 @@ public class TriggerSerializer {
             if (actionsElement != null && actionsElement.isJsonArray()) {
                 List<ActionData> actions = deserializeActions(actionsElement.getAsJsonArray());
                 trigger.setActions(actions);
+                if(Main.isDebug()) {
+                    Main.getInstance().getLogger().info("Deserialized " + actions.size() + " actions for trigger: " + trigger.getName());
+                    Main.getInstance().getLogger().info("Trigger: " + baseGson.toJson(trigger));
+                }
             } else {
                 trigger.setActions(new ArrayList<>());
             }
@@ -185,6 +193,10 @@ public class TriggerSerializer {
 
             if (action != null) {
                 actions.add(action);
+                if(Main.isDebug()) {
+                    Main.getInstance().getLogger().info("Deserialized action: " + action.getClass().getName());
+                    Main.getInstance().getLogger().info("Action data: " + baseGson.toJson(action));
+                }
             }
         }
 

@@ -3,7 +3,7 @@ package fr.perrier.dungeons.spigot.webeditor;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import fr.perrier.dungeons.spigot.Main;
-import fr.perrier.dungeons.spigot.manager.WorkflowSaveManager;
+import fr.perrier.dungeons.spigot.manager.EditorWorkflowSerializer;
 import fr.perrier.dungeons.spigot.webserver.blockly.BlocklyJavaScriptGenerator;
 import fr.perrier.dungeons.spigot.model.Floor;
 import org.bson.internal.Base64;
@@ -19,11 +19,11 @@ import java.util.UUID;
 public class ProxyEditorMessageHandler {
 
     private final Gson gson = new Gson();
-    private final WorkflowSaveManager workflowSaveManager;
+    private final EditorWorkflowSerializer workflowSaveManager;
     private final BlocklyJavaScriptGenerator blocklyGenerator;
 
     public ProxyEditorMessageHandler() {
-        this.workflowSaveManager = new WorkflowSaveManager();
+        this.workflowSaveManager = new EditorWorkflowSerializer();
         this.blocklyGenerator = new BlocklyJavaScriptGenerator();
     }
 

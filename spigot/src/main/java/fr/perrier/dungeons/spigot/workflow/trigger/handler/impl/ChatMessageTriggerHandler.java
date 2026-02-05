@@ -26,7 +26,6 @@ public class ChatMessageTriggerHandler implements TriggerEventHandler<AsyncPlaye
         return Collections.singletonList("chat_message_trigger");
     }
 
-    @EventHandler(priority = EventPriority.HIGH)
     @Override
     public void handleEvent(AsyncPlayerChatEvent event, List<Trigger> triggers) {
         Player player = event.getPlayer();

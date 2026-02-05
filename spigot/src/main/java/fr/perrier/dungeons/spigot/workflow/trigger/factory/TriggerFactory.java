@@ -3,27 +3,58 @@ package fr.perrier.dungeons.spigot.workflow.trigger.factory;
 import fr.perrier.dungeons.common.workflow.trigger.TriggerData;
 import fr.perrier.dungeons.spigot.workflow.action.factory.ActionFactory;
 import fr.perrier.dungeons.spigot.workflow.trigger.Trigger;
-import fr.perrier.dungeons.spigot.workflow.trigger.impl.FunctionTrigger;
-import fr.perrier.dungeons.spigot.workflow.trigger.impl.RegionTrigger;
-import fr.perrier.dungeons.spigot.workflow.trigger.impl.EntityDeathTrigger;
-import fr.perrier.dungeons.spigot.workflow.trigger.impl.BlockClickTrigger;
-import fr.perrier.dungeons.spigot.workflow.trigger.impl.PlayerDamageTrigger;
-import fr.perrier.dungeons.spigot.workflow.trigger.impl.ItemPickupTrigger;
-import fr.perrier.dungeons.spigot.workflow.trigger.impl.ChatMessageTrigger;
-import fr.perrier.dungeons.spigot.workflow.trigger.impl.PlayerJumpTrigger;
+import fr.perrier.dungeons.spigot.workflow.trigger.impl.*;
 import fr.perrier.dungeons.spigot.Main;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Factory pour créer des triggers depuis les données JSON de Blockly
+ *
+ * ARCHITECTURE: Uses automatic Gson deserialization for all trigger types
+ * - Trigger types are mapped to their concrete classes
+ * - Gson automatically populates all fields from JSON, including PRIVATE fields
+ * - No manual property copying needed for new trigger types
+ * - Simply add new Trigger class to the map
+ * - CRITICAL: Gson is configured to access private fields used in all Trigger classes
  */
 public class TriggerFactory {
+    private static final Gson gson = new GsonBuilder()
+            .excludeFieldsWithModifiers(Modifier.TRANSIENT, Modifier.STATIC)
+            .create();
 
+    // Map trigger type strings to their concrete class
+    private static final Map<String, Class<? extends Trigger>> TRIGGER_CLASSES = new HashMap<>();
+
+    static {
+        TRIGGER_CLASSES.put("region_trigger", RegionTrigger.class);
+        TRIGGER_CLASSES.put("function_trigger", FunctionTrigger.class);
+        TRIGGER_CLASSES.put("entity_death_trigger", EntityDeathTrigger.class);
+        TRIGGER_CLASSES.put("block_click_trigger", BlockClickTrigger.class);
+        TRIGGER_CLASSES.put("player_damage_trigger", PlayerDamageTrigger.class);
+        TRIGGER_CLASSES.put("item_pickup_trigger", ItemPickupTrigger.class);
+        TRIGGER_CLASSES.put("chat_message_trigger", ChatMessageTrigger.class);
+        TRIGGER_CLASSES.put("player_jump_trigger", PlayerJumpTrigger.class);
+    }
+
+    /**
+     * Creates a trigger from JSON data
+     *
+     * AUTOMATIC DESERIALIZATION: All properties are automatically populated
+     * from the JSON object using Gson, regardless of the trigger type.
+     *
+     * @param triggerData JSON object containing trigger data
+     * @return Deserialized Trigger object, or null if failed
+     */
     public static Trigger createTriggerFromJson(JsonObject triggerData) {
         try {
             String type = triggerData.get("type").getAsString();
@@ -33,135 +64,53 @@ public class TriggerFactory {
                 Main.getInstance().getLogger().info("Creating trigger: " + type + " - " + name);
             }
 
-            Trigger trigger = switch (type) {
-                case "region_trigger" -> createRegionTrigger(triggerData, name);
-                case "function_trigger" -> createFunctionTrigger(triggerData, name);
-                case "entity_death_trigger" -> createEntityDeathTrigger(triggerData, name);
-                case "block_click_trigger" -> createBlockClickTrigger(triggerData, name);
-                case "player_damage_trigger" -> createPlayerDamageTrigger(triggerData, name);
-                case "item_pickup_trigger" -> createItemPickupTrigger(triggerData, name);
-                case "chat_message_trigger" -> createChatMessageTrigger(triggerData, name);
-                case "player_jump_trigger" -> createPlayerJumpTrigger(triggerData, name);
-                default -> {
-                    Main.getInstance().getLogger().warning("&eTrigger type unknown: " + type);
-                    yield null;
-                }
-            };
+            // Get the concrete class for this trigger type
+            Class<? extends Trigger> triggerClass = TRIGGER_CLASSES.get(type);
+            if (triggerClass == null) {
+                Main.getInstance().getLogger().warning("&eTrigger type unknown: " + type);
+                return null;
+            }
 
-            if (trigger != null) {
-                // Appliquer les propriétés communes
-                if (triggerData.has("enabled")) {
-                    trigger.setEnabled(triggerData.get("enabled").getAsBoolean());
-                }
+            // AUTOMATIC DESERIALIZATION: Gson automatically populates all fields
+            Trigger trigger = gson.fromJson(triggerData, triggerClass);
 
-                // Parser les actions
-                if (triggerData.has("actions")) {
-                    JsonArray actionsArray = triggerData.getAsJsonArray("actions");
-                    trigger.setActions(ActionFactory.parseActionsFromJson(actionsArray));
-                }
+            if (trigger == null) {
+                Main.getInstance().getLogger().warning("&eFailed to deserialize trigger of type: " + type);
+                return null;
+            }
 
-                if (Main.isDebug()) {
-                    Main.getInstance().getLogger().info("Trigger created with success: " + trigger.getName() + " with " + trigger.getActions().size() + " action(s)");
-                }
+            // Set name (might not be in JSON)
+            trigger.setName(name);
+
+            // Apply common properties
+            if (triggerData.has("enabled")) {
+                trigger.setEnabled(triggerData.get("enabled").getAsBoolean());
+            }
+
+            // Parse actions
+            if (triggerData.has("actions")) {
+                JsonArray actionsArray = triggerData.getAsJsonArray("actions");
+                trigger.setActions(ActionFactory.parseActionsFromJson(actionsArray));
+            }
+
+            if (Main.isDebug()) {
+                Main.getInstance().getLogger().info("Trigger created successfully: " + trigger.getName() + " with " + trigger.getActions().size() + " action(s)");
             }
 
             return trigger;
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("&#FF0000An error occurred while creating trigger from JSON: " + e.getMessage());
+            Main.getInstance().getLogger().severe("&#FF0000Error creating trigger from JSON: " + e.getMessage());
             e.printStackTrace();
             return null;
         }
     }
 
-    private static RegionTrigger createRegionTrigger(JsonObject data, String name) {
-        RegionTrigger trigger = new RegionTrigger(name);
-
-        if (data.has("pos1x")) trigger.setPos1X(data.get("pos1x").getAsDouble());
-        if (data.has("pos1y")) trigger.setPos1Y(data.get("pos1y").getAsDouble());
-        if (data.has("pos1z")) trigger.setPos1Z(data.get("pos1z").getAsDouble());
-        if (data.has("pos2x")) trigger.setPos2X(data.get("pos2x").getAsDouble());
-        if (data.has("pos2y")) trigger.setPos2Y(data.get("pos2y").getAsDouble());
-        if (data.has("pos2z")) trigger.setPos2Z(data.get("pos2z").getAsDouble());
-        if (data.has("worldname")) trigger.setWorldName(data.get("worldname").getAsString());
-        if (data.has("regionevent")) trigger.setRegionEvent(data.get("regionevent").getAsString());
-        if (data.has("onlyonce")) trigger.setOnlyOnce(data.get("onlyonce").getAsBoolean());
-        if (data.has("cooldownseconds")) trigger.setCooldownSeconds(data.get("cooldownseconds").getAsInt());
-
-        return trigger;
-    }
-
-    private static FunctionTrigger createFunctionTrigger(JsonObject data, String name) {
-        FunctionTrigger trigger = new FunctionTrigger(name);
-
-        if (data.has("functionname")) trigger.setFunctionName(data.get("functionname").getAsString());
-
-        return trigger;
-    }
-
-    private static EntityDeathTrigger createEntityDeathTrigger(JsonObject data, String name) {
-        EntityDeathTrigger trigger = new EntityDeathTrigger(name);
-
-        if (data.has("entitytype")) trigger.setEntityType(data.get("entitytype").getAsString());
-
-        return trigger;
-    }
-
-    private static BlockClickTrigger createBlockClickTrigger(JsonObject data, String name) {
-        BlockClickTrigger trigger = new BlockClickTrigger(name);
-
-        if (data.has("clicktype")) trigger.setClickType(data.get("clicktype").getAsString());
-        if (data.has("detectiontype")) trigger.setDetectionType(data.get("detectiontype").getAsString());
-        if (data.has("blockmaterial")) trigger.setBlockMaterial(data.get("blockmaterial").getAsString());
-        if (data.has("blockx")) trigger.setBlockX(data.get("blockx").getAsInt());
-        if (data.has("blocky")) trigger.setBlockY(data.get("blocky").getAsInt());
-        if (data.has("blockz")) trigger.setBlockZ(data.get("blockz").getAsInt());
-        if (data.has("worldname")) trigger.setWorldName(data.get("worldname").getAsString());
-        if (data.has("exactpositiononly")) trigger.setExactPositionOnly(data.get("exactpositiononly").getAsBoolean());
-
-        return trigger;
-    }
-
-    private static PlayerDamageTrigger createPlayerDamageTrigger(JsonObject data, String name) {
-        PlayerDamageTrigger trigger = new PlayerDamageTrigger(name);
-
-        if (data.has("damagetype")) trigger.setDamageType(data.get("damagetype").getAsString());
-        if (data.has("mindamage")) trigger.setMinDamage(data.get("mindamage").getAsDouble());
-        if (data.has("canceldamage")) trigger.setCancelDamage(data.get("canceldamage").getAsBoolean());
-
-        return trigger;
-    }
-
-    private static ItemPickupTrigger createItemPickupTrigger(JsonObject data, String name) {
-        ItemPickupTrigger trigger = new ItemPickupTrigger(name);
-
-        if (data.has("itemmaterial")) trigger.setItemMaterial(data.get("itemmaterial").getAsString());
-        if (data.has("minamount")) trigger.setMinAmount(data.get("minamount").getAsInt());
-        if (data.has("cancelpickup")) trigger.setCancelPickup(data.get("cancelpickup").getAsBoolean());
-
-        return trigger;
-    }
-
-    private static ChatMessageTrigger createChatMessageTrigger(JsonObject data, String name) {
-        ChatMessageTrigger trigger = new ChatMessageTrigger(name);
-
-        if (data.has("keyword")) trigger.setKeyword(data.get("keyword").getAsString());
-        if (data.has("casesensitive")) trigger.setCaseSensitive(data.get("casesensitive").getAsBoolean());
-        if (data.has("cancelmessage")) trigger.setCancelMessage(data.get("cancelmessage").getAsBoolean());
-        if (data.has("matchtype")) trigger.setMatchType(data.get("matchtype").getAsString());
-
-        return trigger;
-    }
-
-    private static PlayerJumpTrigger createPlayerJumpTrigger(JsonObject data, String name) {
-        PlayerJumpTrigger trigger = new PlayerJumpTrigger(name);
-
-        if (data.has("cooldownseconds")) trigger.setCooldownSeconds(data.get("cooldownseconds").getAsInt());
-        if (data.has("onlyonce")) trigger.setOnlyOnce(data.get("onlyonce").getAsBoolean());
-
-        return trigger;
-    }
-
+    /**
+     * Parses a list of triggers from JSON array
+     * @param triggersArray JSON array containing trigger objects
+     * @return List of deserialized Trigger objects
+     */
     public static List<TriggerData> parseTriggersFromJson(JsonArray triggersArray) {
         List<TriggerData> triggers = new ArrayList<>();
 
@@ -169,9 +118,9 @@ public class TriggerFactory {
             if (element.isJsonObject()) {
                 Trigger trigger = createTriggerFromJson(element.getAsJsonObject());
                 if (trigger != null) {
-                    // Important: garder l'instance Trigger au lieu de convertir en TriggerData
-                    // pour préserver le type concret et les actions
                     triggers.add(trigger);
+
+                    // Register function trigger if applicable
                     if(trigger instanceof FunctionTrigger functionTrigger) {
                         functionTrigger.registerFunction();
                     }
@@ -180,8 +129,9 @@ public class TriggerFactory {
         }
 
         if (Main.isDebug()) {
-            Main.getInstance().getLogger().info("Parsing triggers: " + triggers.size() + " trigger(s) created");
+            Main.getInstance().getLogger().info("Parsed " + triggers.size() + " trigger(s) from JSON");
         }
+
         return triggers;
     }
 }

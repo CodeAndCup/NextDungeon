@@ -284,12 +284,12 @@ public class BlocklyJavaScriptGenerator {
 
             case BOOLEAN_INPUT:
                 // Champ de type booléen (vrai/faux) avec une connexion à un autre bloc
-                js.append("        this.appendValueInput(\"").append(field.fieldName().toUpperCase()).append("\")\n");
-                js.append("            .setCheck(\"Boolean\")");
                 if (!field.label().isEmpty()) {
-                    js.append("\n            .appendField(\"").append(escapeJavaScript(field.label())).append("\")");
+                    js.append("        this.appendDummyInput()\n");
+                    js.append("            .appendField(\"").append(escapeJavaScript(field.label())).append("\");\n");
                 }
-                js.append(";\n");
+                js.append("        this.appendValueInput(\"").append(field.fieldName().toUpperCase()).append("\")\n");
+                js.append("            .setCheck(\"Boolean\");\n");
                 return; // Pas besoin de fermer avec appendDummyInput
 
             case COLOR_INPUT:
@@ -306,12 +306,12 @@ public class BlocklyJavaScriptGenerator {
                 break;
             case LOCATION_INPUT:
                 // Champ de type location avec connexion à un bloc de location
-                js.append("        this.appendValueInput(\"").append(field.fieldName().toUpperCase()).append("\")\n");
-                js.append("            .setCheck(\"Location\")");
                 if (!field.label().isEmpty()) {
-                    js.append("\n            .appendField(\"").append(escapeJavaScript(field.label())).append("\")");
+                    js.append("        this.appendDummyInput()\n");
+                    js.append("            .appendField(\"").append(escapeJavaScript(field.label())).append("\");\n");
                 }
-                js.append(";\n");
+                js.append("        this.appendValueInput(\"").append(field.fieldName().toUpperCase()).append("\")\n");
+                js.append("            .setCheck(\"Location\");\n");
                 return; // Pas besoin de fermer avec appendDummyInput
         }
     }
@@ -1078,8 +1078,7 @@ public class BlocklyJavaScriptGenerator {
     private void generateFieldLoading(StringBuilder js, BlocklyFieldExtractor.BlocklyFieldInfo field, String blockType) {
         // Convertit le nom du champ en majuscules pour l'utiliser comme identifiant dans Blockly
         String fieldName = field.fieldName().toUpperCase();
-        // Convertit le nom du champ en minuscules pour l'utiliser comme clé dans l'objet de données
-        String objectField = field.fieldName().toLowerCase();
+        String objectField = field.fieldName();
 
         // Génère le code en fonction du type de champ
         switch (field.type()) {
@@ -1087,23 +1086,23 @@ public class BlocklyJavaScriptGenerator {
             case DROPDOWN:
             case COLOR_INPUT:
                 // Charge une valeur de type texte, menu déroulant ou couleur
-                js.append("                    ").append(blockType).append("Block.setFieldValue((").append(blockType).append(".").append(objectField)
+                js.append("                    ").append(blockType).append("Block.setFieldValue((").append(blockType).append("['").append(objectField).append("']")
                         .append(" || '").append(escapeJavaScript(field.defaultValue()))
                         .append("').toString(), '").append(fieldName).append("');\n");
                 break;
 
             case NUMBER_INPUT:
                 // Charge une valeur de type nombre avec une valeur par défaut
-                js.append("                    ").append(blockType).append("Block.setFieldValue((").append(blockType).append(".").append(objectField)
+                js.append("                    ").append(blockType).append("Block.setFieldValue((").append(blockType).append("['").append(objectField).append("']")
                         .append(" || ").append(field.defaultValue().isEmpty() ? "0" : field.defaultValue())
                         .append(").toString(), '").append(fieldName).append("');\n");
                 break;
 
             case BOOLEAN_INPUT:
                 // Charge une valeur de type booléen en créant un bloc correspondant
-                js.append("                    if (").append(blockType).append(".").append(objectField).append(" !== undefined) {\n");
-                js.append("                        const boolBlock = workspace.newBlock(").append(blockType).append(".")
-                        .append(objectField).append(" ? 'boolean_true' : 'boolean_false');\n");
+                js.append("                    if (").append(blockType).append("['").append(objectField).append("'] !== undefined) {\n");
+                js.append("                        const boolBlock = workspace.newBlock(").append(blockType).append("['")
+                        .append(objectField).append("'] ? 'boolean_true' : 'boolean_false');\n");
                 js.append("                        boolBlock.initSvg();\n");
                 js.append("                        boolBlock.render();\n");
                 js.append("                        ").append(blockType).append("Block.getInput('").append(fieldName)
@@ -1113,14 +1112,14 @@ public class BlocklyJavaScriptGenerator {
 
             case CHECKBOX:
                 // Charge une valeur de type case à cocher (vrai/faux)
-                js.append("                    ").append(blockType).append("Block.setFieldValue(").append(blockType).append(".").append(objectField)
+                js.append("                    ").append(blockType).append("Block.setFieldValue(").append(blockType).append("['").append(objectField).append("']")
                         .append(" ? 'TRUE' : 'FALSE', '").append(fieldName).append("');\n");
                 break;
 
             case LOCATION_INPUT:
                 // Charge un bloc de location avec tous ses paramètres
-                js.append("                    if (").append(blockType).append(".").append(objectField).append(") {\n");
-                js.append("                        const loc = ").append(blockType).append(".").append(objectField).append(";\n");
+                js.append("                    if (").append(blockType).append("['").append(objectField).append("']) {\n");
+                js.append("                        const loc = ").append(blockType).append("['").append(objectField).append("'];\n");
                 js.append("                        let locBlockType = 'location_xyz';\n");
                 js.append("                        if (loc.hasRotation) {\n");
                 js.append("                            locBlockType = 'location_full';\n");

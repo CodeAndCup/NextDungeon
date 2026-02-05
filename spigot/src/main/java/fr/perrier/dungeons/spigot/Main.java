@@ -69,7 +69,7 @@ public final class Main extends JavaPlugin {
     private static final String prefix = "<gradient:#8B0000:bold>NextDungeon</gradient:#D10000> &8» &r";
 
     @Getter@Setter
-    private static boolean debug = false;
+    private static boolean debug = true;
 
     // Plugin API instance
     private PartiesAPI partiesAPI;
@@ -140,10 +140,9 @@ public final class Main extends JavaPlugin {
         try {
             instanceProvider = InstanceProviderFactory.createProvider();
             instanceProvider.initialize().thenAccept(success -> {
-                if (success) {
-                    getLogger().info("✅ Instance provider initialisé: " + instanceProvider.getType());
-                } else {
-                    getLogger().severe("❌ Échec de l'initialisation du provider");
+                if (!success) {
+                    getLogger().severe("&#FF0000Failed to initialize instance provider");
+                    getServer().getPluginManager().disablePlugin(this);
                 }
             });
         } catch (Exception e) {
