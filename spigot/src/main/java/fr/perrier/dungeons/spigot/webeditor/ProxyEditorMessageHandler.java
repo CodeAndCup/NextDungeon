@@ -4,7 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.manager.EditorWorkflowSerializer;
-import fr.perrier.dungeons.spigot.webserver.blockly.BlocklyJavaScriptGenerator;
+import fr.perrier.dungeons.spigot.webeditor.blockly.BlocklyJavaScriptGenerator;
 import fr.perrier.dungeons.spigot.model.Floor;
 import org.bson.internal.Base64;
 import org.bukkit.Bukkit;

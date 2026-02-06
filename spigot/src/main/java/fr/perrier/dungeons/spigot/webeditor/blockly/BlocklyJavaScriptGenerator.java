@@ -1,6 +1,6 @@
-package fr.perrier.dungeons.spigot.webserver.blockly;
+package fr.perrier.dungeons.spigot.webeditor.blockly;
 
-import fr.perrier.dungeons.spigot.webserver.blockly.annotations.BlocklyInfo;
+import fr.perrier.dungeons.spigot.webeditor.blockly.annotations.BlocklyInfo;
 import org.bukkit.entity.Player;
 import org.reflections.Reflections;
 

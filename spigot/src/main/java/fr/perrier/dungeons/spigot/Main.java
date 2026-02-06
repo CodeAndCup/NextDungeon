@@ -43,7 +43,7 @@ import fr.perrier.dungeons.spigot.storage.DungeonService;
 import fr.perrier.dungeons.spigot.queue.DungeonQueueService;
 import fr.perrier.dungeons.spigot.queue.QueueManager;
 import fr.perrier.dungeons.spigot.utils.ServerUtil;
-import fr.perrier.dungeons.spigot.webserver.DungeonWebEditorManager;
+import fr.perrier.dungeons.spigot.webeditor.DungeonWebEditorManager;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Bukkit;

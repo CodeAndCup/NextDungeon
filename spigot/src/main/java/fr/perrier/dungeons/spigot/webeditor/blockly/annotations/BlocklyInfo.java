@@ -1,4 +1,4 @@
-package fr.perrier.dungeons.spigot.webserver.blockly.annotations;
+package fr.perrier.dungeons.spigot.webeditor.blockly.annotations;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

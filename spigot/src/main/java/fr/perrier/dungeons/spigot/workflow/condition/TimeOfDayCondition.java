@@ -1,9 +1,9 @@
 package fr.perrier.dungeons.spigot.workflow.condition;
 
 import fr.perrier.dungeons.spigot.Main;
-import fr.perrier.dungeons.spigot.webserver.blockly.BlocklyAction;
-import fr.perrier.dungeons.spigot.webserver.blockly.annotations.BlocklyField;
-import fr.perrier.dungeons.spigot.webserver.blockly.annotations.BlocklyInfo;
+import fr.perrier.dungeons.spigot.webeditor.blockly.BlocklyAction;
+import fr.perrier.dungeons.spigot.webeditor.blockly.annotations.BlocklyField;
+import fr.perrier.dungeons.spigot.webeditor.blockly.annotations.BlocklyInfo;
 import fr.perrier.dungeons.spigot.workflow.action.Action;
 import lombok.Getter;
 import lombok.Setter;

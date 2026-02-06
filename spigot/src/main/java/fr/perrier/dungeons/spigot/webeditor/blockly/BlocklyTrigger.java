@@ -1,4 +1,4 @@
-package fr.perrier.dungeons.spigot.webserver.blockly;
+package fr.perrier.dungeons.spigot.webeditor.blockly;
 
 import java.util.List;
 

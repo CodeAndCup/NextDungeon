@@ -1,6 +1,6 @@
-package fr.perrier.dungeons.spigot.webserver.blockly;
+package fr.perrier.dungeons.spigot.webeditor.blockly;
 
-import fr.perrier.dungeons.spigot.webserver.blockly.annotations.BlocklyField;
+import fr.perrier.dungeons.spigot.webeditor.blockly.annotations.BlocklyField;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;

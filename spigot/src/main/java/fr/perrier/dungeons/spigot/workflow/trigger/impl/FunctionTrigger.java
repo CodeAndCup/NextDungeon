@@ -2,9 +2,9 @@ package fr.perrier.dungeons.spigot.workflow.trigger.impl;
 
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.utils.ServerUtil;
-import fr.perrier.dungeons.spigot.webserver.blockly.BlocklyTrigger;
-import fr.perrier.dungeons.spigot.webserver.blockly.annotations.BlocklyField;
-import fr.perrier.dungeons.spigot.webserver.blockly.annotations.BlocklyInfo;
+import fr.perrier.dungeons.spigot.webeditor.blockly.BlocklyTrigger;
+import fr.perrier.dungeons.spigot.webeditor.blockly.annotations.BlocklyField;
+import fr.perrier.dungeons.spigot.webeditor.blockly.annotations.BlocklyInfo;
 import fr.perrier.dungeons.spigot.workflow.trigger.Trigger;
 import lombok.Getter;
 import lombok.Setter;

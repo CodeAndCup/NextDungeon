@@ -1,10 +1,8 @@
-package fr.perrier.dungeons.spigot.webserver;
+package fr.perrier.dungeons.spigot.webeditor;
 
 import fr.perrier.cupcodeapi.utils.ChatUtil;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.utils.ServerUtil;
-import fr.perrier.dungeons.spigot.webeditor.ProxyEditorMessageHandler;
-import fr.perrier.dungeons.spigot.webeditor.ProxyBridgeService;
 import lombok.Getter;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.ComponentBuilder;
