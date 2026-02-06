@@ -1,8 +1,9 @@
-package fr.perrier.dungeons.spigot.manager;
+package fr.perrier.dungeons.spigot.workflow.serializer;
 
 import fr.perrier.cupcodeapi.utils.ChatUtil;
 import fr.perrier.dungeons.common.workflow.action.ActionData;
 import fr.perrier.dungeons.common.workflow.trigger.TriggerData;
+import fr.perrier.dungeons.spigot.database.DatabaseTriggersManager;
 import fr.perrier.dungeons.spigot.model.Floor;
 import fr.perrier.dungeons.spigot.workflow.action.Action;
 import fr.perrier.dungeons.spigot.workflow.trigger.Trigger;
@@ -14,7 +15,6 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonArray;
 import org.bukkit.entity.Player;
 
-import java.lang.reflect.Modifier;
 import java.util.List;
 
 /**
@@ -26,10 +26,10 @@ import java.util.List;
  * - Properties are automatically extracted from the object's fields via Gson reflection
  * - CRITICAL: Configured to access private fields which are used in all Trigger/Action classes
  */
-public class EditorWorkflowSerializer {
+public class EditorSerializer {
     private final Gson gson;
 
-    public EditorWorkflowSerializer() {
+    public EditorSerializer() {
         this.gson = new GsonBuilder()
                 .setPrettyPrinting()
                 .create();
@@ -71,10 +71,10 @@ public class EditorWorkflowSerializer {
             Main.getInstance().getDungeonService().syncFloor(floor.toFloorData());
             Main.getInstance().getLogger().info("Triggers saved in memory for floor: " + floorId);
 
-            Main.getInstance().getGlobalTriggerManager().refreshTriggerCache();
+            Main.getInstance().getTriggersRegistry().refreshTriggerCache();
 
             // Save to database asynchronously
-            DungeonFileManager.saveTriggers(floorId, triggers).thenAccept(fileSaved -> {
+            DatabaseTriggersManager.saveTriggers(floorId, triggers).thenAccept(fileSaved -> {
                 if (fileSaved) {
                     Main.getInstance().getLogger().info("Triggers saved in the database for floor: " + floorId);
                 } else {

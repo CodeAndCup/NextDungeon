@@ -72,7 +72,7 @@ public class SetVariableAction extends Action implements BlocklyAction {
         Object parsedValue = parseValue(value);
 
         // Set the variable using the variable manager
-        Main.getInstance().getVariableManager().setVariable(triggerPlayer, trimmedName, parsedValue, scopeToUse);
+        Main.getInstance().getVariableRegistry().setVariable(triggerPlayer, trimmedName, parsedValue, scopeToUse);
 
         // Also store in the current data context for immediate use
         data.put(trimmedName, parsedValue);

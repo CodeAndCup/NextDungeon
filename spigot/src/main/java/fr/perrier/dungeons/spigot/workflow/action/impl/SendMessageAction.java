@@ -59,7 +59,7 @@ public class SendMessageAction extends Action implements BlocklyAction {
             String finalMessage = message
                     .replace("{player}", "Tous")
                     .replace("{trigger}", data.getOrDefault("trigger_name", "Unknown").toString());
-            finalMessage = Main.getInstance().getVariableManager().formatVariable(finalMessage, triggerPlayer);
+            finalMessage = Main.getInstance().getVariableRegistry().formatVariable(finalMessage, triggerPlayer);
             String translatedMessage = ChatUtil.translate(finalMessage);
             Bukkit.broadcastMessage(translatedMessage);
             return true;
@@ -73,7 +73,7 @@ public class SendMessageAction extends Action implements BlocklyAction {
             String finalMessage = message
                     .replace("{player}", triggerPlayer != null ? triggerPlayer.getName() : "Unknown")
                     .replace("{trigger}", data.getOrDefault("trigger_name", "Unknown").toString());
-            finalMessage = Main.getInstance().getVariableManager().formatVariable(finalMessage, triggerPlayer);
+            finalMessage = Main.getInstance().getVariableRegistry().formatVariable(finalMessage, triggerPlayer);
             target.sendMessage(ChatUtil.translate(finalMessage));
             return true;
         }

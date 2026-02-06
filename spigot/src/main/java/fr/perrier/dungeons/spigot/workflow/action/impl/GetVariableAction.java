@@ -77,7 +77,7 @@ public class GetVariableAction extends Action implements BlocklyAction {
         String destinationScopeToUse = destinationScope != null ? destinationScope : "player";
 
         // Récupérer la valeur de la variable source
-        Object sourceValue = Main.getInstance().getVariableManager().getVariable(triggerPlayer, trimmedSourceName);
+        Object sourceValue = Main.getInstance().getVariableRegistry().getVariable(triggerPlayer, trimmedSourceName);
 
         if (sourceValue == null) {
             if (Main.isDebug()) {
@@ -87,7 +87,7 @@ public class GetVariableAction extends Action implements BlocklyAction {
         }
 
         // Stocker dans la variable destination
-        Main.getInstance().getVariableManager().setVariable(triggerPlayer, trimmedDestinationName, sourceValue, destinationScopeToUse);
+        Main.getInstance().getVariableRegistry().setVariable(triggerPlayer, trimmedDestinationName, sourceValue, destinationScopeToUse);
 
         // Aussi stocker dans le contexte actuel
         data.put(trimmedDestinationName, sourceValue);

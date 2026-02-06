@@ -205,7 +205,7 @@ public class DungeonService {
                             currentFloor.get().getId().equals(floorData.getId())) {
                         currentFloor.set(floorData);
                         // Refresh trigger cache when floor is updated
-                        Main.getInstance().getGlobalTriggerManager().refreshTriggerCache();
+                        Main.getInstance().getTriggersRegistry().refreshTriggerCache();
                         Main.getInstance().getLogger().info(
                                 String.format("Updated local floorData: %s from Redis", floorData.getId())
                         );

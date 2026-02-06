@@ -1,4 +1,4 @@
-package fr.perrier.dungeons.spigot.manager;
+package fr.perrier.dungeons.spigot.workflow.registry;
 
 import fr.perrier.dungeons.common.workflow.trigger.TriggerData;
 import fr.perrier.dungeons.spigot.Main;
@@ -25,7 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Global manager for all types of triggers.
  * Handles registration, caching, and event processing for triggers and their handlers.
  */
-public class GlobalTriggerManager implements Listener {
+public class TriggersRegistry implements Listener {
 
     // Cache des triggers par type
     private final Map<String, List<Trigger>> triggersByType = new ConcurrentHashMap<>();
@@ -40,9 +40,9 @@ public class GlobalTriggerManager implements Listener {
 
 
     // Instance singleton
-    private static GlobalTriggerManager instance;
+    private static TriggersRegistry instance;
 
-    public GlobalTriggerManager() {
+    public TriggersRegistry() {
         registerDefaultHandlers();
     }
 

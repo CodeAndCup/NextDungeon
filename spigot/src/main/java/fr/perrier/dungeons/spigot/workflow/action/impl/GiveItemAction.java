@@ -78,7 +78,7 @@ public class GiveItemAction extends Action implements BlocklyAction {
                 ItemMeta meta = item.getItemMeta();
                 if (meta != null) {
                     String formattedName = fr.perrier.cupcodeapi.utils.ChatUtil.translate(customName);
-                    formattedName = Main.getInstance().getVariableManager().formatVariable(formattedName, triggerPlayer);
+                    formattedName = Main.getInstance().getVariableRegistry().formatVariable(formattedName, triggerPlayer);
                     meta.setDisplayName(formattedName);
                     item.setItemMeta(meta);
                 }

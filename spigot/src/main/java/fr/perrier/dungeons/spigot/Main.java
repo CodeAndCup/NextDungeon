@@ -27,8 +27,8 @@ import fr.perrier.dungeons.spigot.listener.global.GlobalJoinListener;
 import fr.perrier.dungeons.spigot.listener.global.GlobalLeaveListener;
 import fr.perrier.dungeons.spigot.listener.global.GlobalPartyListener;
 import fr.perrier.dungeons.spigot.manager.GhostFactory;
-import fr.perrier.dungeons.spigot.manager.GlobalTriggerManager;
-import fr.perrier.dungeons.spigot.manager.VariableManager;
+import fr.perrier.dungeons.spigot.workflow.registry.TriggersRegistry;
+import fr.perrier.dungeons.spigot.workflow.registry.VariableRegistry;
 import fr.perrier.dungeons.common.messaging.Pidgin;
 import fr.perrier.dungeons.spigot.messaging.ServerNameService;
 import fr.perrier.dungeons.spigot.messaging.packets.PlayerSwitchServerPacket;
@@ -90,8 +90,8 @@ public final class Main extends JavaPlugin {
 
 
     // Global trigger manager
-    private GlobalTriggerManager globalTriggerManager;
-    private VariableManager variableManager;
+    private TriggersRegistry triggersRegistry;
+    private VariableRegistry variableRegistry;
 
     // Instance provider (CloudNet, ASP, ou Vanilla)
     private InstanceProvider instanceProvider;
@@ -236,12 +236,12 @@ public final class Main extends JavaPlugin {
         // Only on instance servers
         if(ServerUtil.isInstanceServer()) {
             // Initialize trigger system
-            globalTriggerManager = new GlobalTriggerManager();
-            globalTriggerManager.initialize();
-            globalTriggerManager.refreshTriggerCache();
+            triggersRegistry = new TriggersRegistry();
+            triggersRegistry.initialize();
+            triggersRegistry.refreshTriggerCache();
 
             // Initialize variable manager
-            variableManager = new VariableManager();
+            variableRegistry = new VariableRegistry();
 
             if(ServerUtil.isInEditMode()) {
                 // Initialize web editor manager

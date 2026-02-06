@@ -1,4 +1,4 @@
-package fr.perrier.dungeons.spigot.manager;
+package fr.perrier.dungeons.spigot.workflow.registry;
 
 import fr.perrier.dungeons.spigot.Main;
 import lombok.Getter;
@@ -14,7 +14,7 @@ import java.util.regex.Pattern;
  * Manages variables in the dungeon system, including global and player-specific variables.
  */
 @Getter
-public class VariableManager {
+public class VariableRegistry {
 
     // Global variables (shared across all contexts)
     private final Map<String, Object> globalVariables = new ConcurrentHashMap<>();
@@ -23,7 +23,7 @@ public class VariableManager {
     private final Map<UUID, Map<String, Object>> playerVariables = new ConcurrentHashMap<>();
 
 
-    public VariableManager() {
+    public VariableRegistry() {
         Main.getInstance().getLogger().info("Variable Manager initialized");
     }
 

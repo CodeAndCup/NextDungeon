@@ -2,7 +2,7 @@ package fr.perrier.dungeons.spigot.model;
 
 import fr.perrier.dungeons.common.model.dungeon.FloorData;
 import fr.perrier.dungeons.spigot.Main;
-import fr.perrier.dungeons.spigot.manager.DungeonFileManager;
+import fr.perrier.dungeons.spigot.database.DatabaseTriggersManager;
 import fr.perrier.dungeons.spigot.utils.ServerUtil;
 import lombok.Getter;
 import lombok.Setter;
@@ -17,12 +17,12 @@ public class Floor extends FloorData {
 
     public Floor(String id, String name) {
         super(id, name);
-        super.setTriggers(DungeonFileManager.loadTriggers(id));
+        super.setTriggers(DatabaseTriggersManager.loadTriggers(id));
     }
 
     public Floor(String id, String name, String description) {
         super(id, name, description);
-        super.setTriggers(DungeonFileManager.loadTriggers(id));
+        super.setTriggers(DatabaseTriggersManager.loadTriggers(id));
     }
 
     public Floor(FloorData floorData) {

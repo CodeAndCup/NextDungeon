@@ -84,7 +84,7 @@ public class MathOperationAction extends Action implements BlocklyAction {
             Object result = performOperation(resolvedFirst, resolvedSecond, operationToUse);
 
             // Stocker le résultat
-            Main.getInstance().getVariableManager().setVariable(triggerPlayer, trimmedResultName, result, resultScopeToUse);
+            Main.getInstance().getVariableRegistry().setVariable(triggerPlayer, trimmedResultName, result, resultScopeToUse);
             data.put(trimmedResultName, result);
 
             if (Main.isDebug()) {
@@ -112,7 +112,7 @@ public class MathOperationAction extends Action implements BlocklyAction {
         // Vérifier si c'est une variable (commence par $)
         if (trimmed.startsWith("$")) {
             String variableName = trimmed.substring(1);
-            Object variableValue = Main.getInstance().getVariableManager().getVariable(player, variableName);
+            Object variableValue = Main.getInstance().getVariableRegistry().getVariable(player, variableName);
             if (variableValue == null) {
                 // Essayer dans les données locales
                 variableValue = data.get(variableName);

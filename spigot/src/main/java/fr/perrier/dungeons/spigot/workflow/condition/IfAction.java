@@ -203,7 +203,7 @@ public class IfAction extends Action implements BlocklyAction {
         if (value instanceof String) {
             String stringValue = (String) value;
 
-            stringValue = Main.getInstance().getVariableManager().formatVariable(stringValue, player);
+            stringValue = Main.getInstance().getVariableRegistry().formatVariable(stringValue, player);
 
             // Handle variable references: {VAR:variable_name}
             if (stringValue.startsWith("{VAR:") && stringValue.endsWith("}")) {
@@ -215,8 +215,8 @@ public class IfAction extends Action implements BlocklyAction {
                 }
 
                 // Try variable manager
-                if (Main.getInstance().getVariableManager() != null) {
-                    Object varValue = Main.getInstance().getVariableManager().getVariable(player, varName);
+                if (Main.getInstance().getVariableRegistry() != null) {
+                    Object varValue = Main.getInstance().getVariableRegistry().getVariable(player, varName);
                     if (varValue != null) {
                         return varValue;
                     }

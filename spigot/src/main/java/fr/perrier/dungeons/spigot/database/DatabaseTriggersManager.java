@@ -1,4 +1,4 @@
-package fr.perrier.dungeons.spigot.manager;
+package fr.perrier.dungeons.spigot.database;
 
 import fr.perrier.dungeons.common.workflow.trigger.TriggerData;
 import fr.perrier.dungeons.spigot.Main;
@@ -11,7 +11,7 @@ import java.util.concurrent.CompletableFuture;
 /**
  * Manager for saving and loading dungeon triggers in the database.
  */
-public class DungeonFileManager {
+public class DatabaseTriggersManager {
 
     /**
      * Saves the triggers for a floor in the database.

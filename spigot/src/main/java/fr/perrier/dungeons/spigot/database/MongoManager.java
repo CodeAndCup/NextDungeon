@@ -5,7 +5,7 @@ import com.mongodb.MongoClient;
 import com.mongodb.client.*;
 import fr.perrier.dungeons.common.workflow.trigger.TriggerData;
 import fr.perrier.dungeons.spigot.Main;
-import fr.perrier.dungeons.spigot.manager.InstanceWorkflowSerializer;
+import fr.perrier.dungeons.spigot.workflow.serializer.InstanceSerializer;
 import fr.perrier.dungeons.spigot.model.ProfileData;
 import lombok.Getter;
 import org.apache.commons.lang.NotImplementedException;
@@ -109,7 +109,7 @@ public class MongoManager implements DatabaseManager {
 
                 if (result != null && result.containsKey("triggers_data")) {
                     String json = result.getString("triggers_data");
-                    List<TriggerData> triggers = InstanceWorkflowSerializer.deserializeTriggers(json);
+                    List<TriggerData> triggers = InstanceSerializer.deserializeTriggers(json);
                     Main.getInstance().getLogger().info("Triggers loaded for " + floorId + " (" + triggers.size() + " triggers)");
                     return triggers;
                 }
@@ -134,7 +134,7 @@ public class MongoManager implements DatabaseManager {
     public CompletableFuture<Void> saveTriggers(String floorId, List<TriggerData> triggers) {
         return CompletableFuture.runAsync(() -> {
             try {
-                String json = InstanceWorkflowSerializer.serializeTriggers(triggers);
+                String json = InstanceSerializer.serializeTriggers(triggers);
 
                 Document query = new Document("floor_id", floorId);
                 Document update = new Document("$set", new Document()

@@ -49,7 +49,7 @@ public class CallFunctionAction extends Action implements BlocklyAction {
         String trimmedFunctionName = functionName.trim();
 
         // Get the function from the global trigger manager
-        FunctionTrigger function = Main.getInstance().getGlobalTriggerManager()
+        FunctionTrigger function = Main.getInstance().getTriggersRegistry()
                 .getFunction(trimmedFunctionName);
 
         if (function == null) {

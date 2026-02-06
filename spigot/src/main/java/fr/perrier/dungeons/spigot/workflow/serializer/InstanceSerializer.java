@@ -1,4 +1,4 @@
-package fr.perrier.dungeons.spigot.manager;
+package fr.perrier.dungeons.spigot.workflow.serializer;
 
 import com.google.gson.*;
 import fr.perrier.dungeons.common.workflow.action.ActionData;
@@ -15,7 +15,7 @@ import java.util.List;
  * Serializer/Deserializer to convert triggers to and from JSON.
  * Uses Gson with custom adapters to handle polymorphism of triggers and actions.
  */
-public class InstanceWorkflowSerializer {
+public class InstanceSerializer {
 
     // Gson pour la sérialisation de base (sans les adapters custom pour éviter les boucles)
     private static final Gson baseGson = new GsonBuilder()
