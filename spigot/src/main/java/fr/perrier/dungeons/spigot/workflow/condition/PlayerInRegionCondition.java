@@ -5,6 +5,7 @@ import fr.perrier.dungeons.spigot.webserver.blockly.BlocklyAction;
 import fr.perrier.dungeons.spigot.webserver.blockly.annotations.BlocklyField;
 import fr.perrier.dungeons.spigot.webserver.blockly.annotations.BlocklyInfo;
 import fr.perrier.dungeons.spigot.workflow.action.Action;
+import fr.perrier.dungeons.spigot.workflow.blocks.LocationBlock;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Location;
@@ -29,32 +30,14 @@ import java.util.Map;
 public class PlayerInRegionCondition extends Action implements BlocklyAction {
     private static final long serialVersionUID = 1L;
 
-    @BlocklyField(type = BlocklyField.FieldType.NUMBER_INPUT, label = "X1:",
-            defaultValue = "0", order = 1)
-    private double pos1X;
+    @BlocklyField(type = BlocklyField.FieldType.LOCATION_INPUT, label = "Position 1:", defaultValue = "", order = 0)
+    private LocationBlock pos1;
 
-    @BlocklyField(type = BlocklyField.FieldType.NUMBER_INPUT, label = "Y1:",
-            defaultValue = "64", order = 2)
-    private double pos1Y;
-
-    @BlocklyField(type = BlocklyField.FieldType.NUMBER_INPUT, label = "Z1:",
-            defaultValue = "0", order = 3)
-    private double pos1Z;
-
-    @BlocklyField(type = BlocklyField.FieldType.NUMBER_INPUT, label = "X2:",
-            defaultValue = "10", order = 4)
-    private double pos2X;
-
-    @BlocklyField(type = BlocklyField.FieldType.NUMBER_INPUT, label = "Y2:",
-            defaultValue = "74", order = 5)
-    private double pos2Y;
-
-    @BlocklyField(type = BlocklyField.FieldType.NUMBER_INPUT, label = "Z2:",
-            defaultValue = "10", order = 6)
-    private double pos2Z;
+    @BlocklyField(type = BlocklyField.FieldType.LOCATION_INPUT, label = "Position 2:", defaultValue = "", order = 1)
+    private LocationBlock pos2;
 
     @BlocklyField(type = BlocklyField.FieldType.DROPDOWN, label = "Comparaison:",
-            options = "inside,outside", defaultValue = "inside", order = 7)
+            options = "inside,outside", defaultValue = "inside", order = 2)
     private String comparison;
 
     private List<Action> ifActions;
@@ -62,12 +45,8 @@ public class PlayerInRegionCondition extends Action implements BlocklyAction {
 
     public PlayerInRegionCondition() {
         super("PlayerInRegion", "player_in_region_condition");
-        this.pos1X = 0;
-        this.pos1Y = 64;
-        this.pos1Z = 0;
-        this.pos2X = 10;
-        this.pos2Y = 74;
-        this.pos2Z = 10;
+        this.pos1 = new LocationBlock(0, 64, 0);
+        this.pos2 = new LocationBlock(10, 74, 10);
         this.comparison = "inside";
         this.ifActions = new ArrayList<>();
         this.elseActions = new ArrayList<>();
@@ -110,12 +89,12 @@ public class PlayerInRegionCondition extends Action implements BlocklyAction {
             return false;
         }
 
-        double minX = Math.min(pos1X, pos2X);
-        double maxX = Math.max(pos1X, pos2X);
-        double minY = Math.min(pos1Y, pos2Y);
-        double maxY = Math.max(pos1Y, pos2Y);
-        double minZ = Math.min(pos1Z, pos2Z);
-        double maxZ = Math.max(pos1Z, pos2Z);
+        double minX = Math.min(pos1.getX(), pos2.getX());
+        double maxX = Math.max(pos1.getX(), pos2.getX());
+        double minY = Math.min(pos1.getY(), pos2.getY());
+        double maxY = Math.max(pos1.getY(), pos2.getY());
+        double minZ = Math.min(pos1.getZ(), pos2.getZ());
+        double maxZ = Math.max(pos1.getZ(), pos2.getZ());
 
         boolean inside = playerLoc.getX() >= minX && playerLoc.getX() <= maxX
                 && playerLoc.getY() >= minY && playerLoc.getY() <= maxY

@@ -48,23 +48,6 @@ public class ActionFactory {
                             actionData.get("fadeout").getAsInt() : 20;
                     yield new SendTitleAction(targetPlayer, title, subtitle, fadeIn, stay, fadeOut);
                 }
-                case "teleporter_action" -> {
-                    String targetPlayer = actionData.has("targetplayer") ?
-                            actionData.get("targetplayer").getAsString() : "player";
-                    float x = actionData.has("x") ?
-                            actionData.get("x").getAsFloat() : 0;
-                    float y = actionData.has("y") ?
-                            actionData.get("y").getAsFloat() : 0;
-                    float z = actionData.has("z") ?
-                            actionData.get("z").getAsFloat() : 0;
-                    float yaw = actionData.has("yaw") ?
-                            actionData.get("yaw").getAsFloat() : 0;
-                    float pitch = actionData.has("pitch") ?
-                            actionData.get("pitch").getAsFloat() : 0;
-                    String worldName = actionData.has("worldname") ?
-                            actionData.get("worldname").getAsString() : "world";
-                    yield new TeleporterAction(targetPlayer, x, y, z, yaw, pitch, worldName);
-                }
                 case "call_function_action" -> {
                     String functionName = actionData.has("functionname") ?
                             actionData.get("functionname").getAsString() : "ma_fonction";
@@ -401,13 +384,8 @@ public class ActionFactory {
                 case "worldedit_schematic_action" -> {
                     String filename = actionData.has("filename") ?
                             actionData.get("filename").getAsString() : "schematic.schem";
-                    float x = actionData.has("x") ?
-                            actionData.get("x").getAsFloat() : 0;
-                    float y = actionData.has("y") ?
-                            actionData.get("y").getAsFloat() : 64;
-                    float z = actionData.has("z") ?
-                            actionData.get("z").getAsFloat() : 0;
-                    yield new WorldEditSchematicAction(filename, x, y, z);
+                    LocationBlock location = LocationBlockParser.parseFromJson(actionData, "location");
+                    yield new WorldEditSchematicAction(filename, location);
                 }
                 case "broadcast_command_action" -> {
                     String command = actionData.has("command") ?

@@ -2,6 +2,7 @@ package fr.perrier.dungeons.spigot.workflow.trigger.impl;
 
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.webserver.blockly.BlocklyTrigger;
+import fr.perrier.dungeons.spigot.workflow.blocks.LocationBlock;
 import fr.perrier.dungeons.spigot.workflow.trigger.Trigger;
 import fr.perrier.dungeons.spigot.webserver.blockly.annotations.BlocklyField;
 import fr.perrier.dungeons.spigot.webserver.blockly.annotations.BlocklyInfo;
@@ -41,21 +42,8 @@ public class BlockClickTrigger extends Trigger implements BlocklyTrigger {
             defaultValue = "STONE", order = 3)
     private String blockMaterial;
 
-    @BlocklyField(type = BlocklyField.FieldType.TEXT_INPUT, label = "Position X:",
-            defaultValue = "0", order = 4)
-    private int blockX;
-
-    @BlocklyField(type = BlocklyField.FieldType.TEXT_INPUT, label = "Position Y:",
-            defaultValue = "64", order = 5)
-    private int blockY;
-
-    @BlocklyField(type = BlocklyField.FieldType.TEXT_INPUT, label = "Position Z:",
-            defaultValue = "0", order = 6)
-    private int blockZ;
-
-    @BlocklyField(type = BlocklyField.FieldType.TEXT_INPUT, label = "Monde:",
-            defaultValue = "world", order = 7)
-    private String worldName;
+    @BlocklyField(type = BlocklyField.FieldType.LOCATION_INPUT, label = "Position du bloc :", defaultValue = "", order = 4)
+    private LocationBlock locationBlock;
 
     @BlocklyField(type = BlocklyField.FieldType.CHECKBOX, label = "Position exacte seulement:",
             defaultValue = "false", order = 8)
@@ -66,10 +54,7 @@ public class BlockClickTrigger extends Trigger implements BlocklyTrigger {
         this.clickType = "right_click";
         this.detectionType = "block";
         this.blockMaterial = "STONE";
-        this.blockX = 0;
-        this.blockY = 64;
-        this.blockZ = 0;
-        this.worldName = "world";
+        this.locationBlock = new LocationBlock(0, 64, 0, "world");
         this.exactPositionOnly = false;
     }
 
@@ -78,10 +63,7 @@ public class BlockClickTrigger extends Trigger implements BlocklyTrigger {
         this.clickType = "right_click";
         this.detectionType = "block";
         this.blockMaterial = "STONE";
-        this.blockX = 0;
-        this.blockY = 64;
-        this.blockZ = 0;
-        this.worldName = "world";
+        this.locationBlock = new LocationBlock(0, 64, 0, "world");
         this.exactPositionOnly = false;
     }
 
@@ -146,20 +128,20 @@ public class BlockClickTrigger extends Trigger implements BlocklyTrigger {
         }
 
         // Vérifier le monde
-        if (worldName != null && !worldName.isEmpty() && !clickedBlock.getWorld().getName().equals(worldName)) {
+        if (locationBlock.getWorldName() != null && !locationBlock.getWorldName().isEmpty() && !clickedBlock.getWorld().getName().equals(locationBlock.getWorldName())) {
             return false;
         }
 
         if(Main.isDebug()) {
-            Main.getInstance().getLogger().info("Block world matches trigger: " + worldName);
+            Main.getInstance().getLogger().info("Block world matches trigger: " + locationBlock.getWorldName());
         }
 
         // Vérifier la position si demandé
         if (exactPositionOnly) {
             Location blockLocation = clickedBlock.getLocation();
-            if (blockLocation.getBlockX() != blockX ||
-                blockLocation.getBlockY() != blockY ||
-                blockLocation.getBlockZ() != blockZ) {
+            if (blockLocation.getBlockX() != locationBlock.getX() ||
+                blockLocation.getBlockY() != locationBlock.getY() ||
+                blockLocation.getBlockZ() != locationBlock.getZ()) {
                 return false;
             }
         }
@@ -202,7 +184,7 @@ public class BlockClickTrigger extends Trigger implements BlocklyTrigger {
             Main.getInstance().getLogger().info("  clickType: " + clickType + " vs " + clickTypeEvent);
             Main.getInstance().getLogger().info("  detectionType: " + detectionType + " vs " + detectionTypeEvent);
             Main.getInstance().getLogger().info("  blockMaterial: " + blockMaterial + " vs " + block.getType());
-            Main.getInstance().getLogger().info("  position: (" + blockX + "," + blockY + "," + blockZ + ") vs (" + block.getX() + "," + block.getY() + "," + block.getZ() + ")");
+            Main.getInstance().getLogger().info("  position: (" + locationBlock.getX() + "," + locationBlock.getY() + "," + locationBlock.getZ() + ") vs (" + block.getX() + "," + block.getY() + "," + block.getZ() + ")");
         }
 
         // Vérifier le type de clic
@@ -222,7 +204,7 @@ public class BlockClickTrigger extends Trigger implements BlocklyTrigger {
         }
 
         // Vérifier le monde
-        if (worldName != null && !worldName.isEmpty() && !block.getWorld().getName().equals(worldName)) {
+        if (locationBlock.getWorldName() != null && !locationBlock.getWorldName().isEmpty() && !block.getWorld().getName().equals(locationBlock.getWorldName())) {
             if(Main.isDebug()) {
                 Main.getInstance().getLogger().info("  ❌ World mismatch!");
             }
@@ -232,9 +214,9 @@ public class BlockClickTrigger extends Trigger implements BlocklyTrigger {
         // Vérifier la position si demandé
         if (exactPositionOnly) {
             Location blockLocation = block.getLocation();
-            if (blockLocation.getBlockX() != blockX ||
-                blockLocation.getBlockY() != blockY ||
-                blockLocation.getBlockZ() != blockZ) {
+            if (blockLocation.getBlockX() != locationBlock.getX() ||
+                blockLocation.getBlockY() != locationBlock.getY() ||
+                blockLocation.getBlockZ() != locationBlock.getZ()) {
                 if(Main.isDebug()) {
                     Main.getInstance().getLogger().info("  ❌ Position mismatch!");
                 }
