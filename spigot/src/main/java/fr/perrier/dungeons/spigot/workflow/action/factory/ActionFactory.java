@@ -498,7 +498,7 @@ public class ActionFactory {
 
         } catch (Exception e) {
             Main.getInstance().getLogger().severe("&#FF0000Erreur lors de la creation de l'action: " + e.getMessage());
-            e.printStackTrace();
+            e.printStackTrace(System.err);
             return null;
         }
     }

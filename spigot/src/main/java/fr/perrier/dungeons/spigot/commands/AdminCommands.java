@@ -84,11 +84,13 @@ public class AdminCommands {
                 player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&eWarning: no saved triggers found for this floor in database."));
                 player.sendMessage(ChatUtil.translate("&eIf you have trigger changes they will be lost on the next dungeon start / edit."));
                 player.sendMessage(ChatUtil.translate("&eIf you want to discard without saving use &#FF0000/dungeon admin edit stop --confirm"));
-            } else if(triggersExist && !confirm.equalsIgnoreCase("--confirm")) {
-                player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&fAre you sure you want to end your edit mode?"));
-                player.sendMessage(ChatUtil.translate("&fUse &b/dungeon admin edit stop --confirm &fif &#00FF00yes"));
-            } else if (triggersExist && confirm.equalsIgnoreCase("--confirm")) {
-                saveAndShutdown(player, currentFloor);
+            } else{
+                if(!confirm.equalsIgnoreCase("--confirm")) {
+                    player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&fAre you sure you want to end your edit mode?"));
+                    player.sendMessage(ChatUtil.translate("&fUse &b/dungeon admin edit stop --confirm &fif &#00FF00yes"));
+                } else {
+                    saveAndShutdown(player, currentFloor);
+                }
             }
         }).exceptionally(ex -> {
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Error checking triggers: " + ex.getMessage()));

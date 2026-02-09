@@ -77,7 +77,7 @@ public class ProxyWebEditorServer {
 
         } catch (IOException e) {
             NextDungeonVelocity.getInstance().getLogger().error("Error starting web server: " + e.getMessage());
-            e.printStackTrace();
+            e.printStackTrace(System.err);
             return false;
         }
     }
@@ -482,7 +482,7 @@ public class ProxyWebEditorServer {
                 }
             } catch (Exception e) {
                 NextDungeonVelocity.getInstance().getLogger().error("Erreur API dashboard: " + e.getMessage());
-                e.printStackTrace();
+                e.printStackTrace(System.err);
                 sendErrorResponse(exchange, "Erreur traitement requête: " + e.getMessage());
             }
         }

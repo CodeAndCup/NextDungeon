@@ -76,7 +76,7 @@ public class ProxyWebEditorServer {
 
         } catch (IOException e) {
             NextDungeonBungee.getInstance().getLogger().severe("Erreur lors du démarrage du serveur web: " + e.getMessage());
-            e.printStackTrace();
+            e.printStackTrace(System.err);
             return false;
         }
     }
@@ -481,7 +481,7 @@ public class ProxyWebEditorServer {
                 }
             } catch (Exception e) {
                 NextDungeonBungee.getInstance().getLogger().severe("Erreur API dashboard: " + e.getMessage());
-                e.printStackTrace();
+                e.printStackTrace(System.err);
                 sendErrorResponse(exchange, "Erreur traitement requête: " + e.getMessage());
             }
         }

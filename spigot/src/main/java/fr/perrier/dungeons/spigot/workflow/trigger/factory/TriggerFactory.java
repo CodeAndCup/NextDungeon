@@ -101,7 +101,7 @@ public class TriggerFactory {
 
         } catch (Exception e) {
             Main.getInstance().getLogger().severe("&#FF0000Error creating trigger from JSON: " + e.getMessage());
-            e.printStackTrace();
+            e.printStackTrace(System.err);
             return null;
         }
     }

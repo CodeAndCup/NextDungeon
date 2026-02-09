@@ -82,7 +82,7 @@ public class EditorSerializer {
                 }
             }).exceptionally(ex -> {
                 Main.getInstance().getLogger().severe("&#FF0000An error occurred during trigger save: " + ex.getMessage());
-                ex.printStackTrace();
+                ex.printStackTrace(System.err);
                 return null;
             });
 
@@ -108,7 +108,7 @@ public class EditorSerializer {
 
         } catch (Exception e) {
             Main.getInstance().getLogger().severe("&#FF0000An error occurred while saving triggers: " + e.getMessage());
-            e.printStackTrace();
+            e.printStackTrace(System.err);
 
             if (editor != null && editor.isOnline()) {
                 editor.sendMessage(ChatUtil.translate("&#FF0000❌ Error while saving!"));
@@ -181,7 +181,7 @@ public class EditorSerializer {
 
         } catch (Exception e) {
             Main.getInstance().getLogger().severe("&#FF0000Error loading triggers: " + e.getMessage());
-            e.printStackTrace();
+            e.printStackTrace(System.err);
 
             JsonObject error = new JsonObject();
             error.addProperty("error", e.getMessage());

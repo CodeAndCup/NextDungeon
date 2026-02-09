@@ -99,7 +99,7 @@ public class InstanceSerializer {
                     }
                 } catch (Exception e) {
                     Main.getInstance().getLogger().severe("&#FF0000Error deserializing a trigger: " + e.getMessage());
-                    e.printStackTrace();
+                    e.printStackTrace(System.err);
                 }
             }
 
@@ -171,7 +171,7 @@ public class InstanceSerializer {
             return null;
         } catch (Exception e) {
             Main.getInstance().getLogger().severe("&#FF0000Error deserializing trigger: " + e.getMessage());
-            e.printStackTrace();
+            e.printStackTrace(System.err);
             return null;
         }
     }

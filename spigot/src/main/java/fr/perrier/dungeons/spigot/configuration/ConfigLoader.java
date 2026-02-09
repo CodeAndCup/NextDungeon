@@ -190,7 +190,7 @@ public class ConfigLoader {
                     try {
                         loadDungeon(name);
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        e.printStackTrace(System.err);
                     }
                 }
             }

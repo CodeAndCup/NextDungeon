@@ -85,7 +85,7 @@ public class TimeOfDayCondition extends Action implements BlocklyAction {
 
         } catch (Exception e) {
             Main.getInstance().getLogger().severe("Error executing TimeOfDay condition: " + e.getMessage());
-            e.printStackTrace();
+            e.printStackTrace(System.err);
             return false;
         }
     }

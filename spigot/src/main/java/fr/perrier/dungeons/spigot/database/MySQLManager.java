@@ -123,7 +123,7 @@ public class MySQLManager implements DatabaseManager {
 
         } catch (SQLException e) {
             Main.getInstance().getLogger().severe("&#FF0000Failed to create database tables: " + e.getMessage());
-            e.printStackTrace();
+            e.printStackTrace(System.err);
         }
     }
 
@@ -193,7 +193,7 @@ public class MySQLManager implements DatabaseManager {
         }, "Update: " + query).exceptionally(e -> {
             if (!isShuttingDown) {
                 Main.getInstance().getLogger().severe("&#FF0000Error executing update: " + query);
-                e.printStackTrace();
+                e.printStackTrace(System.err);
             }
             return (Integer) 0;
         });
@@ -282,7 +282,7 @@ public class MySQLManager implements DatabaseManager {
         }catch (SQLException e) {
             if (!isShuttingDown) {
                 Main.getInstance().getLogger().severe("&#FF0000Error loading profile data for player " + playerId + ": " + e.getMessage());
-                e.printStackTrace();
+                e.printStackTrace(System.err);
             }
             return null;
         }

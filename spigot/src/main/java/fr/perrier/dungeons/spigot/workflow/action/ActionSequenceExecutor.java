@@ -48,7 +48,7 @@ public class ActionSequenceExecutor {
                 executeNext();
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            e.printStackTrace(System.err);
             // Continue quand même la séquence
             executeNext();
         }

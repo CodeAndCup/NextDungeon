@@ -29,7 +29,7 @@ public class DatabaseTriggersManager {
                 })
                 .exceptionally(ex -> {
                     Main.getInstance().getLogger().severe("&#FF0000Error while saving triggers for " + floorId + ": " + ex.getMessage());
-                    ex.printStackTrace();
+                    ex.printStackTrace(System.err);
                     return false;
                 });
     }
@@ -64,7 +64,7 @@ public class DatabaseTriggersManager {
 
         } catch (Exception e) {
             Main.getInstance().getLogger().severe("&#FF0000Error loading triggers for " + floorId + ": " + e.getMessage());
-            e.printStackTrace();
+            e.printStackTrace(System.err);
             return new ArrayList<>();
         }
     }

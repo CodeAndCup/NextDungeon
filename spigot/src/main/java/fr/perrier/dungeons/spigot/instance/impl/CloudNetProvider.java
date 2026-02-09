@@ -345,7 +345,7 @@ public class CloudNetProvider implements InstanceProvider {
                 future.complete(true);
             } catch (Exception e) {
                 Main.getInstance().getLogger().severe("&#FF0000Error during CloudNet backup: " + e.getMessage());
-                e.printStackTrace();
+                e.printStackTrace(System.err);
                 future.complete(false);
             }
         });

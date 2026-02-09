@@ -76,7 +76,7 @@ public class CallFunctionAction extends Action implements BlocklyAction {
             return result;
         } catch (Exception e) {
             Main.getInstance().getLogger().severe("&#FF0000Error executing function " + trimmedFunctionName + ": " + e.getMessage());
-            e.printStackTrace();
+            e.printStackTrace(System.err);
             return false;
         }
     }

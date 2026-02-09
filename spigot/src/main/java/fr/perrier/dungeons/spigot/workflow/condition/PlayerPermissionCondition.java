@@ -75,7 +75,7 @@ public class PlayerPermissionCondition extends Action implements BlocklyAction {
 
         } catch (Exception e) {
             Main.getInstance().getLogger().severe("Error executing PlayerPermission condition: " + e.getMessage());
-            e.printStackTrace();
+            e.printStackTrace(System.err);
             return false;
         }
     }

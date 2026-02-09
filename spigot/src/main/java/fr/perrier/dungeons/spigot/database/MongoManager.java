@@ -68,7 +68,7 @@ public class MongoManager implements DatabaseManager {
     public <T> CompletableFuture<T> handleAsyncOperation(CompletableFuture<T> future, String operationName) {
         return future.exceptionally(ex -> {
             Bukkit.getLogger().severe("&#FF0000Erreur lors de l'operation " + operationName + ": " + ex.getMessage());
-            ex.printStackTrace();
+            ex.printStackTrace(System.err);
             return null;
         });
     }
@@ -118,7 +118,7 @@ public class MongoManager implements DatabaseManager {
                 return new ArrayList<>();
             } catch (Exception e) {
                 Main.getInstance().getLogger().severe("&#FF0000An error occurred during the loading phase of triggers for " + floorId + ": " + e.getMessage());
-                e.printStackTrace();
+                e.printStackTrace(System.err);
                 return new ArrayList<>();
             }
         });
@@ -147,7 +147,7 @@ public class MongoManager implements DatabaseManager {
                 Main.getInstance().getLogger().info("Triggers saved for " + floorId + " (" + triggers.size() + " triggers)");
             } catch (Exception e) {
                 Main.getInstance().getLogger().severe("&#FF0000An error occurred during the saving phase of triggers for " + floorId + ": " + e.getMessage());
-                e.printStackTrace();
+                e.printStackTrace(System.err);
             }
         });
     }
@@ -166,7 +166,7 @@ public class MongoManager implements DatabaseManager {
                 return count > 0;
             } catch (Exception e) {
                 Main.getInstance().getLogger().severe("&#FF0000An error occurred during the verification of triggers for " + floorId + ": " + e.getMessage());
-                e.printStackTrace();
+                e.printStackTrace(System.err);
                 return false;
             }
         });
@@ -187,7 +187,7 @@ public class MongoManager implements DatabaseManager {
                 Main.getInstance().getLogger().info("Triggers delete for " + floorId);
             } catch (Exception e) {
                 Main.getInstance().getLogger().severe("&#FF0000An error occurred during the deletion of triggers for " + floorId + ": " + e.getMessage());
-                e.printStackTrace();
+                e.printStackTrace(System.err);
             }
         });
     }
