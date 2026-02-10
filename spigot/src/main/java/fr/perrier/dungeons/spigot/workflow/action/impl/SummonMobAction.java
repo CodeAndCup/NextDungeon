@@ -1,9 +1,10 @@
 package fr.perrier.dungeons.spigot.workflow.action.impl;
 
-import fr.perrier.dungeons.spigot.webserver.blockly.BlocklyAction;
-import fr.perrier.dungeons.spigot.webserver.blockly.annotations.BlocklyField;
-import fr.perrier.dungeons.spigot.webserver.blockly.annotations.BlocklyInfo;
+import fr.perrier.dungeons.spigot.webeditor.blockly.BlocklyAction;
+import fr.perrier.dungeons.spigot.webeditor.blockly.annotations.BlocklyField;
+import fr.perrier.dungeons.spigot.webeditor.blockly.annotations.BlocklyInfo;
 import fr.perrier.dungeons.spigot.workflow.action.Action;
+import fr.perrier.dungeons.spigot.workflow.blocks.LocationBlock;
 import io.lumine.mythic.bukkit.MythicBukkit;
 import lombok.Getter;
 import lombok.Setter;
@@ -32,35 +33,22 @@ public class SummonMobAction extends Action implements BlocklyAction {
             defaultValue = "ZOMBIE", order = 1)
     private String mobType;
 
-    @BlocklyField(type = BlocklyField.FieldType.NUMBER_INPUT, label = "X:",
-            defaultValue = "0", order = 2)
-    private float x;
-    @BlocklyField(type = BlocklyField.FieldType.NUMBER_INPUT, label = "Y:",
-            defaultValue = "0", order = 3)
-    private float y;
-    @BlocklyField(type = BlocklyField.FieldType.NUMBER_INPUT, label = "Z:",
-            defaultValue = "0", order = 4)
-    private float z;
+    @BlocklyField(type = BlocklyField.FieldType.LOCATION_INPUT, label = "Position:",
+            defaultValue = "", order = 2)
+    private LocationBlock location;
 
-    @BlocklyField(type = BlocklyField.FieldType.TEXT_INPUT, label = "Monde:",
-            defaultValue = "world", order = 5)
-    private String worldName;
-
-    public SummonMobAction(String mobType, float x, float y, float z, String worldName) {
+    public SummonMobAction(String mobType, LocationBlock location) {
         super("SummonMob", "summon_mob_action");
         this.mobType = mobType;
-        this.x = x;
-        this.y = y;
-        this.z = z;
-        this.worldName = worldName;
+        this.location = location;
     }
 
     @Override
     public boolean execute(Player triggerPlayer, Location location, Map<String, Object> data) {
 
         Location spawnLocation = new Location(
-                Bukkit.getWorld(worldName),
-                x, y, z
+                Bukkit.getWorld(this.location.getWorldName()),
+                this.location.getX(), this.location.getY(), this.location.getZ()
         );
 
         EntityType entityType = null;

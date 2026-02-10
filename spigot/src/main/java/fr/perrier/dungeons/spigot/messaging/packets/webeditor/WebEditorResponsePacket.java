@@ -1,6 +1,6 @@
 package fr.perrier.dungeons.spigot.messaging.packets.webeditor;
 
-import fr.perrier.dungeons.spigot.messaging.pidgin.Packet;
+import fr.perrier.dungeons.common.messaging.pidgin.Packet;
 import lombok.Data;
 
 /**

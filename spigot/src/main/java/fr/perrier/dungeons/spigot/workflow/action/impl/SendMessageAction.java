@@ -2,10 +2,10 @@ package fr.perrier.dungeons.spigot.workflow.action.impl;
 
 import fr.perrier.cupcodeapi.utils.ChatUtil;
 import fr.perrier.dungeons.spigot.Main;
-import fr.perrier.dungeons.spigot.webserver.blockly.BlocklyAction;
+import fr.perrier.dungeons.spigot.webeditor.blockly.BlocklyAction;
 import fr.perrier.dungeons.spigot.workflow.action.Action;
-import fr.perrier.dungeons.spigot.webserver.blockly.annotations.BlocklyField;
-import fr.perrier.dungeons.spigot.webserver.blockly.annotations.BlocklyInfo;
+import fr.perrier.dungeons.spigot.webeditor.blockly.annotations.BlocklyField;
+import fr.perrier.dungeons.spigot.webeditor.blockly.annotations.BlocklyInfo;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.entity.Player;
@@ -59,7 +59,7 @@ public class SendMessageAction extends Action implements BlocklyAction {
             String finalMessage = message
                     .replace("{player}", "Tous")
                     .replace("{trigger}", data.getOrDefault("trigger_name", "Unknown").toString());
-            finalMessage = Main.getInstance().getVariableManager().formatVariable(finalMessage, triggerPlayer);
+            finalMessage = Main.getInstance().getVariableRegistry().formatVariable(finalMessage, triggerPlayer);
             String translatedMessage = ChatUtil.translate(finalMessage);
             Bukkit.broadcastMessage(translatedMessage);
             return true;
@@ -73,7 +73,7 @@ public class SendMessageAction extends Action implements BlocklyAction {
             String finalMessage = message
                     .replace("{player}", triggerPlayer != null ? triggerPlayer.getName() : "Unknown")
                     .replace("{trigger}", data.getOrDefault("trigger_name", "Unknown").toString());
-            finalMessage = Main.getInstance().getVariableManager().formatVariable(finalMessage, triggerPlayer);
+            finalMessage = Main.getInstance().getVariableRegistry().formatVariable(finalMessage, triggerPlayer);
             target.sendMessage(ChatUtil.translate(finalMessage));
             return true;
         }

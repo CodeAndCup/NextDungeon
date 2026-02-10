@@ -2,10 +2,10 @@ package fr.perrier.dungeons.spigot.workflow.action.impl;
 
 import com.cryptomorin.xseries.messages.Titles;
 import fr.perrier.cupcodeapi.utils.ChatUtil;
-import fr.perrier.dungeons.spigot.webserver.blockly.BlocklyAction;
+import fr.perrier.dungeons.spigot.webeditor.blockly.BlocklyAction;
 import fr.perrier.dungeons.spigot.workflow.action.Action;
-import fr.perrier.dungeons.spigot.webserver.blockly.annotations.BlocklyField;
-import fr.perrier.dungeons.spigot.webserver.blockly.annotations.BlocklyInfo;
+import fr.perrier.dungeons.spigot.webeditor.blockly.annotations.BlocklyField;
+import fr.perrier.dungeons.spigot.webeditor.blockly.annotations.BlocklyInfo;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Bukkit;

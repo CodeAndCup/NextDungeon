@@ -1,9 +1,9 @@
 package fr.perrier.dungeons.spigot.workflow.condition;
 
 import fr.perrier.dungeons.spigot.Main;
-import fr.perrier.dungeons.spigot.webserver.blockly.BlocklyAction;
-import fr.perrier.dungeons.spigot.webserver.blockly.annotations.BlocklyField;
-import fr.perrier.dungeons.spigot.webserver.blockly.annotations.BlocklyInfo;
+import fr.perrier.dungeons.spigot.webeditor.blockly.BlocklyAction;
+import fr.perrier.dungeons.spigot.webeditor.blockly.annotations.BlocklyField;
+import fr.perrier.dungeons.spigot.webeditor.blockly.annotations.BlocklyInfo;
 import fr.perrier.dungeons.spigot.workflow.action.Action;
 import lombok.Getter;
 import lombok.Setter;
@@ -90,7 +90,7 @@ public class IfAction extends Action implements BlocklyAction {
 
         } catch (Exception e) {
             Main.getInstance().getLogger().severe("&#FF0000Error executing If action: " + e.getMessage());
-            e.printStackTrace();
+            e.printStackTrace(System.err);
             return false;
         }
     }
@@ -203,7 +203,7 @@ public class IfAction extends Action implements BlocklyAction {
         if (value instanceof String) {
             String stringValue = (String) value;
 
-            stringValue = Main.getInstance().getVariableManager().formatVariable(stringValue, player);
+            stringValue = Main.getInstance().getVariableRegistry().formatVariable(stringValue, player);
 
             // Handle variable references: {VAR:variable_name}
             if (stringValue.startsWith("{VAR:") && stringValue.endsWith("}")) {
@@ -215,8 +215,8 @@ public class IfAction extends Action implements BlocklyAction {
                 }
 
                 // Try variable manager
-                if (Main.getInstance().getVariableManager() != null) {
-                    Object varValue = Main.getInstance().getVariableManager().getVariable(player, varName);
+                if (Main.getInstance().getVariableRegistry() != null) {
+                    Object varValue = Main.getInstance().getVariableRegistry().getVariable(player, varName);
                     if (varValue != null) {
                         return varValue;
                     }

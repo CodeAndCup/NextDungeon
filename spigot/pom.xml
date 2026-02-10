@@ -7,7 +7,7 @@
     <parent>
         <groupId>fr.perrier</groupId>
         <artifactId>NextDungeon</artifactId>
-        <version>1.0.2-SNAPSHOT</version>
+        <version>1.0.3-SNAPSHOT</version>
     </parent>
     <artifactId>NextDungeon-Spigot</artifactId>
     <packaging>jar</packaging>
@@ -151,7 +151,7 @@
         <dependency>
             <groupId>fr.perrier</groupId>
             <artifactId>cupcodeapi</artifactId>
-            <version>1.21.3-v1.1.3</version>
+            <version>1.21.3-v1.1.5</version>
         </dependency>
 
         <!-- Spigot API -->
@@ -267,25 +267,11 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- Redis API -->
-        <dependency>
-            <groupId>org.redisson</groupId>
-            <artifactId>redisson</artifactId>
-            <version>3.22.0</version>
-            <scope>compile</scope>
-        </dependency>
-
         <!-- Persistance -->
         <dependency>
             <groupId>org.mongodb</groupId>
             <artifactId>mongo-java-driver</artifactId>
             <version>3.12.11</version>
-            <scope>provided</scope>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
         </dependency>
 
         <!-- MySQL Connector/J -->
@@ -306,7 +292,7 @@
         <dependency>
             <groupId>fr.perrier</groupId>
             <artifactId>NextDungeon-Common</artifactId>
-            <version>1.0.2-SNAPSHOT</version>
+            <version>1.0.3-SNAPSHOT</version>
         </dependency>
     </dependencies>
 </project>

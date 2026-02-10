@@ -1,10 +1,10 @@
 package fr.perrier.dungeons.spigot.workflow.action.impl;
 
 import fr.perrier.dungeons.spigot.Main;
-import fr.perrier.dungeons.spigot.webserver.blockly.BlocklyAction;
+import fr.perrier.dungeons.spigot.webeditor.blockly.BlocklyAction;
 import fr.perrier.dungeons.spigot.workflow.action.Action;
-import fr.perrier.dungeons.spigot.webserver.blockly.annotations.BlocklyField;
-import fr.perrier.dungeons.spigot.webserver.blockly.annotations.BlocklyInfo;
+import fr.perrier.dungeons.spigot.webeditor.blockly.annotations.BlocklyField;
+import fr.perrier.dungeons.spigot.webeditor.blockly.annotations.BlocklyInfo;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.entity.Player;
@@ -72,7 +72,7 @@ public class SetVariableAction extends Action implements BlocklyAction {
         Object parsedValue = parseValue(value);
 
         // Set the variable using the variable manager
-        Main.getInstance().getVariableManager().setVariable(triggerPlayer, trimmedName, parsedValue, scopeToUse);
+        Main.getInstance().getVariableRegistry().setVariable(triggerPlayer, trimmedName, parsedValue, scopeToUse);
 
         // Also store in the current data context for immediate use
         data.put(trimmedName, parsedValue);

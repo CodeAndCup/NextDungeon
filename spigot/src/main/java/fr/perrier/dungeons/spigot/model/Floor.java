@@ -1,20 +1,18 @@
 package fr.perrier.dungeons.spigot.model;
 
 import fr.perrier.dungeons.common.model.dungeon.FloorData;
-import fr.perrier.dungeons.common.model.dungeon.Step;
 import fr.perrier.dungeons.spigot.Main;
-import fr.perrier.dungeons.common.model.dungeon.config.Requirements;
-import fr.perrier.dungeons.common.model.dungeon.config.Rules;
-import fr.perrier.dungeons.common.model.dungeon.config.WorldConfig;
-import fr.perrier.dungeons.spigot.manager.DungeonFileManager;
-import fr.perrier.dungeons.spigot.workflow.trigger.Trigger;
+import fr.perrier.dungeons.spigot.database.DatabaseTriggersManager;
 import fr.perrier.dungeons.spigot.utils.ServerUtil;
 import lombok.Getter;
 import lombok.Setter;
+import net.Indyuce.mmocore.api.player.PlayerData;
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.List;
+import java.util.Arrays;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 @Getter
@@ -23,21 +21,18 @@ public class Floor extends FloorData {
 
     public Floor(String id, String name) {
         super(id, name);
-        super.setTriggers(DungeonFileManager.loadTriggers(id));
-        updateMap();
+        super.setTriggers(DatabaseTriggersManager.loadTriggers(id));
     }
 
     public Floor(String id, String name, String description) {
         super(id, name, description);
-        super.setTriggers(DungeonFileManager.loadTriggers(id));
-        updateMap();
+        super.setTriggers(DatabaseTriggersManager.loadTriggers(id));
     }
 
     public Floor(FloorData floorData) {
         super(floorData.getId(), floorData.getName(), floorData.getDescription(),
                 floorData.getWorldConfig(), floorData.getRequirements(),
                 floorData.getRules(), floorData.getSteps(), floorData.getTriggers());
-        updateMap();
     }
 
     /**
@@ -47,7 +42,7 @@ public class Floor extends FloorData {
      * @return the floor with the given ID, or null if not found
      */
     public static @Nullable Floor getFloor(String id) {
-        return Main.getInstance().getRedisStorageService().getFloor(id);
+        return Main.getInstance().getDungeonService().getFloor(id);
     }
 
     /**
@@ -55,7 +50,7 @@ public class Floor extends FloorData {
      * notifying other servers of the update.
      */
     public void updateMap() {
-        Main.getInstance().getRedisStorageService().syncFloor(this.toFloorData());
+        Main.getInstance().getDungeonService().syncFloor(this.toFloorData());
     }
 
     /**
@@ -91,6 +86,53 @@ public class Floor extends FloorData {
                 getSteps(),
                 getTriggers()
         );
+    }
+
+    /**
+     * Vérifie si un joueur respecte tous les requirements d'un floor.
+     * @param player Le joueur
+     * @return true si tous les requirements sont respectés, false sinon
+     */
+    public boolean isRequirementsValid(Player player) {
+        PlayerData playerData = PlayerData.get(player);
+        ProfileData profileData = Main.getInstance().getProfileService().getProfileData(player.getUniqueId());
+
+        // Vérification du niveau minimum
+        if (this.getRequirements().getMinLevel() > 0) {
+            if (playerData.getLevel() < this.getRequirements().getMinLevel()) {
+                return false;
+            }
+        }
+        // Vérification des floors requis
+        if (this.getRequirements().getRequiredFloorsId() != null && !this.getRequirements().getRequiredFloorsId().isEmpty()) {
+            for (String requiredFloorId : this.getRequirements().getRequiredFloorsId()) {
+                if (!profileData.getCompletedFloors().contains(requiredFloorId)) {
+                    return false;
+                }
+            }
+        }
+        // Vérification des items requis
+        if (this.getRequirements().getRequiredItems() != null && !this.getRequirements().getRequiredItems().isEmpty()) {
+            for (String requiredItem : this.getRequirements().getRequiredItems()) {
+                boolean hasItem = Arrays.stream(player.getInventory().getContents())
+                        .anyMatch(itemStack -> itemStack != null && Objects.requireNonNull(itemStack.getItemMeta()).getDisplayName().equals(requiredItem));
+                if (!hasItem) {
+                    return false;
+                }
+            }
+        }
+        // Vérification des items interdits
+        if (this.getRequirements().getForbiddenItems() != null && !this.getRequirements().getForbiddenItems().isEmpty()) {
+            for (String forbiddenItem : this.getRequirements().getForbiddenItems()) {
+                boolean hasItem = Arrays.stream(player.getInventory().getContents())
+                        .anyMatch(itemStack -> itemStack != null && Objects.requireNonNull(itemStack.getItemMeta()).getDisplayName().equals(forbiddenItem));
+                if (hasItem) {
+                    return false;
+                }
+            }
+        }
+        // Si tout est respecté
+        return true;
     }
 
 

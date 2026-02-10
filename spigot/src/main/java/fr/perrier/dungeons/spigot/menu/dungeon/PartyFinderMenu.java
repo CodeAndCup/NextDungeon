@@ -92,7 +92,7 @@ public class PartyFinderMenu extends PaginatedMenu {
                             "&#9C9C9CChange your search settings to",
                             "&7parties suited to you!",
                             "",
-                            "&7Floor&f: &#90FFFF" + (config.getFloorFilter().isEmpty() ? "&#FF0000None" : Main.getInstance().getRedisStorageService().getFloor(config.getFloorFilter()).getName()),
+                            "&7Floor&f: &#90FFFF" + (config.getFloorFilter().isEmpty() ? "&#FF0000None" : Main.getInstance().getDungeonService().getFloor(config.getFloorFilter()).getName()),
                             "&7Description&f &#90FFFF" + (config.getDescriptionFilter().isEmpty() ? "&#FF0000None" : config.getDescriptionFilter()),
                             "&7Minimum Level&f: &#90FFFF" + config.getMinimumLevelFilter(),
                             "",

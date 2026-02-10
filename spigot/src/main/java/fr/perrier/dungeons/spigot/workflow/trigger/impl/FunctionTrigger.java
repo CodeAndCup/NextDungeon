@@ -2,9 +2,9 @@ package fr.perrier.dungeons.spigot.workflow.trigger.impl;
 
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.utils.ServerUtil;
-import fr.perrier.dungeons.spigot.webserver.blockly.BlocklyTrigger;
-import fr.perrier.dungeons.spigot.webserver.blockly.annotations.BlocklyField;
-import fr.perrier.dungeons.spigot.webserver.blockly.annotations.BlocklyInfo;
+import fr.perrier.dungeons.spigot.webeditor.blockly.BlocklyTrigger;
+import fr.perrier.dungeons.spigot.webeditor.blockly.annotations.BlocklyField;
+import fr.perrier.dungeons.spigot.webeditor.blockly.annotations.BlocklyInfo;
 import fr.perrier.dungeons.spigot.workflow.trigger.Trigger;
 import lombok.Getter;
 import lombok.Setter;
@@ -72,7 +72,7 @@ public class FunctionTrigger extends Trigger implements BlocklyTrigger {
         }
 
         // Store this function definition in the global trigger manager
-        Main.getInstance().getGlobalTriggerManager().registerFunction(this);
+        Main.getInstance().getTriggersRegistry().registerFunction(this);
 
         if (Main.isDebug()) {
             Main.getInstance().getLogger().info("Registered function: " + functionName + " with " +

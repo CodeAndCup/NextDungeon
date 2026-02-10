@@ -16,8 +16,6 @@ public class Dungeon {
         this.id = id;
         this.name = name;
         this.floors = new ArrayList<>();
-
-        Main.getInstance().getRedisStorageService().syncDungeon(this);
     }
 
     /**
@@ -27,7 +25,7 @@ public class Dungeon {
      */
     public void addFloor(Floor floor) {
         this.floors.add(floor);
-        Main.getInstance().getRedisStorageService().syncDungeon(this);
+        Main.getInstance().getDungeonService().syncDungeon(this);
     }
 
     /**
@@ -37,7 +35,7 @@ public class Dungeon {
      */
     public void removeFloor(Floor floor) {
         this.floors.remove(floor);
-        Main.getInstance().getRedisStorageService().syncDungeon(this);
+        Main.getInstance().getDungeonService().syncDungeon(this);
     }
 
     /**
@@ -47,8 +45,9 @@ public class Dungeon {
      */
     public void setFloors(List<Floor> floors) {
         this.floors = floors;
-        Main.getInstance().getRedisStorageService().syncDungeon(this);
+        Main.getInstance().getDungeonService().syncDungeon(this);
     }
+
 
     /**
      * Renames this dungeon and synchronizes the update to Redis.
@@ -57,14 +56,14 @@ public class Dungeon {
      */
     public void rename(String newName) {
         this.name = newName;
-        Main.getInstance().getRedisStorageService().syncDungeon(this);
+        Main.getInstance().getDungeonService().syncDungeon(this);
     }
 
     /**
      * Deletes this dungeon from Redis storage.
      */
     public void delete() {
-        Main.getInstance().getRedisStorageService().removeDungeon(this.id);
+        Main.getInstance().getDungeonService().removeDungeon(this.id);
     }
 
     /**
@@ -74,7 +73,7 @@ public class Dungeon {
      * @return the dungeon with the given ID, or null if not found
      */
     public static Dungeon getDungeon(String id) {
-        return Main.getInstance().getRedisStorageService().getDungeon(id);
+        return Main.getInstance().getDungeonService().getDungeon(id);
     }
 
     /**
@@ -83,7 +82,7 @@ public class Dungeon {
      * @return an unmodifiable collection of all dungeons
      */
     public static Collection<Dungeon> getDungeons() {
-        return Collections.unmodifiableCollection(Main.getInstance().getRedisStorageService().getDungeonsMap().values());
+        return Collections.unmodifiableCollection(Main.getInstance().getDungeonService().getDungeonsMap().values());
     }
 
     /**
@@ -92,7 +91,7 @@ public class Dungeon {
      * @param id the unique ID of the dungeon to remove
      */
     public static void removeDungeon(String id) {
-        Main.getInstance().getRedisStorageService().removeDungeon(id);
+        Main.getInstance().getDungeonService().removeDungeon(id);
     }
 
     @Override

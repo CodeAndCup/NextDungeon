@@ -1,7 +1,7 @@
 {
   "id": "nextdungeon-velocity",
   "name": "NextDungeon Velocity",
-  "version": "1.0-SNAPSHOT",
+  "version": "1.0.3-SNAPSHOT",
   "description": "Web editor centralise pour les dungeons NextDungeon",
   "authors": ["PerrierBouteille"],
   "main": "fr.perrier.dungeons.velocity.NextDungeonVelocity",

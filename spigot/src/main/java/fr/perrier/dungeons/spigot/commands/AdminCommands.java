@@ -9,14 +9,11 @@ import fr.perrier.dungeons.spigot.instance.InstanceInfo;
 import fr.perrier.dungeons.spigot.model.Dungeon;
 import fr.perrier.dungeons.spigot.model.FloorInstance;
 import fr.perrier.dungeons.spigot.model.Floor;
-import fr.perrier.dungeons.spigot.storage.RedisStorageService;
 import fr.perrier.dungeons.spigot.utils.ServerUtil;
-import jodd.io.FileUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
-import java.io.File;
-import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 public class AdminCommands {
@@ -34,6 +31,8 @@ public class AdminCommands {
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin webeditor stop"));
         // Test commands
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin test &#D63333<dungeon> <floor>"));
+        // Queue commands
+        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin queue &8- &fQueue management"));
         // Other commands
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin import &#D63333<world> <dungeon> <floor>"));
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin load &#D63333<config>"));
@@ -53,7 +52,7 @@ public class AdminCommands {
             return;
         }
 
-        FloorInstance.generateNewInstanceAsync(floor.getId(),true,floorInstance -> floorInstance.sendToServer(player));
+        FloorInstance.generateNewInstanceAsync(floor.getId(), Set.of(player.getUniqueId()), true, floorInstance -> floorInstance.sendToServer(player));
         player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#00FF00✓ &fEdit mode started for floor &e" + floor.getId() + "&f."));
         player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&fPlease wait while the instance is being prepared..."));
     }
@@ -86,11 +85,13 @@ public class AdminCommands {
                 player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&eWarning: no saved triggers found for this floor in database."));
                 player.sendMessage(ChatUtil.translate("&eIf you have trigger changes they will be lost on the next dungeon start / edit."));
                 player.sendMessage(ChatUtil.translate("&eIf you want to discard without saving use &#FF0000/dungeon admin edit stop --confirm"));
-            } else if(triggersExist && !confirm.equalsIgnoreCase("--confirm")) {
-                player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&fAre you sure you want to end your edit mode?"));
-                player.sendMessage(ChatUtil.translate("&fUse &b/dungeon admin edit stop --confirm &fif &#00FF00yes"));
-            } else if (triggersExist && confirm.equalsIgnoreCase("--confirm")) {
-                saveAndShutdown(player, currentFloor);
+            } else{
+                if(!confirm.equalsIgnoreCase("--confirm")) {
+                    player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&fAre you sure you want to end your edit mode?"));
+                    player.sendMessage(ChatUtil.translate("&fUse &b/dungeon admin edit stop --confirm &fif &#00FF00yes"));
+                } else {
+                    saveAndShutdown(player, currentFloor);
+                }
             }
         }).exceptionally(ex -> {
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Error checking triggers: " + ex.getMessage()));
@@ -171,7 +172,7 @@ public class AdminCommands {
             return;
         }
 
-        FloorInstance.generateNewInstanceAsync(floor.getId(),false,floorInstance -> floorInstance.sendToServer(player));
+        FloorInstance.generateNewInstanceAsync(floor.getId(), Set.of(player.getUniqueId()), false,floorInstance -> floorInstance.sendToServer(player));
         player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#00FF00✓ &fTest instance started for floor &e" + floor.getId() + "&f."));
         player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&fPlease wait while the instance is being prepared..."));
     }
@@ -213,7 +214,7 @@ public class AdminCommands {
                 player.sendMessage(ChatUtil.translate("&7Floor ID: &f" + info.getFloorId()));
                 player.sendMessage(ChatUtil.translate("&7Created At: &f" + info.getCreatedAt()));
 
-                FloorInstance instance = Main.getInstance().getRedisStorageService().getCurrentInstance();
+                FloorInstance instance = Main.getInstance().getDungeonService().getCurrentInstance();
                 if (instance != null) {
                     player.sendMessage(ChatUtil.translate("&7Ready: &f" + instance.isReady()));
                 }
@@ -222,8 +223,9 @@ public class AdminCommands {
             }
         } else if (isDefaultInstance) {
             player.sendMessage(ChatUtil.translate("&7Server Type: &#00FF00Lobby"));
+            player.sendMessage(ChatUtil.translate("&7Server Name: &f" + Main.getInstance().getServerNameService().getCachedServerName()));
         } else {
-            FloorInstance instance = Main.getInstance().getRedisStorageService().getInstance(UUID.fromString(instanceId));
+            FloorInstance instance = Main.getInstance().getDungeonService().getInstance(UUID.fromString(instanceId));
             if (instance == null) {
                 player.sendMessage(ChatUtil.translate("&#FF0000Instance not found"));
             } else {
@@ -235,6 +237,100 @@ public class AdminCommands {
                 player.sendMessage(ChatUtil.translate("&7Ready: &f" + instance.isReady()));
             }
         }
+        player.sendMessage(ChatUtil.getBar());
+    }
+
+    @Command(names = {"dungeon admin queue", "dungeons admin queue", "nd admin queue"}, permission = "nextdungeons.admin")
+    public static void adminQueueCommand(Player player) {
+        player.sendMessage(ChatUtil.getBar());
+        player.sendMessage(ChatUtil.translate("<gradient:#8B0000:bold>NextDungeon</gradient:#D10000> &8| &fQueue Management"));
+        player.sendMessage("");
+        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin queue status"));
+        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin queue clear &#D63333<floor_id>"));
+        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin queue list &#D63333<floor_id>"));
+        player.sendMessage("");
+        player.sendMessage(ChatUtil.getBar());
+    }
+
+    @Command(names = {"dungeon admin queue status", "dungeons admin queue status", "nd admin queue status"}, permission = "nextdungeons.admin")
+    public static void adminQueueStatusCommand(Player player) {
+        if (Main.getInstance().getDungeonQueueService() == null) {
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Queue service not available"));
+            return;
+        }
+
+        player.sendMessage(ChatUtil.getBar());
+        player.sendMessage(ChatUtil.translate("<gradient:#8B0000:bold>NextDungeon</gradient:#D10000> &8| &fQueue Status"));
+        player.sendMessage("");
+
+        for (String floorId : Main.getInstance().getDungeonQueueService().getActiveQueueFloors()) {
+            Floor floor = Floor.getFloor(floorId);
+            String floorName = floor != null ? floor.getName() : floorId;
+            int queueSize = Main.getInstance().getDungeonQueueService().getQueueSize(floorId);
+            int activeInstances = Main.getInstance().getDungeonQueueService().getActiveInstanceCount(floorId);
+            int maxInstances = floor != null && floor.getRules() != null ? floor.getRules().getMaxInstance() : 0;
+
+            player.sendMessage(ChatUtil.translate(String.format(
+                "&#D10000%s &7(ID: %s)",
+                floorName,
+                floorId
+            )));
+            player.sendMessage(ChatUtil.translate(String.format(
+                "  &7Queue Size: &e%d &7| Active Instances: &e%d/%s",
+                queueSize,
+                activeInstances,
+                maxInstances > 0 ? String.valueOf(maxInstances) : "∞"
+            )));
+        }
+
+        player.sendMessage("");
+        player.sendMessage(ChatUtil.getBar());
+    }
+
+    @Command(names = {"dungeon admin queue clear", "dungeons admin queue clear", "nd admin queue clear"}, permission = "nextdungeons.admin")
+    public static void adminQueueClearCommand(Player player, @Param(name = "Floor ID") String floorId) {
+        if (Main.getInstance().getDungeonQueueService() == null) {
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Queue service not available"));
+            return;
+        }
+
+        Main.getInstance().getDungeonQueueService().clearQueue(floorId);
+        player.sendMessage(ChatUtil.translate(Main.getPrefix() + "Queue cleared for floor: " + floorId));
+    }
+
+    @Command(names = {"dungeon admin queue list", "dungeons admin queue list", "nd admin queue list"}, permission = "nextdungeons.admin")
+    public static void adminQueueListCommand(Player player, @Param(name = "Floor ID") String floorId) {
+        if (Main.getInstance().getDungeonQueueService() == null) {
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Queue service not available"));
+            return;
+        }
+
+        Floor floor = Floor.getFloor(floorId);
+        if (floor == null) {
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Floor not found: " + floorId));
+            return;
+        }
+
+        player.sendMessage(ChatUtil.getBar());
+        player.sendMessage(ChatUtil.translate("<gradient:#8B0000:bold>NextDungeon</gradient:#D10000> &8| &fQueue for " + floor.getName()));
+        player.sendMessage("");
+
+        var entries = Main.getInstance().getDungeonQueueService().getQueueEntries(floorId);
+        if (entries.isEmpty()) {
+            player.sendMessage(ChatUtil.translate("&7No players in queue"));
+        } else {
+            for (int i = 0; i < entries.size(); i++) {
+                var entry = entries.get(i);
+                player.sendMessage(ChatUtil.translate(String.format(
+                    "&7%d. &f%s &7(Server: %s)",
+                    i + 1,
+                    entry.getPlayerName(),
+                    entry.getServerName()
+                )));
+            }
+        }
+
+        player.sendMessage("");
         player.sendMessage(ChatUtil.getBar());
     }
 }

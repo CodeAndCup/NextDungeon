@@ -2,9 +2,9 @@ package fr.perrier.dungeons.spigot.workflow.action.impl;
 
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.model.FloorInstance;
-import fr.perrier.dungeons.spigot.webserver.blockly.BlocklyAction;
+import fr.perrier.dungeons.spigot.webeditor.blockly.BlocklyAction;
 import fr.perrier.dungeons.spigot.workflow.action.Action;
-import fr.perrier.dungeons.spigot.webserver.blockly.annotations.BlocklyInfo;
+import fr.perrier.dungeons.spigot.webeditor.blockly.annotations.BlocklyInfo;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Location;
@@ -30,8 +30,8 @@ public class EndDungeonAction extends Action implements BlocklyAction {
 
     @Override
     public boolean execute(Player triggerPlayer, Location location, Map<String, Object> data) {
-        FloorInstance floorInstance = Main.getInstance().getRedisStorageService().getCurrentInstance();
-        floorInstance.complete();
+        FloorInstance floorInstance = Main.getInstance().getDungeonService().getCurrentInstance();
+        floorInstance.complete(true);
         return true;
     }
 }

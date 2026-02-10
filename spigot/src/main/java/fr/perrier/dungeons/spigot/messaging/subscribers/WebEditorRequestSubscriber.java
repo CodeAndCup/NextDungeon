@@ -4,8 +4,8 @@ import com.google.gson.Gson;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.messaging.packets.webeditor.WebEditorRequestPacket;
 import fr.perrier.dungeons.spigot.messaging.packets.webeditor.WebEditorResponsePacket;
-import fr.perrier.dungeons.spigot.messaging.pidgin.IncomingPacketHandler;
-import fr.perrier.dungeons.spigot.messaging.pidgin.PacketListener;
+import fr.perrier.dungeons.common.messaging.pidgin.IncomingPacketHandler;
+import fr.perrier.dungeons.common.messaging.pidgin.PacketListener;
 import fr.perrier.dungeons.spigot.webeditor.ProxyEditorMessageHandler;
 
 /**

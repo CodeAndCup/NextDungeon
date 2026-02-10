@@ -1,6 +1,6 @@
 package fr.perrier.dungeons.spigot.messaging.packets;
 
-import fr.perrier.dungeons.spigot.messaging.pidgin.Packet;
+import fr.perrier.dungeons.common.messaging.pidgin.Packet;
 
 import java.util.UUID;
 

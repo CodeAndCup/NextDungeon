@@ -1,6 +1,6 @@
 package fr.perrier.dungeons.bungee.messaging.packets.webeditor;
 
-import fr.perrier.dungeons.bungee.messaging.pidgin.Packet;
+import fr.perrier.dungeons.common.messaging.pidgin.Packet;
 import lombok.Data;
 
 import java.util.UUID;

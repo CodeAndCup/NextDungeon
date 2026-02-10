@@ -68,9 +68,9 @@ public class WorldEdit {
             }
 
         } catch (IOException e) {
-            e.printStackTrace();
+            e.printStackTrace(System.err);
         } catch (Exception e) {
-            e.printStackTrace();
+            e.printStackTrace(System.err);
         }
     }
 }

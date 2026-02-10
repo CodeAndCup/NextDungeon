@@ -1,10 +1,10 @@
 package fr.perrier.dungeons.spigot.workflow.trigger.impl;
 
-import fr.perrier.dungeons.spigot.webserver.blockly.BlocklyTrigger;
+import fr.perrier.dungeons.spigot.webeditor.blockly.BlocklyTrigger;
 import fr.perrier.dungeons.spigot.workflow.trigger.Trigger;
 import fr.perrier.dungeons.spigot.utils.ServerUtil;
-import fr.perrier.dungeons.spigot.webserver.blockly.annotations.BlocklyField;
-import fr.perrier.dungeons.spigot.webserver.blockly.annotations.BlocklyInfo;
+import fr.perrier.dungeons.spigot.webeditor.blockly.annotations.BlocklyField;
+import fr.perrier.dungeons.spigot.webeditor.blockly.annotations.BlocklyInfo;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Location;
@@ -29,34 +29,22 @@ import java.util.Objects;
 )
 public class RegionTrigger extends Trigger implements BlocklyTrigger {
 
-    @BlocklyField(type = BlocklyField.FieldType.NUMBER_INPUT, label = "X1:", defaultValue = "0", order = 1)
-    private double pos1X;
+    @BlocklyField(type = BlocklyField.FieldType.LOCATION_INPUT, label = "Position 1:", defaultValue = "", order = 0)
+    private Location pos1;
 
-    @BlocklyField(type = BlocklyField.FieldType.NUMBER_INPUT, label = "Y1:", defaultValue = "64", order = 2)
-    private double pos1Y;
+    @BlocklyField(type = BlocklyField.FieldType.LOCATION_INPUT, label = "Position 2:", defaultValue = "", order = 1)
+    private Location pos2;
 
-    @BlocklyField(type = BlocklyField.FieldType.NUMBER_INPUT, label = "Z1:", defaultValue = "0", order = 3)
-    private double pos1Z;
-
-    @BlocklyField(type = BlocklyField.FieldType.NUMBER_INPUT, label = "X2:", defaultValue = "10", order = 4)
-    private double pos2X;
-
-    @BlocklyField(type = BlocklyField.FieldType.NUMBER_INPUT, label = "Y2:", defaultValue = "74", order = 5)
-    private double pos2Y;
-
-    @BlocklyField(type = BlocklyField.FieldType.NUMBER_INPUT, label = "Z2:", defaultValue = "10", order = 6)
-    private double pos2Z;
-
-    @BlocklyField(type = BlocklyField.FieldType.TEXT_INPUT, label = "Monde:", defaultValue = "world", order = 7)
+    @BlocklyField(type = BlocklyField.FieldType.TEXT_INPUT, label = "Monde:", defaultValue = "world", order = 2)
     private String worldName;
 
-    @BlocklyField(type = BlocklyField.FieldType.DROPDOWN, label = "Événement:", order = 8, options = "enter,exit,both")
+    @BlocklyField(type = BlocklyField.FieldType.DROPDOWN, label = "Événement:", order = 3, options = "enter,exit,both")
     private String regionEvent = "enter";
 
-    @BlocklyField(type = BlocklyField.FieldType.CHECKBOX, label = "Une seule fois:", order = 9)
+    @BlocklyField(type = BlocklyField.FieldType.CHECKBOX, label = "Une seule fois:", order = 4)
     private boolean onlyOnce = false;
 
-    @BlocklyField(type = BlocklyField.FieldType.NUMBER_INPUT, label = "Cooldown (sec):", defaultValue = "0", order = 10)
+    @BlocklyField(type = BlocklyField.FieldType.NUMBER_INPUT, label = "Cooldown (sec):", defaultValue = "0", order = 5)
     private int cooldownSeconds = 0;
 
     private final Map<String, Long> playerTriggerHistory = new HashMap<>();
@@ -129,12 +117,12 @@ public class RegionTrigger extends Trigger implements BlocklyTrigger {
             return false;
         }
 
-        double minX = Math.min(pos1X, pos2X);
-        double maxX = Math.max(pos1X, pos2X);
-        double minY = Math.min(pos1Y, pos2Y);
-        double maxY = Math.max(pos1Y, pos2Y);
-        double minZ = Math.min(pos1Z, pos2Z);
-        double maxZ = Math.max(pos1Z, pos2Z);
+        double minX = Math.min(pos1.getX(), pos2.getX());
+        double maxX = Math.max(pos1.getX(), pos2.getX());
+        double minY = Math.min(pos1.getY(), pos2.getY());
+        double maxY = Math.max(pos1.getY(), pos2.getY());
+        double minZ = Math.min(pos1.getZ(), pos2.getZ());
+        double maxZ = Math.max(pos1.getZ(), pos2.getZ());
 
         double px = playerLoc.getX();
         double py = playerLoc.getY();
@@ -203,7 +191,7 @@ public class RegionTrigger extends Trigger implements BlocklyTrigger {
         info.put("cooldown_seconds", cooldownSeconds);
         info.put("world", worldName);
         info.put("region_bounds", String.format("(%,.1f,%,.1f,%,.1f) -> (%,.1f,%,.1f,%,.1f)",
-                pos1X, pos1Y, pos1Z, pos2X, pos2Y, pos2Z));
+                pos1.getX(), pos1.getY(), pos1.getZ(), pos2.getX(), pos2.getY(), pos2.getZ()));
         info.put("players_in_history", playerTriggerHistory.size());
         info.put("actions_count", getActions().size());
         return info;

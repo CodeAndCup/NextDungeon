@@ -1,7 +1,5 @@
 package fr.perrier.dungeons.spigot.commands;
 
-import com.google.common.io.ByteArrayDataOutput;
-import com.google.common.io.ByteStreams;
 import fr.perrier.cupcodeapi.commands.annotations.Command;
 import fr.perrier.cupcodeapi.commands.annotations.Param;
 import fr.perrier.cupcodeapi.utils.ChatUtil;
@@ -9,10 +7,8 @@ import fr.perrier.dungeons.common.model.dungeon.FloorData;
 import fr.perrier.dungeons.common.model.dungeon.config.FloorInstanceData;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.menu.dungeon.DungeonGateMenu;
-import fr.perrier.dungeons.spigot.model.FloorInstance;
 import fr.perrier.dungeons.spigot.model.Dungeon;
 import fr.perrier.dungeons.spigot.model.Floor;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 public class DebugCommands {
@@ -35,7 +31,7 @@ public class DebugCommands {
     public static void debugDungeonListInstancesCommand(Player player) {
         player.sendMessage(ChatUtil.getBar());
         player.sendMessage(ChatUtil.translate("&6Instances:"));
-        for (FloorInstanceData instanceData : Main.getInstance().getRedisStorageService().getInstancesMap().values()) {
+        for (FloorInstanceData instanceData : Main.getInstance().getDungeonService().getInstancesMap().values()) {
             player.sendMessage(ChatUtil.translate("  &8- &e" + instanceData.getInstanceName() + " &8(&7&o" + instanceData.getInstanceId() + "&8)"));
         }
         player.sendMessage(ChatUtil.getBar());
@@ -45,7 +41,7 @@ public class DebugCommands {
     public static void debugDungeonListFloorsCommand(Player player) {
         player.sendMessage(ChatUtil.getBar());
         player.sendMessage(ChatUtil.translate("&6Floors:"));
-        for (FloorData floorData : Main.getInstance().getRedisStorageService().getFloorsMap().values()) {
+        for (FloorData floorData : Main.getInstance().getDungeonService().getFloorsMap().values()) {
             player.sendMessage(ChatUtil.translate("  &8- &e" + floorData.getName() + " &8(&7&o" + floorData.getId() + "&8)"));
             player.sendMessage(ChatUtil.translate("      &8- &eDescription: &f" + floorData.getDescription()));
             player.sendMessage(ChatUtil.translate("      &8- &eNumber of Steps: &f" + floorData.getSteps().size()));
@@ -94,6 +90,21 @@ public class DebugCommands {
         player.sendMessage(ChatUtil.translate("  &8- &eDescription: &f" + floor.getDescription()));
         player.sendMessage(ChatUtil.translate("  &8- &eNumber of Steps: &f" + floor.getSteps().size()));
         player.sendMessage(ChatUtil.translate("  &8- &eNumber of Triggers: &f" + floor.getTriggers().size()));
+        player.sendMessage(ChatUtil.getBar());
+    }
+
+    @Command(names = "dungeon debug trigger")
+    public static void debugDungeonTriggerCommand(Player player, @Param(name = "dungeonId")String dungeonId, @Param(name = "floorId") String floorId) {
+        Floor floor = Floor.getFloor(dungeonId + "_" + floorId);
+        if (floor == null) {
+            player.sendMessage(ChatUtil.translate("&#FF0000Floor with ID '" + floorId + "' not found."));
+            return;
+        }
+        player.sendMessage(ChatUtil.getBar());
+        player.sendMessage(ChatUtil.translate("&6Triggers for Floor: &e" + floor.getName()));
+        floor.getTriggers().forEach(trigger -> {
+            player.sendMessage(ChatUtil.translate("  &b" + trigger.toString()));
+        });
         player.sendMessage(ChatUtil.getBar());
     }
 }

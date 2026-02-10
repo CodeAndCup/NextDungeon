@@ -5,7 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import fr.perrier.dungeons.bungee.webeditor.EditorSessionManager;
-import fr.perrier.dungeons.common.model.dungeon.FloorData;
+import fr.perrier.dungeons.common.model.dungeon.FloorMetadata;
 import fr.perrier.dungeons.common.model.dungeon.config.FloorInstanceData;
 import lombok.RequiredArgsConstructor;
 import org.redisson.api.RMap;
@@ -25,18 +25,18 @@ public class DashboardService {
     private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
     
     // Redis Maps keys (same as in RedisStorageService)
-    private static final String FLOOR_MAP = "dungeons:floors";
+    private static final String FLOOR_METADATA_MAP = "dungeons:floor_metadata";
     private static final String INSTANCE_MAP = "dungeons:instances";
     
     /**
      * Récupère tous les floors depuis Redis
      */
     public String getFloorsJson() {
-        RMap<String, FloorData> floorsMap = redissonClient.getMap(FLOOR_MAP);
-        
+        RMap<String, FloorMetadata> floorsMap = redissonClient.getMap(FLOOR_METADATA_MAP);
+
         JsonArray floorsArray = new JsonArray();
-        for (Map.Entry<String, FloorData> entry : floorsMap.entrySet()) {
-            FloorData floor = entry.getValue();
+        for (Map.Entry<String, FloorMetadata> entry : floorsMap.entrySet()) {
+            FloorMetadata floor = entry.getValue();
             JsonObject floorJson = new JsonObject();
             floorJson.addProperty("id", floor.getId());
             floorJson.addProperty("name", floor.getName());
@@ -119,7 +119,7 @@ public class DashboardService {
      * Génère les statistiques pour les graphiques
      */
     public String getStatsJson() {
-        RMap<String, FloorData> floorsMap = redissonClient.getMap(FLOOR_MAP);
+        RMap<String, FloorMetadata> floorsMap = redissonClient.getMap(FLOOR_METADATA_MAP);
         RMap<UUID, FloorInstanceData> instancesMap = redissonClient.getMap(INSTANCE_MAP);
         
         // Distribution des instances par floor
@@ -135,7 +135,7 @@ public class DashboardService {
         JsonArray instanceChartLabels = new JsonArray();
         for (Map.Entry<String, Long> entry : instanceDistribution.entrySet()) {
             String floorId = entry.getKey();
-            FloorData floor = floorsMap.get(floorId);
+            FloorMetadata floor = floorsMap.get(floorId);
             String floorName = floor != null ? floor.getName() : floorId;
             
             instanceChartLabels.add(floorName);
@@ -154,7 +154,7 @@ public class DashboardService {
         
         for (Map.Entry<String, Long> entry : sortedSessions) {
             String floorId = entry.getKey();
-            FloorData floor = floorsMap.get(floorId);
+            FloorMetadata floor = floorsMap.get(floorId);
             String floorName = floor != null ? floor.getName() : floorId;
             
             editChartLabels.add(floorName);
@@ -181,29 +181,21 @@ public class DashboardService {
         summary.addProperty("totalInstances", instancesMap.size());
         summary.addProperty("totalSessions", sessionManager.getActiveSessionCount());
         response.add("summary", summary);
-        
+
         return gson.toJson(response);
     }
     
     /**
      * Récupère la configuration complète d'un floor
+     * NOTE: Temporairement désactivé pour éviter les problèmes de désérialisation avec les triggers Spigot
      */
     public String getFloorConfigJson(String floorId) {
-        RMap<String, FloorData> floorsMap = redissonClient.getMap(FLOOR_MAP);
-        FloorData floor = floorsMap.get(floorId);
-        
-        if (floor == null) {
-            JsonObject error = new JsonObject();
-            error.addProperty("success", false);
-            error.addProperty("error", "Floor not found: " + floorId);
-            return gson.toJson(error);
-        }
-        
-        JsonObject response = new JsonObject();
-        response.addProperty("success", true);
-        response.add("floor", gson.toJsonTree(floor));
-        
-        return gson.toJson(response);
+        // Cette méthode n'est pas disponible sur BungeeCord car elle nécessite l'accès aux
+        // classes spécifiques à Spigot (triggers, etc.)
+        JsonObject error = new JsonObject();
+        error.addProperty("success", false);
+        error.addProperty("error", "Floor config not available on BungeeCord. Please use Spigot editor.");
+        return gson.toJson(error);
     }
     
     /**
@@ -223,5 +215,132 @@ public class DashboardService {
         return sessionManager.getActiveSessions().values().stream()
             .filter(session -> session.getFloorId().equals(floorId))
             .count();
+    }
+    
+    /**
+     * Récupère les données de la queue depuis Redis
+     */
+    public String getQueueJson() {
+        // Redis keys for queue data
+        String queuePrefix = "dungeons:queue:";
+        String instanceCountPrefix = "dungeons:instance_count:";
+        
+        try {
+            JsonObject response = new JsonObject();
+            response.addProperty("success", true);
+            
+            // Get all queue keys
+            Iterable<String> queueKeys = redissonClient.getKeys().getKeysByPattern(queuePrefix + "*");
+            
+            JsonObject queuesData = new JsonObject();
+            int totalQueued = 0;
+            int totalInstances = 0;
+            int activeFloors = 0;
+            
+            for (String queueKey : queueKeys) {
+                String floorId = queueKey.substring(queuePrefix.length());
+                
+                // Get queue for this floor
+                org.redisson.api.RDeque<Object> queue = redissonClient.getDeque(queueKey);
+                int queueSize = queue.size();
+                
+                if (queueSize > 0) {
+                    activeFloors++;
+                }
+                
+                // Get instance count for this floor
+                org.redisson.api.RMap<UUID, String> instanceMap = redissonClient.getMap(instanceCountPrefix + floorId);
+                int activeInstances = instanceMap.size();
+                
+                totalQueued += queueSize;
+                totalInstances += activeInstances;
+                
+                // Build queue info for this floor
+                JsonObject queueInfo = new JsonObject();
+                queueInfo.addProperty("queueSize", queueSize);
+                queueInfo.addProperty("activeInstances", activeInstances);
+                
+                // Get player list
+                JsonArray playersArray = new JsonArray();
+                int position = 1;
+                for (Object entry : queue) {
+                    try {
+                        // Parse the queue entry
+                        JsonObject playerJson = new JsonObject();
+                        
+                        // Use reflection to get fields from QueueEntry
+                        if (entry != null) {
+                            try {
+                                java.lang.reflect.Method getPlayerId = entry.getClass().getMethod("getPlayerId");
+                                java.lang.reflect.Method getPlayerName = entry.getClass().getMethod("getPlayerName");
+                                java.lang.reflect.Method getServerName = entry.getClass().getMethod("getServerName");
+                                java.lang.reflect.Method getTimestamp = entry.getClass().getMethod("getTimestamp");
+                                
+                                playerJson.addProperty("position", position);
+                                playerJson.addProperty("playerId", String.valueOf(getPlayerId.invoke(entry)));
+                                playerJson.addProperty("playerName", String.valueOf(getPlayerName.invoke(entry)));
+                                playerJson.addProperty("serverName", String.valueOf(getServerName.invoke(entry)));
+                                playerJson.addProperty("timestamp", ((Long) getTimestamp.invoke(entry)));
+                                
+                                playersArray.add(playerJson);
+                            } catch (Exception e) {
+                                // If reflection fails, skip this entry
+                                continue;
+                            }
+                        }
+                        position++;
+                    } catch (Exception e) {
+                        // Skip invalid entries
+                        continue;
+                    }
+                }
+                
+                queueInfo.add("players", playersArray);
+                queuesData.add(floorId, queueInfo);
+            }
+            
+            response.add("queues", queuesData);
+            
+            // Add statistics
+            JsonObject stats = new JsonObject();
+            stats.addProperty("activeFloors", activeFloors);
+            stats.addProperty("totalQueued", totalQueued);
+            stats.addProperty("totalInstances", totalInstances);
+            response.add("stats", stats);
+            
+            return gson.toJson(response);
+            
+        } catch (Exception e) {
+            JsonObject error = new JsonObject();
+            error.addProperty("success", false);
+            error.addProperty("error", "Failed to load queue data: " + e.getMessage());
+            return gson.toJson(error);
+        }
+    }
+    
+    /**
+     * Vide la queue pour un floor spécifique
+     */
+    public String clearQueueForFloor(String floorId) {
+        String queueKey = "dungeons:queue:" + floorId;
+        
+        try {
+            org.redisson.api.RDeque<Object> queue = redissonClient.getDeque(queueKey);
+            int size = queue.size();
+            queue.clear();
+            
+            JsonObject response = new JsonObject();
+            response.addProperty("success", true);
+            response.addProperty("message", "Queue cleared for floor: " + floorId);
+            response.addProperty("clearedCount", size);
+            
+            return gson.toJson(response);
+            
+        } catch (Exception e) {
+            JsonObject error = new JsonObject();
+            error.addProperty("success", false);
+            error.addProperty("error", "Failed to clear queue: " + e.getMessage());
+            return gson.toJson(error);
+        }
     }
 }

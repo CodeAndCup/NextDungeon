@@ -27,15 +27,25 @@ import fr.perrier.dungeons.spigot.listener.global.GlobalJoinListener;
 import fr.perrier.dungeons.spigot.listener.global.GlobalLeaveListener;
 import fr.perrier.dungeons.spigot.listener.global.GlobalPartyListener;
 import fr.perrier.dungeons.spigot.manager.GhostFactory;
-import fr.perrier.dungeons.spigot.manager.GlobalTriggerManager;
-import fr.perrier.dungeons.spigot.manager.VariableManager;
-import fr.perrier.dungeons.spigot.messaging.Pidgin;
+import fr.perrier.dungeons.spigot.messaging.packets.CancelInstancePacket;
+import fr.perrier.dungeons.spigot.messaging.subscribers.CancelInstanceSubscriber;
+import fr.perrier.dungeons.spigot.workflow.registry.TriggersRegistry;
+import fr.perrier.dungeons.spigot.workflow.registry.VariableRegistry;
+import fr.perrier.dungeons.common.messaging.Pidgin;
 import fr.perrier.dungeons.spigot.messaging.ServerNameService;
+import fr.perrier.dungeons.spigot.messaging.packets.PlayerSwitchServerPacket;
+import fr.perrier.dungeons.spigot.messaging.packets.webeditor.WebEditorRequestPacket;
+import fr.perrier.dungeons.spigot.messaging.packets.webeditor.WebEditorResponsePacket;
+import fr.perrier.dungeons.spigot.messaging.subscribers.PlayerSwitchServerSubscriber;
+import fr.perrier.dungeons.spigot.messaging.subscribers.WebEditorRequestSubscriber;
+import fr.perrier.dungeons.spigot.model.Floor;
 import fr.perrier.dungeons.spigot.model.FloorInstance;
 import fr.perrier.dungeons.spigot.storage.ProfileService;
-import fr.perrier.dungeons.spigot.storage.RedisStorageService;
+import fr.perrier.dungeons.spigot.storage.DungeonService;
+import fr.perrier.dungeons.spigot.queue.DungeonQueueService;
+import fr.perrier.dungeons.spigot.queue.QueueManager;
 import fr.perrier.dungeons.spigot.utils.ServerUtil;
-import fr.perrier.dungeons.spigot.webserver.DungeonWebEditorManager;
+import fr.perrier.dungeons.spigot.webeditor.DungeonWebEditorManager;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Bukkit;
@@ -45,6 +55,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.checkerframework.checker.units.qual.C;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
@@ -61,7 +72,7 @@ public final class Main extends JavaPlugin {
     private static final String prefix = "<gradient:#8B0000:bold>NextDungeon</gradient:#D10000> &8» &r";
 
     @Getter@Setter
-    private static boolean debug = false;
+    private static boolean debug = true;
 
     // Plugin API instance
     private PartiesAPI partiesAPI;
@@ -72,7 +83,7 @@ public final class Main extends JavaPlugin {
 
     // Plugin packets pub/sub and sync storage
     private Pidgin messaging;
-    private RedisStorageService redisStorageService;
+    private DungeonService dungeonService;
     private ProfileService profileService;
     private DatabaseManager databaseManager;
     private ServerNameService serverNameService;
@@ -82,14 +93,18 @@ public final class Main extends JavaPlugin {
 
 
     // Global trigger manager
-    private GlobalTriggerManager globalTriggerManager;
-    private VariableManager variableManager;
+    private TriggersRegistry triggersRegistry;
+    private VariableRegistry variableRegistry;
 
     // Instance provider (CloudNet, ASP, ou Vanilla)
     private InstanceProvider instanceProvider;
 
     // Party service
     private PartyService partyService;
+
+    // Queue management
+    private DungeonQueueService dungeonQueueService;
+    private QueueManager queueManager;
 
     @Override
     public void onEnable() {
@@ -110,23 +125,16 @@ public final class Main extends JavaPlugin {
                 .setUsername(Main.getInstance().getConfig().getString("RedisConfiguration.username"))
                 .setPassword(Main.getInstance().getConfig().getString("RedisConfiguration.password"));
 
+        // Create Redis client
+        RedissonClient redissonClient = Redisson.create(config);
+
         try {
-            // Create Redis client
-            RedissonClient redissonClient = Redisson.create(config);
-
             // Initialize Redis storage service
-            redisStorageService = new RedisStorageService(redissonClient);
-            redisStorageService.initialize();
+            dungeonService = new DungeonService(redissonClient);
+            dungeonService.initialize();
             getLogger().info("Redis storage service initialized successfully");
-
-
-            // Initialize Profile service
-            profileService = new ProfileService(redissonClient);
-            profileService.initialize();
-            getLogger().info("Profile service initialized successfully");
-
-        } catch (Exception e) {
-            getLogger().severe("&#FF0000Failed to initialize Redis services: " + e.getMessage());
+        }catch (Exception e) {
+            getLogger().severe("&#FF0000Failed to initialize Redis: " + e.getMessage());
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
@@ -135,14 +143,38 @@ public final class Main extends JavaPlugin {
         try {
             instanceProvider = InstanceProviderFactory.createProvider();
             instanceProvider.initialize().thenAccept(success -> {
-                if (success) {
-                    getLogger().info("✅ Instance provider initialisé: " + instanceProvider.getType());
-                } else {
-                    getLogger().severe("❌ Échec de l'initialisation du provider");
+                if (!success) {
+                    getLogger().severe("&#FF0000Failed to initialize instance provider");
+                    getServer().getPluginManager().disablePlugin(this);
                 }
             });
         } catch (Exception e) {
-            getLogger().severe("Erreur lors de la création du provider: " + e.getMessage());
+            getLogger().severe("&#FF0000Failed to initialize instance provider: " + e.getMessage());
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+
+        try {
+
+            // Initialize Profile service
+            profileService = new ProfileService(redissonClient);
+            profileService.initialize();
+            getLogger().info("Profile service initialized successfully");
+
+            // Initialize Dungeon Queue Service
+            dungeonQueueService = new DungeonQueueService(redissonClient);
+            dungeonQueueService.initialize();
+            getLogger().info("Dungeon queue service initialized successfully");
+
+            // Initialize Queue Manager (only on lobby servers)
+            if (!ServerUtil.isInstanceServer()) {
+                queueManager = new QueueManager(dungeonQueueService);
+                queueManager.initialize();
+                getLogger().info("Queue manager initialized successfully");
+            }
+
+        } catch (Exception e) {
+            getLogger().severe("&#FF0000Failed to initialize Redis services: " + e.getMessage());
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
@@ -182,7 +214,17 @@ public final class Main extends JavaPlugin {
         }
 
         // Enabling messaging system
-        this.messaging = new Pidgin(Main.getInstance().getConfig().getString("RedisConfiguration.topic"));
+        this.messaging = new Pidgin(
+                Main.getInstance().getConfig().getString("RedisConfiguration.topic"),
+                Main.getInstance().getConfig().getString("RedisConfiguration.host"),
+                Main.getInstance().getConfig().getInt("RedisConfiguration.port"),
+                Main.getInstance().getConfig().getString("RedisConfiguration.username"),
+                Main.getInstance().getConfig().getString("RedisConfiguration.password")
+        );
+        this.messaging.registerAdapter(PlayerSwitchServerPacket.class, new PlayerSwitchServerSubscriber());
+        this.messaging.registerAdapter(WebEditorRequestPacket.class, new WebEditorRequestSubscriber());
+        this.messaging.registerAdapter(WebEditorResponsePacket.class, null);
+        this.messaging.registerAdapter(CancelInstancePacket.class, new CancelInstanceSubscriber());
 
         // Initialize server name service
         this.serverNameService = new ServerNameService();
@@ -198,12 +240,12 @@ public final class Main extends JavaPlugin {
         // Only on instance servers
         if(ServerUtil.isInstanceServer()) {
             // Initialize trigger system
-            globalTriggerManager = new GlobalTriggerManager();
-            globalTriggerManager.initialize();
-            globalTriggerManager.refreshTriggerCache();
+            triggersRegistry = new TriggersRegistry();
+            triggersRegistry.initialize();
+            triggersRegistry.refreshTriggerCache();
 
             // Initialize variable manager
-            variableManager = new VariableManager();
+            variableRegistry = new VariableRegistry();
 
             if(ServerUtil.isInEditMode()) {
                 // Initialize web editor manager
@@ -226,19 +268,33 @@ public final class Main extends JavaPlugin {
             partyService.shutdown();
         }
 
+        // Shutdown queue manager
+        if (queueManager != null) {
+            queueManager.shutdown();
+        }
+
         // If this is an instance server, cleanup the instance data
         if (getInstanceProvider() != null && ServerUtil.isInstanceServer()) {
             InstanceInfo info = ServerUtil.getInstanceInfo();
             if (info != null) {
                 // Remove instance from Redis
-                redisStorageService.removeInstance(info.getInstanceId());
+                dungeonService.removeInstance(info.getInstanceId());
+                
+                // Unregister from queue system
+                if (dungeonQueueService != null) {
+                    Floor floor = Floor.getFloor(info.getFloorId());
+                    if (floor != null) {
+                        dungeonQueueService.unregisterInstance(floor.getId(), info.getInstanceId());
+                    }
+                }
+                
                 getLogger().info(String.format("Cleaned up instance %s from Redis", info.getInstanceId()));
             }
         }
 
         // Clear local Redis data
-        if (redisStorageService != null) {
-            redisStorageService.clearLocal();
+        if (dungeonService != null) {
+            dungeonService.clearLocal();
         }
 
         CupCodeAPI.disable();
@@ -279,6 +335,11 @@ public final class Main extends JavaPlugin {
         pluginManager.registerEvents(new GlobalPartyListener(), this);
         pluginManager.registerEvents(new GlobalJoinListener(), this);
         pluginManager.registerEvents(new GlobalLeaveListener(), this);
+        
+        // Queue listener (only on lobby servers)
+        if (!ServerUtil.isInstanceServer() && queueManager != null) {
+            pluginManager.registerEvents(new fr.perrier.dungeons.spigot.listener.queue.QueueLeaveListener(), this);
+        }
     }
 
     /**
@@ -339,7 +400,13 @@ public final class Main extends JavaPlugin {
         loadInstanceListeners();
 
         // Initialize instance in Redis
-        redisStorageService.initializeInstance(info.getInstanceId(), info.getFloorId());
+        dungeonService.initializeInstance(info.getInstanceId(), info.getFloorId());
+
+        // Register instance with queue system
+        if (dungeonQueueService != null) {
+            dungeonQueueService.registerInstance(info.getFloorId(), info.getInstanceId());
+            getLogger().info(String.format("Registered instance %s with queue system", info.getInstanceId()));
+        }
 
         // Schedule ready state
         putServerReady();
@@ -400,7 +467,7 @@ public final class Main extends JavaPlugin {
             @Override
             public void run(){
                 Bukkit.getScheduler().runTaskLaterAsynchronously(Main.getInstance(), () -> {
-                    FloorInstance instance = Main.getInstance().getRedisStorageService().getCurrentInstance();
+                    FloorInstance instance = Main.getInstance().getDungeonService().getCurrentInstance();
                     if (instance != null) {
                         instance.setReady(true);
                         Main.getInstance().getLogger().info("Instance " + instance.getInstanceId() + " is now ready!");

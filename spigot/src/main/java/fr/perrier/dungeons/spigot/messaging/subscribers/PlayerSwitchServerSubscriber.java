@@ -2,8 +2,8 @@ package fr.perrier.dungeons.spigot.messaging.subscribers;
 
 import fr.perrier.dungeons.spigot.listener.global.GlobalLeaveListener;
 import fr.perrier.dungeons.spigot.messaging.packets.PlayerSwitchServerPacket;
-import fr.perrier.dungeons.spigot.messaging.pidgin.IncomingPacketHandler;
-import fr.perrier.dungeons.spigot.messaging.pidgin.PacketListener;
+import fr.perrier.dungeons.common.messaging.pidgin.IncomingPacketHandler;
+import fr.perrier.dungeons.common.messaging.pidgin.PacketListener;
 
 public class PlayerSwitchServerSubscriber implements PacketListener {
 

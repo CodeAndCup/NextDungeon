@@ -1,5 +1,6 @@
 package fr.perrier.dungeons.spigot.workflow.trigger.handler.impl;
 
+import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.workflow.trigger.Trigger;
 import fr.perrier.dungeons.spigot.workflow.trigger.impl.RegionTrigger;
 import fr.perrier.dungeons.spigot.workflow.trigger.handler.TriggerEventHandler;
@@ -35,6 +36,10 @@ public class RegionTriggerHandler implements TriggerEventHandler<PlayerMoveEvent
     }
 
     private void checkRegionTrigger(Player player, RegionTrigger regionTrigger, PlayerMoveEvent event) {
+        if(Main.isDebug()) {
+            Main.getInstance().getLogger().info("Checking region trigger: " + regionTrigger.getTriggerId() + " for player: " + player.getName());
+        }
+
         boolean wasInRegion = isPlayerInRegionCache(player.getUniqueId(), regionTrigger.getTriggerId());
         boolean isInRegion = isPlayerInRegion(player, regionTrigger);
 

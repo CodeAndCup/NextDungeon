@@ -2,8 +2,8 @@ package fr.perrier.dungeons.bungee.messaging.subscribers;
 
 import fr.perrier.dungeons.bungee.NextDungeonBungee;
 import fr.perrier.dungeons.bungee.messaging.packets.webeditor.WebEditorResponsePacket;
-import fr.perrier.dungeons.bungee.messaging.pidgin.IncomingPacketHandler;
-import fr.perrier.dungeons.bungee.messaging.pidgin.PacketListener;
+import fr.perrier.dungeons.common.messaging.pidgin.IncomingPacketHandler;
+import fr.perrier.dungeons.common.messaging.pidgin.PacketListener;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;

@@ -2,9 +2,9 @@ package fr.perrier.dungeons.spigot.workflow.action.impl;
 
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.workflow.trigger.impl.FunctionTrigger;
-import fr.perrier.dungeons.spigot.webserver.blockly.BlocklyAction;
-import fr.perrier.dungeons.spigot.webserver.blockly.annotations.BlocklyField;
-import fr.perrier.dungeons.spigot.webserver.blockly.annotations.BlocklyInfo;
+import fr.perrier.dungeons.spigot.webeditor.blockly.BlocklyAction;
+import fr.perrier.dungeons.spigot.webeditor.blockly.annotations.BlocklyField;
+import fr.perrier.dungeons.spigot.webeditor.blockly.annotations.BlocklyInfo;
 import fr.perrier.dungeons.spigot.workflow.action.Action;
 import lombok.Getter;
 import lombok.Setter;
@@ -49,7 +49,7 @@ public class CallFunctionAction extends Action implements BlocklyAction {
         String trimmedFunctionName = functionName.trim();
 
         // Get the function from the global trigger manager
-        FunctionTrigger function = Main.getInstance().getGlobalTriggerManager()
+        FunctionTrigger function = Main.getInstance().getTriggersRegistry()
                 .getFunction(trimmedFunctionName);
 
         if (function == null) {
@@ -76,7 +76,7 @@ public class CallFunctionAction extends Action implements BlocklyAction {
             return result;
         } catch (Exception e) {
             Main.getInstance().getLogger().severe("&#FF0000Error executing function " + trimmedFunctionName + ": " + e.getMessage());
-            e.printStackTrace();
+            e.printStackTrace(System.err);
             return false;
         }
     }

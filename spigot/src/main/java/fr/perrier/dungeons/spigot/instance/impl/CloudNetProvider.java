@@ -179,7 +179,7 @@ public class CloudNetProvider implements InstanceProvider {
     @Override
     public InstanceInfo getInstanceInfo(UUID instanceId) {
         try {
-            FloorInstance instance = Main.getInstance().getRedisStorageService().getInstance(instanceId);
+            FloorInstance instance = Main.getInstance().getDungeonService().getInstance(instanceId);
             if (instance == null) {
                 return null;
             }
@@ -345,7 +345,7 @@ public class CloudNetProvider implements InstanceProvider {
                 future.complete(true);
             } catch (Exception e) {
                 Main.getInstance().getLogger().severe("&#FF0000Error during CloudNet backup: " + e.getMessage());
-                e.printStackTrace();
+                e.printStackTrace(System.err);
                 future.complete(false);
             }
         });
