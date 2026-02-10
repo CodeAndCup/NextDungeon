@@ -63,6 +63,7 @@ public class ServerNameService implements PluginMessageListener {
                     String fallback = Bukkit.getServer().getName();
                     Main.getInstance().getLogger().severe("Unable to retrieve the server name from the proxy, using: " + fallback);
                     Main.getInstance().getLogger().severe("Error: " + e.getMessage());
+                    e.printStackTrace(System.err);
                     cachedServerName.set(fallback);
                     return fallback;
                 }).orTimeout(10, TimeUnit.SECONDS);
@@ -71,6 +72,7 @@ public class ServerNameService implements PluginMessageListener {
             String fallback = Bukkit.getServer().getName();
             Main.getInstance().getLogger().severe("Unable to retrieve the server name from the proxy, using: " + fallback);
             Main.getInstance().getLogger().severe("Error: " + e.getMessage());
+            e.printStackTrace(System.err);
             cachedServerName.set(fallback);
             return CompletableFuture.completedFuture(fallback);
         }
@@ -156,6 +158,7 @@ public class ServerNameService implements PluginMessageListener {
             }
         } catch (Exception e) {
             Main.getInstance().getLogger().warning("&eError receiving server name: " + e.getMessage());
+            e.printStackTrace(System.err);
         }
     }
 

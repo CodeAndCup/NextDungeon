@@ -29,6 +29,7 @@ public class ProxyBridgeService {
             Main.getInstance().getLogger().info("Proxy port for web editor set to: " + proxyPort);
         } catch (Exception e) {
             Main.getInstance().getLogger().warning("Unable to read proxy port from config, using default port: 7734");
+            e.printStackTrace(System.err);
         }
     }
 
@@ -64,6 +65,7 @@ public class ProxyBridgeService {
                 return null;
             } catch (Exception e) {
                 Main.getInstance().getLogger().severe("Proxy communication error: " + e.getMessage());
+                e.printStackTrace(System.err);
                 return null;
             }
         });
@@ -91,6 +93,7 @@ public class ProxyBridgeService {
             return false;
         } catch (Exception e) {
             Main.getInstance().getLogger().severe("Error stopping proxy session: " + e.getMessage());
+            e.printStackTrace(System.err);
             return false;
         }
     }

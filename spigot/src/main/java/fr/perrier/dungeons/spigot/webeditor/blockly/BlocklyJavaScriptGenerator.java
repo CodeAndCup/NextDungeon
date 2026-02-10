@@ -843,7 +843,7 @@ public class BlocklyJavaScriptGenerator {
         js.append("                if (block.type === '").append(triggerType).append("') {\n");
         js.append("                    triggers.push({\n");
         js.append("                        type: '").append(triggerType).append("',\n");
-        js.append("                        name: '").append(triggerClass.getSimpleName()).append("_' + crypto.randomUUID(),\n");
+        js.append("                        name: '").append(triggerClass.getSimpleName()).append("_' + uuidv4(),\n");
 
         // Génère dynamiquement les champs associés au trigger
         for (BlocklyFieldExtractor.BlocklyFieldInfo field : fields) {
