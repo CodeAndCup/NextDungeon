@@ -18,7 +18,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class ServerNameService implements PluginMessageListener {
 
-    private static final String DUNGEONS_CHANNEL = "dungeons:main";
+    private static final String DUNGEONS_CHANNEL = Main.getInstance().getConfig().getString("RedisConfiguration.topic") + ":main";
 
     private final AtomicReference<String> cachedServerName = new AtomicReference<>(null);
     private final AtomicReference<CompletableFuture<String>> pendingRequest = new AtomicReference<>(null);
@@ -27,7 +27,6 @@ public class ServerNameService implements PluginMessageListener {
      * Initializes the service and registers the plugin messaging channel.
      */
     public void initialize() {
-        // Enregistrer le canal pour dungeons:main (communication avec Velocity)
         Bukkit.getServer().getMessenger().registerOutgoingPluginChannel(Main.getInstance(), DUNGEONS_CHANNEL);
         Bukkit.getServer().getMessenger().registerIncomingPluginChannel(Main.getInstance(), DUNGEONS_CHANNEL, this);
 
@@ -66,7 +65,7 @@ public class ServerNameService implements PluginMessageListener {
                     Main.getInstance().getLogger().severe("Error: " + e.getMessage());
                     cachedServerName.set(fallback);
                     return fallback;
-                });
+                }).orTimeout(10, TimeUnit.SECONDS);
             }
         } catch (Exception e) {
             String fallback = Bukkit.getServer().getName();
@@ -114,7 +113,6 @@ public class ServerNameService implements PluginMessageListener {
             out.writeUTF(serverIp);
             out.writeInt(serverPort);
 
-            // Envoyer le message au proxy via le canal dungeons:main
             Bukkit.getServer().sendPluginMessage(Main.getInstance(), DUNGEONS_CHANNEL, out.toByteArray());
 
             Main.getInstance().getLogger().info("Requête GetServerName envoyée - IP: " + serverIp + ":" + serverPort);

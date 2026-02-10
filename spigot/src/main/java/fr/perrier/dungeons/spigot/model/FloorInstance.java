@@ -208,8 +208,9 @@ public class FloorInstance extends FloorInstanceData {
                         this.cancel();
                     } else {
                         if (System.currentTimeMillis() - startTime > TIMEOUT) {
-                            Main.getInstance().getLogger().warning("&eTimed out waiting for instance " + instanceId + " to be ready");
+                            Main.getInstance().getLogger().warning("&eTimed out waiting for instance " + instanceId + " to be ready. (Now try cancelling instance..)");
                             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Timed out waiting for dungeon instance to be ready!"));
+                            instance.cancelInstance();
                             this.cancel();
                         }
                     }

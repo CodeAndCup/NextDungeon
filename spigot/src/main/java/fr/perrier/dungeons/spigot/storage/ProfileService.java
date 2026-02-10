@@ -14,7 +14,7 @@ public class ProfileService {
     private final RedissonClient redissonClient;
 
     // Redis Maps and Topics
-    private static final String PROFILE_MAP = "dungeons:profiles";
+    private static final String PROFILE_MAP = Main.getInstance().getConfig().getString("RedisConfiguration.topic") + ":profiles";
 
     // Redis Maps
     @Getter

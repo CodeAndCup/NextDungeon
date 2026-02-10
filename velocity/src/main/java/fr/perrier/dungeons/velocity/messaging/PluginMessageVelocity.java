@@ -15,7 +15,8 @@ import java.net.InetSocketAddress;
 
 public class PluginMessageVelocity {
 
-    private static final MinecraftChannelIdentifier DUNGEONS_CHANNEL = MinecraftChannelIdentifier.create("dungeons", "main");
+    // C'est pas du redis mais nsm on prend le même topic pour pas se prendre la tête à faire un truc différent pour velocity et spigot
+    private static final MinecraftChannelIdentifier DUNGEONS_CHANNEL = MinecraftChannelIdentifier.create(NextDungeonVelocity.getInstance().getConfigManager().getTable("redis").getString("topic"), "main");
 
     public void initialize() {
         // Initialization logic for Velocity plugin messaging

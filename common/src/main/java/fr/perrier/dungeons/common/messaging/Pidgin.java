@@ -40,7 +40,7 @@ public class Pidgin {
                 .setDatabase(redisDatabase);
 
         this.client = Redisson.create(config);
-        this.topic = this.client.getTopic(topicName);
+        this.topic = this.client.getTopic(topicName + ":packets");
 
         this.adapters = new HashMap<>();
         this.types = new HashMap<>();
@@ -49,9 +49,9 @@ public class Pidgin {
 
     }
 
-    public Pidgin(Config config) {
+    public Pidgin(String topicName, Config config) {
         this.client = Redisson.create(config);
-        this.topic = this.client.getTopic(config.useSingleServer().getAddress());
+        this.topic = this.client.getTopic(topicName + ":packets");
 
         this.adapters = new HashMap<>();
         this.types = new HashMap<>();

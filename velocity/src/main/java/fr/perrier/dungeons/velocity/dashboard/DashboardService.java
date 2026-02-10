@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import fr.perrier.dungeons.velocity.NextDungeonVelocity;
 import fr.perrier.dungeons.velocity.webeditor.EditorSessionManager;
 import fr.perrier.dungeons.common.model.dungeon.FloorData;
 import fr.perrier.dungeons.common.model.dungeon.FloorMetadata;
@@ -26,8 +27,8 @@ public class DashboardService {
     private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
     
     // Redis Maps keys (same as in RedisStorageService)
-    private static final String FLOOR_METADATA_MAP = "dungeons:floor_metadata";
-    private static final String INSTANCE_MAP = "dungeons:instances";
+    private static final String FLOOR_METADATA_MAP = NextDungeonVelocity.getInstance().getConfigManager().getTable("redis").getString("topic") + ":floor_metadata";
+    private static final String INSTANCE_MAP = NextDungeonVelocity.getInstance().getConfigManager().getTable("redis").getString("topic") + ":instances";
     
     /**
      * Récupère tous les floors depuis Redis
@@ -223,8 +224,8 @@ public class DashboardService {
      */
     public String getQueueJson() {
         // Redis keys for queue data
-        String queuePrefix = "dungeons:queue:";
-        String instanceCountPrefix = "dungeons:instance_count:";
+        String queuePrefix = NextDungeonVelocity.getInstance().getConfigManager().getTable("redis").getString("topic") + ":queue:";
+        String instanceCountPrefix = NextDungeonVelocity.getInstance().getConfigManager().getTable("redis").getString("topic") + ":instance_count:";
         
         try {
             JsonObject response = new JsonObject();
@@ -323,7 +324,7 @@ public class DashboardService {
      * Vide la queue pour un floor spécifique
      */
     public String clearQueueForFloor(String floorId) {
-        String queueKey = "dungeons:queue:" + floorId;
+        String queueKey = NextDungeonVelocity.getInstance().getConfigManager().getTable("redis").getString("topic") + ":queue:" + floorId;
         
         try {
             org.redisson.api.RDeque<Object> queue = redissonClient.getDeque(queueKey);

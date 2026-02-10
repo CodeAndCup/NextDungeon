@@ -74,7 +74,7 @@ public class NextDungeonVelocity {
         try {
             Toml redis = configManager.getTable("redis");
             this.messaging = new Pidgin(
-                    redis.getString("topic", "nextdungeon:messaging"),
+                    redis.getString("topic", "nextdungeon"),
                     redis.getString("host", "localhost"),
                     redis.getLong("port", 6379L).intValue(),
                     redis.getString("username", ""),

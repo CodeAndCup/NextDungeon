@@ -16,7 +16,7 @@ RedisConfiguration:
     username: "default"
     password: ""
     database: 0
-    topic: "dungeons:packets" # ⚠️ Ne pas modifier sans savoir ce que vous faites
+    topic: "nextdungeon" # ⚠️ Ne pas modifier sans savoir ce que vous faites
 
 # ─────────────────────────────────────────────────────
 # 🌐 CONFIGURATION WEB EDITOR

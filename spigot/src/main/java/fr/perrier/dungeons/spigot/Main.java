@@ -72,7 +72,7 @@ public final class Main extends JavaPlugin {
     private static final String prefix = "<gradient:#8B0000:bold>NextDungeon</gradient:#D10000> &8» &r";
 
     @Getter@Setter
-    private static boolean debug = true;
+    private static boolean debug = false;
 
     // Plugin API instance
     private PartiesAPI partiesAPI;
@@ -215,7 +215,7 @@ public final class Main extends JavaPlugin {
         }
 
         // Enabling messaging system
-        this.messaging = new Pidgin(config);
+        this.messaging = new Pidgin(getConfig().getString("RedisConfiguration.topic"),config);
         this.messaging.registerAdapter(PlayerSwitchServerPacket.class, new PlayerSwitchServerSubscriber());
         this.messaging.registerAdapter(WebEditorRequestPacket.class, new WebEditorRequestSubscriber());
         this.messaging.registerAdapter(WebEditorResponsePacket.class, null);
