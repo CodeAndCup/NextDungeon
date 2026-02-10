@@ -13,6 +13,7 @@ import fr.perrier.dungeons.spigot.utils.ServerUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
+import java.util.Set;
 import java.util.UUID;
 
 public class AdminCommands {
@@ -51,7 +52,7 @@ public class AdminCommands {
             return;
         }
 
-        FloorInstance.generateNewInstanceAsync(floor.getId(),true,floorInstance -> floorInstance.sendToServer(player));
+        FloorInstance.generateNewInstanceAsync(floor.getId(), Set.of(player.getUniqueId()), true, floorInstance -> floorInstance.sendToServer(player));
         player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#00FF00✓ &fEdit mode started for floor &e" + floor.getId() + "&f."));
         player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&fPlease wait while the instance is being prepared..."));
     }
@@ -171,7 +172,7 @@ public class AdminCommands {
             return;
         }
 
-        FloorInstance.generateNewInstanceAsync(floor.getId(),false,floorInstance -> floorInstance.sendToServer(player));
+        FloorInstance.generateNewInstanceAsync(floor.getId(), Set.of(player.getUniqueId()), false,floorInstance -> floorInstance.sendToServer(player));
         player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#00FF00✓ &fTest instance started for floor &e" + floor.getId() + "&f."));
         player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&fPlease wait while the instance is being prepared..."));
     }

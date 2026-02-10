@@ -27,6 +27,8 @@ import fr.perrier.dungeons.spigot.listener.global.GlobalJoinListener;
 import fr.perrier.dungeons.spigot.listener.global.GlobalLeaveListener;
 import fr.perrier.dungeons.spigot.listener.global.GlobalPartyListener;
 import fr.perrier.dungeons.spigot.manager.GhostFactory;
+import fr.perrier.dungeons.spigot.messaging.packets.CancelInstancePacket;
+import fr.perrier.dungeons.spigot.messaging.subscribers.CancelInstanceSubscriber;
 import fr.perrier.dungeons.spigot.workflow.registry.TriggersRegistry;
 import fr.perrier.dungeons.spigot.workflow.registry.VariableRegistry;
 import fr.perrier.dungeons.common.messaging.Pidgin;
@@ -53,6 +55,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.checkerframework.checker.units.qual.C;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
@@ -221,6 +224,7 @@ public final class Main extends JavaPlugin {
         this.messaging.registerAdapter(PlayerSwitchServerPacket.class, new PlayerSwitchServerSubscriber());
         this.messaging.registerAdapter(WebEditorRequestPacket.class, new WebEditorRequestSubscriber());
         this.messaging.registerAdapter(WebEditorResponsePacket.class, null);
+        this.messaging.registerAdapter(CancelInstancePacket.class, new CancelInstanceSubscriber());
 
         // Initialize server name service
         this.serverNameService = new ServerNameService();

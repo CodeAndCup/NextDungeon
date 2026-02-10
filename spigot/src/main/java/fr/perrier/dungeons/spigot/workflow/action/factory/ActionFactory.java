@@ -250,24 +250,13 @@ public class ActionFactory {
                 }
                 case "player_in_region_condition" -> {
                     PlayerInRegionCondition condition = new PlayerInRegionCondition();
-
-                    if (actionData.has("pos1x")) {
-                        condition.setPos1X(actionData.get("pos1x").getAsDouble());
+                    if(actionData.has("pos1")) {
+                        LocationBlock pos1 = LocationBlockParser.parseFromJson(actionData, "pos1");
+                        condition.setPos1(pos1);
                     }
-                    if (actionData.has("pos1y")) {
-                        condition.setPos1Y(actionData.get("pos1y").getAsDouble());
-                    }
-                    if (actionData.has("pos1z")) {
-                        condition.setPos1Z(actionData.get("pos1z").getAsDouble());
-                    }
-                    if (actionData.has("pos2x")) {
-                        condition.setPos2X(actionData.get("pos2x").getAsDouble());
-                    }
-                    if (actionData.has("pos2y")) {
-                        condition.setPos2Y(actionData.get("pos2y").getAsDouble());
-                    }
-                    if (actionData.has("pos2z")) {
-                        condition.setPos2Z(actionData.get("pos2z").getAsDouble());
+                    if(actionData.has("pos2")) {
+                        LocationBlock pos2 = LocationBlockParser.parseFromJson(actionData, "pos2");
+                        condition.setPos2(pos2);
                     }
                     if (actionData.has("comparison")) {
                         condition.setComparison(actionData.get("comparison").getAsString());

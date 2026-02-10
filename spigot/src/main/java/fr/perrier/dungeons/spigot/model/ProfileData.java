@@ -4,8 +4,11 @@ import com.google.gson.reflect.TypeToken;
 import fr.perrier.cupcodeapi.utils.TimeUtil;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.utils.GsonProvider;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
+import org.checkerframework.checker.units.qual.A;
+import org.checkerframework.checker.units.qual.N;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Type;
@@ -53,11 +56,19 @@ public class ProfileData {
 
         if (existingStats.isPresent()) {
             FloorStats existing = existingStats.get();
-            existing.setTotalDeaths(existing.getTotalDeaths() + stats.getTotalDeaths());
-            existing.setTotalEnemiesKilled(existing.getTotalEnemiesKilled() + stats.getTotalEnemiesKilled());
             if (existing.getFastestCompletionTime() == -1 || (stats.getFastestCompletionTime() != -1 && stats.getFastestCompletionTime() < existing.getFastestCompletionTime())) {
                 existing.setFastestCompletionTime(stats.getFastestCompletionTime());
             }
+            existing.setTotalEnemiesKilled(existing.getTotalEnemiesKilled() + stats.getTotalEnemiesKilled());
+            if(existing.getMostEnemiesKilledInRun() < stats.getMostEnemiesKilledInRun()) {
+                existing.setMostEnemiesKilledInRun(stats.getMostEnemiesKilledInRun());
+            }
+            existing.setTotalDeaths(existing.getTotalDeaths() + stats.getTotalDeaths());
+            if(existing.getMostDeathsInRun() < stats.getMostDeathsInRun()) {
+                existing.setMostDeathsInRun(stats.getMostDeathsInRun());
+            }
+            existing.setTotalRuns(existing.getTotalRuns() + stats.getTotalRuns());
+            existing.setTotalCompletions(existing.getTotalCompletions() + stats.getTotalCompletions());
         } else {
             this.floorStats.add(stats);
         }
@@ -79,24 +90,26 @@ public class ProfileData {
 
     @Setter
     @Getter
+    @AllArgsConstructor
     public static class FloorStats {
         private final String floorId;
         private long fastestCompletionTime;
         private int totalEnemiesKilled;
+        private int mostEnemiesKilledInRun;
         private int totalDeaths;
+        private int mostDeathsInRun;
+        private int totalRuns;
+        private int totalCompletions;
 
         public FloorStats(String floorId) {
             this.floorId = floorId;
             this.fastestCompletionTime = -2L;
             this.totalEnemiesKilled = 0;
+            this.mostEnemiesKilledInRun = 0;
             this.totalDeaths = 0;
-        }
-
-        public FloorStats(String floorId, long fastestCompletionTime, int totalEnemiesKilled, int totalDeaths) {
-            this.floorId = floorId;
-            this.fastestCompletionTime = fastestCompletionTime;
-            this.totalEnemiesKilled = totalEnemiesKilled;
-            this.totalDeaths = totalDeaths;
+            this.mostDeathsInRun = 0;
+            this.totalRuns = 0;
+            this.totalCompletions = 0;
         }
 
         /**
@@ -107,7 +120,11 @@ public class ProfileData {
             return List.of(
                 "&7Fastest Time: &#00FF00" + TimeUtil.getDuration(fastestCompletionTime),
                 "&7Total Enemies Killed: &#00FF00" + totalEnemiesKilled,
-                "&7Total Deaths: &#00FF00" + totalDeaths
+                "&7Most Enemies Killed in a Run: &#00FF00" + mostEnemiesKilledInRun,
+                "&7Total Deaths: &#00FF00" + totalDeaths,
+                "&7Most Deaths in a Run: &#00FF00" + mostDeathsInRun,
+                "&7Total Runs: &#00FF00" + totalRuns,
+                "&7Total Completions: &#00FF00" + totalCompletions
             );
         }
 
@@ -118,7 +135,11 @@ public class ProfileData {
             data.put("floorId", this.floorId);
             data.put("fastestCompletionTime", this.fastestCompletionTime);
             data.put("totalEnemiesKilled", this.totalEnemiesKilled);
+            data.put("mostEnemiesKilledInRun", this.mostEnemiesKilledInRun);
             data.put("totalDeaths", this.totalDeaths);
+            data.put("mostDeathsInRun", this.mostDeathsInRun);
+            data.put("totalRuns", this.totalRuns);
+            data.put("totalCompletions", this.totalCompletions);
 
             return data;
         }
@@ -134,7 +155,11 @@ public class ProfileData {
                     (String) data.get("floorId"),
                     ((Number) data.get("fastestCompletionTime")).longValue(),
                     ((Number) data.get("totalEnemiesKilled")).intValue(),
-                    ((Number) data.get("totalDeaths")).intValue()
+                    ((Number) data.get("mostEnemiesKilledInRun")).intValue(),
+                    ((Number) data.get("totalDeaths")).intValue(),
+                    ((Number) data.get("mostDeathsInRun")).intValue(),
+                    ((Number) data.get("totalRuns")).intValue(),
+                    ((Number) data.get("totalCompletions")).intValue()
             );
         }
     }

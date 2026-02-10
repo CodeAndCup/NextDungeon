@@ -5,6 +5,7 @@ import fr.perrier.dungeons.common.queue.QueueEntry;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.model.Floor;
 import fr.perrier.dungeons.spigot.model.FloorInstance;
+import fr.perrier.dungeons.spigot.parties.impl.DungeonPartyImpl;
 import lombok.RequiredArgsConstructor;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -145,8 +146,18 @@ public class QueueManager {
         // Check if we can create an instance immediately
         if (canCreateInstance(floor)) {
             // Create instance - it will register itself when it starts
-            FloorInstance.generateNewInstanceAsync(floor.getId(),false, floorInstance -> {
-                floorInstance.sendToServer(player);
+            FloorInstance.generateNewInstanceAsync(floor.getId(), DungeonPartyImpl.getDungeonPartyOf(player).getMemberIds(),false, floorInstance -> {
+                if(floorInstance.getPlayers().stream().anyMatch(uuid -> !floorInstance.getFloor().isRequirementsValid(Bukkit.getPlayer(uuid)))) {
+                    floorInstance.getPlayers().forEach(uuid -> {
+                        Player p = Bukkit.getPlayer(uuid);
+                        if(p != null) {
+                            p.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000One or more players in your party break the requirements during the loading phase to enter this floor. The instance has been cancelled."));
+                        }
+                    });
+                    floorInstance.cancelInstance();
+                    return;
+                }
+                floorInstance.sendToServer(DungeonPartyImpl.getDungeonPartyOf(player));
             });
         } else {
             // Add to queue
@@ -199,9 +210,19 @@ public class QueueManager {
             }
 
             // Create instance for player - it will register itself when it starts
-            FloorInstance.generateNewInstanceAsync(floor.getId(),false, floorInstance -> {
+            FloorInstance.generateNewInstanceAsync(floor.getId(), DungeonPartyImpl.getDungeonPartyOf(player).getMemberIds(),false, floorInstance -> {
+                if(floorInstance.getPlayers().stream().anyMatch(uuid -> !floorInstance.getFloor().isRequirementsValid(Bukkit.getPlayer(uuid)))) {
+                    floorInstance.getPlayers().forEach(uuid -> {
+                        Player p = Bukkit.getPlayer(uuid);
+                        if(p != null) {
+                            p.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000One or more players in your party break the requirements during the loading phase to enter this floor. The instance has been cancelled."));
+                        }
+                    });
+                    floorInstance.cancelInstance();
+                    return;
+                }
                 notifyPlayer(player, "Your turn! Creating dungeon instance...");
-                floorInstance.sendToServer(player);
+                floorInstance.sendToServer(DungeonPartyImpl.getDungeonPartyOf(player));
             });
         });
 

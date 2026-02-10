@@ -6,6 +6,7 @@ import fr.perrier.cupcodeapi.utils.TimeUtil;
 import fr.perrier.dungeons.common.model.dungeon.config.FloorInstanceData;
 import fr.perrier.dungeons.common.model.player.PlayerStats;
 import fr.perrier.dungeons.spigot.Main;
+import fr.perrier.dungeons.spigot.messaging.packets.CancelInstancePacket;
 import fr.perrier.dungeons.spigot.parties.IDungeonParty;
 import fr.perrier.dungeons.spigot.utils.ServerUtil;
 import lombok.Getter;
@@ -68,8 +69,8 @@ public class FloorInstance extends FloorInstanceData {
         }
     }
 
-    private FloorInstance(String floorId, boolean editMode) {
-        super(floorId);
+    private FloorInstance(String floorId, Set<UUID> players, boolean editMode) {
+        super(floorId,players);
         this.instanceId = generateFloorServer(getFloor(), editMode);
         this.ready = false;
 
@@ -79,16 +80,17 @@ public class FloorInstance extends FloorInstanceData {
     public FloorInstance(FloorInstanceData floorInstanceData) {
         super(floorInstanceData.getInstanceId(), floorInstanceData.getFloorId());
         this.ready = floorInstanceData.isReady();
+        this.players.addAll(floorInstanceData.getPlayers());
         this.playerStats.putAll(floorInstanceData.getPlayerStats());
         this.playerCurrentLives.putAll(floorInstanceData.getPlayerCurrentLives());
     }
 
-    public static void generateNewInstanceAsync(String floorId, boolean editMode, Consumer<FloorInstance> callback) {
+    public static void generateNewInstanceAsync(String floorId, Set<UUID> players, boolean editMode, Consumer<FloorInstance> callback) {
         Bukkit.getScheduler().runTaskAsynchronously(Main.getInstance(), () -> {
-            FloorInstance floorInstance = new FloorInstance(floorId, editMode);
-            Bukkit.getScheduler().runTask(Main.getInstance(), () ->
-                callback.accept(floorInstance)
-            );
+            FloorInstance floorInstance = new FloorInstance(floorId, players, editMode);
+            Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
+                callback.accept(floorInstance);
+            });
         });
     }
 
@@ -229,14 +231,27 @@ public class FloorInstance extends FloorInstanceData {
      * it schedules a task to shut down the server instance after a 30-second delay,
      * notifying all players of the impending shutdown.</p>
      */
-    public void complete() {
-        for(Player player : Bukkit.getOnlinePlayers()) {
+    public void complete(boolean success) {
+        for(Player player : Bukkit.getOnlinePlayers()) { //TODO: OnlinePlayers are not equal to players in the instance - need to track players in the instance separately
             PlayerStats playerStats = this.playerStats.get(player.getUniqueId());
             if(playerStats == null) continue;
 
             ProfileData profileData = Main.getInstance().getProfileService().getProfileData(player.getUniqueId());
-            profileData.addCompletedFloor(floorId);
-            profileData.addFloorStat(new ProfileData.FloorStats(floorId, System.currentTimeMillis() - playerStats.getStartTime(), playerStats.getEnemiesKilled(), playerStats.getDeaths()));
+            if(success)
+                profileData.addCompletedFloor(floorId);
+            profileData.addFloorStat(
+                    new ProfileData.FloorStats(
+                            floorId,
+                            System.currentTimeMillis() - playerStats.getStartTime(),
+                            playerStats.getEnemiesKilled(),
+                            playerStats.getEnemiesKilled(),
+                            playerStats.getDeaths(),
+                            playerStats.getDeaths(),
+                            1,
+                            success ? 1 : 0
+
+                    )
+            );
             Main.getInstance().getProfileService().saveProfileData(player.getUniqueId());
 
             Titles.sendTitle(player, 10, 70, 20,
@@ -263,6 +278,16 @@ public class FloorInstance extends FloorInstanceData {
     }
 
     /**
+     * Fails the dungeon instance for all players currently in it.
+     *
+     * <p>This method simply calls the complete method with a success parameter
+     * set to false, indicating that the instance was not completed successfully.</p>
+     */
+    public void fail() {
+        complete(false);
+    }
+
+    /**
      * Converts this FloorInstance to a FloorInstanceData object.
      *
      * <p>This method creates a new FloorInstanceData object using the
@@ -278,6 +303,32 @@ public class FloorInstance extends FloorInstanceData {
         data.getPlayerStats().putAll(this.playerStats);
         data.getPlayerCurrentLives().putAll(this.playerCurrentLives);
         return data;
+    }
+
+    /**
+     * Checks if all players in the instance are dead.
+     *
+     * <p>This method iterates through the playerCurrentLives map, sums up the
+     * current lives of all players, and returns true if the total is less than
+     * or equal to zero, indicating that all players are dead.</p>
+     *
+     * @return true if all players are dead, false otherwise
+     */
+    public boolean isAllPlayersDead() {
+        return playerCurrentLives.values().stream()
+                .mapToInt(Integer::intValue)
+                .sum() <= 0;
+    }
+
+    /**
+     * Cancels the dungeon instance by sending a CancelInstancePacket to all servers.
+     *
+     * <p>This method creates a new CancelInstancePacket with the instanceId of this
+     * FloorInstance and sends it through the messaging system. This will notify all
+     * servers that the instance should be cancelled and removed.</p>
+     */
+    public void cancelInstance() {
+        Main.getInstance().getMessaging().sendPacket(new CancelInstancePacket(this.instanceId));
     }
 
     /**

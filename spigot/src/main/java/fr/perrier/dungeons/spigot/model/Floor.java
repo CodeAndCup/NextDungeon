@@ -6,9 +6,13 @@ import fr.perrier.dungeons.spigot.database.DatabaseTriggersManager;
 import fr.perrier.dungeons.spigot.utils.ServerUtil;
 import lombok.Getter;
 import lombok.Setter;
+import net.Indyuce.mmocore.api.player.PlayerData;
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Arrays;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 @Getter
@@ -82,6 +86,53 @@ public class Floor extends FloorData {
                 getSteps(),
                 getTriggers()
         );
+    }
+
+    /**
+     * Vérifie si un joueur respecte tous les requirements d'un floor.
+     * @param player Le joueur
+     * @return true si tous les requirements sont respectés, false sinon
+     */
+    public boolean isRequirementsValid(Player player) {
+        PlayerData playerData = PlayerData.get(player);
+        ProfileData profileData = Main.getInstance().getProfileService().getProfileData(player.getUniqueId());
+
+        // Vérification du niveau minimum
+        if (this.getRequirements().getMinLevel() > 0) {
+            if (playerData.getLevel() < this.getRequirements().getMinLevel()) {
+                return false;
+            }
+        }
+        // Vérification des floors requis
+        if (this.getRequirements().getRequiredFloorsId() != null && !this.getRequirements().getRequiredFloorsId().isEmpty()) {
+            for (String requiredFloorId : this.getRequirements().getRequiredFloorsId()) {
+                if (!profileData.getCompletedFloors().contains(requiredFloorId)) {
+                    return false;
+                }
+            }
+        }
+        // Vérification des items requis
+        if (this.getRequirements().getRequiredItems() != null && !this.getRequirements().getRequiredItems().isEmpty()) {
+            for (String requiredItem : this.getRequirements().getRequiredItems()) {
+                boolean hasItem = Arrays.stream(player.getInventory().getContents())
+                        .anyMatch(itemStack -> itemStack != null && Objects.requireNonNull(itemStack.getItemMeta()).getDisplayName().equals(requiredItem));
+                if (!hasItem) {
+                    return false;
+                }
+            }
+        }
+        // Vérification des items interdits
+        if (this.getRequirements().getForbiddenItems() != null && !this.getRequirements().getForbiddenItems().isEmpty()) {
+            for (String forbiddenItem : this.getRequirements().getForbiddenItems()) {
+                boolean hasItem = Arrays.stream(player.getInventory().getContents())
+                        .anyMatch(itemStack -> itemStack != null && Objects.requireNonNull(itemStack.getItemMeta()).getDisplayName().equals(forbiddenItem));
+                if (hasItem) {
+                    return false;
+                }
+            }
+        }
+        // Si tout est respecté
+        return true;
     }
 
 

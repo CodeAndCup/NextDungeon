@@ -12,6 +12,7 @@ import fr.perrier.dungeons.spigot.model.ProfileData;
 import fr.perrier.dungeons.spigot.parties.impl.DungeonPartyImpl;
 import lombok.RequiredArgsConstructor;
 import net.Indyuce.mmocore.api.player.PlayerData;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
@@ -101,7 +102,19 @@ public class DungeonGateMenu extends GlassMenu {
                     player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Your party is too small to enter this floor."));
                     return;
                 }
-                FloorInstance.generateNewInstanceAsync(floor.getId(),false, floorInstance -> floorInstance.sendToServer(DungeonPartyImpl.getDungeonPartyOf(player)));
+                FloorInstance.generateNewInstanceAsync(floor.getId(), DungeonPartyImpl.getDungeonPartyOf(player).getMemberIds(),false, floorInstance -> {
+                    if(floorInstance.getPlayers().stream().anyMatch(uuid -> !floorInstance.getFloor().isRequirementsValid(Bukkit.getPlayer(uuid)))) {
+                        floorInstance.getPlayers().forEach(uuid -> {
+                            Player p = Bukkit.getPlayer(uuid);
+                            if(p != null) {
+                                p.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000One or more players in your party break the requirements during the loading phase to enter this floor. The instance has been cancelled."));
+                            }
+                        });
+                        floorInstance.cancelInstance();
+                        return;
+                    }
+                    floorInstance.sendToServer(DungeonPartyImpl.getDungeonPartyOf(player));
+                });
                 player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&fPlease wait while the instance is being prepared..."));
             }
         }

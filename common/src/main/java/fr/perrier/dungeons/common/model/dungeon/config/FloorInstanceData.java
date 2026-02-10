@@ -4,8 +4,7 @@ import fr.perrier.dungeons.common.model.player.PlayerStats;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.HashMap;
-import java.util.UUID;
+import java.util.*;
 
 @Getter
 public class FloorInstanceData {
@@ -14,12 +13,14 @@ public class FloorInstanceData {
     @Setter
     protected boolean ready;
 
-    protected final HashMap<UUID, PlayerStats> playerStats = new HashMap<>();
-    protected final HashMap<UUID, Integer> playerCurrentLives = new HashMap<>();
+    protected final Set<UUID> players = new HashSet<>();
+    protected final Map<UUID, PlayerStats> playerStats = new HashMap<>();
+    protected final Map<UUID, Integer> playerCurrentLives = new HashMap<>();
 
-    public FloorInstanceData(String floorId) {
+    public FloorInstanceData(String floorId, Set<UUID> players) {
         this.floorId = floorId;
         this.ready = false;
+        this.players.addAll(players);
     }
 
     public FloorInstanceData(UUID instanceId, String floorId) {
