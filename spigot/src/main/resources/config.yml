@@ -15,6 +15,7 @@ RedisConfiguration:
     port: 6379
     username: "default"
     password: ""
+    database: 0
     topic: "dungeons:packets" # ⚠️ Ne pas modifier sans savoir ce que vous faites
 
 # ─────────────────────────────────────────────────────

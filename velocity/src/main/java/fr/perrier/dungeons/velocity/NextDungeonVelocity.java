@@ -1,6 +1,7 @@
 package fr.perrier.dungeons.velocity;
 
 import com.google.inject.Inject;
+import com.moandjiezana.toml.Toml;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.event.proxy.ProxyShutdownEvent;
@@ -11,6 +12,7 @@ import fr.perrier.dungeons.velocity.messaging.PluginMessageVelocity;
 import fr.perrier.dungeons.velocity.messaging.packets.webeditor.WebEditorRequestPacket;
 import fr.perrier.dungeons.velocity.messaging.packets.webeditor.WebEditorResponsePacket;
 import fr.perrier.dungeons.velocity.messaging.subscribers.WebEditorResponseSubscriber;
+import fr.perrier.dungeons.velocity.utils.ConfigManager;
 import fr.perrier.dungeons.velocity.webeditor.ProxyWebEditorServer;
 import lombok.Getter;
 import org.slf4j.Logger;
@@ -30,6 +32,8 @@ public class NextDungeonVelocity {
 
     @Getter
     private static NextDungeonVelocity instance;
+
+    private ConfigManager configManager;
 
     private final ProxyServer server;
     private final Logger logger;
@@ -58,7 +62,7 @@ public class NextDungeonVelocity {
         this.startTime = System.currentTimeMillis();
         
         // Charger la configuration
-        loadConfig();
+        configManager = new ConfigManager(dataDirectory);
 
         // Initialiser et enregistrer le gestionnaire de messages plugin
         pluginMessageHandler = new PluginMessageVelocity();
@@ -68,13 +72,14 @@ public class NextDungeonVelocity {
 
         // Initialize messaging system
         try {
-            // TODO: Read from config file
+            Toml redis = configManager.getTable("redis");
             this.messaging = new Pidgin(
-                "dungeons:packets",  // topic name
-                "localhost",  // redis host
-                6379,  // redis port
-                null,  // redis username
-                null   // redis password
+                    redis.getString("topic", "nextdungeon:messaging"),
+                    redis.getString("host", "localhost"),
+                    redis.getLong("port", 6379L).intValue(),
+                    redis.getString("username", ""),
+                    redis.getString("password", ""),
+                    redis.getLong("database", 0L).intValue()
             );
             this.messaging.registerAdapter(WebEditorRequestPacket.class, null);
             this.messaging.registerAdapter(WebEditorResponsePacket.class, new WebEditorResponseSubscriber());
@@ -84,6 +89,9 @@ public class NextDungeonVelocity {
         }
         
         // Démarrer le serveur web centralisé avec le port configuré
+        Toml webEditorConfig = configManager.getTable("webeditor");
+        webEditorPort = webEditorConfig.getLong("port", 7734L).intValue();
+
         webEditorServer = new ProxyWebEditorServer(webEditorPort);
 
         if(messaging != null) {
@@ -98,48 +106,6 @@ public class NextDungeonVelocity {
             logger.error("❌ Impossible de démarrer le serveur web éditeur");
         }
 
-    }
-
-    private void loadConfig() {
-        try {
-            Path configPath = dataDirectory.resolve("config.toml");
-
-            // Créer le dossier si nécessaire
-            if (!Files.exists(dataDirectory)) {
-                Files.createDirectories(dataDirectory);
-            }
-
-            // Créer le fichier de config par défaut s'il n'existe pas
-            if (!Files.exists(configPath)) {
-                try (java.io.InputStream in = getClass().getResourceAsStream("/config.toml")) {
-                    if (in != null) {
-                        Files.copy(in, configPath);
-                        logger.info("Fichier de configuration créé: " + configPath);
-                    }
-                }
-            }
-
-            // Lire la configuration
-            if (Files.exists(configPath)) {
-                String content = Files.readString(configPath);
-                // Parse simple du TOML pour récupérer le port
-                for (String line : content.split("\n")) {
-                    line = line.trim();
-                    if (line.startsWith("port") && line.contains("=")) {
-                        String portStr = line.split("=")[1].trim();
-                        try {
-                            webEditorPort = Integer.parseInt(portStr);
-                            logger.info("Port web éditeur configuré: " + webEditorPort);
-                        } catch (NumberFormatException e) {
-                            logger.warn("Port invalide dans la configuration, utilisation du port par défaut: 7734");
-                        }
-                        break;
-                    }
-                }
-            }
-        } catch (Exception e) {
-            logger.warn("Erreur lors du chargement de la configuration: " + e.getMessage() + ", utilisation des valeurs par défaut");
-        }
     }
 
     @Subscribe

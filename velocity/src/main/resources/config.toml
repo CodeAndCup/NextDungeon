@@ -10,3 +10,4 @@ port = 6379
 topic = "dungeons:packets"
 username = ""
 password = ""
+database = 0

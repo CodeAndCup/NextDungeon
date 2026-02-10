@@ -123,7 +123,8 @@ public final class Main extends JavaPlugin {
                         + ":"
                         + Main.getInstance().getConfig().getInt("RedisConfiguration.port"))
                 .setUsername(Main.getInstance().getConfig().getString("RedisConfiguration.username"))
-                .setPassword(Main.getInstance().getConfig().getString("RedisConfiguration.password"));
+                .setPassword(Main.getInstance().getConfig().getString("RedisConfiguration.password"))
+                .setDatabase(Main.getInstance().getConfig().getInt("RedisConfiguration.database"));
 
         // Create Redis client
         RedissonClient redissonClient = Redisson.create(config);
@@ -214,13 +215,7 @@ public final class Main extends JavaPlugin {
         }
 
         // Enabling messaging system
-        this.messaging = new Pidgin(
-                Main.getInstance().getConfig().getString("RedisConfiguration.topic"),
-                Main.getInstance().getConfig().getString("RedisConfiguration.host"),
-                Main.getInstance().getConfig().getInt("RedisConfiguration.port"),
-                Main.getInstance().getConfig().getString("RedisConfiguration.username"),
-                Main.getInstance().getConfig().getString("RedisConfiguration.password")
-        );
+        this.messaging = new Pidgin(config);
         this.messaging.registerAdapter(PlayerSwitchServerPacket.class, new PlayerSwitchServerSubscriber());
         this.messaging.registerAdapter(WebEditorRequestPacket.class, new WebEditorRequestSubscriber());
         this.messaging.registerAdapter(WebEditorResponsePacket.class, null);

@@ -32,11 +32,12 @@ public class Pidgin {
 
     private static final ExecutorService executorService = Executors.newFixedThreadPool(10);
 
-    public Pidgin(String topicName, String redisHost, int redisPort, String redisUsername, String redisPassword) {
+    public Pidgin(String topicName, String redisHost, int redisPort, String redisUsername, String redisPassword, int redisDatabase) {
         Config config = new Config();
         config.useSingleServer().setAddress("redis://" + redisHost + ":" + redisPort)
                 .setUsername(redisUsername)
-                .setPassword(redisPassword);
+                .setPassword(redisPassword)
+                .setDatabase(redisDatabase);
 
         this.client = Redisson.create(config);
         this.topic = this.client.getTopic(topicName);
@@ -46,6 +47,16 @@ public class Pidgin {
         this.cTypes = new HashMap<>();
         this.topic.addListener(String.class, new MessagingListener());
 
+    }
+
+    public Pidgin(Config config) {
+        this.client = Redisson.create(config);
+        this.topic = this.client.getTopic(config.useSingleServer().getAddress());
+
+        this.adapters = new HashMap<>();
+        this.types = new HashMap<>();
+        this.cTypes = new HashMap<>();
+        this.topic.addListener(String.class, new MessagingListener());
     }
 
     /**
