@@ -81,6 +81,15 @@ public class TriggersRegistry implements Listener {
         registerHandler(new ItemPickupTriggerHandler());
         registerHandler(new ChatMessageTriggerHandler());
         registerHandler(new PlayerJumpTriggerHandler());
+        
+        if(Main.getLoggerUtil().isDebugEnabled()) {
+            Main.getLoggerUtil().info("Registered handlers:");
+            for (Map.Entry<Class<? extends Event>, List<TriggerEventHandler<?>>> entry : handlers.entrySet()) {
+                for (TriggerEventHandler<?> handler : entry.getValue()) {
+                    Main.getLoggerUtil().info("  - " + handler.getClass().getSimpleName() + " for " + entry.getKey().getSimpleName() + " (supports: " + handler.getSupportedTriggerTypes() + ")");
+                }
+            }
+        }
     }
 
     /**
@@ -113,26 +122,52 @@ public class TriggersRegistry implements Listener {
                     continue;
                 }
 
-                if (!trigger.isEnabled()) continue;
+                if (!trigger.isEnabled()) {
+                    if(Main.getLoggerUtil().isDebugEnabled()) {
+                        Main.getLoggerUtil().info("Skipping disabled trigger: " + trigger.getName());
+                    }
+                    continue;
+                }
 
                 // Cache par type de trigger
                 triggersByType.computeIfAbsent(trigger.getType(), k -> new ArrayList<>()).add(trigger);
+                
+                if(Main.getLoggerUtil().isDebugEnabled()) {
+                    Main.getLoggerUtil().info("Processing trigger: " + trigger.getName() + " (type: " + trigger.getType() + ", class: " + trigger.getClass().getSimpleName() + ")");
+                }
 
                 // Cache par type d'événement
+                boolean addedToEventCache = false;
                 for (Map.Entry<Class<? extends Event>, List<TriggerEventHandler<?>>> entry : handlers.entrySet()) {
                     for (TriggerEventHandler<?> handler : entry.getValue()) {
+                        if(Main.getLoggerUtil().isDebugEnabled()) {
+                            Main.getLoggerUtil().info("  Checking handler: " + handler.getClass().getSimpleName() + " (event: " + entry.getKey().getSimpleName() + ", supports: " + handler.getSupportedTriggerTypes() + ")");
+                        }
                         if (handler.getSupportedTriggerTypes().contains(trigger.getType())) {
                             triggersByEventType.computeIfAbsent(entry.getKey(), k -> new ArrayList<>()).add(trigger);
+                            addedToEventCache = true;
+                            if(Main.getLoggerUtil().isDebugEnabled()) {
+                                Main.getLoggerUtil().info("  -> Added trigger to event cache for " + entry.getKey().getSimpleName());
+                            }
                             break; // Add trigger only once per event type
                         }
                     }
                 }
+                
+                if(!addedToEventCache && Main.getLoggerUtil().isDebugEnabled()) {
+                    Main.getLoggerUtil().warning("Trigger " + trigger.getName() + " (type: " + trigger.getType() + ") was not added to any event cache!");
+                }
             }
 
             Main.getLoggerUtil().info("Triggers cache refresh complete: " + allTriggers.size() + " triggers");
+            if(Main.getLoggerUtil().isDebugEnabled()) {
+                Main.getLoggerUtil().info("Cache contents - triggersByType: " + triggersByType.keySet());
+                Main.getLoggerUtil().info("Cache contents - triggersByEventType: " + triggersByEventType.keySet().stream().map(Class::getSimpleName).toList());
+            }
 
         } catch (Exception e) {
             Main.getLoggerUtil().severe("Error refreshing cache: " + e.getMessage());
+            e.printStackTrace(System.err);
         }
     }
 
