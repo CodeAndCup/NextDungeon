@@ -59,7 +59,17 @@ public class TriggerTypeRegistry {
     public void registerGsonBased(String type, Class<? extends Trigger> triggerClass) {
         register(type, jsonData -> {
             try {
-                return gson.fromJson(jsonData, triggerClass);
+                if (Main.getLoggerUtil().isDebugEnabled()) {
+                    Main.getLoggerUtil().info("Deserializing trigger type '" + type + "' from JSON: " + jsonData.toString());
+                }
+                
+                Trigger trigger = gson.fromJson(jsonData, triggerClass);
+                
+                if (Main.getLoggerUtil().isDebugEnabled() && trigger != null) {
+                    Main.getLoggerUtil().info("Deserialized trigger: " + gson.toJson(trigger));
+                }
+                
+                return trigger;
             } catch (Exception e) {
                 Main.getLoggerUtil().severe("Error deserializing trigger of type " + type + ": " + e.getMessage());
                 e.printStackTrace(System.err);

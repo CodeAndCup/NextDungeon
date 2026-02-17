@@ -144,6 +144,10 @@ public class EditorSerializer {
                 }
 
                 JsonObject triggerObj = gson.toJsonTree(trigger, trigger.getClass()).getAsJsonObject();
+                
+                if(Main.getLoggerUtil().isDebugEnabled()) {
+                    Main.getLoggerUtil().info("Serialized trigger to JSON: " + triggerObj.toString());
+                }
 
                 // Add metadata that Blockly requires
                 triggerObj.addProperty("id", trigger.getTriggerId().toString());
