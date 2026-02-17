@@ -2,6 +2,7 @@ package fr.perrier.dungeons.spigot.workflow.action.registry;
 
 import com.google.gson.JsonObject;
 import fr.perrier.dungeons.spigot.workflow.action.Action;
+import fr.perrier.dungeons.spigot.workflow.validation.JsonValidator;
 import fr.perrier.dungeons.spigot.Main;
 
 import java.util.HashMap;
@@ -49,17 +50,29 @@ public class ActionTypeRegistry {
     
     /**
      * Creates an action from JSON data using the registered factory for its type.
+     * Now includes validation to prevent errors from missing required fields.
      * 
      * @param jsonData the JSON object containing action properties (must include "type" field)
      * @return the created Action instance, or null if type is unknown or creation fails
      */
     public Action createAction(JsonObject jsonData) {
-        if (jsonData == null || !jsonData.has("type")) {
-            Main.getLoggerUtil().warning("Cannot create action: JSON data is null or missing 'type' field");
+        // Validate that JSON and type field exist
+        if (jsonData == null) {
+            Main.getLoggerUtil().warning("Cannot create action: JSON data is null");
             return null;
         }
         
-        String type = jsonData.get("type").getAsString();
+        if (!JsonValidator.hasField(jsonData, "type")) {
+            Main.getLoggerUtil().warning("Cannot create action: missing 'type' field in JSON");
+            return null;
+        }
+        
+        String type = JsonValidator.getString(jsonData, "type", "");
+        if (type.isEmpty()) {
+            Main.getLoggerUtil().warning("Cannot create action: 'type' field is empty");
+            return null;
+        }
+        
         ActionTypeFactory factory = factories.get(type);
         
         if (factory == null) {

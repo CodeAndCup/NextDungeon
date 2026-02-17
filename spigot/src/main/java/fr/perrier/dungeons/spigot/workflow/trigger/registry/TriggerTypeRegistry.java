@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import fr.perrier.dungeons.spigot.workflow.trigger.Trigger;
+import fr.perrier.dungeons.spigot.workflow.validation.JsonValidator;
 import fr.perrier.dungeons.spigot.Main;
 
 import java.lang.reflect.Modifier;
@@ -78,17 +79,29 @@ public class TriggerTypeRegistry {
     
     /**
      * Creates a trigger from JSON data using the registered factory for its type.
+     * Now includes validation to prevent errors from missing required fields.
      * 
      * @param jsonData the JSON object containing trigger properties (must include "type" field)
      * @return the created Trigger instance, or null if type is unknown or creation fails
      */
     public Trigger createTrigger(JsonObject jsonData) {
-        if (jsonData == null || !jsonData.has("type")) {
-            Main.getLoggerUtil().warning("Cannot create trigger: JSON data is null or missing 'type' field");
+        // Validate that JSON and type field exist
+        if (jsonData == null) {
+            Main.getLoggerUtil().warning("Cannot create trigger: JSON data is null");
             return null;
         }
         
-        String type = jsonData.get("type").getAsString();
+        if (!JsonValidator.hasField(jsonData, "type")) {
+            Main.getLoggerUtil().warning("Cannot create trigger: missing 'type' field in JSON");
+            return null;
+        }
+        
+        String type = JsonValidator.getString(jsonData, "type", "");
+        if (type.isEmpty()) {
+            Main.getLoggerUtil().warning("Cannot create trigger: 'type' field is empty");
+            return null;
+        }
+        
         TriggerTypeFactory factory = factories.get(type);
         
         if (factory == null) {
@@ -99,14 +112,19 @@ public class TriggerTypeRegistry {
         try {
             Trigger trigger = factory.createFromJson(jsonData);
             
+            if (trigger == null) {
+                Main.getLoggerUtil().warning("Factory returned null trigger for type: " + type);
+                return null;
+            }
+            
             // Set name if provided
-            if (jsonData.has("name")) {
-                trigger.setName(jsonData.get("name").getAsString());
+            if (JsonValidator.hasField(jsonData, "name")) {
+                trigger.setName(JsonValidator.getString(jsonData, "name", "Trigger_" + System.currentTimeMillis()));
             }
             
             // Set enabled if provided
-            if (jsonData.has("enabled")) {
-                trigger.setEnabled(jsonData.get("enabled").getAsBoolean());
+            if (JsonValidator.hasField(jsonData, "enabled")) {
+                trigger.setEnabled(JsonValidator.getBoolean(jsonData, "enabled", true));
             }
             
             return trigger;
