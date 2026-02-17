@@ -29,7 +29,7 @@ import java.util.Map;
         tooltip = "Vérifie si le joueur possède un item spécifique",
         category = "Conditions"
 )
-public class PlayerHasItemCondition extends Action implements BlocklyAction , ConditionalAction{
+public class PlayerHasItemCondition extends Action implements BlocklyAction , , ConditionalAction {
     private static final long serialVersionUID = 1L;
 
     @BlocklyField(type = BlocklyField.FieldType.TEXT_INPUT, label = "Type d'item:",

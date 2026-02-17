@@ -28,7 +28,7 @@ import java.util.Map;
         tooltip = "Vérifie si une entité est d'un type spécifique",
         category = "Conditions"
 )
-public class EntityTypeIsCondition extends Action implements BlocklyAction , ConditionalAction{
+public class EntityTypeIsCondition extends Action implements BlocklyAction , , ConditionalAction {
     private static final long serialVersionUID = 1L;
 
     @BlocklyField(type = BlocklyField.FieldType.TEXT_INPUT, label = "Type d'entité:",
