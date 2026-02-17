@@ -18,6 +18,9 @@ public class LoggerUtil {
 
     private LoggerUtil() {
         debugEnabled = false;
+        // Initialize with CONSOLE as default to prevent NullPointerException
+        // This will be overridden by config in Main.onEnable()
+        logBroadcastType = LogBroadcastType.CONSOLE;
     }
 
     public static LoggerUtil getInstance() {
@@ -28,6 +31,11 @@ public class LoggerUtil {
     }
 
     public void info(String message) {
+        // Defensive null check
+        if (logBroadcastType == null) {
+            logBroadcastType = LogBroadcastType.CONSOLE;
+        }
+        
         if(logBroadcastType == LogBroadcastType.CONSOLE || logBroadcastType == LogBroadcastType.BOTH)
             Main.getInstance().getLogger().info(message);
         if(logBroadcastType == LogBroadcastType.IN_GAME || logBroadcastType == LogBroadcastType.BOTH)
@@ -35,6 +43,11 @@ public class LoggerUtil {
     }
 
     public void warning(String message) {
+        // Defensive null check
+        if (logBroadcastType == null) {
+            logBroadcastType = LogBroadcastType.CONSOLE;
+        }
+        
         if(logBroadcastType == LogBroadcastType.CONSOLE || logBroadcastType == LogBroadcastType.BOTH)
             Main.getInstance().getLogger().warning("&e" + message);
         if(logBroadcastType == LogBroadcastType.IN_GAME || logBroadcastType == LogBroadcastType.BOTH)
@@ -42,6 +55,11 @@ public class LoggerUtil {
     }
 
     public void severe(String message) {
+        // Defensive null check
+        if (logBroadcastType == null) {
+            logBroadcastType = LogBroadcastType.CONSOLE;
+        }
+        
         if(logBroadcastType == LogBroadcastType.CONSOLE || logBroadcastType == LogBroadcastType.BOTH)
             Main.getInstance().getLogger().severe("&#FF0000" + message);
         if(logBroadcastType == LogBroadcastType.IN_GAME || logBroadcastType == LogBroadcastType.BOTH)

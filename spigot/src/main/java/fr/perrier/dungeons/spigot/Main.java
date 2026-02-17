@@ -116,13 +116,22 @@ public final class Main extends JavaPlugin {
 
         instance = this;
 
+        // Save default config FIRST
+        saveDefaultConfig();
+
         // Starting logger
         loggerUtil = LoggerUtil.getInstance();
         loggerUtil.setDebugEnabled(getConfig().getBoolean("DebugMode.activated"));
-        loggerUtil.setLogBroadcastType(LoggerUtil.LogBroadcastType.valueOf(Objects.requireNonNull(getConfig().getString("DebugMode.logType")).toUpperCase()));
-
-        // Save default config
-        saveDefaultConfig();
+        
+        // Safely load log broadcast type from config with fallback
+        String logTypeStr = getConfig().getString("DebugMode.logType", "CONSOLE");
+        try {
+            LoggerUtil.LogBroadcastType logType = LoggerUtil.LogBroadcastType.valueOf(logTypeStr.toUpperCase());
+            loggerUtil.setLogBroadcastType(logType);
+        } catch (IllegalArgumentException e) {
+            getLogger().warning("Invalid log broadcast type in config: " + logTypeStr + ". Using CONSOLE as default.");
+            loggerUtil.setLogBroadcastType(LoggerUtil.LogBroadcastType.CONSOLE);
+        }
 
         // Initialize Redis Configuration
         Config config = new Config();
