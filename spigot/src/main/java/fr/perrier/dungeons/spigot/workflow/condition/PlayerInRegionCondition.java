@@ -28,7 +28,7 @@ import java.util.Map;
         tooltip = "Vérifie si un joueur est dans une région cubique définie",
         category = "Conditions"
 )
-public class PlayerInRegionCondition extends Action implements BlocklyAction , , ConditionalAction {
+public class PlayerInRegionCondition extends Action implements BlocklyAction, ConditionalAction {
     private static final long serialVersionUID = 1L;
 
     @BlocklyField(type = BlocklyField.FieldType.LOCATION_INPUT, label = "Position 1:", defaultValue = "", order = 0)

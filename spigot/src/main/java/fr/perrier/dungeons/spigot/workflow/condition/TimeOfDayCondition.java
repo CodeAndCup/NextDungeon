@@ -28,7 +28,7 @@ import java.util.Map;
         tooltip = "Vérifie si l'heure actuelle du monde correspond à une valeur",
         category = "Conditions"
 )
-public class TimeOfDayCondition extends Action implements BlocklyAction , , ConditionalAction {
+public class TimeOfDayCondition extends Action implements BlocklyAction, ConditionalAction {
     private static final long serialVersionUID = 1L;
 
     @BlocklyField(type = BlocklyField.FieldType.DROPDOWN, label = "Période:",

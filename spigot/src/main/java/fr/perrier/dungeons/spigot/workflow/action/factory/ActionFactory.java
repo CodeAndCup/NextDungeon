@@ -4,6 +4,7 @@ import com.google.gson.JsonPrimitive;
 import fr.perrier.dungeons.common.workflow.action.ActionData;
 import fr.perrier.dungeons.spigot.workflow.action.impl.*;
 import fr.perrier.dungeons.spigot.workflow.action.Action;
+import fr.perrier.dungeons.spigot.workflow.action.conditional.ConditionalAction;
 import fr.perrier.dungeons.spigot.workflow.action.registry.ActionTypeRegistry;
 import fr.perrier.dungeons.spigot.Main;
 import com.google.gson.JsonObject;

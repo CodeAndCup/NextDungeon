@@ -29,7 +29,7 @@ import java.util.Map;
         tooltip = "Vérifie si un bloc à une position est d'un type spécifique",
         category = "Conditions"
 )
-public class BlockTypeIsCondition extends Action implements BlocklyAction , , ConditionalAction {
+public class BlockTypeIsCondition extends Action implements BlocklyAction, ConditionalAction {
     private static final long serialVersionUID = 1L;
 
     @BlocklyField(type = BlocklyField.FieldType.NUMBER_INPUT, label = "X:",

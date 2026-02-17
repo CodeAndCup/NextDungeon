@@ -30,7 +30,7 @@ import java.util.Map;
         tooltip = "Vérifie si une location est sûre pour la téléportation",
         category = "Conditions"
 )
-public class LocationIsSafeCondition extends Action implements BlocklyAction , , ConditionalAction {
+public class LocationIsSafeCondition extends Action implements BlocklyAction, ConditionalAction {
     private static final long serialVersionUID = 1L;
 
     @BlocklyField(type = BlocklyField.FieldType.LOCATION_INPUT, label = "Location:",

@@ -27,7 +27,7 @@ import java.util.Map;
         tooltip = "Vérifie si un joueur possède une permission spécifique",
         category = "Conditions"
 )
-public class PlayerPermissionCondition extends Action implements BlocklyAction , , ConditionalAction {
+public class PlayerPermissionCondition extends Action implements BlocklyAction, ConditionalAction {
     private static final long serialVersionUID = 1L;
 
     @BlocklyField(type = BlocklyField.FieldType.TEXT_INPUT, label = "Permission:",
