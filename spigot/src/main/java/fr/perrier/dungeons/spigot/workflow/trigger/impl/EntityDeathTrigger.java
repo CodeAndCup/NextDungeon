@@ -28,6 +28,12 @@ public class EntityDeathTrigger extends Trigger implements BlocklyTrigger {
     @BlocklyField(type = BlocklyField.FieldType.TEXT_INPUT, label = "Entity:", defaultValue = "ZOMBIE", order = 1)
     private String entityType;
 
+    // No-arg constructor required for Gson deserialization
+    public EntityDeathTrigger() {
+        super("Entity Death Trigger");
+        this.entityType = "ZOMBIE";
+    }
+
     public EntityDeathTrigger(String name) {
         super(name);
     }

@@ -51,6 +51,15 @@ public class RegionTrigger extends Trigger implements BlocklyTrigger {
 
     private final Map<String, Long> playerTriggerHistory = new HashMap<>();
 
+    // No-arg constructor required for Gson deserialization
+    public RegionTrigger() {
+        super("Region Trigger");
+        this.worldName = "world";
+        this.regionEvent = "enter";
+        this.onlyOnce = false;
+        this.cooldownSeconds = 0;
+    }
+
     public RegionTrigger(String name) {
         super(name);
         this.worldName = "world";
