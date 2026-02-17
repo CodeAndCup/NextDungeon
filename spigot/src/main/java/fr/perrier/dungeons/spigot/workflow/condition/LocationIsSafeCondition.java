@@ -5,6 +5,7 @@ import fr.perrier.dungeons.spigot.webeditor.blockly.BlocklyAction;
 import fr.perrier.dungeons.spigot.webeditor.blockly.annotations.BlocklyField;
 import fr.perrier.dungeons.spigot.webeditor.blockly.annotations.BlocklyInfo;
 import fr.perrier.dungeons.spigot.workflow.action.Action;
+import fr.perrier.dungeons.spigot.workflow.action.conditional.ConditionalAction;
 import fr.perrier.dungeons.spigot.workflow.blocks.LocationBlock;
 import lombok.Getter;
 import lombok.Setter;
@@ -29,7 +30,7 @@ import java.util.Map;
         tooltip = "Vérifie si une location est sûre pour la téléportation",
         category = "Conditions"
 )
-public class LocationIsSafeCondition extends Action implements BlocklyAction {
+public class LocationIsSafeCondition extends Action implements BlocklyAction , ConditionalAction{
     private static final long serialVersionUID = 1L;
 
     @BlocklyField(type = BlocklyField.FieldType.LOCATION_INPUT, label = "Location:",

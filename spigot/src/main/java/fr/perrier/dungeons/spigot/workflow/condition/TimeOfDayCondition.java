@@ -5,6 +5,7 @@ import fr.perrier.dungeons.spigot.webeditor.blockly.BlocklyAction;
 import fr.perrier.dungeons.spigot.webeditor.blockly.annotations.BlocklyField;
 import fr.perrier.dungeons.spigot.webeditor.blockly.annotations.BlocklyInfo;
 import fr.perrier.dungeons.spigot.workflow.action.Action;
+import fr.perrier.dungeons.spigot.workflow.action.conditional.ConditionalAction;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Location;
@@ -27,7 +28,7 @@ import java.util.Map;
         tooltip = "Vérifie si l'heure actuelle du monde correspond à une valeur",
         category = "Conditions"
 )
-public class TimeOfDayCondition extends Action implements BlocklyAction {
+public class TimeOfDayCondition extends Action implements BlocklyAction , ConditionalAction{
     private static final long serialVersionUID = 1L;
 
     @BlocklyField(type = BlocklyField.FieldType.DROPDOWN, label = "Période:",

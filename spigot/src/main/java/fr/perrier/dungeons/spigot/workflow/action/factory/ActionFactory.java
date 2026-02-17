@@ -433,31 +433,23 @@ public class ActionFactory {
     }
     
     /**
-     * Helper method to load IF and ELSE actions for condition objects.
-     * This abstracts the common pattern used by all conditions.
+     * Helper method to load IF and ELSE actions for conditional objects.
+     * Uses the ConditionalAction interface to eliminate instanceof checks (DRY principle).
      */
     private static void loadConditionActions(Action condition, JsonObject data) {
+        if (!(condition instanceof ConditionalAction conditionalAction)) {
+            // This shouldn't happen if factories are implemented correctly
+            Main.getLoggerUtil().warning("Action does not implement ConditionalAction: " + condition.getClass().getName());
+            return;
+        }
+        
         // Load IF actions
         if (data.has("ifactions")) {
             JsonArray ifActionsArray = data.getAsJsonArray("ifactions");
             for (JsonElement actionElement : ifActionsArray) {
                 Action action = createActionFromJson(actionElement.getAsJsonObject());
                 if (action != null) {
-                    if (condition instanceof PlayerHasItemCondition) {
-                        ((PlayerHasItemCondition) condition).addIfAction(action);
-                    } else if (condition instanceof LocationIsSafeCondition) {
-                        ((LocationIsSafeCondition) condition).addIfAction(action);
-                    } else if (condition instanceof TimeOfDayCondition) {
-                        ((TimeOfDayCondition) condition).addIfAction(action);
-                    } else if (condition instanceof EntityTypeIsCondition) {
-                        ((EntityTypeIsCondition) condition).addIfAction(action);
-                    } else if (condition instanceof PlayerInRegionCondition) {
-                        ((PlayerInRegionCondition) condition).addIfAction(action);
-                    } else if (condition instanceof BlockTypeIsCondition) {
-                        ((BlockTypeIsCondition) condition).addIfAction(action);
-                    } else if (condition instanceof PlayerPermissionCondition) {
-                        ((PlayerPermissionCondition) condition).addIfAction(action);
-                    }
+                    conditionalAction.addIfAction(action);
                 }
             }
         }
@@ -468,21 +460,7 @@ public class ActionFactory {
             for (JsonElement actionElement : elseActionsArray) {
                 Action action = createActionFromJson(actionElement.getAsJsonObject());
                 if (action != null) {
-                    if (condition instanceof PlayerHasItemCondition) {
-                        ((PlayerHasItemCondition) condition).addElseAction(action);
-                    } else if (condition instanceof LocationIsSafeCondition) {
-                        ((LocationIsSafeCondition) condition).addElseAction(action);
-                    } else if (condition instanceof TimeOfDayCondition) {
-                        ((TimeOfDayCondition) condition).addElseAction(action);
-                    } else if (condition instanceof EntityTypeIsCondition) {
-                        ((EntityTypeIsCondition) condition).addElseAction(action);
-                    } else if (condition instanceof PlayerInRegionCondition) {
-                        ((PlayerInRegionCondition) condition).addElseAction(action);
-                    } else if (condition instanceof BlockTypeIsCondition) {
-                        ((BlockTypeIsCondition) condition).addElseAction(action);
-                    } else if (condition instanceof PlayerPermissionCondition) {
-                        ((PlayerPermissionCondition) condition).addElseAction(action);
-                    }
+                    conditionalAction.addElseAction(action);
                 }
             }
         }
