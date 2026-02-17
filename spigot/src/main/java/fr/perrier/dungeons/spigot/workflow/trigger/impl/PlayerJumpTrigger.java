@@ -26,6 +26,8 @@ import java.util.Map;
         category = "Triggers"
 )
 public class PlayerJumpTrigger extends Trigger implements BlocklyTrigger {
+    private static final long serialVersionUID = 1L;
+
 
     @BlocklyField(type = BlocklyField.FieldType.NUMBER_INPUT, label = "Cooldown (sec):",
             defaultValue = "0", order = 1)

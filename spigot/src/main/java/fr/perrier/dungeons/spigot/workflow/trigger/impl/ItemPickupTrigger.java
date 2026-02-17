@@ -27,6 +27,8 @@ import java.util.Map;
         category = "Triggers"
 )
 public class ItemPickupTrigger extends Trigger implements BlocklyTrigger {
+    private static final long serialVersionUID = 1L;
+
 
     @BlocklyField(type = BlocklyField.FieldType.TEXT_INPUT, label = "Type d'item:",
             defaultValue = "DIAMOND", order = 1)

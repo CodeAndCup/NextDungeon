@@ -26,6 +26,8 @@ import java.util.Map;
         category = "Triggers"
 )
 public class PlayerDamageTrigger extends Trigger implements BlocklyTrigger {
+    private static final long serialVersionUID = 1L;
+
 
     @BlocklyField(type = BlocklyField.FieldType.DROPDOWN, label = "Type de dégâts:",
             options = "ALL,FALL,FIRE,ENTITY_ATTACK,PROJECTILE,DROWNING,LAVA,VOID",

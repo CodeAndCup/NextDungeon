@@ -22,6 +22,8 @@ import java.util.Map;
         category = "Triggers"
 )
 public class EntityDeathTrigger extends Trigger implements BlocklyTrigger {
+    private static final long serialVersionUID = 1L;
+
 
     @BlocklyField(type = BlocklyField.FieldType.TEXT_INPUT, label = "Entity:", defaultValue = "ZOMBIE", order = 1)
     private String entityType;

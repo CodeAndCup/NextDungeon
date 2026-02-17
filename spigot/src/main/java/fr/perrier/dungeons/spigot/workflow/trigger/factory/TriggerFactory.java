@@ -4,6 +4,7 @@ import fr.perrier.dungeons.common.workflow.trigger.TriggerData;
 import fr.perrier.dungeons.spigot.workflow.action.factory.ActionFactory;
 import fr.perrier.dungeons.spigot.workflow.trigger.Trigger;
 import fr.perrier.dungeons.spigot.workflow.trigger.impl.*;
+import fr.perrier.dungeons.spigot.workflow.trigger.registry.TriggerTypeRegistry;
 import fr.perrier.dungeons.spigot.Main;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -20,11 +21,10 @@ import java.util.Map;
 /**
  * Factory pour créer des triggers depuis les données JSON de Blockly
  *
- * ARCHITECTURE: Uses automatic Gson deserialization for all trigger types
- * - Trigger types are mapped to their concrete classes
- * - Gson automatically populates all fields from JSON, including PRIVATE fields
- * - No manual property copying needed for new trigger types
- * - Simply add new Trigger class to the map
+ * ARCHITECTURE CHANGE: Now uses TriggerTypeRegistry for extensibility following Open/Closed Principle.
+ * - Trigger types can be registered at runtime without modifying this class
+ * - Gson automatically populates all fields from JSON
+ * - Simply add new Trigger class to the registry
  * - CRITICAL: Gson is configured to access private fields used in all Trigger classes
  */
 public class TriggerFactory {
@@ -32,18 +32,46 @@ public class TriggerFactory {
             .excludeFieldsWithModifiers(Modifier.TRANSIENT, Modifier.STATIC)
             .create();
 
-    // Map trigger type strings to their concrete class
-    private static final Map<String, Class<? extends Trigger>> TRIGGER_CLASSES = new HashMap<>();
-
-    static {
-        TRIGGER_CLASSES.put("region_trigger", RegionTrigger.class);
-        TRIGGER_CLASSES.put("function_trigger", FunctionTrigger.class);
-        TRIGGER_CLASSES.put("entity_death_trigger", EntityDeathTrigger.class);
-        TRIGGER_CLASSES.put("block_click_trigger", BlockClickTrigger.class);
-        TRIGGER_CLASSES.put("player_damage_trigger", PlayerDamageTrigger.class);
-        TRIGGER_CLASSES.put("item_pickup_trigger", ItemPickupTrigger.class);
-        TRIGGER_CLASSES.put("chat_message_trigger", ChatMessageTrigger.class);
-        TRIGGER_CLASSES.put("player_jump_trigger", PlayerJumpTrigger.class);
+    private static final TriggerTypeRegistry registry = new TriggerTypeRegistry();
+    private static boolean registryInitialized = false;
+    
+    /**
+     * Initialize the trigger type registry with all standard trigger types.
+     * This method is called automatically on first use.
+     */
+    private static synchronized void initializeRegistry() {
+        if (registryInitialized) {
+            return;
+        }
+        
+        registerStandardTriggers();
+        registryInitialized = true;
+    }
+    
+    /**
+     * Register all standard trigger types in the registry.
+     * Uses Gson-based deserialization for all standard triggers.
+     */
+    private static void registerStandardTriggers() {
+        registry.registerGsonBased("region_trigger", RegionTrigger.class);
+        registry.registerGsonBased("function_trigger", FunctionTrigger.class);
+        registry.registerGsonBased("entity_death_trigger", EntityDeathTrigger.class);
+        registry.registerGsonBased("block_click_trigger", BlockClickTrigger.class);
+        registry.registerGsonBased("player_damage_trigger", PlayerDamageTrigger.class);
+        registry.registerGsonBased("item_pickup_trigger", ItemPickupTrigger.class);
+        registry.registerGsonBased("chat_message_trigger", ChatMessageTrigger.class);
+        registry.registerGsonBased("player_jump_trigger", PlayerJumpTrigger.class);
+    }
+    
+    /**
+     * Gets the trigger type registry for external registration of new trigger types.
+     * This allows plugins to extend the system without modifying this class (Open/Closed Principle).
+     * 
+     * @return the trigger type registry
+     */
+    public static TriggerTypeRegistry getRegistry() {
+        initializeRegistry();
+        return registry;
     }
 
     /**
@@ -56,6 +84,8 @@ public class TriggerFactory {
      * @return Deserialized Trigger object, or null if failed
      */
     public static Trigger createTriggerFromJson(JsonObject triggerData) {
+        initializeRegistry();
+        
         try {
             String type = triggerData.get("type").getAsString();
             String name = triggerData.has("name") ? triggerData.get("name").getAsString() : "Trigger_" + System.currentTimeMillis();
@@ -64,27 +94,12 @@ public class TriggerFactory {
                 Main.getLoggerUtil().info("Creating trigger: " + type + " - " + name);
             }
 
-            // Get the concrete class for this trigger type
-            Class<? extends Trigger> triggerClass = TRIGGER_CLASSES.get(type);
-            if (triggerClass == null) {
-                Main.getLoggerUtil().warning("Trigger type unknown: " + type);
-                return null;
-            }
-
-            // AUTOMATIC DESERIALIZATION: Gson automatically populates all fields
-            Trigger trigger = gson.fromJson(triggerData, triggerClass);
-
+            // Use registry to create trigger
+            Trigger trigger = registry.createTrigger(triggerData);
+            
             if (trigger == null) {
-                Main.getLoggerUtil().warning("Failed to deserialize trigger of type: " + type);
+                Main.getLoggerUtil().warning("Failed to create trigger of type: " + type);
                 return null;
-            }
-
-            // Set name (might not be in JSON)
-            trigger.setName(name);
-
-            // Apply common properties
-            if (triggerData.has("enabled")) {
-                trigger.setEnabled(triggerData.get("enabled").getAsBoolean());
             }
 
             // Parse actions

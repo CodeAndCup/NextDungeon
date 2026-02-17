@@ -29,6 +29,7 @@ import java.util.Objects;
         category = "Triggers"
 )
 public class RegionTrigger extends Trigger implements BlocklyTrigger {
+    private static final long serialVersionUID = 1L;
 
     @BlocklyField(type = BlocklyField.FieldType.LOCATION_INPUT, label = "Position 1:", defaultValue = "", order = 0)
     private LocationBlock pos1;

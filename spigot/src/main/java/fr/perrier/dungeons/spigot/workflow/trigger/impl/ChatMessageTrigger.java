@@ -25,6 +25,8 @@ import java.util.Map;
         category = "Triggers"
 )
 public class ChatMessageTrigger extends Trigger implements BlocklyTrigger {
+    private static final long serialVersionUID = 1L;
+
 
     @BlocklyField(type = BlocklyField.FieldType.TEXT_INPUT, label = "Mot-clé:",
             defaultValue = "", order = 1)
