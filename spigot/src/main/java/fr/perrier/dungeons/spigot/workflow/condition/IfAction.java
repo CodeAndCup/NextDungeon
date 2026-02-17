@@ -71,8 +71,8 @@ public class IfAction extends Action implements BlocklyAction {
             // Evaluate condition
             boolean conditionResult = evaluateCondition(resolvedLeft, operator, resolvedRight);
 
-            if (Main.isDebug()) {
-                Main.getInstance().getLogger().info("If condition: " + resolvedLeft + " " + operator + " " + resolvedRight + " = " + conditionResult);
+            if (Main.getLoggerUtil().isDebugEnabled()) {
+                Main.getLoggerUtil().info("If condition: " + resolvedLeft + " " + operator + " " + resolvedRight + " = " + conditionResult);
             }
 
             // Execute appropriate actions
@@ -81,7 +81,7 @@ public class IfAction extends Action implements BlocklyAction {
             if (actionsToExecute != null && !actionsToExecute.isEmpty()) {
                 for (Action action : actionsToExecute) {
                     if (!action.execute(triggerPlayer, location, data)) {
-                        Main.getInstance().getLogger().warning("&eAction failed in If block: " + action.getClass().getSimpleName());
+                        Main.getLoggerUtil().warning("Action failed in If block: " + action.getClass().getSimpleName());
                     }
                 }
             }
@@ -89,7 +89,7 @@ public class IfAction extends Action implements BlocklyAction {
             return true;
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("&#FF0000Error executing If action: " + e.getMessage());
+            Main.getLoggerUtil().severe("Error executing If action: " + e.getMessage());
             e.printStackTrace(System.err);
             return false;
         }
@@ -265,11 +265,11 @@ public class IfAction extends Action implements BlocklyAction {
                 case "endsWith":
                     return left.toString().toLowerCase().endsWith(right.toString().toLowerCase());
                 default:
-                    Main.getInstance().getLogger().warning("&eUnknown operator: " + op);
+                    Main.getLoggerUtil().warning("Unknown operator: " + op);
                     return false;
             }
         } catch (Exception e) {
-            Main.getInstance().getLogger().warning("&eError evaluating condition: " + e.getMessage());
+            Main.getLoggerUtil().warning("Error evaluating condition: " + e.getMessage());
             return false;
         }
     }

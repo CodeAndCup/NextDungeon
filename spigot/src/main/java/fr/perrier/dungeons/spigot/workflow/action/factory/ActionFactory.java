@@ -480,13 +480,13 @@ public class ActionFactory {
                     yield new TeleportLocationAction(targetPlayer, location);
                 }
                 default -> {
-                    Main.getInstance().getLogger().warning("&eType d'action inconnu: " + type);
+                    Main.getLoggerUtil().warning("Type d'action inconnu: " + type);
                     yield null;
                 }
             };
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("&#FF0000Erreur lors de la creation de l'action: " + e.getMessage());
+            Main.getLoggerUtil().severe("Erreur lors de la creation de l'action: " + e.getMessage());
             e.printStackTrace(System.err);
             return null;
         }
@@ -506,8 +506,8 @@ public class ActionFactory {
             }
         }
 
-        if (Main.isDebug()) {
-            Main.getInstance().getLogger().info("Actions parsees: " + actions.size() + " action(s) creee(s)");
+        if (Main.getLoggerUtil().isDebugEnabled()) {
+            Main.getLoggerUtil().info("Actions parsees: " + actions.size() + " action(s) creee(s)");
         }
         return actions;
     }

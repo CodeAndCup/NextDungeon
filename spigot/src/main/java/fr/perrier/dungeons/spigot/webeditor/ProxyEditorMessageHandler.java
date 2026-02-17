@@ -36,10 +36,10 @@ public class ProxyEditorMessageHandler {
      */
     public String handleLoadTriggersRequest(String dungeonName, String floorId) {
         try {
-            Main.getInstance().getLogger().info("📥 Requête proxy: chargement triggers pour " + floorId);
+            Main.getLoggerUtil().info("📥 Requête proxy: chargement triggers pour " + floorId);
             return workflowSaveManager.loadTriggersAsJson(dungeonName, floorId);
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("Erreur chargement triggers: " + e.getMessage());
+            Main.getLoggerUtil().severe("Erreur chargement triggers: " + e.getMessage());
             return createErrorResponse("Erreur lors du chargement des triggers: " + e.getMessage());
         }
     }
@@ -55,7 +55,7 @@ public class ProxyEditorMessageHandler {
      */
     public String handleSaveTriggersRequest(String dungeonName, String floorId, String triggersJson, UUID editorUuid) {
         try {
-            Main.getInstance().getLogger().info("💾 Requête proxy: sauvegarde triggers pour " + floorId);
+            Main.getLoggerUtil().info("💾 Requête proxy: sauvegarde triggers pour " + floorId);
             
             Player editor = Bukkit.getPlayer(editorUuid);
             boolean success = workflowSaveManager.saveWorkflows(dungeonName, floorId, triggersJson, editor);
@@ -66,7 +66,7 @@ public class ProxyEditorMessageHandler {
             
             return gson.toJson(response);
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("Erreur sauvegarde triggers: " + e.getMessage());
+            Main.getLoggerUtil().severe("Erreur sauvegarde triggers: " + e.getMessage());
             return createErrorResponse("Erreur lors de la sauvegarde: " + e.getMessage());
         }
     }
@@ -78,7 +78,7 @@ public class ProxyEditorMessageHandler {
      */
     public String handleGetTriggerTypesRequest() {
         try {
-            Main.getInstance().getLogger().info("📋 Requête proxy: types de triggers");
+            Main.getLoggerUtil().info("📋 Requête proxy: types de triggers");
             
             // Retourner les types de triggers disponibles (même logique que WebEditorServer)
             String typesJson = """
@@ -103,7 +103,7 @@ public class ProxyEditorMessageHandler {
             
             return typesJson;
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("Erreur types triggers: " + e.getMessage());
+            Main.getLoggerUtil().severe("Erreur types triggers: " + e.getMessage());
             return createErrorResponse("Erreur lors du chargement des types: " + e.getMessage());
         }
     }
@@ -116,7 +116,7 @@ public class ProxyEditorMessageHandler {
      */
     public String handleGenerateBlocklyJsRequest(UUID editorUuid) {
         try {
-            Main.getInstance().getLogger().info("🔧 Requête proxy: génération Blockly JS");
+            Main.getLoggerUtil().info("🔧 Requête proxy: génération Blockly JS");
             
             Player editor = Bukkit.getPlayer(editorUuid);
             if (editor == null) {
@@ -125,7 +125,7 @@ public class ProxyEditorMessageHandler {
             
             return Base64.encode(blocklyGenerator.generateJavaScript(editor).getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("Erreur génération JS: " + e.getMessage());
+            Main.getLoggerUtil().severe("Erreur génération JS: " + e.getMessage());
             return "console.error('Erreur génération Blockly');";
         }
     }
@@ -140,7 +140,7 @@ public class ProxyEditorMessageHandler {
      */
     public String handleGetFloorInfoRequest(String dungeonName, String floorId, String editorName) {
         try {
-            Main.getInstance().getLogger().info("ℹ️ Requête proxy: infos floor " + floorId);
+            Main.getLoggerUtil().info("ℹ️ Requête proxy: infos floor " + floorId);
             
             Floor floor = Floor.getFloor(floorId);
             String floorName = floor != null ? floor.getName() : "Inconnu";
@@ -157,7 +157,7 @@ public class ProxyEditorMessageHandler {
 
             return infoJson;
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("Erreur infos floor: " + e.getMessage());
+            Main.getLoggerUtil().severe("Erreur infos floor: " + e.getMessage());
             return createErrorResponse("Erreur lors du chargement des informations: " + e.getMessage());
         }
     }

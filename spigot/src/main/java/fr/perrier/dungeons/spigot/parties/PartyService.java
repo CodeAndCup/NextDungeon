@@ -3,6 +3,7 @@ package fr.perrier.dungeons.spigot.parties;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.parties.impl.alessio.AlessioDPPartyProvider;
 import fr.perrier.dungeons.spigot.parties.impl.internal.InternalPartyProvider;
+import fr.perrier.dungeons.spigot.utils.LoggerUtil;
 import org.bukkit.entity.Player;
 
 import java.util.*;
@@ -18,10 +19,10 @@ public class PartyService {
     private static PartyService instance;
     private final IPartyProvider activeProvider;
     private final List<IPartyProvider> providers;
-    private final Logger logger;
+    private final LoggerUtil logger;
 
     public PartyService() {
-        this.logger = Main.getInstance().getLogger();
+        this.logger = Main.getLoggerUtil();
         this.providers = new ArrayList<>();
 
         // Register providers in order of preference

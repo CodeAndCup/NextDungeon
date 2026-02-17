@@ -77,14 +77,14 @@ public class ApplyPotionEffectAction extends Action implements BlocklyAction {
     @Override
     public boolean execute(Player triggerPlayer, Location location, Map<String, Object> data) {
         if (effectType == null || effectType.isEmpty()) {
-            Main.getInstance().getLogger().warning("Effect type is empty in ApplyPotionEffectAction");
+            Main.getLoggerUtil().warning("Effect type is empty in ApplyPotionEffectAction");
             return false;
         }
 
         try {
             PotionEffectType potionType = PotionEffectType.getByName(effectType.toUpperCase());
             if (potionType == null) {
-                Main.getInstance().getLogger().warning("Invalid potion effect type: " + effectType);
+                Main.getLoggerUtil().warning("Invalid potion effect type: " + effectType);
                 return false;
             }
 
@@ -108,14 +108,14 @@ public class ApplyPotionEffectAction extends Action implements BlocklyAction {
                 }
             }
 
-            if (Main.isDebug()) {
-                Main.getInstance().getLogger().info("Applied potion effect " + effectType + " (level " + amplifier + ", " + duration + "s) to " + target);
+            if (Main.getLoggerUtil().isDebugEnabled()) {
+                Main.getLoggerUtil().info("Applied potion effect " + effectType + " (level " + amplifier + ", " + duration + "s) to " + target);
             }
 
             return true;
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().warning("Error applying potion effect: " + e.getMessage());
+            Main.getLoggerUtil().warning("Error applying potion effect: " + e.getMessage());
             return false;
         }
     }

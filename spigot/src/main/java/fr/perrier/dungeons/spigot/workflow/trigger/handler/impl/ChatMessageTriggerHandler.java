@@ -49,8 +49,8 @@ public class ChatMessageTriggerHandler implements TriggerEventHandler<AsyncPlaye
                 // Annuler le message si demandé
                 if (chatTrigger.shouldCancelMessage()) {
                     event.setCancelled(true);
-                    if (Main.isDebug()) {
-                        Main.getInstance().getLogger().info("Chat message cancelled by ChatMessageTrigger: " + chatTrigger.getName());
+                    if (Main.getLoggerUtil().isDebugEnabled()) {
+                        Main.getLoggerUtil().info("Chat message cancelled by ChatMessageTrigger: " + chatTrigger.getName());
                     }
                     break; // Arrêter après le premier match qui annule
                 }

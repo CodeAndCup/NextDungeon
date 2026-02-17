@@ -82,7 +82,7 @@ public class SpawnParticleAction extends Action implements BlocklyAction {
     @Override
     public boolean execute(Player triggerPlayer, Location location, Map<String, Object> data) {
         if (particleType == null || particleType.isEmpty()) {
-            Main.getInstance().getLogger().warning("Particle type is empty in SpawnParticleAction");
+            Main.getLoggerUtil().warning("Particle type is empty in SpawnParticleAction");
             return false;
         }
 
@@ -96,7 +96,7 @@ public class SpawnParticleAction extends Action implements BlocklyAction {
             } else if (triggerPlayer != null) {
                 spawnLocation = triggerPlayer.getLocation().add(0, 1, 0); // Légèrement au-dessus du joueur
             } else {
-                Main.getInstance().getLogger().warning("No valid location for particle spawn");
+                Main.getLoggerUtil().warning("No valid location for particle spawn");
                 return false;
             }
 
@@ -111,17 +111,17 @@ public class SpawnParticleAction extends Action implements BlocklyAction {
                 speed
             );
 
-            if (Main.isDebug()) {
-                Main.getInstance().getLogger().info("Spawned " + count + "x " + particleType + " particles at " + spawnLocation);
+            if (Main.getLoggerUtil().isDebugEnabled()) {
+                Main.getLoggerUtil().info("Spawned " + count + "x " + particleType + " particles at " + spawnLocation);
             }
 
             return true;
 
         } catch (IllegalArgumentException e) {
-            Main.getInstance().getLogger().warning("Invalid particle type: " + particleType);
+            Main.getLoggerUtil().warning("Invalid particle type: " + particleType);
             return false;
         } catch (Exception e) {
-            Main.getInstance().getLogger().warning("Error spawning particles: " + e.getMessage());
+            Main.getLoggerUtil().warning("Error spawning particles: " + e.getMessage());
             return false;
         }
     }

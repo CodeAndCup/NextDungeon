@@ -34,8 +34,8 @@ public class BlockClickTriggerHandler implements TriggerEventHandler<PlayerInter
             return;
         }
 
-        if (Main.isDebug()) {
-            Main.getInstance().getLogger().info("PlayerInteractEvent detected: " + event.getAction() + " on block " + event.getClickedBlock().getType());
+        if (Main.getLoggerUtil().isDebugEnabled()) {
+            Main.getLoggerUtil().info("PlayerInteractEvent detected: " + event.getAction() + " on block " + event.getClickedBlock().getType());
         }
 
         // Déterminer le type de clic
@@ -56,8 +56,8 @@ public class BlockClickTriggerHandler implements TriggerEventHandler<PlayerInter
             return; // Action non gérée
         }
 
-        if(Main.isDebug()) {
-            Main.getInstance().getLogger().info("Detected click type: " + clickType + ", detection type: " + detectionType);
+        if(Main.getLoggerUtil().isDebugEnabled()) {
+            Main.getLoggerUtil().info("Detected click type: " + clickType + ", detection type: " + detectionType);
         }
 
         for (Trigger trigger : triggers) {

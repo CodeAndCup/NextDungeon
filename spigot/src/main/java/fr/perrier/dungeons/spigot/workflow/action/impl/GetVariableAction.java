@@ -62,12 +62,12 @@ public class GetVariableAction extends Action implements BlocklyAction {
     @Override
     public boolean execute(Player triggerPlayer, Location location, Map<String, Object> data) {
         if (sourceVariableName == null || sourceVariableName.trim().isEmpty()) {
-            Main.getInstance().getLogger().warning("&eSource variable name is empty in GetVariableAction");
+            Main.getLoggerUtil().warning("Source variable name is empty in GetVariableAction");
             return false;
         }
 
         if (destinationVariableName == null || destinationVariableName.trim().isEmpty()) {
-            Main.getInstance().getLogger().warning("&eDestination variable name is empty in GetVariableAction");
+            Main.getLoggerUtil().warning("Destination variable name is empty in GetVariableAction");
             return false;
         }
 
@@ -80,8 +80,8 @@ public class GetVariableAction extends Action implements BlocklyAction {
         Object sourceValue = Main.getInstance().getVariableRegistry().getVariable(triggerPlayer, trimmedSourceName);
 
         if (sourceValue == null) {
-            if (Main.isDebug()) {
-                Main.getInstance().getLogger().info("Variable " + trimmedSourceName + " not found, using empty string");
+            if (Main.getLoggerUtil().isDebugEnabled()) {
+                Main.getLoggerUtil().info("Variable " + trimmedSourceName + " not found, using empty string");
             }
             sourceValue = "";
         }
@@ -92,8 +92,8 @@ public class GetVariableAction extends Action implements BlocklyAction {
         // Aussi stocker dans le contexte actuel
         data.put(trimmedDestinationName, sourceValue);
 
-        if (Main.isDebug()) {
-            Main.getInstance().getLogger().info("Got variable " + trimmedSourceName + " = " + sourceValue + " and stored in " + trimmedDestinationName);
+        if (Main.getLoggerUtil().isDebugEnabled()) {
+            Main.getLoggerUtil().info("Got variable " + trimmedSourceName + " = " + sourceValue + " and stored in " + trimmedDestinationName);
         }
 
         return true;

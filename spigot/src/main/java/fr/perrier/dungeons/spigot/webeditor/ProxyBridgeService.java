@@ -26,9 +26,9 @@ public class ProxyBridgeService {
         // Try to read the port from the plugin config
         try {
             proxyPort = Main.getInstance().getConfig().getInt("WebEditor.proxy-port", 7734);
-            Main.getInstance().getLogger().info("Proxy port for web editor set to: " + proxyPort);
+            Main.getLoggerUtil().info("Proxy port for web editor set to: " + proxyPort);
         } catch (Exception e) {
-            Main.getInstance().getLogger().warning("Unable to read proxy port from config, using default port: 7734");
+            Main.getLoggerUtil().warning("Unable to read proxy port from config, using default port: 7734");
             e.printStackTrace(System.err);
         }
     }
@@ -64,7 +64,7 @@ public class ProxyBridgeService {
 
                 return null;
             } catch (Exception e) {
-                Main.getInstance().getLogger().severe("Proxy communication error: " + e.getMessage());
+                Main.getLoggerUtil().severe("Proxy communication error: " + e.getMessage());
                 e.printStackTrace(System.err);
                 return null;
             }
@@ -92,7 +92,7 @@ public class ProxyBridgeService {
             
             return false;
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("Error stopping proxy session: " + e.getMessage());
+            Main.getLoggerUtil().severe("Error stopping proxy session: " + e.getMessage());
             e.printStackTrace(System.err);
             return false;
         }
@@ -130,11 +130,11 @@ public class ProxyBridgeService {
                     return response.toString();
                 }
             } else {
-                Main.getInstance().getLogger().warning("Proxy HTTP response " + responseCode);
+                Main.getLoggerUtil().warning("Proxy HTTP response " + responseCode);
                 return null;
             }
         } catch (Exception e) {
-            Main.getInstance().getLogger().warning("Unable to contact proxy: " + e.getMessage());
+            Main.getLoggerUtil().warning("Unable to contact proxy: " + e.getMessage());
             return null;
         }
     }

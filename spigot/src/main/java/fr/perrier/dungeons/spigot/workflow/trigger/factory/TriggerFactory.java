@@ -60,14 +60,14 @@ public class TriggerFactory {
             String type = triggerData.get("type").getAsString();
             String name = triggerData.has("name") ? triggerData.get("name").getAsString() : "Trigger_" + System.currentTimeMillis();
 
-            if (Main.isDebug()) {
-                Main.getInstance().getLogger().info("Creating trigger: " + type + " - " + name);
+            if (Main.getLoggerUtil().isDebugEnabled()) {
+                Main.getLoggerUtil().info("Creating trigger: " + type + " - " + name);
             }
 
             // Get the concrete class for this trigger type
             Class<? extends Trigger> triggerClass = TRIGGER_CLASSES.get(type);
             if (triggerClass == null) {
-                Main.getInstance().getLogger().warning("&eTrigger type unknown: " + type);
+                Main.getLoggerUtil().warning("Trigger type unknown: " + type);
                 return null;
             }
 
@@ -75,7 +75,7 @@ public class TriggerFactory {
             Trigger trigger = gson.fromJson(triggerData, triggerClass);
 
             if (trigger == null) {
-                Main.getInstance().getLogger().warning("&eFailed to deserialize trigger of type: " + type);
+                Main.getLoggerUtil().warning("Failed to deserialize trigger of type: " + type);
                 return null;
             }
 
@@ -93,14 +93,14 @@ public class TriggerFactory {
                 trigger.setActions(ActionFactory.parseActionsFromJson(actionsArray));
             }
 
-            if (Main.isDebug()) {
-                Main.getInstance().getLogger().info("Trigger created successfully: " + trigger.getName() + " with " + trigger.getActions().size() + " action(s)");
+            if (Main.getLoggerUtil().isDebugEnabled()) {
+                Main.getLoggerUtil().info("Trigger created successfully: " + trigger.getName() + " with " + trigger.getActions().size() + " action(s)");
             }
 
             return trigger;
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("&#FF0000Error creating trigger from JSON: " + e.getMessage());
+            Main.getLoggerUtil().severe("Error creating trigger from JSON: " + e.getMessage());
             e.printStackTrace(System.err);
             return null;
         }
@@ -128,8 +128,8 @@ public class TriggerFactory {
             }
         }
 
-        if (Main.isDebug()) {
-            Main.getInstance().getLogger().info("Parsed " + triggers.size() + " trigger(s) from JSON");
+        if (Main.getLoggerUtil().isDebugEnabled()) {
+            Main.getLoggerUtil().info("Parsed " + triggers.size() + " trigger(s) from JSON");
         }
 
         return triggers;

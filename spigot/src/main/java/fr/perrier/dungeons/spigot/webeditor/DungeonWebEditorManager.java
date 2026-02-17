@@ -83,12 +83,12 @@ public class DungeonWebEditorManager {
                     player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Impossible de créer la session sur le proxy. Vérifiez que le proxy est démarré."));
                 }
             }).exceptionally(e -> {
-                Main.getInstance().getLogger().severe("An error occurred while requesting the web editor session: " + e.getMessage());
+                Main.getLoggerUtil().severe("An error occurred while requesting the web editor session: " + e.getMessage());
                 player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000An error occurred while starting the web editor. Check the server console for details."));
                 return null;
             });
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("&#00FF00n error occurred while starting the web editor: " + e.getMessage());
+            Main.getLoggerUtil().severe("&#00FF00n error occurred while starting the web editor: " + e.getMessage());
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000An error occurred while starting the web editor. Check the server console for details."));
         }
     }
@@ -124,7 +124,7 @@ public class DungeonWebEditorManager {
             bridgeService.requestSessionStop(sessionId);
         }
         activeEditorSessions.clear();
-        Main.getInstance().getLogger().info("All web editor sessions have been closed.");
+        Main.getLoggerUtil().info("All web editor sessions have been closed.");
     }
 
     /**

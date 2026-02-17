@@ -76,7 +76,8 @@ public class DashboardService {
             instanceJson.addProperty("instanceId", entry.getKey().toString());
             instanceJson.addProperty("floorId", instance.getFloorId());
             instanceJson.addProperty("ready", instance.isReady());
-            instanceJson.addProperty("playerCount", instance.getPlayerStats().size());
+            instanceJson.addProperty("playerCount", instance.getPlayers().size());
+            instanceJson.addProperty("playerList", instance.getPlayers().stream().map(UUID::toString).collect(Collectors.joining(", ")));
             
             instancesArray.add(instanceJson);
         }

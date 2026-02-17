@@ -61,8 +61,8 @@ public class PlayerInRegionCondition extends Action implements BlocklyAction {
 
             boolean inRegion = isPlayerInRegion(triggerPlayer.getLocation());
 
-            if (Main.isDebug()) {
-                Main.getInstance().getLogger().info("PlayerInRegion condition: " + inRegion);
+            if (Main.getLoggerUtil().isDebugEnabled()) {
+                Main.getLoggerUtil().info("PlayerInRegion condition: " + inRegion);
             }
 
             List<Action> actionsToExecute = inRegion ? ifActions : elseActions;
@@ -70,7 +70,7 @@ public class PlayerInRegionCondition extends Action implements BlocklyAction {
             if (actionsToExecute != null && !actionsToExecute.isEmpty()) {
                 for (Action action : actionsToExecute) {
                     if (!action.execute(triggerPlayer, location, data)) {
-                        Main.getInstance().getLogger().warning("Action failed in PlayerInRegion condition: " + action.getClass().getSimpleName());
+                        Main.getLoggerUtil().warning("Action failed in PlayerInRegion condition: " + action.getClass().getSimpleName());
                     }
                 }
             }
@@ -78,7 +78,7 @@ public class PlayerInRegionCondition extends Action implements BlocklyAction {
             return true;
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("Error executing PlayerInRegion condition: " + e.getMessage());
+            Main.getLoggerUtil().severe("Error executing PlayerInRegion condition: " + e.getMessage());
             e.printStackTrace(System.err);
             return false;
         }

@@ -171,7 +171,7 @@ public class FloorInstance extends FloorInstanceData {
      * @param player the player to send to the cloud service
      */
     public void sendToServer(Player player) {
-        Main.getInstance().getLogger().info(String.format("Attempting to send %s to instance %s", player.getName(), instanceId));
+        Main.getLoggerUtil().info(String.format("Attempting to send %s to instance %s", player.getName(), instanceId));
 
         AtomicInteger timerDelay = new AtomicInteger(0);
         AtomicInteger currentLoad = new AtomicInteger(0);
@@ -196,7 +196,7 @@ public class FloorInstance extends FloorInstanceData {
                     FloorInstance instance = Main.getInstance().getDungeonService().getInstance(instanceId);
 
                     if (instance == null) {
-                        Main.getInstance().getLogger().warning("&eInstance " + instanceId + "no longer exists.");
+                        Main.getLoggerUtil().warning("Instance " + instanceId + "no longer exists.");
                         player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000This dungeon instance no longer exists!"));
                         this.cancel();
                         return;
@@ -208,7 +208,7 @@ public class FloorInstance extends FloorInstanceData {
                         this.cancel();
                     } else {
                         if (System.currentTimeMillis() - startTime > TIMEOUT) {
-                            Main.getInstance().getLogger().warning("&eTimed out waiting for instance " + instanceId + " to be ready. (Now try cancelling instance..)");
+                            Main.getLoggerUtil().warning("Timed out waiting for instance " + instanceId + " to be ready. (Now try cancelling instance..)");
                             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Timed out waiting for dungeon instance to be ready!"));
                             instance.cancelInstance();
                             this.cancel();
@@ -301,6 +301,7 @@ public class FloorInstance extends FloorInstanceData {
     public FloorInstanceData toFloorInstanceData() {
         FloorInstanceData data = new FloorInstanceData(this.instanceId, this.floorId);
         data.setReady(this.ready);
+        data.getPlayers().addAll(this.players);
         data.getPlayerStats().putAll(this.playerStats);
         data.getPlayerCurrentLives().putAll(this.playerCurrentLives);
         return data;
@@ -329,7 +330,12 @@ public class FloorInstance extends FloorInstanceData {
      * servers that the instance should be cancelled and removed.</p>
      */
     public void cancelInstance() {
-        Main.getInstance().getMessaging().sendPacket(new CancelInstancePacket(this.instanceId));
+        Bukkit.getScheduler().runTaskTimerAsynchronously(Main.getInstance(), () -> {
+            FloorInstance instance = Main.getInstance().getDungeonService().getInstance(instanceId);
+            if(instance != null && instance.isReady()) {
+                Main.getInstance().getMessaging().sendPacket(new CancelInstancePacket(this.instanceId));
+            }
+        }, 20L, 20L);
     }
 
     /**
@@ -341,8 +347,9 @@ public class FloorInstance extends FloorInstanceData {
     @Override
     public String toString() {
         return "FloorInstance{" +
-                "instanceId=" + instanceId +
-                ", floorId='" + floorId + '\'' +
+                "instanceId=" + instanceId + "," +
+                "floorId='" + floorId + "'," +
+                "instanceData=" + toFloorInstanceData() +
                 '}';
     }
 }

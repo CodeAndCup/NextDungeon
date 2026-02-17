@@ -48,8 +48,8 @@ public class ItemPickupTriggerHandler implements TriggerEventHandler<EntityPicku
                     // Annuler le ramassage si demandé
                     if (pickupTrigger.shouldCancelPickup()) {
                         event.setCancelled(true);
-                        if (Main.isDebug()) {
-                            Main.getInstance().getLogger().info("Item pickup cancelled by ItemPickupTrigger: " + pickupTrigger.getName());
+                        if (Main.getLoggerUtil().isDebugEnabled()) {
+                            Main.getLoggerUtil().info("Item pickup cancelled by ItemPickupTrigger: " + pickupTrigger.getName());
                         }
                     }
                 }

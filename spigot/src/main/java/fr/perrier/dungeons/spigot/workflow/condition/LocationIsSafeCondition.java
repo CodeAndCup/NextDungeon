@@ -61,8 +61,8 @@ public class LocationIsSafeCondition extends Action implements BlocklyAction {
             Location checkLocation = location != null ? location.toLocation() : targetLocation;
             boolean isSafe = isLocationSafe(checkLocation);
 
-            if (Main.isDebug()) {
-                Main.getInstance().getLogger().info("LocationIsSafe condition: " + isSafe);
+            if (Main.getLoggerUtil().isDebugEnabled()) {
+                Main.getLoggerUtil().info("LocationIsSafe condition: " + isSafe);
             }
 
             List<Action> actionsToExecute = isSafe ? ifActions : elseActions;
@@ -70,7 +70,7 @@ public class LocationIsSafeCondition extends Action implements BlocklyAction {
             if (actionsToExecute != null && !actionsToExecute.isEmpty()) {
                 for (Action action : actionsToExecute) {
                     if (!action.execute(triggerPlayer, targetLocation, data)) {
-                        Main.getInstance().getLogger().warning("Action failed in LocationIsSafe condition: " + action.getClass().getSimpleName());
+                        Main.getLoggerUtil().warning("Action failed in LocationIsSafe condition: " + action.getClass().getSimpleName());
                     }
                 }
             }
@@ -78,7 +78,7 @@ public class LocationIsSafeCondition extends Action implements BlocklyAction {
             return true;
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("Error executing LocationIsSafe condition: " + e.getMessage());
+            Main.getLoggerUtil().severe("Error executing LocationIsSafe condition: " + e.getMessage());
             e.printStackTrace(System.err);
             return false;
         }

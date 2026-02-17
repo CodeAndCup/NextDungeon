@@ -78,8 +78,8 @@ public class BlockTypeIsCondition extends Action implements BlocklyAction {
 
             boolean matches = checkBlockType(checkLocation);
 
-            if (Main.isDebug()) {
-                Main.getInstance().getLogger().info("BlockTypeIs condition: " + matches);
+            if (Main.getLoggerUtil().isDebugEnabled()) {
+                Main.getLoggerUtil().info("BlockTypeIs condition: " + matches);
             }
 
             List<Action> actionsToExecute = matches ? ifActions : elseActions;
@@ -87,7 +87,7 @@ public class BlockTypeIsCondition extends Action implements BlocklyAction {
             if (actionsToExecute != null && !actionsToExecute.isEmpty()) {
                 for (Action action : actionsToExecute) {
                     if (!action.execute(triggerPlayer, location, data)) {
-                        Main.getInstance().getLogger().warning("Action failed in BlockTypeIs condition: " + action.getClass().getSimpleName());
+                        Main.getLoggerUtil().warning("Action failed in BlockTypeIs condition: " + action.getClass().getSimpleName());
                     }
                 }
             }
@@ -95,7 +95,7 @@ public class BlockTypeIsCondition extends Action implements BlocklyAction {
             return true;
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("Error executing BlockTypeIs condition: " + e.getMessage());
+            Main.getLoggerUtil().severe("Error executing BlockTypeIs condition: " + e.getMessage());
             e.printStackTrace(System.err);
             return false;
         }
@@ -117,7 +117,7 @@ public class BlockTypeIsCondition extends Action implements BlocklyAction {
             return isMatch;
 
         } catch (IllegalArgumentException e) {
-            Main.getInstance().getLogger().warning("Invalid block type: " + blockType);
+            Main.getLoggerUtil().warning("Invalid block type: " + blockType);
             return false;
         }
     }

@@ -8,6 +8,6 @@ port = 7734
 host = "localhost"
 port = 6379
 topic = "nextdungeon"
-username = ""
+username = "default"
 password = ""
 database = 0

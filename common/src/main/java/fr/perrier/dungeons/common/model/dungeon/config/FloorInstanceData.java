@@ -45,6 +45,7 @@ public class FloorInstanceData {
                "floorId='" + floorId + '\'' +
                ", instanceId=" + instanceId +
                ", ready=" + ready +
+               ", players=" + players +
                ", playerStats=" + playerStats +
                ", playerCurrentLives=" + playerCurrentLives +
                '}';

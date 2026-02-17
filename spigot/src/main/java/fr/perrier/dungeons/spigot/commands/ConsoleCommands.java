@@ -20,12 +20,12 @@ public class ConsoleCommands {
         }
         Player player = Bukkit.getPlayerExact(playerName);
         if(player == null) {
-            Main.getInstance().getLogger().severe("&#D10000Player " + playerName + " not found or not online.");
+            Main.getLoggerUtil().severe("Player " + playerName + " not found or not online.");
             return;
         }
         Dungeon dungeon = Dungeon.getDungeon(dungeonId);
         if(dungeon == null) {
-            Main.getInstance().getLogger().severe("&#D10000Dungeon with ID " + dungeonId + " not found.");
+            Main.getLoggerUtil().severe("Dungeon with ID " + dungeonId + " not found.");
             return;
         }
         new DungeonGateMenu(dungeon).openMenu(player);

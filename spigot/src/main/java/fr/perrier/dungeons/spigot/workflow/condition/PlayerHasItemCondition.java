@@ -63,8 +63,8 @@ public class PlayerHasItemCondition extends Action implements BlocklyAction {
         try {
             boolean hasItem = checkPlayerHasItem(triggerPlayer);
 
-            if (Main.isDebug()) {
-                Main.getInstance().getLogger().info("PlayerHasItem condition: " + hasItem);
+            if (Main.getLoggerUtil().isDebugEnabled()) {
+                Main.getLoggerUtil().info("PlayerHasItem condition: " + hasItem);
             }
 
             List<Action> actionsToExecute = hasItem ? ifActions : elseActions;
@@ -72,7 +72,7 @@ public class PlayerHasItemCondition extends Action implements BlocklyAction {
             if (actionsToExecute != null && !actionsToExecute.isEmpty()) {
                 for (Action action : actionsToExecute) {
                     if (!action.execute(triggerPlayer, location, data)) {
-                        Main.getInstance().getLogger().warning("Action failed in PlayerHasItem condition: " + action.getClass().getSimpleName());
+                        Main.getLoggerUtil().warning("Action failed in PlayerHasItem condition: " + action.getClass().getSimpleName());
                     }
                 }
             }
@@ -80,7 +80,7 @@ public class PlayerHasItemCondition extends Action implements BlocklyAction {
             return true;
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("Error executing PlayerHasItem condition: " + e.getMessage());
+            Main.getLoggerUtil().severe("Error executing PlayerHasItem condition: " + e.getMessage());
             e.printStackTrace(System.err);
             return false;
         }
@@ -115,7 +115,7 @@ public class PlayerHasItemCondition extends Action implements BlocklyAction {
             return totalCount >= minAmount;
 
         } catch (IllegalArgumentException e) {
-            Main.getInstance().getLogger().warning("Invalid material type: " + itemMaterial);
+            Main.getLoggerUtil().warning("Invalid material type: " + itemMaterial);
             return false;
         }
     }

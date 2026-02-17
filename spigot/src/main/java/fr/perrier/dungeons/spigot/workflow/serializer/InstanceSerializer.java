@@ -91,21 +91,21 @@ public class InstanceSerializer {
                 try {
                     TriggerData trigger = deserializeTrigger(element);
                     if (trigger != null) {
-                        if(Main.isDebug()) {
-                            Main.getInstance().getLogger().info("Deserialized trigger: " + trigger.getName() + " of type: " + trigger.getClass().getName());
-                            Main.getInstance().getLogger().info("Trigger data: " + baseGson.toJson(trigger));
+                        if(Main.getLoggerUtil().isDebugEnabled()) {
+                            Main.getLoggerUtil().info("Deserialized trigger: " + trigger.getName() + " of type: " + trigger.getClass().getName());
+                            Main.getLoggerUtil().info("Trigger data: " + baseGson.toJson(trigger));
                         }
                         triggers.add(trigger);
                     }
                 } catch (Exception e) {
-                    Main.getInstance().getLogger().severe("&#FF0000Error deserializing a trigger: " + e.getMessage());
+                    Main.getLoggerUtil().severe("Error deserializing a trigger: " + e.getMessage());
                     e.printStackTrace(System.err);
                 }
             }
 
             return triggers;
         } catch (JsonSyntaxException e) {
-            Main.getInstance().getLogger().severe("&#FF0000Error deserializing triggers: " + e.getMessage());
+            Main.getLoggerUtil().severe("Error deserializing triggers: " + e.getMessage());
             return new ArrayList<>();
         }
     }
@@ -126,12 +126,12 @@ public class InstanceSerializer {
         JsonElement dataElement = jsonObject.get("data");
 
         if (classNameElement == null || classNameElement.isJsonNull()) {
-            Main.getInstance().getLogger().warning("&eInvalid JSON trigger: 'className' field missing or null:\n" + jsonObject);
+            Main.getLoggerUtil().warning("Invalid JSON trigger: 'className' field missing or null:\n" + jsonObject);
             return null;
         }
 
         if (dataElement == null || dataElement.isJsonNull()) {
-            Main.getInstance().getLogger().warning("&eInvalid JSON trigger: 'data' field missing or null:\n" + jsonObject);
+            Main.getLoggerUtil().warning("Invalid JSON trigger: 'data' field missing or null:\n" + jsonObject);
             return null;
         }
 
@@ -148,7 +148,7 @@ public class InstanceSerializer {
             Trigger trigger = (Trigger) baseGson.fromJson(dataObject, clazz);
 
             if (trigger == null) {
-                Main.getInstance().getLogger().warning("&eFailed to deserialize trigger: " + className);
+                Main.getLoggerUtil().warning("Failed to deserialize trigger: " + className);
                 return null;
             }
 
@@ -156,9 +156,9 @@ public class InstanceSerializer {
             if (actionsElement != null && actionsElement.isJsonArray()) {
                 List<ActionData> actions = deserializeActions(actionsElement.getAsJsonArray());
                 trigger.setActions(actions);
-                if(Main.isDebug()) {
-                    Main.getInstance().getLogger().info("Deserialized " + actions.size() + " actions for trigger: " + trigger.getName());
-                    Main.getInstance().getLogger().info("Trigger: " + baseGson.toJson(trigger));
+                if(Main.getLoggerUtil().isDebugEnabled()) {
+                    Main.getLoggerUtil().info("Deserialized " + actions.size() + " actions for trigger: " + trigger.getName());
+                    Main.getLoggerUtil().info("Trigger: " + baseGson.toJson(trigger));
                 }
             } else {
                 trigger.setActions(new ArrayList<>());
@@ -167,10 +167,10 @@ public class InstanceSerializer {
             return trigger;
 
         } catch (ClassNotFoundException e) {
-            Main.getInstance().getLogger().warning("&eUnknown trigger class: " + className);
+            Main.getLoggerUtil().warning("Unknown trigger class: " + className);
             return null;
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("&#FF0000Error deserializing trigger: " + e.getMessage());
+            Main.getLoggerUtil().severe("Error deserializing trigger: " + e.getMessage());
             e.printStackTrace(System.err);
             return null;
         }
@@ -193,9 +193,9 @@ public class InstanceSerializer {
 
             if (action != null) {
                 actions.add(action);
-                if(Main.isDebug()) {
-                    Main.getInstance().getLogger().info("Deserialized action: " + action.getClass().getName());
-                    Main.getInstance().getLogger().info("Action data: " + baseGson.toJson(action));
+                if(Main.getLoggerUtil().isDebugEnabled()) {
+                    Main.getLoggerUtil().info("Deserialized action: " + action.getClass().getName());
+                    Main.getLoggerUtil().info("Action data: " + baseGson.toJson(action));
                 }
             }
         }
@@ -220,10 +220,10 @@ public class InstanceSerializer {
                 Class<?> clazz = Class.forName(className);
                 return (Action) baseGson.fromJson(dataElement, clazz);
             } catch (ClassNotFoundException e) {
-                Main.getInstance().getLogger().warning("&eUnknown action class: " + className);
+                Main.getLoggerUtil().warning("Unknown action class: " + className);
                 return null;
             } catch (Exception e) {
-                Main.getInstance().getLogger().severe("&#FF0000Error deserializing action: " + e.getMessage());
+                Main.getLoggerUtil().severe("Error deserializing action: " + e.getMessage());
                 return null;
             }
         }
@@ -234,12 +234,12 @@ public class InstanceSerializer {
             try {
                 return ActionFactory.createActionFromJson(actionObj);
             } catch (Exception e) {
-                Main.getInstance().getLogger().warning("&eError creating action from legacy format: " + e.getMessage());
+                Main.getLoggerUtil().warning("Error creating action from legacy format: " + e.getMessage());
                 return null;
             }
         }
 
-        Main.getInstance().getLogger().warning("&eInvalid JSON action: neither 'className' nor 'type' field found:\n" + actionObj);
+        Main.getLoggerUtil().warning("Invalid JSON action: neither 'className' nor 'type' field found:\n" + actionObj);
         return null;
     }
 

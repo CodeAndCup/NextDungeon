@@ -1,6 +1,7 @@
 package fr.perrier.dungeons.spigot.workflow.trigger.impl;
 
 import fr.perrier.dungeons.spigot.webeditor.blockly.BlocklyTrigger;
+import fr.perrier.dungeons.spigot.workflow.blocks.LocationBlock;
 import fr.perrier.dungeons.spigot.workflow.trigger.Trigger;
 import fr.perrier.dungeons.spigot.utils.ServerUtil;
 import fr.perrier.dungeons.spigot.webeditor.blockly.annotations.BlocklyField;
@@ -30,10 +31,10 @@ import java.util.Objects;
 public class RegionTrigger extends Trigger implements BlocklyTrigger {
 
     @BlocklyField(type = BlocklyField.FieldType.LOCATION_INPUT, label = "Position 1:", defaultValue = "", order = 0)
-    private Location pos1;
+    private LocationBlock pos1;
 
     @BlocklyField(type = BlocklyField.FieldType.LOCATION_INPUT, label = "Position 2:", defaultValue = "", order = 1)
-    private Location pos2;
+    private LocationBlock pos2;
 
     @BlocklyField(type = BlocklyField.FieldType.TEXT_INPUT, label = "Monde:", defaultValue = "world", order = 2)
     private String worldName;

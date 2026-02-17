@@ -64,7 +64,7 @@ public class PlaySoundAction extends Action implements BlocklyAction {
     @Override
     public boolean execute(Player triggerPlayer, Location location, Map<String, Object> data) {
         if (sound == null || sound.isEmpty()) {
-            Main.getInstance().getLogger().warning("Sound is empty in PlaySoundAction");
+            Main.getLoggerUtil().warning("Sound is empty in PlaySoundAction");
             return false;
         }
 
@@ -84,14 +84,14 @@ public class PlaySoundAction extends Action implements BlocklyAction {
                 }
             }
 
-            if (Main.isDebug()) {
-                Main.getInstance().getLogger().info("Played sound " + sound + " for " + target);
+            if (Main.getLoggerUtil().isDebugEnabled()) {
+                Main.getLoggerUtil().info("Played sound " + sound + " for " + target);
             }
 
             return true;
 
         } catch (IllegalArgumentException e) {
-            Main.getInstance().getLogger().warning("Invalid sound: " + sound);
+            Main.getLoggerUtil().warning("Invalid sound: " + sound);
             return false;
         }
     }

@@ -61,13 +61,13 @@ public class TriggersRegistry implements Listener {
                 Bukkit.getPluginManager().registerEvent(eventClass, dummyListener, EventPriority.NORMAL, executor, Main.getInstance());
             } catch (Exception e) {
                 // Handle registration failures
-                if(Main.isDebug()) {
-                    Main.getInstance().getLogger().severe("Failed to register event listener for: " + eventClass.getSimpleName() + " - " + e.getMessage());
+                if(Main.getLoggerUtil().isDebugEnabled()) {
+                    Main.getLoggerUtil().severe("Failed to register event listener for: " + eventClass.getSimpleName() + " - " + e.getMessage());
                 }
             }
         }
 
-        Main.getInstance().getLogger().info("GlobalTriggerManager initialized with " + handlers.size() + " handlers");
+        Main.getLoggerUtil().info("GlobalTriggerManager initialized with " + handlers.size() + " handlers");
     }
 
     /**
@@ -91,8 +91,8 @@ public class TriggersRegistry implements Listener {
      */
     public <T extends Event> void registerHandler(TriggerEventHandler<T> handler) {
         handlers.computeIfAbsent(handler.getEventType(), k -> new ArrayList<>()).add(handler);
-        if (Main.isDebug()) {
-            Main.getInstance().getLogger().info("Handler registered for: " + handler.getEventType().getSimpleName());
+        if (Main.getLoggerUtil().isDebugEnabled()) {
+            Main.getLoggerUtil().info("Handler registered for: " + handler.getEventType().getSimpleName());
         }
     }
 
@@ -109,7 +109,7 @@ public class TriggersRegistry implements Listener {
 
             for (TriggerData triggerData : allTriggers) {
                 if( !(triggerData instanceof Trigger trigger)) {
-                    Main.getInstance().getLogger().warning("&eInvalid TriggerData in cache: " + triggerData.getName());
+                    Main.getLoggerUtil().warning("Invalid TriggerData in cache: " + triggerData.getName());
                     continue;
                 }
 
@@ -129,10 +129,10 @@ public class TriggersRegistry implements Listener {
                 }
             }
 
-            Main.getInstance().getLogger().info("Triggers cache refresh complete: " + allTriggers.size() + " triggers");
+            Main.getLoggerUtil().info("Triggers cache refresh complete: " + allTriggers.size() + " triggers");
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("Error refreshing cache: " + e.getMessage());
+            Main.getLoggerUtil().severe("Error refreshing cache: " + e.getMessage());
         }
     }
 
@@ -152,7 +152,7 @@ public class TriggersRegistry implements Listener {
         }
 
         registeredFunctions.put(name, function);
-        Main.getInstance().getLogger().info("Function registered: " + name);
+        Main.getLoggerUtil().info("Function registered: " + name);
     }
 
     /**
@@ -176,7 +176,7 @@ public class TriggersRegistry implements Listener {
     public void removeFunction(String name) {
         if (name != null) {
             registeredFunctions.remove(name.trim());
-            Main.getInstance().getLogger().info("Function removed: " + name);
+            Main.getLoggerUtil().info("Function removed: " + name);
         }
     }
 
@@ -186,8 +186,8 @@ public class TriggersRegistry implements Listener {
     public void clearFunctions() {
         int count = registeredFunctions.size();
         registeredFunctions.clear();
-        if (Main.isDebug()) {
-            Main.getInstance().getLogger().info("Cleared " + count + " registered functions");
+        if (Main.getLoggerUtil().isDebugEnabled()) {
+            Main.getLoggerUtil().info("Cleared " + count + " registered functions");
         }
     }
 
@@ -231,13 +231,13 @@ public class TriggersRegistry implements Listener {
         List<TriggerEventHandler<?>> eventHandlers = handlers.get(event.getClass());
         if (eventHandlers != null && !eventHandlers.isEmpty()) {
             List<Trigger> triggers = getTriggersForEventType(event.getClass());
-            if(Main.isDebug()) {
-                Main.getInstance().getLogger().info("Processing event: " + event.getEventName() + " with " + triggers.size() + " triggers");
+            if(Main.getLoggerUtil().isDebugEnabled()) {
+                Main.getLoggerUtil().info("Processing event: " + event.getEventName() + " with " + triggers.size() + " triggers");
             }
             if (!triggers.isEmpty()) {
                 for (TriggerEventHandler<?> handler : eventHandlers) {
-                    if(Main.isDebug()) {
-                        Main.getInstance().getLogger().info("Invoking handler: " + handler.getClass().getSimpleName() + " for event: " + event.getEventName());
+                    if(Main.getLoggerUtil().isDebugEnabled()) {
+                        Main.getLoggerUtil().info("Invoking handler: " + handler.getClass().getSimpleName() + " for event: " + event.getEventName());
                     }
                     TriggerEventHandler<T> typedHandler = (TriggerEventHandler<T>) handler;
                     typedHandler.handleEvent(event, triggers);

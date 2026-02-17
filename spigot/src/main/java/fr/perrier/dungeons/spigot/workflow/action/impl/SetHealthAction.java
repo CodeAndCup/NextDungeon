@@ -68,14 +68,14 @@ public class SetHealthAction extends Action implements BlocklyAction {
                 }
             }
 
-            if (Main.isDebug()) {
-                Main.getInstance().getLogger().info("Applied health change: " + operation + " " + value + " to " + target);
+            if (Main.getLoggerUtil().isDebugEnabled()) {
+                Main.getLoggerUtil().info("Applied health change: " + operation + " " + value + " to " + target);
             }
 
             return true;
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().warning("Error modifying health: " + e.getMessage());
+            Main.getLoggerUtil().warning("Error modifying health: " + e.getMessage());
             return false;
         }
     }

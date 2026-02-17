@@ -29,6 +29,7 @@ import fr.perrier.dungeons.spigot.listener.global.GlobalPartyListener;
 import fr.perrier.dungeons.spigot.manager.GhostFactory;
 import fr.perrier.dungeons.spigot.messaging.packets.CancelInstancePacket;
 import fr.perrier.dungeons.spigot.messaging.subscribers.CancelInstanceSubscriber;
+import fr.perrier.dungeons.spigot.utils.LoggerUtil;
 import fr.perrier.dungeons.spigot.workflow.registry.TriggersRegistry;
 import fr.perrier.dungeons.spigot.workflow.registry.VariableRegistry;
 import fr.perrier.dungeons.common.messaging.Pidgin;
@@ -63,6 +64,8 @@ import fr.perrier.dungeons.spigot.instance.InstanceProvider;
 import fr.perrier.dungeons.spigot.instance.InstanceProviderFactory;
 import fr.perrier.dungeons.spigot.parties.PartyService;
 
+import java.util.Objects;
+
 @Getter
 public final class Main extends JavaPlugin {
 
@@ -72,7 +75,7 @@ public final class Main extends JavaPlugin {
     private static final String prefix = "<gradient:#8B0000:bold>NextDungeon</gradient:#D10000> &8» &r";
 
     @Getter@Setter
-    private static boolean debug = false;
+    private static LoggerUtil loggerUtil;
 
     // Plugin API instance
     private PartiesAPI partiesAPI;
@@ -113,6 +116,11 @@ public final class Main extends JavaPlugin {
 
         instance = this;
 
+        // Starting logger
+        loggerUtil = LoggerUtil.getInstance();
+        loggerUtil.setDebugEnabled(getConfig().getBoolean("DebugMode.activated"));
+        loggerUtil.setLogBroadcastType(LoggerUtil.LogBroadcastType.valueOf(Objects.requireNonNull(getConfig().getString("DebugMode.logType")).toUpperCase()));
+
         // Save default config
         saveDefaultConfig();
 
@@ -135,7 +143,7 @@ public final class Main extends JavaPlugin {
             dungeonService.initialize();
             getLogger().info("Redis storage service initialized successfully");
         }catch (Exception e) {
-            getLogger().severe("&#FF0000Failed to initialize Redis: " + e.getMessage());
+            getLogger().severe("Failed to initialize Redis: " + e.getMessage());
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
@@ -145,12 +153,12 @@ public final class Main extends JavaPlugin {
             instanceProvider = InstanceProviderFactory.createProvider();
             instanceProvider.initialize().thenAccept(success -> {
                 if (!success) {
-                    getLogger().severe("&#FF0000Failed to initialize instance provider");
+                    getLogger().severe("Failed to initialize instance provider");
                     getServer().getPluginManager().disablePlugin(this);
                 }
             });
         } catch (Exception e) {
-            getLogger().severe("&#FF0000Failed to initialize instance provider: " + e.getMessage());
+            getLogger().severe("Failed to initialize instance provider: " + e.getMessage());
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
@@ -175,7 +183,7 @@ public final class Main extends JavaPlugin {
             }
 
         } catch (Exception e) {
-            getLogger().severe("&#FF0000Failed to initialize Redis services: " + e.getMessage());
+            getLogger().severe("Failed to initialize Redis services: " + e.getMessage());
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
@@ -380,7 +388,7 @@ public final class Main extends JavaPlugin {
     private void initializeInstanceServer() {
         InstanceInfo info = ServerUtil.getInstanceInfo();
         if (info == null) {
-            getLogger().severe("&#FF0000Failed to get instance information");
+            getLogger().severe("Failed to get instance information");
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
@@ -465,9 +473,9 @@ public final class Main extends JavaPlugin {
                     FloorInstance instance = Main.getInstance().getDungeonService().getCurrentInstance();
                     if (instance != null) {
                         instance.setReady(true);
-                        Main.getInstance().getLogger().info("Instance " + instance.getInstanceId() + " is now ready!");
+                        Main.getLoggerUtil().info("Instance " + instance.getInstanceId() + " is now ready!");
                     } else {
-                        Main.getInstance().getLogger().severe("&#FF0000No instance found!");
+                        Main.getLoggerUtil().severe("No instance found!");
                     }
                 }, 100L);
             }

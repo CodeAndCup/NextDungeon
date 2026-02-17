@@ -78,7 +78,7 @@ public class MySQLManager implements DatabaseManager {
         // Wait for active operations to complete with a timeout
         try {
             if (!shutdownLatch.await(5, TimeUnit.SECONDS)) {
-                Main.getInstance().getLogger().warning("&eSome database operations did not complete before shutdown");
+                Main.getLoggerUtil().warning("Some database operations did not complete before shutdown");
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -122,7 +122,7 @@ public class MySQLManager implements DatabaseManager {
                     ")");
 
         } catch (SQLException e) {
-            Main.getInstance().getLogger().severe("&#FF0000Failed to create database tables: " + e.getMessage());
+            Main.getLoggerUtil().severe("Failed to create database tables: " + e.getMessage());
             e.printStackTrace(System.err);
         }
     }
@@ -161,7 +161,7 @@ public class MySQLManager implements DatabaseManager {
                 future.complete(result);
             } catch (Exception e) {
                 if (!isShuttingDown) {
-                    Main.getInstance().getLogger().severe("&#FF0000Error in " + operationName + ": " + e.getMessage());
+                    Main.getLoggerUtil().severe("Error in " + operationName + ": " + e.getMessage());
                 }
                 future.completeExceptionally(e);
             } finally {
@@ -192,7 +192,7 @@ public class MySQLManager implements DatabaseManager {
             }
         }, "Update: " + query).exceptionally(e -> {
             if (!isShuttingDown) {
-                Main.getInstance().getLogger().severe("&#FF0000Error executing update: " + query);
+                Main.getLoggerUtil().severe("Error executing update: " + query);
                 e.printStackTrace(System.err);
             }
             return (Integer) 0;
@@ -246,7 +246,7 @@ public class MySQLManager implements DatabaseManager {
         return future.whenComplete((result, error) -> {
             try {
                 if (error != null && !isShuttingDown) {
-                    Main.getInstance().getLogger().severe("&#FF0000Error in " + operationName + ": " + error.getMessage());
+                    Main.getLoggerUtil().severe("Error in " + operationName + ": " + error.getMessage());
                 }
             } finally {
                 if (activeOperations.decrementAndGet() == 0 && isShuttingDown) {
@@ -281,7 +281,7 @@ public class MySQLManager implements DatabaseManager {
             );
         }catch (SQLException e) {
             if (!isShuttingDown) {
-                Main.getInstance().getLogger().severe("&#FF0000Error loading profile data for player " + playerId + ": " + e.getMessage());
+                Main.getLoggerUtil().severe("Error loading profile data for player " + playerId + ": " + e.getMessage());
                 e.printStackTrace(System.err);
             }
             return null;
@@ -327,7 +327,7 @@ public class MySQLManager implements DatabaseManager {
                         floorId
                 );
             } catch (SQLException e) {
-                Main.getInstance().getLogger().severe("&#FF0000Error loading triggers for floor " + floorId + ": " + e.getMessage());
+                Main.getLoggerUtil().severe("Error loading triggers for floor " + floorId + ": " + e.getMessage());
                 return new ArrayList<>();
             }
         }, "Load triggers for " + floorId);
@@ -353,7 +353,7 @@ public class MySQLManager implements DatabaseManager {
                 stmt.setString(3, json);
                 stmt.executeUpdate();
 
-                Main.getInstance().getLogger().info("Triggers saved for " + floorId + " (" + triggers.size() + " triggers)");
+                Main.getLoggerUtil().info("Triggers saved for " + floorId + " (" + triggers.size() + " triggers)");
                 return null;
             }
         }, "Save triggers for " + floorId);
@@ -379,7 +379,7 @@ public class MySQLManager implements DatabaseManager {
                         floorId
                 );
             } catch (SQLException e) {
-                Main.getInstance().getLogger().severe("&#FF0000Error checking triggers existence for floor " + floorId + ": " + e.getMessage());
+                Main.getLoggerUtil().severe("Error checking triggers existence for floor " + floorId + ": " + e.getMessage());
                 return false;
             }
         }, "Check triggers existence for " + floorId);
@@ -399,7 +399,7 @@ public class MySQLManager implements DatabaseManager {
                 stmt.setString(1, floorId);
                 stmt.executeUpdate();
 
-                Main.getInstance().getLogger().info("Triggers deleted for " + floorId);
+                Main.getLoggerUtil().info("Triggers deleted for " + floorId);
                 return null;
             }
         }, "Delete triggers for " + floorId);

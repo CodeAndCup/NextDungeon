@@ -44,7 +44,7 @@ public class ActionSequenceExecutor {
                 action.execute(player, location, data);
                 executeNext();
             } else {
-                Main.getInstance().getLogger().warning("Action inconnue de type: " + actionData.getClass().getName());
+                Main.getLoggerUtil().warning("Action inconnue de type: " + actionData.getClass().getName());
                 executeNext();
             }
         } catch (Exception e) {

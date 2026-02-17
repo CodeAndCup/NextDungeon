@@ -45,16 +45,16 @@ public class EditorSerializer {
      */
     public boolean saveWorkflows(String dungeonName, String floorId, String jsonData, Player editor) {
         try {
-            Main.getInstance().getLogger().info("Starting trigger save process for " + dungeonName + " floor " + floorId);
-            if(Main.isDebug()) {
-                Main.getInstance().getLogger().info("Json data received: " + jsonData);
+            Main.getLoggerUtil().info("Starting trigger save process for " + dungeonName + " floor " + floorId);
+            if(Main.getLoggerUtil().isDebugEnabled()) {
+                Main.getLoggerUtil().info("Json data received: " + jsonData);
             }
 
             // Parse the JSON data
             JsonObject data = gson.fromJson(jsonData, JsonObject.class);
 
             if (!data.has("triggers")) {
-                Main.getInstance().getLogger().warning("&eNo triggers data found in JSON");
+                Main.getLoggerUtil().warning("No triggers data found in JSON");
                 return false;
             }
 
@@ -63,25 +63,25 @@ public class EditorSerializer {
             // Convert to Trigger objects
             List<TriggerData> triggers = TriggerFactory.parseTriggersFromJson(triggersArray);
 
-            Main.getInstance().getLogger().info("Number of triggers parsed: " + triggers.size());
+            Main.getLoggerUtil().info("Number of triggers parsed: " + triggers.size());
 
             // Save triggers to memory
             Floor floor = Main.getInstance().getDungeonService().getCurrentFloor();
             floor.setTriggers(triggers);
             Main.getInstance().getDungeonService().syncFloor(floor.toFloorData());
-            Main.getInstance().getLogger().info("Triggers saved in memory for floor: " + floorId);
+            Main.getLoggerUtil().info("Triggers saved in memory for floor: " + floorId);
 
             Main.getInstance().getTriggersRegistry().refreshTriggerCache();
 
             // Save to database asynchronously
             DatabaseTriggersManager.saveTriggers(floorId, triggers).thenAccept(fileSaved -> {
                 if (fileSaved) {
-                    Main.getInstance().getLogger().info("Triggers saved in the database for floor: " + floorId);
+                    Main.getLoggerUtil().info("Triggers saved in the database for floor: " + floorId);
                 } else {
-                    Main.getInstance().getLogger().warning("&eFailed to save triggers in the database for floor: " + floorId);
+                    Main.getLoggerUtil().warning("Failed to save triggers in the database for floor: " + floorId);
                 }
             }).exceptionally(ex -> {
-                Main.getInstance().getLogger().severe("&#FF0000An error occurred during trigger save: " + ex.getMessage());
+                Main.getLoggerUtil().severe("An error occurred during trigger save: " + ex.getMessage());
                 ex.printStackTrace(System.err);
                 return null;
             });
@@ -98,16 +98,16 @@ public class EditorSerializer {
                         editor.sendMessage(ChatUtil.translate("&8  • &f" + trigger.getName() + " &7(" + trigger.getType() + ")"));
                     else {
                         editor.sendMessage(ChatUtil.translate("&8  • &fUnknown Trigger Type"));
-                        Main.getInstance().getLogger().warning("&eUnknown TriggerData type: " + triggerData.toString());
+                        Main.getLoggerUtil().warning("Unknown TriggerData type: " + triggerData.toString());
                     }
                 }
             }
 
-            Main.getInstance().getLogger().info("Save process completed: " + triggers.size() + " triggers");
+            Main.getLoggerUtil().info("Save process completed: " + triggers.size() + " triggers");
             return true;
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("&#FF0000An error occurred while saving triggers: " + e.getMessage());
+            Main.getLoggerUtil().severe("An error occurred while saving triggers: " + e.getMessage());
             e.printStackTrace(System.err);
 
             if (editor != null && editor.isOnline()) {
@@ -139,8 +139,8 @@ public class EditorSerializer {
                 if(!(triggerData instanceof Trigger trigger))
                     continue;
 
-                if(Main.isDebug()) {
-                    Main.getInstance().getLogger().info("Loading trigger: " + trigger.getTriggerId() + " of type: " + trigger.getType());
+                if(Main.getLoggerUtil().isDebugEnabled()) {
+                    Main.getLoggerUtil().info("Loading trigger: " + trigger.getTriggerId() + " of type: " + trigger.getType());
                 }
 
                 JsonObject triggerObj = gson.toJsonTree(trigger, trigger.getClass()).getAsJsonObject();
@@ -153,7 +153,7 @@ public class EditorSerializer {
                 JsonArray actionsArray = new JsonArray();
                 for (ActionData actionData : trigger.getActions()) {
                     if(!(actionData instanceof Action action)) {
-                        Main.getInstance().getLogger().warning("Unknown ActionData type: " + actionData.getClass().getName());
+                        Main.getLoggerUtil().warning("Unknown ActionData type: " + actionData.getClass().getName());
                         continue;
                     }
 
@@ -166,8 +166,8 @@ public class EditorSerializer {
 
                 triggersArray.add(triggerObj);
 
-                if(Main.isDebug()) {
-                    Main.getInstance().getLogger().info("Trigger loaded: " + trigger.getTriggerId() + " with " + trigger.getActions().size() + " actions");
+                if(Main.getLoggerUtil().isDebugEnabled()) {
+                    Main.getLoggerUtil().info("Trigger loaded: " + trigger.getTriggerId() + " with " + trigger.getActions().size() + " actions");
                 }
             }
 
@@ -180,7 +180,7 @@ public class EditorSerializer {
             return gson.toJson(result);
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("&#FF0000Error loading triggers: " + e.getMessage());
+            Main.getLoggerUtil().severe("Error loading triggers: " + e.getMessage());
             e.printStackTrace(System.err);
 
             JsonObject error = new JsonObject();

@@ -36,8 +36,8 @@ public class RegionTriggerHandler implements TriggerEventHandler<PlayerMoveEvent
     }
 
     private void checkRegionTrigger(Player player, RegionTrigger regionTrigger, PlayerMoveEvent event) {
-        if(Main.isDebug()) {
-            Main.getInstance().getLogger().info("Checking region trigger: " + regionTrigger.getTriggerId() + " for player: " + player.getName());
+        if(Main.getLoggerUtil().isDebugEnabled()) {
+            Main.getLoggerUtil().info("Checking region trigger: " + regionTrigger.getTriggerId() + " for player: " + player.getName());
         }
 
         boolean wasInRegion = isPlayerInRegionCache(player.getUniqueId(), regionTrigger.getTriggerId());

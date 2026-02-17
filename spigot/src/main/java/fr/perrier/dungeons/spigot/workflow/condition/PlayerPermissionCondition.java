@@ -57,8 +57,8 @@ public class PlayerPermissionCondition extends Action implements BlocklyAction {
 
             boolean hasPermission = checkPermission(triggerPlayer);
 
-            if (Main.isDebug()) {
-                Main.getInstance().getLogger().info("PlayerPermission condition: " + hasPermission + " for " + permission);
+            if (Main.getLoggerUtil().isDebugEnabled()) {
+                Main.getLoggerUtil().info("PlayerPermission condition: " + hasPermission + " for " + permission);
             }
 
             List<Action> actionsToExecute = hasPermission ? ifActions : elseActions;
@@ -66,7 +66,7 @@ public class PlayerPermissionCondition extends Action implements BlocklyAction {
             if (actionsToExecute != null && !actionsToExecute.isEmpty()) {
                 for (Action action : actionsToExecute) {
                     if (!action.execute(triggerPlayer, location, data)) {
-                        Main.getInstance().getLogger().warning("Action failed in PlayerPermission condition: " + action.getClass().getSimpleName());
+                        Main.getLoggerUtil().warning("Action failed in PlayerPermission condition: " + action.getClass().getSimpleName());
                     }
                 }
             }
@@ -74,7 +74,7 @@ public class PlayerPermissionCondition extends Action implements BlocklyAction {
             return true;
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("Error executing PlayerPermission condition: " + e.getMessage());
+            Main.getLoggerUtil().severe("Error executing PlayerPermission condition: " + e.getMessage());
             e.printStackTrace(System.err);
             return false;
         }

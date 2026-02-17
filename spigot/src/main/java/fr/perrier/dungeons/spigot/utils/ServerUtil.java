@@ -38,7 +38,7 @@ public class ServerUtil {
             // Utilisation synchrone pour compatibilité avec le code existant
             return getProvider().createInstance(floor, editMode).get();
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("Erreur lors de la création de l'instance: " + e.getMessage());
+            Main.getLoggerUtil().severe("Erreur lors de la création de l'instance: " + e.getMessage());
             return null;
         }
     }
@@ -118,7 +118,7 @@ public class ServerUtil {
         // Cette méthode dépend de CloudNet spécifiquement
         // Pour une abstraction complète, il faudrait créer une interface PartyProvider
         // Pour l'instant, on garde la compatibilité CloudNet
-        Main.getInstance().getLogger().warning("sendToServer(Party, String) n'est supporté qu'avec CloudNet");
+        Main.getLoggerUtil().warning("sendToServer(Party, String) n'est supporté qu'avec CloudNet");
     }
 
     /**
@@ -142,7 +142,7 @@ public class ServerUtil {
      * @param server The name of the cloud service to connect to.
      */
     public static void sendToServer(Player player, String server) {
-        Main.getInstance().getLogger().warning("sendToServer(Player, String) n'est supporté qu'avec CloudNet");
+        Main.getLoggerUtil().warning("sendToServer(Player, String) n'est supporté qu'avec CloudNet");
     }
 
     /**
@@ -166,7 +166,7 @@ public class ServerUtil {
      */
     @Deprecated
     public static Object getFactory(int port) {
-        Main.getInstance().getLogger().warning("getFactory() est deprecated et spécifique à CloudNet");
+        Main.getLoggerUtil().warning("getFactory() est deprecated et spécifique à CloudNet");
         return null;
     }
 }

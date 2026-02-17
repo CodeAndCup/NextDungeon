@@ -79,7 +79,7 @@ public class DungeonService {
         // Get instance from Redis
         FloorInstanceData instanceData = instancesMap.get(instanceId);
         if (instanceData == null) {
-            Main.getInstance().getLogger().severe(String.format(
+            Main.getLoggerUtil().severe(String.format(
                     "Could not find instance %s in Redis",
                     instanceId
             ));
@@ -94,7 +94,7 @@ public class DungeonService {
         // Get and set floor
         FloorData floorData = floorsMap.get(floorId);
         if (floorData == null) {
-            Main.getInstance().getLogger().severe(String.format(
+            Main.getLoggerUtil().severe(String.format(
                     "Could not find floor %s in Redis",
                     floorId
             ));
@@ -105,7 +105,7 @@ public class DungeonService {
 
         currentFloor.set(floor);
 
-        Main.getInstance().getLogger().info(String.format(
+        Main.getLoggerUtil().info(String.format(
                 "Successfully initialized instance server (Instance: %s, Floor: %s)",
                 instanceId,
                 floorId
@@ -123,8 +123,8 @@ public class DungeonService {
         // Update Redis
         dungeonsMap.fastPut(dungeon.getId(),dungeon);
 
-        if (Main.isDebug()) {
-            Main.getInstance().getLogger().info(
+        if (Main.getLoggerUtil().isDebugEnabled()) {
+            Main.getLoggerUtil().info(
                     String.format("Synced dungeon %s to Redis", dungeon.getId())
             );
         }
@@ -155,7 +155,7 @@ public class DungeonService {
         // Notify other servers
         syncTopic.publish(message);
 
-        Main.getInstance().getLogger().info(
+        Main.getLoggerUtil().info(
                 String.format("Synced floor %s to Redis", floorData.getId())
         );
     }
@@ -181,7 +181,7 @@ public class DungeonService {
         // Notify other servers
         syncTopic.publish(message);
 
-        Main.getInstance().getLogger().info(
+        Main.getLoggerUtil().info(
                 String.format("Synced instance %s to Redis", instanceData.getInstanceId())
         );
     }
@@ -206,7 +206,7 @@ public class DungeonService {
                         currentFloor.set(floorData);
                         // Refresh trigger cache when floor is updated
                         Main.getInstance().getTriggersRegistry().refreshTriggerCache();
-                        Main.getInstance().getLogger().info(
+                        Main.getLoggerUtil().info(
                                 String.format("Updated local floorData: %s from Redis", floorData.getId())
                         );
                     }
@@ -217,7 +217,7 @@ public class DungeonService {
                     if (currentInstance.get() != null &&
                             currentInstance.get().getInstanceId().equals(instanceData.getInstanceId())) {
                         currentInstance.set(instanceData);
-                        Main.getInstance().getLogger().info(
+                        Main.getLoggerUtil().info(
                                 String.format("Updated local instanceData: %s from Redis",
                                         instanceData.getInstanceId())
                         );
@@ -229,7 +229,7 @@ public class DungeonService {
                             currentInstance.get().getInstanceId().equals(instanceData.getInstanceId())) {
                         currentInstance.set(null);
                         currentFloor.set(null);
-                        Main.getInstance().getLogger().info(String.format("Removed local instanceData: %s", instanceData.getInstanceId()));
+                        Main.getLoggerUtil().info(String.format("Removed local instanceData: %s", instanceData.getInstanceId()));
                     }
                 }
             }
@@ -259,7 +259,7 @@ public class DungeonService {
         FloorData floorData =  floorsMap.get(id);
 
         if(floorData == null) {
-            Main.getInstance().getLogger().warning(String.format("Floor %s not found in Redis", id));
+            Main.getLoggerUtil().warning(String.format("Floor %s not found in Redis", id));
             return null;
         }
 
@@ -276,7 +276,7 @@ public class DungeonService {
         FloorInstanceData instanceData = instancesMap.get(id);
 
         if(instanceData == null) {
-            Main.getInstance().getLogger().warning(String.format("Instance %s not found in Redis", id));
+            Main.getLoggerUtil().warning(String.format("Instance %s not found in Redis", id));
             return null;
         }
 
@@ -289,7 +289,7 @@ public class DungeonService {
     public void clearLocal() {
         currentFloor.set(null);
         currentInstance.set(null);
-        Main.getInstance().getLogger().info("Cleared local floor and instance references");
+        Main.getLoggerUtil().info("Cleared local floor and instance references");
     }
 
     /**
@@ -299,8 +299,8 @@ public class DungeonService {
     public void removeDungeon(String id) {
         // Remove from Redis
         dungeonsMap.remove(id);
-        if (Main.isDebug()) {
-            Main.getInstance().getLogger().info(String.format("Removed dungeon %s from Redis", id));
+        if (Main.getLoggerUtil().isDebugEnabled()) {
+            Main.getLoggerUtil().info(String.format("Removed dungeon %s from Redis", id));
         }
     }
 
@@ -311,7 +311,7 @@ public class DungeonService {
     public void removeInstance(UUID instanceId) {
         FloorInstanceData instanceData = instancesMap.get(instanceId);
         if (instanceData == null) {
-            Main.getInstance().getLogger().warning(String.format("Tried to remove non-existent instance: %s", instanceId));
+            Main.getLoggerUtil().warning(String.format("Tried to remove non-existent instance: %s", instanceId));
             return;
         }
 
@@ -338,7 +338,7 @@ public class DungeonService {
         // Notify other servers
         syncTopic.publish(message);
 
-        Main.getInstance().getLogger().info(String.format("Removed instance %s from Redis", instanceId));
+        Main.getLoggerUtil().info(String.format("Removed instance %s from Redis", instanceId));
     }
 
     /**
