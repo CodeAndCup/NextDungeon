@@ -71,6 +71,10 @@ public class PlayerDamageTrigger extends Trigger implements BlocklyTrigger {
 
     @Override
     public boolean checkConditions(Player player, Map<String, Object> data) {
+        if (!enabled) {
+            return false;
+        }
+
         // Vérifier le type de dégâts
         if (data.containsKey("damage_cause") && !damageType.equals("ALL")) {
             String cause = data.get("damage_cause").toString();

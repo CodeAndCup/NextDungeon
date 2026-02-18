@@ -50,6 +50,7 @@ public class InstanceJoinListener implements Listener {
             if(!instance.getPlayerCurrentLives().containsKey(player.getUniqueId())) {
                 instance.getPlayerCurrentLives().put(player.getUniqueId(), floor.getRules().getMaxLives());
             }
+            instance.syncInstance();
         }
     }
 }

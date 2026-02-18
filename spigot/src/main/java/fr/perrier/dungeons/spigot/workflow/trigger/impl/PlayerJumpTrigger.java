@@ -89,6 +89,6 @@ public class PlayerJumpTrigger extends Trigger implements BlocklyTrigger {
 
     @Override
     public boolean checkConditions(Player player, Map<String, Object> data) {
-        return true;
+        return enabled;
     }
 }

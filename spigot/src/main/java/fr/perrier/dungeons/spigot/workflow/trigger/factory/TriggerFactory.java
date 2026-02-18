@@ -5,17 +5,15 @@ import fr.perrier.dungeons.spigot.workflow.action.factory.ActionFactory;
 import fr.perrier.dungeons.spigot.workflow.trigger.Trigger;
 import fr.perrier.dungeons.spigot.workflow.trigger.impl.*;
 import fr.perrier.dungeons.spigot.Main;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
+import com.google.gson.*;
 
 import java.lang.reflect.Modifier;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Factory pour créer des triggers depuis les données JSON de Blockly
@@ -26,11 +24,64 @@ import java.util.Map;
  * - No manual property copying needed for new trigger types
  * - Simply add new Trigger class to the map
  * - CRITICAL: Gson is configured to access private fields used in all Trigger classes
+ * - IMPORTANT: Custom JsonDeserializer ensures triggerId is initialized with UUID.randomUUID() if not in JSON
  */
 public class TriggerFactory {
-    private static final Gson gson = new GsonBuilder()
-            .excludeFieldsWithModifiers(Modifier.TRANSIENT, Modifier.STATIC)
-            .create();
+
+    /**
+     * Custom JsonDeserializer that ensures triggerId is initialized
+     * Solves the problem where Gson bypasses constructors during deserialization
+     */
+    private static class TriggerDeserializer<T extends Trigger> implements JsonDeserializer<T> {
+        private final Class<T> triggerClass;
+        private final Gson defaultGson = new GsonBuilder()
+                .excludeFieldsWithModifiers(Modifier.TRANSIENT, Modifier.STATIC)
+                .create();
+
+        public TriggerDeserializer(Class<T> triggerClass) {
+            this.triggerClass = triggerClass;
+        }
+
+        @Override
+        public T deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context)
+                throws JsonParseException {
+            try {
+                JsonObject jsonObject = json.getAsJsonObject();
+
+                // First, deserialize normally using default Gson
+                T trigger = defaultGson.fromJson(json, triggerClass);
+
+                // Check if triggerId is null (not in JSON or Gson bypassed constructor)
+                if (trigger.getTriggerId() == null) {
+                    // Use reflection to set the triggerId field
+                    java.lang.reflect.Field triggerIdField = TriggerData.class.getDeclaredField("triggerId");
+                    triggerIdField.setAccessible(true);
+                    triggerIdField.set(trigger, UUID.randomUUID());
+
+                    if (Main.getLoggerUtil().isDebugEnabled()) {
+                        Main.getLoggerUtil().info("Generated new UUID for trigger: " + trigger.getTriggerId());
+                    }
+                }
+
+                // Check if enabled is not in JSON, set it to true (default value from constructor)
+                if (!jsonObject.has("enabled")) {
+                    java.lang.reflect.Field enabledField = TriggerData.class.getDeclaredField("enabled");
+                    enabledField.setAccessible(true);
+                    enabledField.set(trigger, true);
+
+                    if (Main.getLoggerUtil().isDebugEnabled()) {
+                        Main.getLoggerUtil().info("Set enabled=true by default for trigger: " + trigger.getName());
+                    }
+                }
+
+                return trigger;
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Error deserializing trigger: " + e.getMessage());
+                e.printStackTrace(System.err);
+                throw new JsonParseException("Failed to deserialize trigger", e);
+            }
+        }
+    }
 
     // Map trigger type strings to their concrete class
     private static final Map<String, Class<? extends Trigger>> TRIGGER_CLASSES = new HashMap<>();
@@ -44,6 +95,24 @@ public class TriggerFactory {
         TRIGGER_CLASSES.put("item_pickup_trigger", ItemPickupTrigger.class);
         TRIGGER_CLASSES.put("chat_message_trigger", ChatMessageTrigger.class);
         TRIGGER_CLASSES.put("player_jump_trigger", PlayerJumpTrigger.class);
+    }
+
+    private static final Gson gson = createGsonInstance();
+
+    /**
+     * Creates a Gson instance configured with custom deserializers for all trigger types
+     * This ensures triggerId is properly initialized during deserialization
+     */
+    private static Gson createGsonInstance() {
+        GsonBuilder builder = new GsonBuilder()
+                .excludeFieldsWithModifiers(Modifier.TRANSIENT, Modifier.STATIC);
+
+        // Register JsonDeserializer for each trigger type to ensure proper UUID initialization
+        for (Class<? extends Trigger> triggerClass : TRIGGER_CLASSES.values()) {
+            builder.registerTypeAdapter(triggerClass, new TriggerDeserializer<>(triggerClass));
+        }
+
+        return builder.create();
     }
 
     /**
