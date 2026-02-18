@@ -285,6 +285,7 @@ public class InstancePlayerDeathListener implements Listener {
                             .replace("{reason}", Main.getInstance().getConfig().getString("ReviveSystem.banReason", "You have died too many times in the dungeon"))
             );
         }
+        instance.syncInstance();
 
         if(instance.isAllPlayersDead()) {
             instance.fail();

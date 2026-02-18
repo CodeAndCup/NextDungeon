@@ -26,7 +26,7 @@ import java.util.Map;
         tooltip = "Exécute des actions si une condition est vraie",
         category = "Logic"
 )
-public class IfAction extends Action implements BlocklyAction {
+public class IfCondition extends Action implements BlocklyAction {
     private static final long serialVersionUID = 1L;
 
     @BlocklyField(type = BlocklyField.FieldType.TEXT_INPUT, label = "Valeur #1:",
@@ -45,14 +45,14 @@ public class IfAction extends Action implements BlocklyAction {
     private List<Action> ifActions;
     private List<Action> elseActions;
 
-    public IfAction() {
+    public IfCondition() {
         super("If", "if_action");
         this.operator = "==";
         this.ifActions = new ArrayList<>();
         this.elseActions = new ArrayList<>();
     }
 
-    public IfAction(Object leftValue, String operator, Object rightValue) {
+    public IfCondition(Object leftValue, String operator, Object rightValue) {
         super("If", "if_action");
         this.leftValue = leftValue;
         this.operator = operator;

@@ -62,8 +62,26 @@ public class ActionFactory {
                             actionData.get("scope").getAsString() : "player";
                     yield new SetVariableAction(variableName, value, scope);
                 }
+                case "add_to_variable_action" -> {
+                    String variableName = actionData.has("variablename") ?
+                            actionData.get("variablename").getAsString() : "ma_variable";
+                    String value = actionData.has("value") ?
+                            actionData.get("value").getAsString() : "1";
+                    String scope = actionData.has("scope") ?
+                            actionData.get("scope").getAsString() : "player";
+                    yield new AddToVariableAction(variableName, value, scope);
+                }
+                case "subtract_from_variable_action" -> {
+                    String variableName = actionData.has("variablename") ?
+                            actionData.get("variablename").getAsString() : "ma_variable";
+                    String value = actionData.has("value") ?
+                            actionData.get("value").getAsString() : "1";
+                    String scope = actionData.has("scope") ?
+                            actionData.get("scope").getAsString() : "player";
+                    yield new SubtractFromVariableAction(variableName, value, scope);
+                }
                 case "if_action" -> {
-                    IfAction ifAction = new IfAction();
+                    IfCondition ifCondition = new IfCondition();
 
                     // Set condition if provided
                     if (actionData.has("leftvalue")) {
@@ -73,7 +91,7 @@ public class ActionFactory {
                         Object rightValue = actionData.has("rightvalue") ?
                                 parseValue(actionData.get("rightvalue")) : null;
 
-                        ifAction.setCondition(leftValue, operator, rightValue);
+                        ifCondition.setCondition(leftValue, operator, rightValue);
                     }
 
                     // Load IF actions
@@ -82,7 +100,7 @@ public class ActionFactory {
                         for (JsonElement actionElement : ifActionsArray) {
                             Action action = createActionFromJson(actionElement.getAsJsonObject());
                             if (action != null) {
-                                ifAction.addIfAction(action);
+                                ifCondition.addIfAction(action);
                             }
                         }
                     }
@@ -93,12 +111,12 @@ public class ActionFactory {
                         for (JsonElement actionElement : elseActionsArray) {
                             Action action = createActionFromJson(actionElement.getAsJsonObject());
                             if (action != null) {
-                                ifAction.addElseAction(action);
+                                ifCondition.addElseAction(action);
                             }
                         }
                     }
 
-                    yield ifAction;
+                    yield ifCondition;
                 }
                 case "player_has_item_condition" -> {
                     PlayerHasItemCondition condition = new PlayerHasItemCondition();

@@ -148,6 +148,101 @@ public class TimeOfDayCondition extends Action implements BlocklyAction {
     }
 
     @Override
+    public boolean requiresCustomBlockGeneration() {
+        return true;
+    }
+
+    @Override
+    public void generateCustomBlock(StringBuilder js) {
+        js.append("""
+        Blockly.Blocks['time_of_day_condition'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField('🌞 Si l\\'heure est')
+                    .appendField(new Blockly.FieldDropdown([
+                        ['Jour', 'day'],
+                        ['Nuit', 'night'],
+                        ['Aube', 'dawn'],
+                        ['Crépuscule', 'dusk'],
+                        ['Personnalisée', 'custom']
+                    ]), 'TIMEPERIOD');
+                this.appendValueInput('CUSTOMTIME')
+                    .setCheck('Number')
+                    .appendField('Heure (ticks):');
+                this.appendDummyInput()
+                    .appendField('Opérateur:')
+                    .appendField(new Blockly.FieldDropdown([
+                        ['égal à', '=='],
+                        ['différent de', '!='],
+                        ['inférieur à', '<'],
+                        ['inférieur ou égal à', '<='],
+                        ['supérieur à', '>'],
+                        ['supérieur ou égal à', '>=']
+                    ]), 'OPERATOR');
+                this.appendStatementInput('IFACTIONS')
+                    .setCheck('Action')
+                    .appendField('Alors:');
+                this.appendStatementInput('ELSEACTIONS')
+                    .setCheck('Action')
+                    .appendField('Sinon:');
+                this.setPreviousStatement(true, 'Action');
+                this.setNextStatement(true, 'Action');
+                this.setColour('#FF9800');
+                this.setTooltip('Vérifie si l\\'heure actuelle du monde correspond à une valeur');
+            }
+        };
+        """);
+    }
+
+    @Override
+    public void generateCustomActionCase(StringBuilder js) {
+        js.append("""
+                        if (actionBlock.type === 'time_of_day_condition') {
+                            const customTime = actionBlock.getInputTargetBlock('CUSTOMTIME') ? actionBlock.getInputTargetBlock('CUSTOMTIME').getFieldValue('NUM') || '6000' : '6000';
+                            const ifActions = getActionsFromStatementInput(actionBlock, 'IFACTIONS');
+                            const elseActions = getActionsFromStatementInput(actionBlock, 'ELSEACTIONS');
+
+                            actions.push({
+                                type: 'time_of_day_condition',
+                                timeperiod: actionBlock.getFieldValue('TIMEPERIOD'),
+                                customtime: parseInt(customTime),
+                                operator: actionBlock.getFieldValue('OPERATOR'),
+                                ifactions: ifActions,
+                                elseactions: elseActions
+                            });
+                        }
+        """);
+    }
+
+    @Override
+    public void generateCustomActionLoadingCase(StringBuilder js) {
+        js.append("""
+                            if (action.type === 'time_of_day_condition') {
+                                actionBlock = workspace.newBlock('time_of_day_condition');
+                                
+                                actionBlock.setFieldValue(action.timeperiod || 'day', 'TIMEPERIOD');
+                                actionBlock.setFieldValue(action.operator || '==', 'OPERATOR');
+                                
+                                if (action.customtime !== undefined) {
+                                    const timeBlock = workspace.newBlock('math_number');
+                                    timeBlock.setFieldValue(action.customtime.toString(), 'NUM');
+                                    timeBlock.initSvg();
+                                    timeBlock.render();
+                                    actionBlock.getInput('CUSTOMTIME').connection.connect(timeBlock.outputConnection);
+                                }
+                                
+                                if (action.ifactions && action.ifactions.length > 0) {
+                                    loadActionsIntoStatement(actionBlock, action.ifactions, 'IFACTIONS');
+                                }
+                                
+                                if (action.elseactions && action.elseactions.length > 0) {
+                                    loadActionsIntoStatement(actionBlock, action.elseactions, 'ELSEACTIONS');
+                                }
+                            }
+        """);
+    }
+
+    @Override
     public boolean isChainable() {
         return true;
     }
