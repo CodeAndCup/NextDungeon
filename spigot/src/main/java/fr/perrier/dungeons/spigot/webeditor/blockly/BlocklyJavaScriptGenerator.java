@@ -843,7 +843,7 @@ public class BlocklyJavaScriptGenerator {
         js.append("                if (block.type === '").append(triggerType).append("') {\n");
         js.append("                    triggers.push({\n");
         js.append("                        type: '").append(triggerType).append("',\n");
-        js.append("                        name: '").append(triggerClass.getSimpleName()).append("_' + crypto.randomUUID(),\n");
+        js.append("                        name: '").append(triggerClass.getSimpleName()).append("_' + uuidv4(),\n");
 
         // Génère dynamiquement les champs associés au trigger
         for (BlocklyFieldExtractor.BlocklyFieldInfo field : fields) {
@@ -1001,28 +1001,28 @@ public class BlocklyJavaScriptGenerator {
         switch (field.type()) {
             case TEXT_INPUT:
                 // Extraction d'un champ de type texte avec une valeur par défaut
-                js.append(field.fieldName().toLowerCase())
+                js.append(field.fieldName())
                         .append(": ").append(blockVariable).append(".getFieldValue('").append(fieldName).append("') || '")
                         .append(escapeJavaScript(field.defaultValue())).append("'");
                 break;
 
             case NUMBER_INPUT:
                 // Extraction d'un champ de type nombre avec conversion en flottant et valeur par défaut
-                js.append(field.fieldName().toLowerCase())
+                js.append(field.fieldName())
                         .append(": parseFloat(").append(blockVariable).append(".getFieldValue('").append(fieldName).append("')) || ")
                         .append(field.defaultValue().isEmpty() ? "0" : field.defaultValue());
                 break;
 
             case DROPDOWN:
                 // Extraction d'un champ de type menu déroulant avec une option par défaut
-                js.append(field.fieldName().toLowerCase())
+                js.append(field.fieldName())
                         .append(": ").append(blockVariable).append(".getFieldValue('").append(fieldName).append("') || '")
                         .append(field.options().split(",")[0].trim()).append("'");
                 break;
 
             case BOOLEAN_INPUT:
                 // Extraction d'un champ de type booléen avec vérification du type de bloc connecté
-                js.append(field.fieldName().toLowerCase())
+                js.append(field.fieldName())
                         .append(": (() => {\n");
                 js.append("                            const boolBlock = ").append(blockVariable).append(".getInputTargetBlock('").append(fieldName).append("');\n");
                 js.append("                            return boolBlock ? boolBlock.type === 'boolean_true' : ")
@@ -1032,20 +1032,20 @@ public class BlocklyJavaScriptGenerator {
 
             case COLOR_INPUT:
                 // Extraction d'un champ de type couleur avec une valeur par défaut
-                js.append(field.fieldName().toLowerCase())
+                js.append(field.fieldName())
                         .append(": ").append(blockVariable).append(".getFieldValue('").append(fieldName).append("') || '")
                         .append(field.defaultValue().isEmpty() ? "#ff0000" : field.defaultValue()).append("'");
                 break;
 
             case CHECKBOX:
                 // Extraction d'un champ de type case à cocher avec conversion en booléen
-                js.append(field.fieldName().toLowerCase())
+                js.append(field.fieldName())
                         .append(": ").append(blockVariable).append(".getFieldValue('").append(fieldName).append("') === 'TRUE'");
                 break;
 
             case LOCATION_INPUT:
                 // Extraction d'un bloc de location avec tous ses paramètres
-                js.append(field.fieldName().toLowerCase())
+                js.append(field.fieldName())
                         .append(": (() => {\n");
                 js.append("                            const locBlock = ").append(blockVariable).append(".getInputTargetBlock('").append(fieldName).append("');\n");
                 js.append("                            if (!locBlock) return null;\n");

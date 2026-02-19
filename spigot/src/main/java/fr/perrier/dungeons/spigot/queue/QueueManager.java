@@ -13,6 +13,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -36,7 +37,7 @@ public class QueueManager {
             20L  // Period (1 second)
         );
         
-        Main.getInstance().getLogger().info("QueueManager initialized and processor started");
+        Main.getLoggerUtil().info("QueueManager initialized and processor started");
     }
 
     /**
@@ -46,7 +47,7 @@ public class QueueManager {
         if (queueProcessorTask != null) {
             queueProcessorTask.cancel();
         }
-        Main.getInstance().getLogger().info("QueueManager shut down");
+        Main.getLoggerUtil().info("QueueManager shut down");
     }
 
     /**
@@ -133,6 +134,17 @@ public class QueueManager {
     }
 
     /**
+     * Checks if any player in the set meets the floor requirements.
+     *
+     * @param players the set of player UUIDs to check
+     * @param floor the floor to check against
+     * @return true if at least one player meets the requirements
+     */
+    public boolean isNotMatchingRequirements(Set<UUID> players, Floor floor) {
+        return players.stream().noneMatch(uuid -> floor.isRequirementsValid(Bukkit.getPlayer(uuid)));
+    }
+
+    /**
      * Requests an instance for a player, adding them to queue if necessary.
      * <p>
      * Note: There is a potential race condition between checking instance availability
@@ -143,11 +155,23 @@ public class QueueManager {
      * @param floor  the floor to create instance for
      */
     public void requestInstance(Player player, Floor floor) {
+        // Check if player meets requirements before even trying to create instance or queue
+        if(isNotMatchingRequirements(DungeonPartyImpl.getDungeonPartyOf(player).getMemberIds(), floor)) {
+            DungeonPartyImpl.getDungeonPartyOf(player).getMemberIds().forEach(uuid -> {
+                Player p = Bukkit.getPlayer(uuid);
+                if(p != null) {
+                    p.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000One or more players in your party break the requirements during the loading phase to enter this floor. The instance has been cancelled."));
+                }
+            });
+            return;
+        }
+
         // Check if we can create an instance immediately
         if (canCreateInstance(floor)) {
+
             // Create instance - it will register itself when it starts
             FloorInstance.generateNewInstanceAsync(floor.getId(), DungeonPartyImpl.getDungeonPartyOf(player).getMemberIds(),false, floorInstance -> {
-                if(floorInstance.getPlayers().stream().anyMatch(uuid -> !floorInstance.getFloor().isRequirementsValid(Bukkit.getPlayer(uuid)))) {
+                if(isNotMatchingRequirements(floorInstance.getPlayers(), floorInstance.getFloor())) {
                     floorInstance.getPlayers().forEach(uuid -> {
                         Player p = Bukkit.getPlayer(uuid);
                         if(p != null) {
@@ -202,7 +226,7 @@ public class QueueManager {
             Player player = Bukkit.getPlayer(entry.getPlayerId());
             if (player == null || !player.isOnline()) {
                 // Player is offline, skip
-                Main.getInstance().getLogger().warning(String.format(
+                Main.getLoggerUtil().warning(String.format(
                     "Player %s is offline, skipping queue entry",
                     entry.getPlayerName()
                 ));
@@ -211,7 +235,7 @@ public class QueueManager {
 
             // Create instance for player - it will register itself when it starts
             FloorInstance.generateNewInstanceAsync(floor.getId(), DungeonPartyImpl.getDungeonPartyOf(player).getMemberIds(),false, floorInstance -> {
-                if(floorInstance.getPlayers().stream().anyMatch(uuid -> !floorInstance.getFloor().isRequirementsValid(Bukkit.getPlayer(uuid)))) {
+                if(isNotMatchingRequirements(floorInstance.getPlayers(), floorInstance.getFloor())) {
                     floorInstance.getPlayers().forEach(uuid -> {
                         Player p = Bukkit.getPlayer(uuid);
                         if(p != null) {
@@ -259,15 +283,9 @@ public class QueueManager {
         String formattedMessage = ChatUtil.translate(Main.getPrefix() + message);
 
         switch (type) {
-            case ACTION_BAR -> {
-                player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(formattedMessage));
-            }
-            case CHAT -> {
-                player.sendMessage(formattedMessage);
-            }
-            case TITLE -> {
-                player.sendTitle("", formattedMessage, 10, 70, 20);
-            }
+            case ACTION_BAR -> player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(formattedMessage));
+            case CHAT -> player.sendMessage(formattedMessage);
+            case TITLE -> player.sendTitle("", formattedMessage, 10, 70, 20);
         }
     }
 

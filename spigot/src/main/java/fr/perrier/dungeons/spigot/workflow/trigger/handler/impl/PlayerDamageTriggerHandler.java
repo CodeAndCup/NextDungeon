@@ -48,8 +48,8 @@ public class PlayerDamageTriggerHandler implements TriggerEventHandler<EntityDam
                     // Annuler les dégâts si demandé
                     if (damageTrigger.shouldCancelDamage()) {
                         event.setCancelled(true);
-                        if (Main.isDebug()) {
-                            Main.getInstance().getLogger().info("Damage cancelled by PlayerDamageTrigger: " + damageTrigger.getName());
+                        if (Main.getLoggerUtil().isDebugEnabled()) {
+                            Main.getLoggerUtil().info("Damage cancelled by PlayerDamageTrigger: " + damageTrigger.getName());
                         }
                     }
                 }

@@ -6,6 +6,7 @@ import fr.perrier.cupcodeapi.utils.ChatUtil;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.model.Dungeon;
 import fr.perrier.dungeons.spigot.model.Floor;
+import fr.perrier.dungeons.spigot.parties.impl.DungeonPartyImpl;
 import fr.perrier.dungeons.spigot.queue.QueuePosition;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -32,7 +33,9 @@ public class PlayerCommands {
     }
 
     @Command(names = {"dungeon join", "dungeons join", "nd join"})
-    public static void onDungeonJoinCommand(CommandSender sender, @Param(name = "Floor ID", wildcard = true)String floorId) {
+    public static void onDungeonJoinCommand(CommandSender sender, @Param(name = "Dungeon ID")String dungeonId, @Param(name = "Floor ID")String floorId) {
+        String completeId = dungeonId + "_" + floorId;
+
         if (!(sender instanceof Player player)) {
             sender.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000This command can only be used by players"));
             return;
@@ -43,15 +46,26 @@ public class PlayerCommands {
             return;
         }
 
-        if (floorId == null || floorId.isEmpty()) {
+        if (dungeonId == null || dungeonId.isEmpty() || floorId == null || floorId.isEmpty()) {
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Please specify a floor ID"));
             return;
         }
 
-        Floor floor = Floor.getFloor(floorId);
+        Floor floor = Floor.getFloor(completeId);
         if (floor == null) {
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Floor not found: " + floorId));
             return;
+        }
+
+        // Create a temporary party for the player if they don't have one, so they can join the queue as a solo player.
+        if(DungeonPartyImpl.getDungeonPartyOf(player) == null) {
+            new DungeonPartyImpl.Builder()
+                    .setDungeonId(dungeonId)
+                    .setFloorId(floorId)
+                    .setMinLevel(0)
+                    .setDescription("")
+                    .setLeader(player)
+                    .build();
         }
 
         Main.getInstance().getQueueManager().requestInstance(player, floor);

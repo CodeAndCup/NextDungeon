@@ -40,9 +40,9 @@ public class InstanceJoinListener implements Listener {
         FloorInstance instance = Main.getInstance().getDungeonService().getCurrentInstance();
 
         if(!instance.getPlayers().contains(player.getUniqueId())) {
-            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "#FFCC00Warning: You joined an instance that you were not part of. If you are seeing this message and you are not a part of the player or a staff member, please report this to the staff team as soon as possible."));
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FFCC00Warning: You joined an instance that you were not part of. If you are seeing this message and you are not a part of the player or a staff member, please report this to the staff team as soon as possible."));
         } else {
-            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "#00FF00You have joined the instance for floor " + floor.getName() + "."));
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#00FF00You have joined the instance for floor " + floor.getName() + "."));
             // Initialize player stats and lives if not already present
             if(!instance.getPlayerStats().containsKey(player.getUniqueId())) {
                 instance.getPlayerStats().put(player.getUniqueId(), new PlayerStats(player.getUniqueId()));
@@ -50,6 +50,7 @@ public class InstanceJoinListener implements Listener {
             if(!instance.getPlayerCurrentLives().containsKey(player.getUniqueId())) {
                 instance.getPlayerCurrentLives().put(player.getUniqueId(), floor.getRules().getMaxLives());
             }
+            instance.syncInstance();
         }
     }
 }

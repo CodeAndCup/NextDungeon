@@ -40,7 +40,7 @@ public class BroadcastCommandAction extends Action implements BlocklyAction {
         }
 
         if (command.contains("@player") && command.contains("@all")) {
-            Main.getInstance().getLogger().warning("Warning: The command cannot contain both @player and @all placeholders.");
+            Main.getLoggerUtil().warning("Warning: The command cannot contain both @player and @all placeholders.");
             return false;
         }
 
@@ -49,7 +49,7 @@ public class BroadcastCommandAction extends Action implements BlocklyAction {
                 command = command.replace("@player", player.getName());
                 Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), command);
             } else {
-                Main.getInstance().getLogger().warning("Warning: The command contains @player placeholder but the player is null.");
+                Main.getLoggerUtil().warning("Warning: The command contains @player placeholder but the player is null.");
                 return false;
             }
         } else if (command.contains("@all")) {

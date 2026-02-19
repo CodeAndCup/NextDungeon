@@ -24,11 +24,11 @@ public class DatabaseTriggersManager {
         return Main.getInstance().getDatabaseManager()
                 .saveTriggers(floorId, triggers)
                 .thenApply(v -> {
-                    Main.getInstance().getLogger().info("Triggers saved for " + floorId + " in the database");
+                    Main.getLoggerUtil().info("Triggers saved for " + floorId + " in the database");
                     return true;
                 })
                 .exceptionally(ex -> {
-                    Main.getInstance().getLogger().severe("&#FF0000Error while saving triggers for " + floorId + ": " + ex.getMessage());
+                    Main.getLoggerUtil().severe("Error while saving triggers for " + floorId + ": " + ex.getMessage());
                     ex.printStackTrace(System.err);
                     return false;
                 });
@@ -45,7 +45,7 @@ public class DatabaseTriggersManager {
     public static List<TriggerData> loadTriggers(String floorId) {
         // Sur une instance, ne pas charger depuis la BDD - les triggers viennent de Redis
         if (ServerUtil.isInstanceServer()) {
-            Main.getInstance().getLogger().info("Instance server: skipping DB trigger load for " + floorId + " (using Redis data)");
+            Main.getLoggerUtil().info("Instance server: skipping DB trigger load for " + floorId + " (using Redis data)");
             return new ArrayList<>();
         }
 
@@ -55,15 +55,15 @@ public class DatabaseTriggersManager {
             List<TriggerData> triggers = future.join();
 
             if (triggers != null && !triggers.isEmpty()) {
-                Main.getInstance().getLogger().info("Triggers loaded for " + floorId + " (" + triggers.size() + " triggers)");
+                Main.getLoggerUtil().info("Triggers loaded for " + floorId + " (" + triggers.size() + " triggers)");
                 return triggers;
             }
 
-            Main.getInstance().getLogger().info("No triggers found for " + floorId + " in the database.");
+            Main.getLoggerUtil().info("No triggers found for " + floorId + " in the database.");
             return new ArrayList<>();
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("&#FF0000Error loading triggers for " + floorId + ": " + e.getMessage());
+            Main.getLoggerUtil().severe("Error loading triggers for " + floorId + ": " + e.getMessage());
             e.printStackTrace(System.err);
             return new ArrayList<>();
         }
@@ -79,7 +79,7 @@ public class DatabaseTriggersManager {
         try {
             return Main.getInstance().getDatabaseManager().triggersExist(floorId).join();
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("&#FF0000Error checking triggers for " + floorId + ": " + e.getMessage());
+            Main.getLoggerUtil().severe("Error checking triggers for " + floorId + ": " + e.getMessage());
             return false;
         }
     }
@@ -95,7 +95,7 @@ public class DatabaseTriggersManager {
             Main.getInstance().getDatabaseManager().deleteTriggers(floorId).join();
             return true;
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("&#FF0000Error deleting triggers for " + floorId + ": " + e.getMessage());
+            Main.getLoggerUtil().severe("Error deleting triggers for " + floorId + ": " + e.getMessage());
             return false;
         }
     }

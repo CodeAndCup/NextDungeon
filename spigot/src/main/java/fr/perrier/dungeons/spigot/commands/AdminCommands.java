@@ -130,8 +130,9 @@ public class AdminCommands {
             names = {"dungeon admin webeditor start", "dungeons admin webeditor start", "nextdungeon admin webeditor start", "nextdungeons admin webeditor start", "nd admin webeditor start"},
             permission = "nextdungeons.admin")
     public static void adminDungeonWebEditorStartCommand(Player player) {
-        if(Main.getInstance().getWebEditorManager().hasActiveEditor(player)) {
-            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000You already have an active web editor session."));
+        InstanceInfo info = ServerUtil.getInstanceInfo();
+        if(info == null || info.getFloorId() == null) {
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000You are not in a floor instance."));
             return;
         }
 
@@ -140,9 +141,8 @@ public class AdminCommands {
             return;
         }
 
-        InstanceInfo info = ServerUtil.getInstanceInfo();
-        if(info == null || info.getFloorId() == null) {
-            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000You are not in a floor instance."));
+        if(Main.getInstance().getWebEditorManager().hasActiveEditor(player)) {
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000You already have an active web editor session."));
             return;
         }
 

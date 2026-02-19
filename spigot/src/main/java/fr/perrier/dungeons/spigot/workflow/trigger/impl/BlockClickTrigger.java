@@ -83,10 +83,10 @@ public class BlockClickTrigger extends Trigger implements BlocklyTrigger {
             return false;
         }
 
-        if(Main.isDebug()) {
-            Main.getInstance().getLogger().info("Checking conditions for BlockClickTrigger: " + getName());
-            Main.getInstance().getLogger().info("Trigger click type: " + clickType + ", detection type: " + detectionType);
-            Main.getInstance().getLogger().info("Event data: " + data);
+        if(Main.getLoggerUtil().isDebugEnabled()) {
+            Main.getLoggerUtil().info("Checking conditions for BlockClickTrigger: " + getName());
+            Main.getLoggerUtil().info("Trigger click type: " + clickType + ", detection type: " + detectionType);
+            Main.getLoggerUtil().info("Event data: " + data);
         }
 
         // Vérifier le type de clic
@@ -95,16 +95,16 @@ public class BlockClickTrigger extends Trigger implements BlocklyTrigger {
             return false;
         }
 
-        if(Main.isDebug()) {
-            Main.getInstance().getLogger().info("Event click type: " + eventClickType);
+        if(Main.getLoggerUtil().isDebugEnabled()) {
+            Main.getLoggerUtil().info("Event click type: " + eventClickType);
         }
 
         if (!clickType.equals("both") && !clickType.equals(eventClickType)) {
             return false;
         }
 
-        if(Main.isDebug()) {
-            Main.getInstance().getLogger().info("Click type matches trigger: " + clickType);
+        if(Main.getLoggerUtil().isDebugEnabled()) {
+            Main.getLoggerUtil().info("Click type matches trigger: " + clickType);
         }
 
         // Vérifier le type de détection
@@ -113,8 +113,8 @@ public class BlockClickTrigger extends Trigger implements BlocklyTrigger {
             return false;
         }
 
-        if(Main.isDebug()) {
-            Main.getInstance().getLogger().info("Detection type matches trigger: " + detectionType);
+        if(Main.getLoggerUtil().isDebugEnabled()) {
+            Main.getLoggerUtil().info("Detection type matches trigger: " + detectionType);
         }
 
         // Vérifier le bloc cliqué
@@ -123,8 +123,8 @@ public class BlockClickTrigger extends Trigger implements BlocklyTrigger {
             return false;
         }
 
-        if(Main.isDebug()) {
-            Main.getInstance().getLogger().info("Clicked block: " + clickedBlock.getType() + " at " + clickedBlock.getLocation());
+        if(Main.getLoggerUtil().isDebugEnabled()) {
+            Main.getLoggerUtil().info("Clicked block: " + clickedBlock.getType() + " at " + clickedBlock.getLocation());
         }
 
         // Vérifier le monde
@@ -132,8 +132,8 @@ public class BlockClickTrigger extends Trigger implements BlocklyTrigger {
             return false;
         }
 
-        if(Main.isDebug()) {
-            Main.getInstance().getLogger().info("Block world matches trigger: " + locationBlock.getWorldName());
+        if(Main.getLoggerUtil().isDebugEnabled()) {
+            Main.getLoggerUtil().info("Block world matches trigger: " + locationBlock.getWorldName());
         }
 
         // Vérifier la position si demandé
@@ -146,8 +146,8 @@ public class BlockClickTrigger extends Trigger implements BlocklyTrigger {
             }
         }
 
-        if(Main.isDebug()) {
-            Main.getInstance().getLogger().info("Block position matches trigger: " + (exactPositionOnly ? "Yes" : "No, exact position not required"));
+        if(Main.getLoggerUtil().isDebugEnabled()) {
+            Main.getLoggerUtil().info("Block position matches trigger: " + (exactPositionOnly ? "Yes" : "No, exact position not required"));
         }
 
         // Vérifier le matériau
@@ -158,13 +158,13 @@ public class BlockClickTrigger extends Trigger implements BlocklyTrigger {
                     return false;
                 }
             } catch (IllegalArgumentException e) {
-                Main.getInstance().getLogger().warning("&eInvalid material: " + blockMaterial + " in BlockClickTrigger");
+                Main.getLoggerUtil().warning("Invalid material: " + blockMaterial + " in BlockClickTrigger");
                 return false;
             }
         }
 
-        if(Main.isDebug()) {
-            Main.getInstance().getLogger().info("Block material matches trigger: " + blockMaterial);
+        if(Main.getLoggerUtil().isDebugEnabled()) {
+            Main.getLoggerUtil().info("Block material matches trigger: " + blockMaterial);
         }
 
         return true;
@@ -179,34 +179,34 @@ public class BlockClickTrigger extends Trigger implements BlocklyTrigger {
      * Vérifie si ce trigger correspond à un bloc spécifique
      */
     public boolean matchesBlock(Block block, String clickTypeEvent, String detectionTypeEvent) {
-        if(Main.isDebug()) {
-           Main.getInstance().getLogger().info("BlockClickTrigger.matchesBlock() - Checking trigger: " + getName());
-            Main.getInstance().getLogger().info("  clickType: " + clickType + " vs " + clickTypeEvent);
-            Main.getInstance().getLogger().info("  detectionType: " + detectionType + " vs " + detectionTypeEvent);
-            Main.getInstance().getLogger().info("  blockMaterial: " + blockMaterial + " vs " + block.getType());
-            Main.getInstance().getLogger().info("  position: (" + locationBlock.getX() + "," + locationBlock.getY() + "," + locationBlock.getZ() + ") vs (" + block.getX() + "," + block.getY() + "," + block.getZ() + ")");
+        if(Main.getLoggerUtil().isDebugEnabled()) {
+           Main.getLoggerUtil().info("BlockClickTrigger.matchesBlock() - Checking trigger: " + getName());
+            Main.getLoggerUtil().info("  clickType: " + clickType + " vs " + clickTypeEvent);
+            Main.getLoggerUtil().info("  detectionType: " + detectionType + " vs " + detectionTypeEvent);
+            Main.getLoggerUtil().info("  blockMaterial: " + blockMaterial + " vs " + block.getType());
+            Main.getLoggerUtil().info("  position: (" + locationBlock.getX() + "," + locationBlock.getY() + "," + locationBlock.getZ() + ") vs (" + block.getX() + "," + block.getY() + "," + block.getZ() + ")");
         }
 
         // Vérifier le type de clic
         if (!clickType.equals("both") && !clickType.equals(clickTypeEvent)) {
-            if(Main.isDebug()) {
-                Main.getInstance().getLogger().info("  ❌ Click type mismatch!");
+            if(Main.getLoggerUtil().isDebugEnabled()) {
+                Main.getLoggerUtil().info("  ❌ Click type mismatch!");
             }
             return false;
         }
 
         // Vérifier le type de détection
         if (!detectionType.equals(detectionTypeEvent)) {
-            if(Main.isDebug()) {
-                Main.getInstance().getLogger().info("  ❌ Detection type mismatch! (" + detectionType + " != " + detectionTypeEvent + ")");
+            if(Main.getLoggerUtil().isDebugEnabled()) {
+                Main.getLoggerUtil().info("  ❌ Detection type mismatch! (" + detectionType + " != " + detectionTypeEvent + ")");
             }
             return false;
         }
 
         // Vérifier le monde
         if (locationBlock.getWorldName() != null && !locationBlock.getWorldName().isEmpty() && !block.getWorld().getName().equals(locationBlock.getWorldName())) {
-            if(Main.isDebug()) {
-                Main.getInstance().getLogger().info("  ❌ World mismatch!");
+            if(Main.getLoggerUtil().isDebugEnabled()) {
+                Main.getLoggerUtil().info("  ❌ World mismatch!");
             }
             return false;
         }
@@ -217,8 +217,8 @@ public class BlockClickTrigger extends Trigger implements BlocklyTrigger {
             if (blockLocation.getBlockX() != locationBlock.getX() ||
                 blockLocation.getBlockY() != locationBlock.getY() ||
                 blockLocation.getBlockZ() != locationBlock.getZ()) {
-                if(Main.isDebug()) {
-                    Main.getInstance().getLogger().info("  ❌ Position mismatch!");
+                if(Main.getLoggerUtil().isDebugEnabled()) {
+                    Main.getLoggerUtil().info("  ❌ Position mismatch!");
                 }
                 return false;
             }
@@ -229,18 +229,18 @@ public class BlockClickTrigger extends Trigger implements BlocklyTrigger {
             try {
                 Material expectedMaterial = Material.valueOf(blockMaterial.toUpperCase());
                 boolean matches = block.getType() == expectedMaterial;
-                if(fr.perrier.dungeons.spigot.Main.isDebug()) {
-                    fr.perrier.dungeons.spigot.Main.getInstance().getLogger().info("  Material check: " + (matches ? "✅ MATCH" : "❌ NO MATCH"));
+                if(fr.perrier.dungeons.spigot.Main.getLoggerUtil().isDebugEnabled()) {
+                    fr.perrier.dungeons.spigot.Main.getLoggerUtil().info("  Material check: " + (matches ? "✅ MATCH" : "❌ NO MATCH"));
                 }
                 return matches;
             } catch (IllegalArgumentException e) {
-                fr.perrier.dungeons.spigot.Main.getInstance().getLogger().warning("&eInvalid material: " + blockMaterial + " in BlockClickTrigger");
+                fr.perrier.dungeons.spigot.Main.getLoggerUtil().warning("Invalid material: " + blockMaterial + " in BlockClickTrigger");
                 return false;
             }
         }
 
-        if(fr.perrier.dungeons.spigot.Main.isDebug()) {
-            fr.perrier.dungeons.spigot.Main.getInstance().getLogger().info("  ✅ ALL CHECKS PASSED!");
+        if(fr.perrier.dungeons.spigot.Main.getLoggerUtil().isDebugEnabled()) {
+            fr.perrier.dungeons.spigot.Main.getLoggerUtil().info("  ✅ ALL CHECKS PASSED!");
         }
         return true;
     }

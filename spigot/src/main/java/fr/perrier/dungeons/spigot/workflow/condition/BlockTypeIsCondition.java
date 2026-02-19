@@ -78,8 +78,8 @@ public class BlockTypeIsCondition extends Action implements BlocklyAction {
 
             boolean matches = checkBlockType(checkLocation);
 
-            if (Main.isDebug()) {
-                Main.getInstance().getLogger().info("BlockTypeIs condition: " + matches);
+            if (Main.getLoggerUtil().isDebugEnabled()) {
+                Main.getLoggerUtil().info("BlockTypeIs condition: " + matches);
             }
 
             List<Action> actionsToExecute = matches ? ifActions : elseActions;
@@ -87,7 +87,7 @@ public class BlockTypeIsCondition extends Action implements BlocklyAction {
             if (actionsToExecute != null && !actionsToExecute.isEmpty()) {
                 for (Action action : actionsToExecute) {
                     if (!action.execute(triggerPlayer, location, data)) {
-                        Main.getInstance().getLogger().warning("Action failed in BlockTypeIs condition: " + action.getClass().getSimpleName());
+                        Main.getLoggerUtil().warning("Action failed in BlockTypeIs condition: " + action.getClass().getSimpleName());
                     }
                 }
             }
@@ -95,7 +95,7 @@ public class BlockTypeIsCondition extends Action implements BlocklyAction {
             return true;
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("Error executing BlockTypeIs condition: " + e.getMessage());
+            Main.getLoggerUtil().severe("Error executing BlockTypeIs condition: " + e.getMessage());
             e.printStackTrace(System.err);
             return false;
         }
@@ -117,7 +117,7 @@ public class BlockTypeIsCondition extends Action implements BlocklyAction {
             return isMatch;
 
         } catch (IllegalArgumentException e) {
-            Main.getInstance().getLogger().warning("Invalid block type: " + blockType);
+            Main.getLoggerUtil().warning("Invalid block type: " + blockType);
             return false;
         }
     }
@@ -134,6 +134,126 @@ public class BlockTypeIsCondition extends Action implements BlocklyAction {
             this.elseActions = new ArrayList<>();
         }
         this.elseActions.add(action);
+    }
+
+    @Override
+    public boolean requiresCustomBlockGeneration() {
+        return true;
+    }
+
+    @Override
+    public void generateCustomBlock(StringBuilder js) {
+        js.append("""
+        Blockly.Blocks['block_type_is_condition'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField('🧱 Si le bloc est');
+                this.appendValueInput('X')
+                    .setCheck('Number')
+                    .appendField('X:');
+                this.appendValueInput('Y')
+                    .setCheck('Number')
+                    .appendField('Y:');
+                this.appendValueInput('Z')
+                    .setCheck('Number')
+                    .appendField('Z:');
+                this.appendValueInput('BLOCKTYPE')
+                    .setCheck(null)
+                    .appendField('Type:');
+                this.appendDummyInput()
+                    .appendField(new Blockly.FieldDropdown([
+                        ['est', 'is'],
+                        ['n\\'est pas', 'is_not']
+                    ]), 'COMPARISON');
+                this.appendStatementInput('IFACTIONS')
+                    .setCheck('Action')
+                    .appendField('Alors:');
+                this.appendStatementInput('ELSEACTIONS')
+                    .setCheck('Action')
+                    .appendField('Sinon:');
+                this.setPreviousStatement(true, 'Action');
+                this.setNextStatement(true, 'Action');
+                this.setColour('#FF9800');
+                this.setTooltip('Vérifie si un bloc à une position est d\\'un type spécifique');
+            }
+        };
+        """);
+    }
+
+    @Override
+    public void generateCustomActionCase(StringBuilder js) {
+        js.append("""
+                        if (actionBlock.type === 'block_type_is_condition') {
+                            const x = actionBlock.getInputTargetBlock('X') ? actionBlock.getInputTargetBlock('X').getFieldValue('NUM') || '0' : '0';
+                            const y = actionBlock.getInputTargetBlock('Y') ? actionBlock.getInputTargetBlock('Y').getFieldValue('NUM') || '64' : '64';
+                            const z = actionBlock.getInputTargetBlock('Z') ? actionBlock.getInputTargetBlock('Z').getFieldValue('NUM') || '0' : '0';
+                            const blockType = actionBlock.getInputTargetBlock('BLOCKTYPE') ? actionBlock.getInputTargetBlock('BLOCKTYPE').getFieldValue('TEXT') || 'STONE' : 'STONE';
+                            const ifActions = getActionsFromStatementInput(actionBlock, 'IFACTIONS');
+                            const elseActions = getActionsFromStatementInput(actionBlock, 'ELSEACTIONS');
+
+                            actions.push({
+                                type: 'block_type_is_condition',
+                                x: parseFloat(x),
+                                y: parseFloat(y),
+                                z: parseFloat(z),
+                                blocktype: blockType,
+                                comparison: actionBlock.getFieldValue('COMPARISON'),
+                                ifactions: ifActions,
+                                elseactions: elseActions
+                            });
+                        }
+        """);
+    }
+
+    @Override
+    public void generateCustomActionLoadingCase(StringBuilder js) {
+        js.append("""
+                            if (action.type === 'block_type_is_condition') {
+                                actionBlock = workspace.newBlock('block_type_is_condition');
+                                
+                                if (action.x !== undefined) {
+                                    const xBlock = workspace.newBlock('math_number');
+                                    xBlock.setFieldValue(action.x.toString(), 'NUM');
+                                    xBlock.initSvg();
+                                    xBlock.render();
+                                    actionBlock.getInput('X').connection.connect(xBlock.outputConnection);
+                                }
+                                
+                                if (action.y !== undefined) {
+                                    const yBlock = workspace.newBlock('math_number');
+                                    yBlock.setFieldValue(action.y.toString(), 'NUM');
+                                    yBlock.initSvg();
+                                    yBlock.render();
+                                    actionBlock.getInput('Y').connection.connect(yBlock.outputConnection);
+                                }
+                                
+                                if (action.z !== undefined) {
+                                    const zBlock = workspace.newBlock('math_number');
+                                    zBlock.setFieldValue(action.z.toString(), 'NUM');
+                                    zBlock.initSvg();
+                                    zBlock.render();
+                                    actionBlock.getInput('Z').connection.connect(zBlock.outputConnection);
+                                }
+                                
+                                if (action.blocktype) {
+                                    const typeBlock = workspace.newBlock('text');
+                                    typeBlock.setFieldValue(action.blocktype, 'TEXT');
+                                    typeBlock.initSvg();
+                                    typeBlock.render();
+                                    actionBlock.getInput('BLOCKTYPE').connection.connect(typeBlock.outputConnection);
+                                }
+                                
+                                actionBlock.setFieldValue(action.comparison || 'is', 'COMPARISON');
+                                
+                                if (action.ifactions && action.ifactions.length > 0) {
+                                    loadActionsIntoStatement(actionBlock, action.ifactions, 'IFACTIONS');
+                                }
+                                
+                                if (action.elseactions && action.elseactions.length > 0) {
+                                    loadActionsIntoStatement(actionBlock, action.elseactions, 'ELSEACTIONS');
+                                }
+                            }
+        """);
     }
 
     @Override

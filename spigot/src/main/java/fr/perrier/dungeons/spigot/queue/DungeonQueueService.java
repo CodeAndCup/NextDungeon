@@ -19,8 +19,8 @@ import java.util.function.Consumer;
 public class DungeonQueueService {
     private final RedissonClient redissonClient;
 
-    private static final String QUEUE_PREFIX = "dungeons:queue:";
-    private static final String INSTANCE_COUNT_PREFIX = "dungeons:instance_count:";
+    private static final String QUEUE_PREFIX = Main.getInstance().getConfig().getString("RedisConfiguration.topic") + ":queue:";
+    private static final String INSTANCE_COUNT_PREFIX = Main.getInstance().getConfig().getString("RedisConfiguration.topic") + ":instance_count:";
 
     // Cache of active queue floors to avoid expensive Redis pattern matching
     private final Set<String> activeQueueFloorsCache = ConcurrentHashMap.newKeySet();
@@ -29,7 +29,7 @@ public class DungeonQueueService {
      * Initializes the queue service.
      */
     public void initialize() {
-        Main.getInstance().getLogger().info("DungeonQueueService initialized successfully");
+        Main.getLoggerUtil().info("DungeonQueueService initialized successfully");
     }
 
     /**
@@ -70,8 +70,8 @@ public class DungeonQueueService {
         // Update cache to include this floor
         activeQueueFloorsCache.add(entry.getFloorId());
 
-        if(Main.isDebug())
-            Main.getInstance().getLogger().info(String.format(
+        if(Main.getLoggerUtil().isDebugEnabled())
+            Main.getLoggerUtil().info(String.format(
                 "Added player %s to queue for floor %s (Position: %d/%d)",
                 entry.getPlayerName(),
                 entry.getFloorId(),
@@ -97,8 +97,8 @@ public class DungeonQueueService {
             activeQueueFloorsCache.remove(floorId);
         }
 
-        if (removed && Main.isDebug()) {
-            Main.getInstance().getLogger().info(String.format(
+        if (removed && Main.getLoggerUtil().isDebugEnabled()) {
+            Main.getLoggerUtil().info(String.format(
                 "Removed player %s from queue for floor %s",
                 playerId,
                 floorId
@@ -123,8 +123,8 @@ public class DungeonQueueService {
             activeQueueFloorsCache.remove(floorId);
         }
 
-        if (entry != null && Main.isDebug()) {
-            Main.getInstance().getLogger().info(String.format(
+        if (entry != null && Main.getLoggerUtil().isDebugEnabled()) {
+            Main.getLoggerUtil().info(String.format(
                 "Polled player %s from queue for floor %s",
                 entry.getPlayerName(),
                 floorId
@@ -196,8 +196,8 @@ public class DungeonQueueService {
         RMap<UUID, String> instanceMap = getInstanceCountMap(floorId);
         instanceMap.put(instanceId, floorId);
 
-        if (Main.isDebug())
-            Main.getInstance().getLogger().info(String.format(
+        if (Main.getLoggerUtil().isDebugEnabled())
+            Main.getLoggerUtil().info(String.format(
                 "Registered instance %s for floor %s (Total: %d)",
                 instanceId,
                 floorId,
@@ -214,8 +214,8 @@ public class DungeonQueueService {
     public void unregisterInstance(String floorId, UUID instanceId) {
         RMap<UUID, String> instanceMap = getInstanceCountMap(floorId);
         instanceMap.remove(instanceId);
-        if (Main.isDebug())
-            Main.getInstance().getLogger().info(String.format(
+        if (Main.getLoggerUtil().isDebugEnabled())
+            Main.getLoggerUtil().info(String.format(
                 "Unregistered instance %s for floor %s (Total: %d)",
                 instanceId,
                 floorId,
@@ -280,8 +280,8 @@ public class DungeonQueueService {
         // Update cache to remove this floor
         activeQueueFloorsCache.remove(floorId);
 
-        if (Main.isDebug())
-            Main.getInstance().getLogger().info(String.format(
+        if (Main.getLoggerUtil().isDebugEnabled())
+            Main.getLoggerUtil().info(String.format(
                 "Cleared queue for floor %s (%d entries removed)",
                 floorId,
                 size

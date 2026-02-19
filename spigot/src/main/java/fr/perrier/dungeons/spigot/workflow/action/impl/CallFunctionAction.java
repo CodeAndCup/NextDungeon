@@ -42,7 +42,7 @@ public class CallFunctionAction extends Action implements BlocklyAction {
     @Override
     public boolean execute(Player triggerPlayer, Location location, Map<String, Object> data) {
         if (functionName == null || functionName.trim().isEmpty()) {
-            Main.getInstance().getLogger().warning("&eFunction name is empty in CallFunctionAction");
+            Main.getLoggerUtil().warning("Function name is empty in CallFunctionAction");
             return false;
         }
 
@@ -53,29 +53,29 @@ public class CallFunctionAction extends Action implements BlocklyAction {
                 .getFunction(trimmedFunctionName);
 
         if (function == null) {
-            Main.getInstance().getLogger().warning("&eFunction not found: " + trimmedFunctionName);
+            Main.getLoggerUtil().warning("Function not found: " + trimmedFunctionName);
             return false;
         }
 
-        if (Main.isDebug()) {
-            Main.getInstance().getLogger().info("Calling function: " + trimmedFunctionName);
+        if (Main.getLoggerUtil().isDebugEnabled()) {
+            Main.getLoggerUtil().info("Calling function: " + trimmedFunctionName);
         }
 
         // Execute the function
         try {
             boolean result = function.executeFunction(triggerPlayer, location, data);
 
-            if (Main.isDebug()) {
+            if (Main.getLoggerUtil().isDebugEnabled()) {
                 if (result) {
-                    Main.getInstance().getLogger().info("Function " + trimmedFunctionName + " executed successfully");
+                    Main.getLoggerUtil().info("Function " + trimmedFunctionName + " executed successfully");
                 } else {
-                    Main.getInstance().getLogger().warning("&eFunction " + trimmedFunctionName + " execution failed");
+                    Main.getLoggerUtil().warning("Function " + trimmedFunctionName + " execution failed");
                 }
             }
 
             return result;
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("&#FF0000Error executing function " + trimmedFunctionName + ": " + e.getMessage());
+            Main.getLoggerUtil().severe("Error executing function " + trimmedFunctionName + ": " + e.getMessage());
             e.printStackTrace(System.err);
             return false;
         }

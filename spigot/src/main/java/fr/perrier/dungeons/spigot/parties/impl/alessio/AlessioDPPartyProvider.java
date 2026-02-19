@@ -31,7 +31,7 @@ public class AlessioDPPartyProvider implements IPartyProvider {
             try {
                 this.api = Parties.getApi();
             } catch (Exception e) {
-                Main.getInstance().getLogger().warning("Failed to initialize AlessioDPParties API: " + e.getMessage());
+                Main.getLoggerUtil().warning("Failed to initialize AlessioDPParties API: " + e.getMessage());
             }
         }
     }

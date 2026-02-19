@@ -17,14 +17,14 @@ public class InstanceProviderFactory {
     public static InstanceProvider createProvider() {
         String providerType = Main.getInstance().getConfig().getString("InstanceProvider.type", "CLOUDNET");
 
-        Main.getInstance().getLogger().info("Provider initialization: " + providerType);
+        Main.getLoggerUtil().info("Provider initialization: " + providerType);
 
         switch (providerType.toUpperCase()) {
             case "CLOUDNET":
                 return createCloudNetProvider();
 
             default:
-                Main.getInstance().getLogger().warning("&eProvider type unknown: " + providerType + ".");
+                Main.getLoggerUtil().warning("Provider type unknown: " + providerType + ".");
                 throw new IllegalStateException("Provider type unknown: " + providerType);
         }
     }
@@ -36,10 +36,10 @@ public class InstanceProviderFactory {
     private static InstanceProvider createCloudNetProvider() {
         try {
             Class.forName("eu.cloudnetservice.driver.inject.InjectionLayer");
-            Main.getInstance().getLogger().info("CloudNet detected, using CloudNetProvider");
+            Main.getLoggerUtil().info("CloudNet detected, using CloudNetProvider");
             return new CloudNetProvider();
         } catch (ClassNotFoundException e) {
-            Main.getInstance().getLogger().severe("&#FF0000CloudNet is not available on this server!");
+            Main.getLoggerUtil().severe("CloudNet is not available on this server!");
             throw new IllegalStateException("CloudNet provider required but not available", e);
         }
     }
@@ -52,13 +52,13 @@ public class InstanceProviderFactory {
 
         try {
             Class.forName("eu.cloudnetservice.driver.inject.InjectionLayer");
-            Main.getInstance().getLogger().info("Auto-detection: CloudNet found");
+            Main.getLoggerUtil().info("Auto-detection: CloudNet found");
             return new CloudNetProvider();
         } catch (ClassNotFoundException e) {
             // CloudNet non disponible
         }
 
-        Main.getInstance().getLogger().info("Auto-detection: No provider available.");
+        Main.getLoggerUtil().info("Auto-detection: No provider available.");
         throw new IllegalStateException("No instance providers available");
     }
 }

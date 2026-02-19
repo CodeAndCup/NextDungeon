@@ -56,12 +56,12 @@ public class SetVariableAction extends Action implements BlocklyAction {
     @Override
     public boolean execute(Player triggerPlayer, Location location, Map<String, Object> data) {
         if (variableName == null || variableName.trim().isEmpty()) {
-            Main.getInstance().getLogger().warning("&eVariable name is empty in SetVariableAction");
+            Main.getLoggerUtil().warning("Variable name is empty in SetVariableAction");
             return false;
         }
 
         if (value == null) {
-            Main.getInstance().getLogger().warning("&eVariable value is null in SetVariableAction");
+            Main.getLoggerUtil().warning("Variable value is null in SetVariableAction");
             return false;
         }
 
@@ -77,8 +77,8 @@ public class SetVariableAction extends Action implements BlocklyAction {
         // Also store in the current data context for immediate use
         data.put(trimmedName, parsedValue);
 
-        if (Main.isDebug()) {
-            Main.getInstance().getLogger().info("Set variable " + trimmedName + " = " + parsedValue + " (scope: " + scopeToUse + ")");
+        if (Main.getLoggerUtil().isDebugEnabled()) {
+            Main.getLoggerUtil().info("Set variable " + trimmedName + " = " + parsedValue + " (scope: " + scopeToUse + ")");
         }
 
         return true;

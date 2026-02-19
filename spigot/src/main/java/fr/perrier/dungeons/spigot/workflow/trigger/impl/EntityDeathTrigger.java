@@ -49,6 +49,6 @@ public class EntityDeathTrigger extends Trigger implements BlocklyTrigger {
     public boolean checkConditions(Player player, Map<String, Object> data) {
         // Le EntityDeathTriggerHandler s'occupe déjà de vérifier si le joueur est dans la région
         // Ici on peut ajouter des conditions supplémentaires si nécessaire
-        return true;
+        return enabled;
     }
 }

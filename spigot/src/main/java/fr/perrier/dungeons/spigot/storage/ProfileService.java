@@ -14,7 +14,7 @@ public class ProfileService {
     private final RedissonClient redissonClient;
 
     // Redis Maps and Topics
-    private static final String PROFILE_MAP = "dungeons:profiles";
+    private static final String PROFILE_MAP = Main.getInstance().getConfig().getString("RedisConfiguration.topic") + ":profiles";
 
     // Redis Maps
     @Getter
@@ -39,7 +39,7 @@ public class ProfileService {
         // Update Redis
         profilesMap.fastPut(playerId, profileData);
 
-        Main.getInstance().getLogger().info(String.format(
+        Main.getLoggerUtil().info(String.format(
                 "Synced profile data for player %s to Redis",
                 playerId
         ));
@@ -79,21 +79,21 @@ public class ProfileService {
         ProfileData profileData = profilesMap.get(playerId);
         if(profileData != null) {
             Main.getInstance().getDatabaseManager().saveProfileData(playerId, profileData);
-            if (Main.isDebug()) {
-                Main.getInstance().getLogger().info(String.format(
+            if (Main.getLoggerUtil().isDebugEnabled()) {
+                Main.getLoggerUtil().info(String.format(
                         "Saved profile data for player %s to Database",
                         playerId
                 ));
             }
             profilesMap.fastRemove(playerId);
-            if (Main.isDebug()) {
-                Main.getInstance().getLogger().info(String.format(
+            if (Main.getLoggerUtil().isDebugEnabled()) {
+                Main.getLoggerUtil().info(String.format(
                         "Removed profile data for player %s from Redis cache",
                         playerId
                 ));
             }
         } else {
-            Main.getInstance().getLogger().warning(String.format(
+            Main.getLoggerUtil().warning(String.format(
                     "No profile data found for player %s to save",
                     playerId
             ));

@@ -54,8 +54,8 @@ public class EntityTypeIsCondition extends Action implements BlocklyAction {
         try {
             boolean matches = checkEntityType(data);
 
-            if (Main.isDebug()) {
-                Main.getInstance().getLogger().info("EntityTypeIs condition: " + matches);
+            if (Main.getLoggerUtil().isDebugEnabled()) {
+                Main.getLoggerUtil().info("EntityTypeIs condition: " + matches);
             }
 
             List<Action> actionsToExecute = matches ? ifActions : elseActions;
@@ -63,7 +63,7 @@ public class EntityTypeIsCondition extends Action implements BlocklyAction {
             if (actionsToExecute != null && !actionsToExecute.isEmpty()) {
                 for (Action action : actionsToExecute) {
                     if (!action.execute(triggerPlayer, location, data)) {
-                        Main.getInstance().getLogger().warning("Action failed in EntityTypeIs condition: " + action.getClass().getSimpleName());
+                        Main.getLoggerUtil().warning("Action failed in EntityTypeIs condition: " + action.getClass().getSimpleName());
                     }
                 }
             }
@@ -71,7 +71,7 @@ public class EntityTypeIsCondition extends Action implements BlocklyAction {
             return true;
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("Error executing EntityTypeIs condition: " + e.getMessage());
+            Main.getLoggerUtil().severe("Error executing EntityTypeIs condition: " + e.getMessage());
             e.printStackTrace(System.err);
             return false;
         }
@@ -113,6 +113,87 @@ public class EntityTypeIsCondition extends Action implements BlocklyAction {
             this.elseActions = new ArrayList<>();
         }
         this.elseActions.add(action);
+    }
+
+    @Override
+    public boolean requiresCustomBlockGeneration() {
+        return true;
+    }
+
+    @Override
+    public void generateCustomBlock(StringBuilder js) {
+        js.append("""
+        Blockly.Blocks['entity_type_is_condition'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField('👹 Si l\\'entité');
+                this.appendValueInput('ENTITYTYPE')
+                    .setCheck(null)
+                    .appendField('Type:');
+                this.appendDummyInput()
+                    .appendField(new Blockly.FieldDropdown([
+                        ['est', 'is'],
+                        ['n\\'est pas', 'is_not']
+                    ]), 'COMPARISON');
+                this.appendStatementInput('IFACTIONS')
+                    .setCheck('Action')
+                    .appendField('Alors:');
+                this.appendStatementInput('ELSEACTIONS')
+                    .setCheck('Action')
+                    .appendField('Sinon:');
+                this.setPreviousStatement(true, 'Action');
+                this.setNextStatement(true, 'Action');
+                this.setColour('#FF9800');
+                this.setTooltip('Vérifie si une entité est d\\'un type spécifique');
+            }
+        };
+        """);
+    }
+
+    @Override
+    public void generateCustomActionCase(StringBuilder js) {
+        js.append("""
+                        if (actionBlock.type === 'entity_type_is_condition') {
+                            const entityType = actionBlock.getInputTargetBlock('ENTITYTYPE') ? actionBlock.getInputTargetBlock('ENTITYTYPE').getFieldValue('TEXT') || 'ZOMBIE' : 'ZOMBIE';
+                            const ifActions = getActionsFromStatementInput(actionBlock, 'IFACTIONS');
+                            const elseActions = getActionsFromStatementInput(actionBlock, 'ELSEACTIONS');
+
+                            actions.push({
+                                type: 'entity_type_is_condition',
+                                entitytype: entityType,
+                                comparison: actionBlock.getFieldValue('COMPARISON'),
+                                ifactions: ifActions,
+                                elseactions: elseActions
+                            });
+                        }
+        """);
+    }
+
+    @Override
+    public void generateCustomActionLoadingCase(StringBuilder js) {
+        js.append("""
+                            if (action.type === 'entity_type_is_condition') {
+                                actionBlock = workspace.newBlock('entity_type_is_condition');
+                                
+                                if (action.entitytype) {
+                                    const typeBlock = workspace.newBlock('text');
+                                    typeBlock.setFieldValue(action.entitytype, 'TEXT');
+                                    typeBlock.initSvg();
+                                    typeBlock.render();
+                                    actionBlock.getInput('ENTITYTYPE').connection.connect(typeBlock.outputConnection);
+                                }
+                                
+                                actionBlock.setFieldValue(action.comparison || 'is', 'COMPARISON');
+                                
+                                if (action.ifactions && action.ifactions.length > 0) {
+                                    loadActionsIntoStatement(actionBlock, action.ifactions, 'IFACTIONS');
+                                }
+                                
+                                if (action.elseactions && action.elseactions.length > 0) {
+                                    loadActionsIntoStatement(actionBlock, action.elseactions, 'ELSEACTIONS');
+                                }
+                            }
+        """);
     }
 
     @Override

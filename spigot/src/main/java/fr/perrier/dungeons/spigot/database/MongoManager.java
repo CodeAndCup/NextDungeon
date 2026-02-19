@@ -67,7 +67,7 @@ public class MongoManager implements DatabaseManager {
     @Override
     public <T> CompletableFuture<T> handleAsyncOperation(CompletableFuture<T> future, String operationName) {
         return future.exceptionally(ex -> {
-            Bukkit.getLogger().severe("&#FF0000Erreur lors de l'operation " + operationName + ": " + ex.getMessage());
+            Bukkit.getLogger().severe("Erreur lors de l'operation " + operationName + ": " + ex.getMessage());
             ex.printStackTrace(System.err);
             return null;
         });
@@ -110,14 +110,14 @@ public class MongoManager implements DatabaseManager {
                 if (result != null && result.containsKey("triggers_data")) {
                     String json = result.getString("triggers_data");
                     List<TriggerData> triggers = InstanceSerializer.deserializeTriggers(json);
-                    Main.getInstance().getLogger().info("Triggers loaded for " + floorId + " (" + triggers.size() + " triggers)");
+                    Main.getLoggerUtil().info("Triggers loaded for " + floorId + " (" + triggers.size() + " triggers)");
                     return triggers;
                 }
 
-                Main.getInstance().getLogger().warning("&eNo trigger found for " + floorId + " in the trigger list.");
+                Main.getLoggerUtil().warning("No trigger found for " + floorId + " in the trigger list.");
                 return new ArrayList<>();
             } catch (Exception e) {
-                Main.getInstance().getLogger().severe("&#FF0000An error occurred during the loading phase of triggers for " + floorId + ": " + e.getMessage());
+                Main.getLoggerUtil().severe("An error occurred during the loading phase of triggers for " + floorId + ": " + e.getMessage());
                 e.printStackTrace(System.err);
                 return new ArrayList<>();
             }
@@ -144,9 +144,9 @@ public class MongoManager implements DatabaseManager {
 
                 triggersCollection.updateOne(query, update, new com.mongodb.client.model.UpdateOptions().upsert(true));
 
-                Main.getInstance().getLogger().info("Triggers saved for " + floorId + " (" + triggers.size() + " triggers)");
+                Main.getLoggerUtil().info("Triggers saved for " + floorId + " (" + triggers.size() + " triggers)");
             } catch (Exception e) {
-                Main.getInstance().getLogger().severe("&#FF0000An error occurred during the saving phase of triggers for " + floorId + ": " + e.getMessage());
+                Main.getLoggerUtil().severe("An error occurred during the saving phase of triggers for " + floorId + ": " + e.getMessage());
                 e.printStackTrace(System.err);
             }
         });
@@ -165,7 +165,7 @@ public class MongoManager implements DatabaseManager {
                 long count = triggersCollection.countDocuments(query);
                 return count > 0;
             } catch (Exception e) {
-                Main.getInstance().getLogger().severe("&#FF0000An error occurred during the verification of triggers for " + floorId + ": " + e.getMessage());
+                Main.getLoggerUtil().severe("An error occurred during the verification of triggers for " + floorId + ": " + e.getMessage());
                 e.printStackTrace(System.err);
                 return false;
             }
@@ -184,9 +184,9 @@ public class MongoManager implements DatabaseManager {
                 Document query = new Document("floor_id", floorId);
                 triggersCollection.deleteOne(query);
 
-                Main.getInstance().getLogger().info("Triggers delete for " + floorId);
+                Main.getLoggerUtil().info("Triggers delete for " + floorId);
             } catch (Exception e) {
-                Main.getInstance().getLogger().severe("&#FF0000An error occurred during the deletion of triggers for " + floorId + ": " + e.getMessage());
+                Main.getLoggerUtil().severe("An error occurred during the deletion of triggers for " + floorId + ": " + e.getMessage());
                 e.printStackTrace(System.err);
             }
         });

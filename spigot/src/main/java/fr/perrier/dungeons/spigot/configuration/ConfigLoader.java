@@ -186,7 +186,7 @@ public class ConfigLoader {
             for (File f : files) {
                 if (f.isFile() && f.getName().endsWith(".yml")) {
                     String name = f.getName().replace(".yml", "");
-                    Main.getInstance().getLogger().info("Loading dungeon " + name + "...");
+                    Main.getLoggerUtil().info("Loading dungeon " + name + "...");
                     try {
                         loadDungeon(name);
                     } catch (Exception e) {

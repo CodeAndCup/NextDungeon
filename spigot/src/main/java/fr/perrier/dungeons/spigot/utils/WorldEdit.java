@@ -32,7 +32,7 @@ public class WorldEdit {
     public static void applySchematic(String schematicName, int x, int y, int z) {
         File file = new File(Main.getInstance().getDataFolder() + File.separator + "schematics" + File.separator + schematicName + ".schematic");
         if (!file.exists()) {
-            Main.getInstance().getLogger().severe("The schematic file " + schematicName + ".schematic does not exist.");
+            Main.getLoggerUtil().severe("The schematic file " + schematicName + ".schematic does not exist.");
             return;
         }
 
@@ -44,7 +44,7 @@ public class WorldEdit {
         // Detect correct format
         ClipboardFormat format = ClipboardFormats.findByFile(file);
         if (format == null) {
-            Main.getInstance().getLogger().severe("Could not detect schematic format for file " + schematicName + ".schematic");
+            Main.getLoggerUtil().severe("Could not detect schematic format for file " + schematicName + ".schematic");
             return;
         }
 

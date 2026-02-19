@@ -5,6 +5,10 @@
 # Cette configuration contrôle tous les aspects du plugin.
 # =====================================================
 
+DebugMode:
+    activated: false # Active le mode debug pour des logs détaillés (ne pas activer en production)
+    logType: "CONSOLE" # Où afficher les logs de debug (CONSOLE, IN_GAME, BOTH)
+
 # ─────────────────────────────────────────────────────
 # 🔴 CONFIGURATION REDIS
 # ─────────────────────────────────────────────────────
@@ -15,7 +19,8 @@ RedisConfiguration:
     port: 6379
     username: "default"
     password: ""
-    topic: "dungeons:packets" # ⚠️ Ne pas modifier sans savoir ce que vous faites
+    database: 0
+    topic: "nextdungeon" # ⚠️ Ne pas modifier sans savoir ce que vous faites
 
 # ─────────────────────────────────────────────────────
 # 🌐 CONFIGURATION WEB EDITOR

@@ -65,7 +65,7 @@ public class GiveItemAction extends Action implements BlocklyAction {
     @Override
     public boolean execute(Player triggerPlayer, Location location, Map<String, Object> data) {
         if (itemMaterial == null || itemMaterial.isEmpty()) {
-            Main.getInstance().getLogger().warning("Item material is empty in GiveItemAction");
+            Main.getLoggerUtil().warning("Item material is empty in GiveItemAction");
             return false;
         }
 
@@ -96,14 +96,14 @@ public class GiveItemAction extends Action implements BlocklyAction {
                 }
             }
 
-            if (Main.isDebug()) {
-                Main.getInstance().getLogger().info("Gave " + amount + "x " + itemMaterial + " to " + target);
+            if (Main.getLoggerUtil().isDebugEnabled()) {
+                Main.getLoggerUtil().info("Gave " + amount + "x " + itemMaterial + " to " + target);
             }
 
             return true;
 
         } catch (IllegalArgumentException e) {
-            Main.getInstance().getLogger().warning("Invalid material: " + itemMaterial);
+            Main.getLoggerUtil().warning("Invalid material: " + itemMaterial);
             return false;
         }
     }

@@ -63,8 +63,8 @@ public class PlayerHasItemCondition extends Action implements BlocklyAction {
         try {
             boolean hasItem = checkPlayerHasItem(triggerPlayer);
 
-            if (Main.isDebug()) {
-                Main.getInstance().getLogger().info("PlayerHasItem condition: " + hasItem);
+            if (Main.getLoggerUtil().isDebugEnabled()) {
+                Main.getLoggerUtil().info("PlayerHasItem condition: " + hasItem);
             }
 
             List<Action> actionsToExecute = hasItem ? ifActions : elseActions;
@@ -72,7 +72,7 @@ public class PlayerHasItemCondition extends Action implements BlocklyAction {
             if (actionsToExecute != null && !actionsToExecute.isEmpty()) {
                 for (Action action : actionsToExecute) {
                     if (!action.execute(triggerPlayer, location, data)) {
-                        Main.getInstance().getLogger().warning("Action failed in PlayerHasItem condition: " + action.getClass().getSimpleName());
+                        Main.getLoggerUtil().warning("Action failed in PlayerHasItem condition: " + action.getClass().getSimpleName());
                     }
                 }
             }
@@ -80,7 +80,7 @@ public class PlayerHasItemCondition extends Action implements BlocklyAction {
             return true;
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("Error executing PlayerHasItem condition: " + e.getMessage());
+            Main.getLoggerUtil().severe("Error executing PlayerHasItem condition: " + e.getMessage());
             e.printStackTrace(System.err);
             return false;
         }
@@ -115,7 +115,7 @@ public class PlayerHasItemCondition extends Action implements BlocklyAction {
             return totalCount >= minAmount;
 
         } catch (IllegalArgumentException e) {
-            Main.getInstance().getLogger().warning("Invalid material type: " + itemMaterial);
+            Main.getLoggerUtil().warning("Invalid material type: " + itemMaterial);
             return false;
         }
     }
@@ -132,6 +132,111 @@ public class PlayerHasItemCondition extends Action implements BlocklyAction {
             this.elseActions = new ArrayList<>();
         }
         this.elseActions.add(action);
+    }
+
+    @Override
+    public boolean requiresCustomBlockGeneration() {
+        return true;
+    }
+
+    @Override
+    public void generateCustomBlock(StringBuilder js) {
+        js.append("""
+        Blockly.Blocks['player_has_item_condition'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField('🎒 Si le joueur possède');
+                this.appendValueInput('ITEMMATERIAL')
+                    .setCheck(null)
+                    .appendField('Type d\\'item:');
+                this.appendValueInput('MINAMOUNT')
+                    .setCheck('Number')
+                    .appendField('Quantité min:');
+                this.appendDummyInput()
+                    .appendField('Vérifier nom:')
+                    .appendField(new Blockly.FieldCheckbox('FALSE'), 'CHECKNAME');
+                this.appendValueInput('ITEMNAME')
+                    .setCheck(null)
+                    .appendField('Nom item:');
+                this.appendStatementInput('IFACTIONS')
+                    .setCheck('Action')
+                    .appendField('Alors:');
+                this.appendStatementInput('ELSEACTIONS')
+                    .setCheck('Action')
+                    .appendField('Sinon:');
+                this.setPreviousStatement(true, 'Action');
+                this.setNextStatement(true, 'Action');
+                this.setColour('#FF9800');
+                this.setTooltip('Vérifie si le joueur possède un item spécifique');
+            }
+        };
+        """);
+    }
+
+    @Override
+    public void generateCustomActionCase(StringBuilder js) {
+        js.append("""
+                        if (actionBlock.type === 'player_has_item_condition') {
+                            const itemMaterial = actionBlock.getInputTargetBlock('ITEMMATERIAL') ? actionBlock.getInputTargetBlock('ITEMMATERIAL').getFieldValue('TEXT') || 'DIAMOND' : 'DIAMOND';
+                            const minAmount = actionBlock.getInputTargetBlock('MINAMOUNT') ? actionBlock.getInputTargetBlock('MINAMOUNT').getFieldValue('NUM') || '1' : '1';
+                            const itemName = actionBlock.getInputTargetBlock('ITEMNAME') ? actionBlock.getInputTargetBlock('ITEMNAME').getFieldValue('TEXT') || '' : '';
+                            const ifActions = getActionsFromStatementInput(actionBlock, 'IFACTIONS');
+                            const elseActions = getActionsFromStatementInput(actionBlock, 'ELSEACTIONS');
+
+                            actions.push({
+                                type: 'player_has_item_condition',
+                                itemmaterial: itemMaterial,
+                                minamount: parseInt(minAmount),
+                                checkname: actionBlock.getFieldValue('CHECKNAME') === 'TRUE',
+                                itemname: itemName,
+                                ifactions: ifActions,
+                                elseactions: elseActions
+                            });
+                        }
+        """);
+    }
+
+    @Override
+    public void generateCustomActionLoadingCase(StringBuilder js) {
+        js.append("""
+                            if (action.type === 'player_has_item_condition') {
+                                actionBlock = workspace.newBlock('player_has_item_condition');
+                                
+                                if (action.itemmaterial) {
+                                    const materialBlock = workspace.newBlock('text');
+                                    materialBlock.setFieldValue(action.itemmaterial, 'TEXT');
+                                    materialBlock.initSvg();
+                                    materialBlock.render();
+                                    actionBlock.getInput('ITEMMATERIAL').connection.connect(materialBlock.outputConnection);
+                                }
+                                
+                                if (action.minamount !== undefined) {
+                                    const amountBlock = workspace.newBlock('math_number');
+                                    amountBlock.setFieldValue(action.minamount.toString(), 'NUM');
+                                    amountBlock.initSvg();
+                                    amountBlock.render();
+                                    actionBlock.getInput('MINAMOUNT').connection.connect(amountBlock.outputConnection);
+                                }
+                                
+                                actionBlock.setFieldValue(action.checkname ? 'TRUE' : 'FALSE', 'CHECKNAME');
+                                
+                                if (action.itemname) {
+                                    const nameBlock = workspace.newBlock('text');
+                                    nameBlock.setFieldValue(action.itemname, 'TEXT');
+                                    nameBlock.initSvg();
+                                    nameBlock.render();
+                                    actionBlock.getInput('ITEMNAME').connection.connect(nameBlock.outputConnection);
+                                }
+                                
+                                if (action.ifactions && action.ifactions.length > 0) {
+                                    loadActionsIntoStatement(actionBlock, action.ifactions, 'IFACTIONS');
+                                }
+                                
+                                if (action.elseactions && action.elseactions.length > 0) {
+                                    loadActionsIntoStatement(actionBlock, action.elseactions, 'ELSEACTIONS');
+                                }
+                            }
+        """);
     }
 
     @Override

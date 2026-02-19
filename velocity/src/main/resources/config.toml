@@ -7,6 +7,7 @@ port = 7734
 [redis]
 host = "localhost"
 port = 6379
-topic = "dungeons:packets"
-username = ""
+topic = "nextdungeon"
+username = "default"
 password = ""
+database = 0

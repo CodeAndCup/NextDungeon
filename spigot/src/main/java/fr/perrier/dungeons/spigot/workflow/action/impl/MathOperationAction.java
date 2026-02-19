@@ -68,7 +68,7 @@ public class MathOperationAction extends Action implements BlocklyAction {
     @Override
     public boolean execute(Player triggerPlayer, Location location, Map<String, Object> data) {
         if (resultVariableName == null || resultVariableName.trim().isEmpty()) {
-            Main.getInstance().getLogger().warning("&eResult variable name is empty in MathOperationAction");
+            Main.getLoggerUtil().warning("Result variable name is empty in MathOperationAction");
             return false;
         }
 
@@ -87,14 +87,14 @@ public class MathOperationAction extends Action implements BlocklyAction {
             Main.getInstance().getVariableRegistry().setVariable(triggerPlayer, trimmedResultName, result, resultScopeToUse);
             data.put(trimmedResultName, result);
 
-            if (Main.isDebug()) {
-                Main.getInstance().getLogger().info("Math operation: " + resolvedFirst + " " + operationToUse + " " + resolvedSecond + " = " + result);
+            if (Main.getLoggerUtil().isDebugEnabled()) {
+                Main.getLoggerUtil().info("Math operation: " + resolvedFirst + " " + operationToUse + " " + resolvedSecond + " = " + result);
             }
 
             return true;
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().warning("&eError in MathOperationAction: " + e.getMessage());
+            Main.getLoggerUtil().warning("Error in MathOperationAction: " + e.getMessage());
             return false;
         }
     }
@@ -147,7 +147,7 @@ public class MathOperationAction extends Action implements BlocklyAction {
             case "divide" -> performDivision(first, second);
             case "concatenate" -> performConcatenation(first, second);
             default -> {
-                Main.getInstance().getLogger().warning("&eUnknown operation: " + operation);
+                Main.getLoggerUtil().warning("Unknown operation: " + operation);
                 yield first;
             }
         };
@@ -199,7 +199,7 @@ public class MathOperationAction extends Action implements BlocklyAction {
             double num1 = getNumericValue(first);
             double num2 = getNumericValue(second);
             if (num2 == 0) {
-                Main.getInstance().getLogger().warning("&eDivision by zero in MathOperationAction");
+                Main.getLoggerUtil().warning("Division by zero in MathOperationAction");
                 return 0;
             }
             double result = num1 / num2;

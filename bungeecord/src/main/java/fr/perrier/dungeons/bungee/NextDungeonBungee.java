@@ -39,7 +39,8 @@ public class NextDungeonBungee extends Plugin {
                 "localhost",  // redis host
                 6379,  // redis port
                 null,  // redis username
-                null   // redis password
+                null,   // redis password
+                0
             );
             this.messaging.registerAdapter(WebEditorResponsePacket.class, new WebEditorResponseSubscriber());
             getLogger().info("✅ Système de messagerie Redis initialisé");

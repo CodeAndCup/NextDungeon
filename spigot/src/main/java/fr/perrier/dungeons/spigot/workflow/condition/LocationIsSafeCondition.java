@@ -61,8 +61,8 @@ public class LocationIsSafeCondition extends Action implements BlocklyAction {
             Location checkLocation = location != null ? location.toLocation() : targetLocation;
             boolean isSafe = isLocationSafe(checkLocation);
 
-            if (Main.isDebug()) {
-                Main.getInstance().getLogger().info("LocationIsSafe condition: " + isSafe);
+            if (Main.getLoggerUtil().isDebugEnabled()) {
+                Main.getLoggerUtil().info("LocationIsSafe condition: " + isSafe);
             }
 
             List<Action> actionsToExecute = isSafe ? ifActions : elseActions;
@@ -70,7 +70,7 @@ public class LocationIsSafeCondition extends Action implements BlocklyAction {
             if (actionsToExecute != null && !actionsToExecute.isEmpty()) {
                 for (Action action : actionsToExecute) {
                     if (!action.execute(triggerPlayer, targetLocation, data)) {
-                        Main.getInstance().getLogger().warning("Action failed in LocationIsSafe condition: " + action.getClass().getSimpleName());
+                        Main.getLoggerUtil().warning("Action failed in LocationIsSafe condition: " + action.getClass().getSimpleName());
                     }
                 }
             }
@@ -78,7 +78,7 @@ public class LocationIsSafeCondition extends Action implements BlocklyAction {
             return true;
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("Error executing LocationIsSafe condition: " + e.getMessage());
+            Main.getLoggerUtil().severe("Error executing LocationIsSafe condition: " + e.getMessage());
             e.printStackTrace(System.err);
             return false;
         }
@@ -136,6 +136,87 @@ public class LocationIsSafeCondition extends Action implements BlocklyAction {
             this.elseActions = new ArrayList<>();
         }
         this.elseActions.add(action);
+    }
+
+    @Override
+    public boolean requiresCustomBlockGeneration() {
+        return true;
+    }
+
+    @Override
+    public void generateCustomBlock(StringBuilder js) {
+        js.append("""
+        Blockly.Blocks['location_is_safe_condition'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField('🛡️ Si la location est sûre');
+                this.appendValueInput('LOCATION')
+                    .setCheck('LocationBlock')
+                    .appendField('Location:');
+                this.appendDummyInput()
+                    .appendField('Sol solide:')
+                    .appendField(new Blockly.FieldCheckbox('TRUE'), 'CHECKSOLIDGROUND');
+                this.appendDummyInput()
+                    .appendField('Blocs dangereux:')
+                    .appendField(new Blockly.FieldCheckbox('TRUE'), 'CHECKDANGEROUSBLOCKS');
+                this.appendStatementInput('IFACTIONS')
+                    .setCheck('Action')
+                    .appendField('Alors:');
+                this.appendStatementInput('ELSEACTIONS')
+                    .setCheck('Action')
+                    .appendField('Sinon:');
+                this.setPreviousStatement(true, 'Action');
+                this.setNextStatement(true, 'Action');
+                this.setColour('#FF9800');
+                this.setTooltip('Vérifie si une location est sûre pour la téléportation');
+            }
+        };
+        """);
+    }
+
+    @Override
+    public void generateCustomActionCase(StringBuilder js) {
+        js.append("""
+                        if (actionBlock.type === 'location_is_safe_condition') {
+                            const location = actionBlock.getInputTargetBlock('LOCATION') ? extractLocationBlock(actionBlock.getInputTargetBlock('LOCATION')) : null;
+                            const ifActions = getActionsFromStatementInput(actionBlock, 'IFACTIONS');
+                            const elseActions = getActionsFromStatementInput(actionBlock, 'ELSEACTIONS');
+
+                            actions.push({
+                                type: 'location_is_safe_condition',
+                                location: location,
+                                checksolidground: actionBlock.getFieldValue('CHECKSOLIDGROUND') === 'TRUE',
+                                checkdangerousblocks: actionBlock.getFieldValue('CHECKDANGEROUSBLOCKS') === 'TRUE',
+                                ifactions: ifActions,
+                                elseactions: elseActions
+                            });
+                        }
+        """);
+    }
+
+    @Override
+    public void generateCustomActionLoadingCase(StringBuilder js) {
+        js.append("""
+                            if (action.type === 'location_is_safe_condition') {
+                                actionBlock = workspace.newBlock('location_is_safe_condition');
+                                
+                                if (action.location) {
+                                    const locationBlock = createLocationBlock(workspace, action.location);
+                                    actionBlock.getInput('LOCATION').connection.connect(locationBlock.outputConnection);
+                                }
+                                
+                                actionBlock.setFieldValue(action.checksolidground ? 'TRUE' : 'FALSE', 'CHECKSOLIDGROUND');
+                                actionBlock.setFieldValue(action.checkdangerousblocks ? 'TRUE' : 'FALSE', 'CHECKDANGEROUSBLOCKS');
+                                
+                                if (action.ifactions && action.ifactions.length > 0) {
+                                    loadActionsIntoStatement(actionBlock, action.ifactions, 'IFACTIONS');
+                                }
+                                
+                                if (action.elseactions && action.elseactions.length > 0) {
+                                    loadActionsIntoStatement(actionBlock, action.elseactions, 'ELSEACTIONS');
+                                }
+                            }
+        """);
     }
 
     @Override

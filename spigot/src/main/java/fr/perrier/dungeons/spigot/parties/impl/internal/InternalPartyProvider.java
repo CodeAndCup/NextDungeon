@@ -46,7 +46,7 @@ public class InternalPartyProvider implements IPartyProvider {
     public Optional<IParty> createParty(Player leader, String name) {
         // Check if the player is already in a party
         if (memberToParty.containsKey(leader.getUniqueId())) {
-            Main.getInstance().getLogger().warning("Player " + leader.getName() + " is already in a party");
+            Main.getLoggerUtil().warning("Player " + leader.getName() + " is already in a party");
             return Optional.empty();
         }
 
@@ -56,7 +56,7 @@ public class InternalPartyProvider implements IPartyProvider {
         partiesById.put(partyId, party);
         memberToParty.put(leader.getUniqueId(), partyId);
 
-        Main.getInstance().getLogger().info("Created internal party: " + name + " with leader " + leader.getName());
+        Main.getLoggerUtil().info("Created internal party: " + name + " with leader " + leader.getName());
         return Optional.of(party);
     }
 

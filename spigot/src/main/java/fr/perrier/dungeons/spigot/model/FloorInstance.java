@@ -8,6 +8,7 @@ import fr.perrier.dungeons.common.model.player.PlayerStats;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.messaging.packets.CancelInstancePacket;
 import fr.perrier.dungeons.spigot.parties.IDungeonParty;
+import fr.perrier.dungeons.spigot.utils.LoggerUtil;
 import fr.perrier.dungeons.spigot.utils.ServerUtil;
 import lombok.Getter;
 import org.bukkit.Bukkit;
@@ -74,7 +75,7 @@ public class FloorInstance extends FloorInstanceData {
         this.instanceId = generateFloorServer(getFloor(), editMode);
         this.ready = false;
 
-        Main.getInstance().getDungeonService().syncInstance(this.toFloorInstanceData());
+        syncInstance();
     }
 
     public FloorInstance(FloorInstanceData floorInstanceData) {
@@ -130,7 +131,7 @@ public class FloorInstance extends FloorInstanceData {
      */
     public void setReady(boolean ready) {
         this.ready = ready;
-        Main.getInstance().getDungeonService().syncInstance(this.toFloorInstanceData());
+        syncInstance();
     }
 
     /**
@@ -171,7 +172,7 @@ public class FloorInstance extends FloorInstanceData {
      * @param player the player to send to the cloud service
      */
     public void sendToServer(Player player) {
-        Main.getInstance().getLogger().info(String.format("Attempting to send %s to instance %s", player.getName(), instanceId));
+        Main.getLoggerUtil().info(String.format("Attempting to send %s to instance %s", player.getName(), instanceId));
 
         AtomicInteger timerDelay = new AtomicInteger(0);
         AtomicInteger currentLoad = new AtomicInteger(0);
@@ -196,7 +197,7 @@ public class FloorInstance extends FloorInstanceData {
                     FloorInstance instance = Main.getInstance().getDungeonService().getInstance(instanceId);
 
                     if (instance == null) {
-                        Main.getInstance().getLogger().warning("&eInstance " + instanceId + "no longer exists.");
+                        Main.getLoggerUtil().warning("Instance " + instanceId + "no longer exists.");
                         player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000This dungeon instance no longer exists!"));
                         this.cancel();
                         return;
@@ -208,8 +209,9 @@ public class FloorInstance extends FloorInstanceData {
                         this.cancel();
                     } else {
                         if (System.currentTimeMillis() - startTime > TIMEOUT) {
-                            Main.getInstance().getLogger().warning("&eTimed out waiting for instance " + instanceId + " to be ready");
+                            Main.getLoggerUtil().warning("Timed out waiting for instance " + instanceId + " to be ready. (Now try cancelling instance..)");
                             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Timed out waiting for dungeon instance to be ready!"));
+                            instance.cancelInstance();
                             this.cancel();
                         }
                     }
@@ -232,9 +234,16 @@ public class FloorInstance extends FloorInstanceData {
      * notifying all players of the impending shutdown.</p>
      */
     public void complete(boolean success) {
-        for(Player player : Bukkit.getOnlinePlayers()) { //TODO: OnlinePlayers are not equal to players in the instance - need to track players in the instance separately
-            PlayerStats playerStats = this.playerStats.get(player.getUniqueId());
-            if(playerStats == null) continue;
+        for(UUID playerId : getPlayers()) {
+            Player player = Bukkit.getPlayer(playerId);
+            if(player == null) continue;
+
+            PlayerStats playerStats = getPlayerStats().get(player.getUniqueId());
+            if(playerStats == null) {
+                if(LoggerUtil.getInstance().isDebugEnabled())
+                    LoggerUtil.getInstance().warning("PlayerStats for player " + playerId + " is null");
+                continue;
+            }
 
             ProfileData profileData = Main.getInstance().getProfileService().getProfileData(player.getUniqueId());
             if(success)
@@ -272,6 +281,10 @@ public class FloorInstance extends FloorInstanceData {
         Bukkit.broadcastMessage(ChatUtil.translate(Main.getPrefix() + "&fThe dungeon instance &e" + getInstanceName() + " &fwill shut down in &#FF000030 &fseconds."));
 
         Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+            Bukkit.getOnlinePlayers().forEach(player -> player.kickPlayer(ChatUtil.translate("&#FF0000The dungeon instance is shutting down! Thanks for playing!")));
+        }, 20L * 20);
+
+        Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
             Main.getInstance().getDungeonService().removeInstance(this.instanceId);
             Bukkit.shutdown();
         }, 20L * 30);
@@ -300,6 +313,7 @@ public class FloorInstance extends FloorInstanceData {
     public FloorInstanceData toFloorInstanceData() {
         FloorInstanceData data = new FloorInstanceData(this.instanceId, this.floorId);
         data.setReady(this.ready);
+        data.getPlayers().addAll(this.players);
         data.getPlayerStats().putAll(this.playerStats);
         data.getPlayerCurrentLives().putAll(this.playerCurrentLives);
         return data;
@@ -328,7 +342,24 @@ public class FloorInstance extends FloorInstanceData {
      * servers that the instance should be cancelled and removed.</p>
      */
     public void cancelInstance() {
-        Main.getInstance().getMessaging().sendPacket(new CancelInstancePacket(this.instanceId));
+        Bukkit.getScheduler().runTaskTimerAsynchronously(Main.getInstance(), () -> {
+            FloorInstance instance = Main.getInstance().getDungeonService().getInstance(instanceId);
+            if(instance != null && instance.isReady()) {
+                Main.getInstance().getMessaging().sendPacket(new CancelInstancePacket(this.instanceId));
+            }
+        }, 20L, 20L);
+    }
+
+    /**
+     * Synchronizes the current state of this FloorInstance with Redis.
+     *
+     * <p>This method converts this FloorInstance to a FloorInstanceData object
+     * and then calls the syncInstance method of the DungeonService to update
+     * the instance data in Redis. This ensures that all servers have the
+     * latest information about this instance.</p>
+     */
+    public void syncInstance() {
+        Main.getInstance().getDungeonService().syncInstance(this.toFloorInstanceData());
     }
 
     /**
@@ -340,8 +371,9 @@ public class FloorInstance extends FloorInstanceData {
     @Override
     public String toString() {
         return "FloorInstance{" +
-                "instanceId=" + instanceId +
-                ", floorId='" + floorId + '\'' +
+                "instanceId=" + instanceId + "," +
+                "floorId='" + floorId + "'," +
+                "instanceData=" + toFloorInstanceData() +
                 '}';
     }
 }

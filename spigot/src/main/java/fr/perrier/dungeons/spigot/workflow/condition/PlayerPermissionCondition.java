@@ -57,8 +57,8 @@ public class PlayerPermissionCondition extends Action implements BlocklyAction {
 
             boolean hasPermission = checkPermission(triggerPlayer);
 
-            if (Main.isDebug()) {
-                Main.getInstance().getLogger().info("PlayerPermission condition: " + hasPermission + " for " + permission);
+            if (Main.getLoggerUtil().isDebugEnabled()) {
+                Main.getLoggerUtil().info("PlayerPermission condition: " + hasPermission + " for " + permission);
             }
 
             List<Action> actionsToExecute = hasPermission ? ifActions : elseActions;
@@ -66,7 +66,7 @@ public class PlayerPermissionCondition extends Action implements BlocklyAction {
             if (actionsToExecute != null && !actionsToExecute.isEmpty()) {
                 for (Action action : actionsToExecute) {
                     if (!action.execute(triggerPlayer, location, data)) {
-                        Main.getInstance().getLogger().warning("Action failed in PlayerPermission condition: " + action.getClass().getSimpleName());
+                        Main.getLoggerUtil().warning("Action failed in PlayerPermission condition: " + action.getClass().getSimpleName());
                     }
                 }
             }
@@ -74,7 +74,7 @@ public class PlayerPermissionCondition extends Action implements BlocklyAction {
             return true;
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("Error executing PlayerPermission condition: " + e.getMessage());
+            Main.getLoggerUtil().severe("Error executing PlayerPermission condition: " + e.getMessage());
             e.printStackTrace(System.err);
             return false;
         }
@@ -103,6 +103,87 @@ public class PlayerPermissionCondition extends Action implements BlocklyAction {
             this.elseActions = new ArrayList<>();
         }
         this.elseActions.add(action);
+    }
+
+    @Override
+    public boolean requiresCustomBlockGeneration() {
+        return true;
+    }
+
+    @Override
+    public void generateCustomBlock(StringBuilder js) {
+        js.append("""
+        Blockly.Blocks['player_permission_condition'] = {
+            init: function() {
+                this.appendDummyInput()
+                    .appendField('🔐 Si le joueur');
+                this.appendValueInput('PERMISSION')
+                    .setCheck(null)
+                    .appendField('Permission:');
+                this.appendDummyInput()
+                    .appendField(new Blockly.FieldDropdown([
+                        ['possède', 'has'],
+                        ['ne possède pas', 'has_not']
+                    ]), 'COMPARISON');
+                this.appendStatementInput('IFACTIONS')
+                    .setCheck('Action')
+                    .appendField('Alors:');
+                this.appendStatementInput('ELSEACTIONS')
+                    .setCheck('Action')
+                    .appendField('Sinon:');
+                this.setPreviousStatement(true, 'Action');
+                this.setNextStatement(true, 'Action');
+                this.setColour('#FF9800');
+                this.setTooltip('Vérifie si un joueur possède une permission spécifique');
+            }
+        };
+        """);
+    }
+
+    @Override
+    public void generateCustomActionCase(StringBuilder js) {
+        js.append("""
+                        if (actionBlock.type === 'player_permission_condition') {
+                            const permission = actionBlock.getInputTargetBlock('PERMISSION') ? actionBlock.getInputTargetBlock('PERMISSION').getFieldValue('TEXT') || 'dungeons.admin' : 'dungeons.admin';
+                            const ifActions = getActionsFromStatementInput(actionBlock, 'IFACTIONS');
+                            const elseActions = getActionsFromStatementInput(actionBlock, 'ELSEACTIONS');
+
+                            actions.push({
+                                type: 'player_permission_condition',
+                                permission: permission,
+                                comparison: actionBlock.getFieldValue('COMPARISON'),
+                                ifactions: ifActions,
+                                elseactions: elseActions
+                            });
+                        }
+        """);
+    }
+
+    @Override
+    public void generateCustomActionLoadingCase(StringBuilder js) {
+        js.append("""
+                            if (action.type === 'player_permission_condition') {
+                                actionBlock = workspace.newBlock('player_permission_condition');
+                                
+                                if (action.permission) {
+                                    const permBlock = workspace.newBlock('text');
+                                    permBlock.setFieldValue(action.permission, 'TEXT');
+                                    permBlock.initSvg();
+                                    permBlock.render();
+                                    actionBlock.getInput('PERMISSION').connection.connect(permBlock.outputConnection);
+                                }
+                                
+                                actionBlock.setFieldValue(action.comparison || 'has', 'COMPARISON');
+                                
+                                if (action.ifactions && action.ifactions.length > 0) {
+                                    loadActionsIntoStatement(actionBlock, action.ifactions, 'IFACTIONS');
+                                }
+                                
+                                if (action.elseactions && action.elseactions.length > 0) {
+                                    loadActionsIntoStatement(actionBlock, action.elseactions, 'ELSEACTIONS');
+                                }
+                            }
+        """);
     }
 
     @Override

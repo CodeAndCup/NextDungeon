@@ -24,7 +24,7 @@ public class VariableRegistry {
 
 
     public VariableRegistry() {
-        Main.getInstance().getLogger().info("Variable Manager initialized");
+        Main.getLoggerUtil().info("Variable Manager initialized");
     }
 
     // ===== GLOBAL VARIABLES =====
@@ -40,8 +40,8 @@ public class VariableRegistry {
             return;
         }
         globalVariables.put(name.trim(), value);
-        if (Main.isDebug()) {
-            Main.getInstance().getLogger().info("Set global variable: " + name + " = " + value);
+        if (Main.getLoggerUtil().isDebugEnabled()) {
+            Main.getLoggerUtil().info("Set global variable: " + name + " = " + value);
         }
     }
 
@@ -85,8 +85,8 @@ public class VariableRegistry {
         playerVariables.computeIfAbsent(playerId, k -> new ConcurrentHashMap<>());
         playerVariables.get(playerId).put(name.trim(), value);
 
-        if (Main.isDebug()) {
-            Main.getInstance().getLogger().info("Set player variable for " + player.getName() + ": " + name + " = " + value);
+        if (Main.getLoggerUtil().isDebugEnabled()) {
+            Main.getLoggerUtil().info("Set player variable for " + player.getName() + ": " + name + " = " + value);
         }
     }
 
@@ -127,8 +127,8 @@ public class VariableRegistry {
     public void clearPlayerVariables(Player player) {
         if (player != null) {
             playerVariables.remove(player.getUniqueId());
-            if (Main.isDebug()) {
-                Main.getInstance().getLogger().info("Cleared all variables for player: " + player.getName());
+            if (Main.getLoggerUtil().isDebugEnabled()) {
+                Main.getLoggerUtil().info("Cleared all variables for player: " + player.getName());
             }
         }
     }
@@ -198,8 +198,8 @@ public class VariableRegistry {
     public void clearAllVariables() {
         globalVariables.clear();
         playerVariables.clear();
-        if (Main.isDebug()) {
-            Main.getInstance().getLogger().info("Cleared all variables");
+        if (Main.getLoggerUtil().isDebugEnabled()) {
+            Main.getLoggerUtil().info("Cleared all variables");
         }
     }
 

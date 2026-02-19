@@ -18,7 +18,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class ServerNameService implements PluginMessageListener {
 
-    private static final String DUNGEONS_CHANNEL = "dungeons:main";
+    private static final String DUNGEONS_CHANNEL = Main.getInstance().getConfig().getString("RedisConfiguration.topic") + ":main";
 
     private final AtomicReference<String> cachedServerName = new AtomicReference<>(null);
     private final AtomicReference<CompletableFuture<String>> pendingRequest = new AtomicReference<>(null);
@@ -27,11 +27,10 @@ public class ServerNameService implements PluginMessageListener {
      * Initializes the service and registers the plugin messaging channel.
      */
     public void initialize() {
-        // Enregistrer le canal pour dungeons:main (communication avec Velocity)
         Bukkit.getServer().getMessenger().registerOutgoingPluginChannel(Main.getInstance(), DUNGEONS_CHANNEL);
         Bukkit.getServer().getMessenger().registerIncomingPluginChannel(Main.getInstance(), DUNGEONS_CHANNEL, this);
 
-        Main.getInstance().getLogger().info("ServerNameService initialized and plugin messaging channels registered.");
+        Main.getLoggerUtil().info("ServerNameService initialized and plugin messaging channels registered.");
     }
 
     public String getCachedServerName() {
@@ -58,27 +57,29 @@ public class ServerNameService implements PluginMessageListener {
             if (future != null) {
                 return future.thenApply(serverName -> {
                     cachedServerName.set(serverName);
-                    Main.getInstance().getLogger().info("Server name retrieved: " + serverName);
+                    Main.getLoggerUtil().info("Server name retrieved: " + serverName);
                     return serverName;
                 }).exceptionally(e -> {
                     String fallback = Bukkit.getServer().getName();
-                    Main.getInstance().getLogger().severe("Unable to retrieve the server name from the proxy, using: " + fallback);
-                    Main.getInstance().getLogger().severe("Error: " + e.getMessage());
+                    Main.getLoggerUtil().severe("Unable to retrieve the server name from the proxy, using: " + fallback);
+                    Main.getLoggerUtil().severe("Error: " + e.getMessage());
+                    e.printStackTrace(System.err);
                     cachedServerName.set(fallback);
                     return fallback;
-                });
+                }).orTimeout(10, TimeUnit.SECONDS);
             }
         } catch (Exception e) {
             String fallback = Bukkit.getServer().getName();
-            Main.getInstance().getLogger().severe("Unable to retrieve the server name from the proxy, using: " + fallback);
-            Main.getInstance().getLogger().severe("Error: " + e.getMessage());
+            Main.getLoggerUtil().severe("Unable to retrieve the server name from the proxy, using: " + fallback);
+            Main.getLoggerUtil().severe("Error: " + e.getMessage());
+            e.printStackTrace(System.err);
             cachedServerName.set(fallback);
             return CompletableFuture.completedFuture(fallback);
         }
 
         String fallback = Bukkit.getServer().getName();
-        Main.getInstance().getLogger().severe("Unable to retrieve the server name from the proxy, using: " + fallback);
-        Main.getInstance().getLogger().severe("Error: requestServerName returned null");
+        Main.getLoggerUtil().severe("Unable to retrieve the server name from the proxy, using: " + fallback);
+        Main.getLoggerUtil().severe("Error: requestServerName returned null");
         cachedServerName.set(fallback);
         return CompletableFuture.completedFuture(fallback);
     }
@@ -114,10 +115,9 @@ public class ServerNameService implements PluginMessageListener {
             out.writeUTF(serverIp);
             out.writeInt(serverPort);
 
-            // Envoyer le message au proxy via le canal dungeons:main
             Bukkit.getServer().sendPluginMessage(Main.getInstance(), DUNGEONS_CHANNEL, out.toByteArray());
 
-            Main.getInstance().getLogger().info("Requête GetServerName envoyée - IP: " + serverIp + ":" + serverPort);
+            Main.getLoggerUtil().info("Requête GetServerName envoyée - IP: " + serverIp + ":" + serverPort);
         } catch (Exception e) {
             newRequest.completeExceptionally(e);
         }
@@ -142,7 +142,7 @@ public class ServerNameService implements PluginMessageListener {
 
                 // Vérifier que la réponse correspond à ce serveur
                 if(!Bukkit.getIp().equals(ip) && Bukkit.getPort() != port) {
-                    Main.getInstance().getLogger().info("Received ServerName response for different server (" + ip + ":" + port + "): " + serverName);
+                    Main.getLoggerUtil().info("Received ServerName response for different server (" + ip + ":" + port + "): " + serverName);
                     return;
                 }
                 
@@ -154,10 +154,11 @@ public class ServerNameService implements PluginMessageListener {
                 // Mettre en cache le nom du serveur de manière thread-safe
                 cachedServerName.compareAndSet(null, serverName);
                 
-                Main.getInstance().getLogger().info("Server name received from the proxy: " + serverName);
+                Main.getLoggerUtil().info("Server name received from the proxy: " + serverName);
             }
         } catch (Exception e) {
-            Main.getInstance().getLogger().warning("&eError receiving server name: " + e.getMessage());
+            Main.getLoggerUtil().warning("Error receiving server name: " + e.getMessage());
+            e.printStackTrace(System.err);
         }
     }
 

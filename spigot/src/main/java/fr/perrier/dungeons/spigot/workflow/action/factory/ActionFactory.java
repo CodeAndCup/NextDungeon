@@ -62,8 +62,26 @@ public class ActionFactory {
                             actionData.get("scope").getAsString() : "player";
                     yield new SetVariableAction(variableName, value, scope);
                 }
+                case "add_to_variable_action" -> {
+                    String variableName = actionData.has("variablename") ?
+                            actionData.get("variablename").getAsString() : "ma_variable";
+                    String value = actionData.has("value") ?
+                            actionData.get("value").getAsString() : "1";
+                    String scope = actionData.has("scope") ?
+                            actionData.get("scope").getAsString() : "player";
+                    yield new AddToVariableAction(variableName, value, scope);
+                }
+                case "subtract_from_variable_action" -> {
+                    String variableName = actionData.has("variablename") ?
+                            actionData.get("variablename").getAsString() : "ma_variable";
+                    String value = actionData.has("value") ?
+                            actionData.get("value").getAsString() : "1";
+                    String scope = actionData.has("scope") ?
+                            actionData.get("scope").getAsString() : "player";
+                    yield new SubtractFromVariableAction(variableName, value, scope);
+                }
                 case "if_action" -> {
-                    IfAction ifAction = new IfAction();
+                    IfCondition ifCondition = new IfCondition();
 
                     // Set condition if provided
                     if (actionData.has("leftvalue")) {
@@ -73,7 +91,7 @@ public class ActionFactory {
                         Object rightValue = actionData.has("rightvalue") ?
                                 parseValue(actionData.get("rightvalue")) : null;
 
-                        ifAction.setCondition(leftValue, operator, rightValue);
+                        ifCondition.setCondition(leftValue, operator, rightValue);
                     }
 
                     // Load IF actions
@@ -82,7 +100,7 @@ public class ActionFactory {
                         for (JsonElement actionElement : ifActionsArray) {
                             Action action = createActionFromJson(actionElement.getAsJsonObject());
                             if (action != null) {
-                                ifAction.addIfAction(action);
+                                ifCondition.addIfAction(action);
                             }
                         }
                     }
@@ -93,12 +111,12 @@ public class ActionFactory {
                         for (JsonElement actionElement : elseActionsArray) {
                             Action action = createActionFromJson(actionElement.getAsJsonObject());
                             if (action != null) {
-                                ifAction.addElseAction(action);
+                                ifCondition.addElseAction(action);
                             }
                         }
                     }
 
-                    yield ifAction;
+                    yield ifCondition;
                 }
                 case "player_has_item_condition" -> {
                     PlayerHasItemCondition condition = new PlayerHasItemCondition();
@@ -479,14 +497,22 @@ public class ActionFactory {
                     LocationBlock location = LocationBlockParser.parseFromJson(actionData, "location");
                     yield new TeleportLocationAction(targetPlayer, location);
                 }
+                case "drop_item_action" -> {
+                    String item = actionData.has("item") ?
+                            actionData.get("item").getAsString() : "STONE";
+                    int quantity = actionData.has("quantity") ?
+                            actionData.get("quantity").getAsInt() : 1;
+                    LocationBlock location = LocationBlockParser.parseFromJson(actionData, "location");
+                    yield new DropItemAction(item, quantity, location);
+                }
                 default -> {
-                    Main.getInstance().getLogger().warning("&eType d'action inconnu: " + type);
+                    Main.getLoggerUtil().warning("Type d'action inconnu: " + type);
                     yield null;
                 }
             };
 
         } catch (Exception e) {
-            Main.getInstance().getLogger().severe("&#FF0000Erreur lors de la creation de l'action: " + e.getMessage());
+            Main.getLoggerUtil().severe("Erreur lors de la creation de l'action: " + e.getMessage());
             e.printStackTrace(System.err);
             return null;
         }
@@ -506,8 +532,8 @@ public class ActionFactory {
             }
         }
 
-        if (Main.isDebug()) {
-            Main.getInstance().getLogger().info("Actions parsees: " + actions.size() + " action(s) creee(s)");
+        if (Main.getLoggerUtil().isDebugEnabled()) {
+            Main.getLoggerUtil().info("Actions parsees: " + actions.size() + " action(s) creee(s)");
         }
         return actions;
     }

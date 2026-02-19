@@ -43,7 +43,7 @@ public class WebEditorRequestSubscriber implements PacketListener {
             // If targetServerId is null, the message is broadcast to all servers (legacy behavior)
             if (packet.getTargetServerId() != null && !packet.getTargetServerId().equals(currentServerId)) {
                 // This message is not for this server, ignore it
-                Main.getInstance().getLogger().fine("Request ignored: target=" + packet.getTargetServerId() + ", server=" + currentServerId);
+                Main.getLoggerUtil().info("Request ignored: target=" + packet.getTargetServerId() + ", server=" + currentServerId);
                 return;
             }
 
@@ -70,7 +70,7 @@ public class WebEditorRequestSubscriber implements PacketListener {
                 Main.getInstance().getMessaging().sendPacket(responsePacket);
 
             } catch (Exception e) {
-                Main.getInstance().getLogger().severe("Error processing web editor request: " + e.getMessage());
+                Main.getLoggerUtil().severe("Error processing web editor request: " + e.getMessage());
 
                 // Send an error response
                 WebEditorResponsePacket errorPacket = WebEditorResponsePacket.error(
@@ -82,7 +82,7 @@ public class WebEditorRequestSubscriber implements PacketListener {
                 Main.getInstance().getMessaging().sendPacket(errorPacket);
             }
         }).exceptionally(e -> {
-            Main.getInstance().getLogger().severe("Error retrieving server name: " + e.getMessage());
+            Main.getLoggerUtil().severe("Error retrieving server name: " + e.getMessage());
             return null;
         });
     }
