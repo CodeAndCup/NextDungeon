@@ -7,7 +7,7 @@
 
     <groupId>fr.perrier</groupId>
     <artifactId>NextDungeon</artifactId>
-    <version>1.0.3-SNAPSHOT</version>
+    <version>1.0.4-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>NextDungeon</name>
@@ -23,7 +23,7 @@
     <modules>
         <module>common</module>
         <module>spigot</module>
-        <module>bungeecord</module>
+        <!--<module>bungeecord</module> -->
         <module>velocity</module>
     </modules>
 
