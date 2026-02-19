@@ -497,6 +497,14 @@ public class ActionFactory {
                     LocationBlock location = LocationBlockParser.parseFromJson(actionData, "location");
                     yield new TeleportLocationAction(targetPlayer, location);
                 }
+                case "drop_item_action" -> {
+                    String item = actionData.has("item") ?
+                            actionData.get("item").getAsString() : "STONE";
+                    int quantity = actionData.has("quantity") ?
+                            actionData.get("quantity").getAsInt() : 1;
+                    LocationBlock location = LocationBlockParser.parseFromJson(actionData, "location");
+                    yield new DropItemAction(item, quantity, location);
+                }
                 default -> {
                     Main.getLoggerUtil().warning("Type d'action inconnu: " + type);
                     yield null;
