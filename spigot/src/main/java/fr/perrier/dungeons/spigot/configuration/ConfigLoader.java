@@ -64,6 +64,7 @@ public class ConfigLoader {
             String floorName = floorSection.getString("name");
             String floorDescription = floorSection.getString("description");
             Floor floor = new Floor(floorId, floorName, floorDescription);
+            floor.setDungeonId(dungeonId); // Nécessaire pour le dashboard et la suppression Redis
 
             // World config
             ConfigurationSection worldSec = floorSection.getConfigurationSection("world");

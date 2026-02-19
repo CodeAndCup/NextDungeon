@@ -14,6 +14,8 @@ import java.util.List;
 public class FloorData {
 
     private String id;
+    /** ID du donjon parent. Utilisé par le dashboard pour grouper les floors sans regex fragile. */
+    private String dungeonId;
 
     private String name;
     private String description;

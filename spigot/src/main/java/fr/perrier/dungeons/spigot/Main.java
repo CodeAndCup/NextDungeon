@@ -15,8 +15,10 @@ import fr.perrier.dungeons.spigot.commands.ConsoleCommands;
 import fr.perrier.dungeons.spigot.commands.DebugCommands;
 import fr.perrier.dungeons.spigot.commands.PlayerCommands;
 import fr.perrier.dungeons.spigot.configuration.ConfigLoader;
+import fr.perrier.dungeons.spigot.configuration.RedisConfigLoader;
 import fr.perrier.dungeons.spigot.database.DatabaseFactory;
 import fr.perrier.dungeons.spigot.database.DatabaseManager;
+import fr.perrier.dungeons.spigot.model.Dungeon;
 import fr.perrier.dungeons.spigot.instance.InstanceInfo;
 import fr.perrier.dungeons.spigot.listener.dungeons.InstanceJoinListener;
 import fr.perrier.dungeons.spigot.listener.dungeons.InstanceMobKillListener;
@@ -446,11 +448,73 @@ public final class Main extends JavaPlugin {
     private void initializeLobbyServer() {
         getLogger().info("Initializing lobby server");
 
-        // Load all dungeons only on lobby server
-        // Instance servers only need to retrieve their specific floor from Redis
-        ConfigLoader.loadAllDungeons();
+        // Charger tous les donjons depuis Redis (dashboard web)
+        // Plus de chargement YAML — tout passe par Redis désormais
+        // Pour migrer d'anciens donjons YAML: /dungeon admin migrate-all
+        RedisConfigLoader.loadAllDungeonsFromRedis();
 
-        // Lobby specific initialization if needed
+        // Subscribe au canal de synchronisation dashboard pour recharger les floors en live
+        subscribeDashboardSyncChannel();
+    }
+
+    /**
+     * S'abonne au canal Redis du dashboard pour recharger automatiquement
+     * les floors quand ils sont créés/modifiés depuis l'interface web.
+     */
+    private void subscribeDashboardSyncChannel() {
+        try {
+            String topic = getConfig().getString("RedisConfiguration.topic", "nextdungeon");
+            // Subscribe au canal string (messages JSON du dashboard proxy)
+            dungeonService.getRedissonClient()
+                    .getTopic(topic + ":sync")
+                    .addListener(String.class, (channel, msg) -> {
+                try {
+                    com.google.gson.JsonObject json =
+                            new com.google.gson.JsonParser().parse(msg).getAsJsonObject();
+                    String type = json.has("type") ? json.get("type").getAsString() : "";
+                    String id   = json.has("id")   ? json.get("id").getAsString()   : "";
+                    if (id.isEmpty()) return;
+                    switch (type) {
+                        case "FLOOR_UPDATE" -> {
+                            getLogger().info("[DashboardSync] Rechargement floor : " + id);
+                            Bukkit.getScheduler().runTaskAsynchronously(this,
+                                    () -> RedisConfigLoader.reloadFloorFromRedis(id));
+                        }
+                        case "FLOOR_DELETE" ->
+                            getLogger().info("[DashboardSync] Floor supprimé : " + id);
+                        case "DUNGEON_UPDATE" -> {
+                            getLogger().info("[DashboardSync] Donjon DUNGEON_UPDATE : " + id);
+                            Dungeon existing = dungeonService.getDungeon(id);
+                            if (existing == null) {
+                                // Lire le nom depuis la clé dd:{id} (StringCodec, JSON)
+                                String ddKey = getConfig().getString("RedisConfiguration.topic", "nextdungeon") + ":dd:" + id;
+                                String entryJson = (String) dungeonService.getRedissonClient()
+                                        .getBucket(ddKey, org.redisson.client.codec.StringCodec.INSTANCE).get();
+                                String name = id; // fallback
+                                if (entryJson != null) {
+                                    try {
+                                        com.google.gson.JsonObject e = new com.google.gson.JsonParser().parse(entryJson).getAsJsonObject();
+                                        if (e.has("name")) name = e.get("name").getAsString();
+                                    } catch (Exception ignored) {}
+                                }
+                                Dungeon newDungeon = new Dungeon(id, name);
+                                dungeonService.syncDungeon(newDungeon);
+                                getLogger().info("[DashboardSync] Donjon créé en mémoire : " + id + " (name=" + name + ")");
+                            }
+                        }
+                        case "DUNGEON_DELETE" -> {
+                            getLogger().info("[DashboardSync] Donjon DUNGEON_DELETE : " + id);
+                            dungeonService.removeDungeon(id);
+                        }
+                    }
+                } catch (Exception ignored) {
+                    // Message non-JSON (RedisMessage Kryo natif) — ignorer silencieusement
+                }
+            });
+            getLogger().info("✅ Abonnement dashboard sync channel actif (" + topic + ":sync)");
+        } catch (Exception e) {
+            getLogger().warning("⚠️ Impossible de s'abonner au dashboard sync channel : " + e.getMessage());
+        }
     }
 
 

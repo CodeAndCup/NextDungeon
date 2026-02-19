@@ -21,6 +21,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 @RequiredArgsConstructor
 public class DungeonService {
+    @Getter
     private final RedissonClient redissonClient;
 
     // Redis Maps and Topics
@@ -44,6 +45,7 @@ public class DungeonService {
     @Getter
     private RMap<UUID, FloorInstanceData> instancesMap;
 
+    @Getter
     private RTopic syncTopic;
 
     /**

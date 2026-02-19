@@ -23,6 +23,17 @@ RedisConfiguration:
     topic: "nextdungeon" # ⚠️ Ne pas modifier sans savoir ce que vous faites
 
 # ─────────────────────────────────────────────────────
+# 🏰 CONFIGURATION CHARGEUR DE DONJONS
+# ─────────────────────────────────────────────────────
+# Contrôle comment les donjons sont chargés au démarrage.
+#
+# Options disponibles:
+#   • yaml  - Charge depuis les fichiers YAML (dossier dungeons/)
+#   • redis - Charge depuis Redis (créés via le dashboard web)
+#
+DungeonLoader: "redis"
+
+# ─────────────────────────────────────────────────────
 # 🌐 CONFIGURATION WEB EDITOR
 # ─────────────────────────────────────────────────────
 # Configuration du serveur web proxy pour l'éditeur

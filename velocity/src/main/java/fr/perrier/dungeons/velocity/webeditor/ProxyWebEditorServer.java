@@ -8,6 +8,7 @@ import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import fr.perrier.dungeons.velocity.NextDungeonVelocity;
 import fr.perrier.dungeons.velocity.dashboard.DashboardService;
+import fr.perrier.dungeons.velocity.dashboard.DungeonManagementService;
 import fr.perrier.dungeons.velocity.messaging.SpigotCommunicationService;
 import fr.perrier.dungeons.velocity.webeditor.EditorSessionManager.EditorSession;
 import lombok.Getter;
@@ -32,9 +33,8 @@ public class ProxyWebEditorServer {
     private final EditorSessionManager sessionManager;
     private final SpigotCommunicationService communicationService;
     private DashboardService dashboardService;
-
-
-    public ProxyWebEditorServer(int port) {
+    private DungeonManagementService dungeonManagementService;
+    private DashboardHandler dashboardHandler;    public ProxyWebEditorServer(int port) {
         this.port = port;
         this.gson = new GsonBuilder().setPrettyPrinting().create();
         this.sessionManager = new EditorSessionManager();
@@ -46,6 +46,8 @@ public class ProxyWebEditorServer {
      */
     public void initializeDashboard(RedissonClient redissonClient) {
         this.dashboardService = new DashboardService(redissonClient, sessionManager);
+        String topic = NextDungeonVelocity.getInstance().getConfigManager().getTable("redis").getString("topic", "nextdungeon");
+        this.dungeonManagementService = new DungeonManagementService(redissonClient, topic);
         NextDungeonVelocity.getInstance().getLogger().info("✅ Service de tableau de bord initialisé");
     }
 
@@ -60,14 +62,16 @@ public class ProxyWebEditorServer {
         try {
             server = HttpServer.create(new InetSocketAddress(port), 0);
 
+            dashboardHandler = new DashboardHandler();
+
             // Routes API avec pattern /{floorId-uuid}/api/*
             server.createContext("/", new RouteHandler());
             
             // API proxy pour communication avec les serveurs Spigot
             server.createContext("/proxy-api/", new ProxyApiHandler());
 
-            // Dashboard routes
-            server.createContext("/dashboard", new DashboardHandler());
+            // Dashboard routes — enregistré après "/" pour avoir priorité
+            server.createContext("/dashboard", dashboardHandler);
 
             server.setExecutor(Executors.newFixedThreadPool(8));
             server.start();
@@ -99,10 +103,18 @@ public class ProxyWebEditorServer {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             String path = exchange.getRequestURI().getPath();
-            
+            String method = exchange.getRequestMethod();
+            System.out.println("[RouteHandler] " + method + " " + path);
+            // Si c'est une requête dashboard qui arrive ici, la rediriger
+            if (path.startsWith("/dashboard")) {
+                System.out.println("[RouteHandler] !! INTERCEPTED DASHBOARD REQUEST - forwarding to dashboardHandler instance");
+                dashboardHandler.handle(exchange);
+                return;
+            }
+
             // Parse l'URL: /{floorId-uuid}/api/{endpoint} ou /{floorId-uuid}/editor/
             String[] pathParts = path.split("/");
-            
+
             if (pathParts.length < 2) {
                 sendNotFound(exchange);
                 return;
@@ -110,7 +122,7 @@ public class ProxyWebEditorServer {
 
             String sessionId = pathParts[1]; // floorId-uuid
             EditorSession session = sessionManager.getSession(sessionId);
-            
+
             if (session == null) {
                 sendErrorResponse(exchange, "Edit session not found: " + sessionId);
                 return;
@@ -274,6 +286,8 @@ public class ProxyWebEditorServer {
 
                 exchange.getResponseHeaders().set("Content-Type", contentType + "; charset=UTF-8");
                 exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+                exchange.getResponseHeaders().set("Cache-Control", "no-store, no-cache, must-revalidate");
+                exchange.getResponseHeaders().set("Pragma", "no-cache");
                 exchange.sendResponseHeaders(200, content.length);
 
                 try (OutputStream os = exchange.getResponseBody()) {
@@ -414,6 +428,7 @@ public class ProxyWebEditorServer {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             String path = exchange.getRequestURI().getPath();
+            String method = exchange.getRequestMethod();
 
             if (dashboardService == null) {
                 sendErrorResponse(exchange, "Dashboard service not initialized");
@@ -423,6 +438,12 @@ public class ProxyWebEditorServer {
             // Dashboard UI
             if (path.equals("/dashboard") || path.equals("/dashboard/")) {
                 serveStaticFile(exchange, "dashboard.html");
+                return;
+            }
+
+            // Dungeon editor page
+            if (path.equals("/dashboard/dungeons") || path.equals("/dashboard/dungeons/")) {
+                serveStaticFile(exchange, "dungeons-editor.html");
                 return;
             }
 
@@ -436,7 +457,75 @@ public class ProxyWebEditorServer {
 
         private void handleDashboardApiRequest(HttpExchange exchange, String path) throws IOException {
             String method = exchange.getRequestMethod();
-            
+            System.out.println("[DashboardAPI] method=" + method + " path=" + path);
+
+            // ── OPTIONS preflight
+            if ("OPTIONS".equals(method)) {
+                exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+                exchange.getResponseHeaders().set("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+                exchange.getResponseHeaders().set("Access-Control-Allow-Headers", "Content-Type");
+                exchange.sendResponseHeaders(204, -1);
+                return;
+            }
+
+            // ── Dungeon management endpoints ──────────────────────────
+            if ("GET".equals(method) && path.equals("/dashboard/api/dungeons")) {
+                sendJsonResponse(exchange, dungeonManagementService.getAllDungeonsJson());
+                return;
+            }
+            if ("GET".equals(method) && path.startsWith("/dashboard/api/dungeons/")) {
+                String dungeonId = path.substring("/dashboard/api/dungeons/".length());
+                if (dungeonId.contains("/floors")) {
+                    dungeonId = dungeonId.substring(0, dungeonId.indexOf("/floors"));
+                    sendJsonResponse(exchange, dungeonManagementService.getDungeonJson(dungeonId));
+                } else if (!dungeonId.isEmpty() && !dungeonId.contains("/")) {
+                    sendJsonResponse(exchange, dungeonManagementService.getDungeonJson(dungeonId));
+                } else { sendNotFound(exchange); }
+                return;
+            }
+            if ("POST".equals(method) && path.equals("/dashboard/api/dungeons")) {
+                String body = new String(exchange.getRequestBody().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+                sendJsonResponse(exchange, dungeonManagementService.createOrUpdateDungeon(body, false));
+                return;
+            }
+            if ("PUT".equals(method) && path.startsWith("/dashboard/api/dungeons/")) {
+                String sub = path.substring("/dashboard/api/dungeons/".length());
+                if (!sub.contains("/") && !sub.isEmpty()) {
+                    String body = new String(exchange.getRequestBody().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+                    sendJsonResponse(exchange, dungeonManagementService.createOrUpdateDungeon(body, true));
+                }
+                return;
+            }
+            // DELETE floors AVANT DELETE dungeon (chemin plus spécifique d'abord)
+            if ("DELETE".equals(method) && path.matches("/dashboard/api/dungeons/[^/]+/floors/[^/]+")) {
+                String[] parts = path.split("/");
+                String dungeonId = parts[4];
+                String floorId = parts[6];
+                sendJsonResponse(exchange, dungeonManagementService.deleteFloor(dungeonId, floorId));
+                return;
+            }
+            if ("DELETE".equals(method) && path.startsWith("/dashboard/api/dungeons/")) {
+                String sub = path.substring("/dashboard/api/dungeons/".length());
+                if (!sub.contains("/") && !sub.isEmpty()) {
+                    sendJsonResponse(exchange, dungeonManagementService.deleteDungeon(sub));
+                }
+                return;
+            }
+            if ("POST".equals(method) && path.matches("/dashboard/api/dungeons/[^/]+/floors")) {
+                String dungeonId = path.substring("/dashboard/api/dungeons/".length(), path.lastIndexOf("/floors"));
+                String body = new String(exchange.getRequestBody().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+                sendJsonResponse(exchange, dungeonManagementService.addFloor(dungeonId, body));
+                return;
+            }
+            if ("PUT".equals(method) && path.startsWith("/dashboard/api/floors/")) {
+                String floorId = path.substring("/dashboard/api/floors/".length());
+                if (!floorId.isEmpty() && !floorId.contains("/")) {
+                    String body = new String(exchange.getRequestBody().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+                    sendJsonResponse(exchange, dungeonManagementService.updateFloor(floorId, body));
+                }
+                return;
+            }
+
             // Handle POST requests for queue clear
             if ("POST".equals(method) && path.startsWith("/dashboard/api/queue/clear/")) {
                 String floorId = path.substring("/dashboard/api/queue/clear/".length());
@@ -448,7 +537,7 @@ public class ProxyWebEditorServer {
                 sendJsonResponse(exchange, response);
                 return;
             }
-            
+
             if (!"GET".equals(method)) {
                 sendMethodNotAllowed(exchange);
                 return;
