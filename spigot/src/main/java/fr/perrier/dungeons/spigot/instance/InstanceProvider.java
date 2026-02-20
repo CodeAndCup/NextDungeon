@@ -86,6 +86,15 @@ public interface InstanceProvider {
     CompletableFuture<Boolean> createTemplate(Floor floor);
 
     /**
+     * Deletes the template/world associated with a floor.
+     * For CloudNet: removes the ServiceTask and the template directory.
+     *
+     * @param floorId the ID of the floor whose template should be deleted
+     * @return CompletableFuture that completes with true if deletion succeeds
+     */
+    CompletableFuture<Boolean> deleteTemplate(String floorId);
+
+    /**
      * Teleports a player to an instance.
      *
      * @param player the player to teleport

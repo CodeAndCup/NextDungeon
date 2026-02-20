@@ -207,6 +207,50 @@ public class CloudNetProvider implements InstanceProvider {
     }
 
     @Override
+    public CompletableFuture<Boolean> deleteTemplate(@NonNull String floorId) {
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+
+        Bukkit.getScheduler().runTaskAsynchronously(Main.getInstance(), () -> {
+            try {
+                // 1. Supprimer la ServiceTask CloudNet
+                ServiceTaskProvider serviceTaskProvider = InjectionLayer.boot().instance(ServiceTaskProvider.class);
+                ServiceTask existingTask = serviceTaskProvider.serviceTask(floorId);
+                if (existingTask != null) {
+                    serviceTaskProvider.removeServiceTask(existingTask);
+                    Main.getLoggerUtil().info("ServiceTask supprimée pour : " + floorId);
+                } else {
+                    Main.getLoggerUtil().warning("Aucune ServiceTask trouvée pour : " + floorId + " (déjà supprimée ?)");
+                }
+
+                // 2. Supprimer le template CloudNet (local storage)
+                ServiceTemplate template = new ServiceTemplate.Builder()
+                        .prefix(floorId)
+                        .name("default")
+                        .storage("local")
+                        .priority(0)
+                        .alwaysCopyToStaticServices(false)
+                        .build();
+
+                TemplateStorage storage = template.storage();
+                if (storage.contains(template)) {
+                    storage.delete(template);
+                    Main.getLoggerUtil().info("Template CloudNet supprimé pour : " + floorId);
+                } else {
+                    Main.getLoggerUtil().warning("Aucun template CloudNet trouvé pour : " + floorId + " (déjà supprimé ?)");
+                }
+
+                future.complete(true);
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Erreur lors de la suppression du template pour " + floorId + " : " + e.getMessage());
+                e.printStackTrace(System.err);
+                future.complete(false);
+            }
+        });
+
+        return future;
+    }
+
+    @Override
     public CompletableFuture<Boolean> createTemplate(@NonNull Floor floor) {
         CompletableFuture<Boolean> future = new CompletableFuture<>();
 

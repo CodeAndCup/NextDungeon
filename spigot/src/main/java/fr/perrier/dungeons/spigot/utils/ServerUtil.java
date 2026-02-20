@@ -110,6 +110,16 @@ public class ServerUtil {
     }
 
     /**
+     * Delete the template (ServiceTask + template files) associated with a floor.
+     *
+     * @param floorId the ID of the floor whose template should be deleted
+     * @return CompletableFuture that completes with true if deletion succeeds
+     */
+    public static CompletableFuture<Boolean> deleteFloorTemplate(@NonNull String floorId) {
+        return getProvider().deleteTemplate(floorId);
+    }
+
+    /**
      * Connects a party to a cloud service with the given name.
      * @param party The party to connect to the cloud service.
      * @param server The name of the cloud service to connect to.

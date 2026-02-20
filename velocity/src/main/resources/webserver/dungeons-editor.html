@@ -65,6 +65,15 @@
         .btn-danger:hover { background: #e02f4c; }
         .btn-secondary { background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); }
         .btn-secondary:hover { background: var(--bg-card); }
+
+        /* Confirm modal */
+        .modal-confirm { max-width: 440px; text-align: center; }
+        .modal-confirm .confirm-icon { font-size: 3rem; margin-bottom: 12px; }
+        .modal-confirm .confirm-title { font-size: 1.25rem; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; }
+        .modal-confirm .confirm-message { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.5; margin-bottom: 24px; }
+        .modal-confirm .confirm-target { font-weight: 700; color: var(--accent-danger); word-break: break-all; }
+        .modal-confirm .confirm-footer { display: flex; gap: 12px; justify-content: center; }
+        .modal-confirm .confirm-footer .btn { min-width: 120px; }
         .btn-sm { padding: 5px 10px; font-size: 0.8rem; }
         .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
 
@@ -411,6 +420,26 @@
 <!-- Toast container -->
 <div id="toast-container"></div>
 
+<!-- ============================================================
+     MODAL: Confirmation suppression
+============================================================ -->
+<div id="modal-confirm-delete" class="modal-overlay">
+    <div class="modal modal-confirm">
+        <div class="confirm-icon">⚠️</div>
+        <div class="confirm-title" id="confirm-delete-title">Confirmer la suppression</div>
+        <div class="confirm-message">
+            Vous êtes sur le point de supprimer :<br>
+            <span class="confirm-target" id="confirm-delete-target"></span><br><br>
+            <span id="confirm-delete-warning"></span>
+            Cette action est <strong>irréversible</strong>.
+        </div>
+        <div class="confirm-footer">
+            <button class="btn btn-secondary" onclick="closeModal('modal-confirm-delete')">Annuler</button>
+            <button class="btn btn-danger" id="confirm-delete-btn">🗑️ Supprimer</button>
+        </div>
+    </div>
+</div>
+
 <script>
 // ============================================================
 //  State
@@ -577,27 +606,6 @@ async function saveDungeon() {
         toast('Donjon sauvegardé !', 'success');
     } catch(e) { toast('Erreur: ' + e.message, 'error'); }
 }
-
-async function deleteDungeon() {
-    if (!confirm(`Supprimer le donjon "${currentDungeon.name}" et tous ses floors ?`)) return;
-    try {
-        const data = await API.deleteDungeon(currentDungeon.id);
-        if (!data.success) { toast(data.error, 'error'); return; }
-        toast('Donjon supprimé', 'success');
-        goToList();
-    } catch(e) { toast('Erreur: ' + e.message, 'error'); }
-}
-
-async function confirmDeleteDungeon(id, name) {
-    if (!confirm(`Supprimer le donjon "${name}" et tous ses floors ?`)) return;
-    try {
-        const data = await API.deleteDungeon(id);
-        if (!data.success) { toast(data.error, 'error'); return; }
-        toast('Donjon supprimé', 'success');
-        loadDungeons();
-    } catch(e) { toast('Erreur: ' + e.message, 'error'); }
-}
-
 
 // ============================================================
 //  Floors
@@ -774,28 +782,84 @@ async function saveFloor() {
 async function deleteCurrentFloor() {
     const floorId = document.getElementById('edit-floor-id').value;
     if (!floorId) return;
-    if (!confirm(`Supprimer le floor "${floorId}" ?`)) return;
-    try {
-        const data = await API.deleteFloor(currentDungeon.id, floorId);
-        if (!data.success) { toast(data.error, 'error'); return; }
-        toast('Floor supprimé', 'success');
-        closeModal('modal-floor');
-        const freshData = await API.getDungeon(currentDungeon.id);
-        if (freshData.success) { currentDungeon = freshData.dungeon; }
-        renderFloorsList();
-    } catch(e) { toast('Erreur: ' + e.message, 'error'); }
+    showConfirmDelete(
+        `Floor : ${floorId}`,
+        'Tous les triggers et données associés seront supprimés.',
+        async () => {
+            try {
+                const data = await API.deleteFloor(currentDungeon.id, floorId);
+                if (!data.success) { toast(data.error, 'error'); return; }
+                toast('Floor supprimé', 'success');
+                closeModal('modal-floor');
+                const freshData = await API.getDungeon(currentDungeon.id);
+                if (freshData.success) { currentDungeon = freshData.dungeon; }
+                renderFloorsList();
+            } catch(e) { toast('Erreur: ' + e.message, 'error'); }
+        }
+    );
 }
 
 async function confirmDeleteFloor(floorId) {
-    if (!confirm(`Supprimer le floor "${floorId}" ?`)) return;
-    try {
-        const data = await API.deleteFloor(currentDungeon.id, floorId);
-        if (!data.success) { toast(data.error, 'error'); return; }
-        toast('Floor supprimé', 'success');
-        const freshData = await API.getDungeon(currentDungeon.id);
-        if (freshData.success) { currentDungeon = freshData.dungeon; }
-        renderFloorsList();
-    } catch(e) { toast('Erreur: ' + e.message, 'error'); }
+    showConfirmDelete(
+        `Floor : ${floorId}`,
+        'Tous les triggers et données associés seront supprimés.',
+        async () => {
+            try {
+                const data = await API.deleteFloor(currentDungeon.id, floorId);
+                if (!data.success) { toast(data.error, 'error'); return; }
+                toast('Floor supprimé', 'success');
+                const freshData = await API.getDungeon(currentDungeon.id);
+                if (freshData.success) { currentDungeon = freshData.dungeon; }
+                renderFloorsList();
+            } catch(e) { toast('Erreur: ' + e.message, 'error'); }
+        }
+    );
+}
+
+async function deleteDungeon() {
+    showConfirmDelete(
+        `Donjon : ${currentDungeon.name}`,
+        'Tous les floors, triggers et données associés seront supprimés.',
+        async () => {
+            try {
+                const data = await API.deleteDungeon(currentDungeon.id);
+                if (!data.success) { toast(data.error, 'error'); return; }
+                toast('Donjon supprimé', 'success');
+                goToList();
+            } catch(e) { toast('Erreur: ' + e.message, 'error'); }
+        }
+    );
+}
+
+async function confirmDeleteDungeon(id, name) {
+    showConfirmDelete(
+        `Donjon : ${name}`,
+        'Tous les floors, triggers et données associés seront supprimés.',
+        async () => {
+            try {
+                const data = await API.deleteDungeon(id);
+                if (!data.success) { toast(data.error, 'error'); return; }
+                toast('Donjon supprimé', 'success');
+                loadDungeons();
+            } catch(e) { toast('Erreur: ' + e.message, 'error'); }
+        }
+    );
+}
+
+// ============================================================
+//  Confirm delete modal helper
+// ============================================================
+function showConfirmDelete(targetLabel, warningMsg, onConfirm) {
+    document.getElementById('confirm-delete-target').textContent = targetLabel;
+    document.getElementById('confirm-delete-warning').textContent = warningMsg ? warningMsg + ' ' : '';
+    const btn = document.getElementById('confirm-delete-btn');
+    const newBtn = btn.cloneNode(true);
+    btn.parentNode.replaceChild(newBtn, btn);
+    newBtn.addEventListener('click', async () => {
+        closeModal('modal-confirm-delete');
+        await onConfirm();
+    });
+    openModal('modal-confirm-delete');
 }
 
 // ============================================================

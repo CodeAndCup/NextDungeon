@@ -14,7 +14,6 @@ import fr.perrier.dungeons.spigot.commands.AdminCommands;
 import fr.perrier.dungeons.spigot.commands.ConsoleCommands;
 import fr.perrier.dungeons.spigot.commands.DebugCommands;
 import fr.perrier.dungeons.spigot.commands.PlayerCommands;
-import fr.perrier.dungeons.spigot.configuration.ConfigLoader;
 import fr.perrier.dungeons.spigot.configuration.RedisConfigLoader;
 import fr.perrier.dungeons.spigot.database.DatabaseFactory;
 import fr.perrier.dungeons.spigot.database.DatabaseManager;
@@ -480,8 +479,16 @@ public final class Main extends JavaPlugin {
                             Bukkit.getScheduler().runTaskAsynchronously(this,
                                     () -> RedisConfigLoader.reloadFloorFromRedis(id));
                         }
-                        case "FLOOR_DELETE" ->
-                            getLogger().info("[DashboardSync] Floor supprimé : " + id);
+                        case "FLOOR_DELETE" -> {
+                            getLogger().info("[DashboardSync] Floor supprimé : " + id + " — suppression du template...");
+                            ServerUtil.deleteFloorTemplate(id).thenAccept(success -> {
+                                if (success) {
+                                    getLogger().info("[DashboardSync] Template supprimé pour le floor : " + id);
+                                } else {
+                                    getLogger().warning("[DashboardSync] Echec suppression template pour le floor : " + id);
+                                }
+                            });
+                        }
                         case "DUNGEON_UPDATE" -> {
                             getLogger().info("[DashboardSync] Donjon DUNGEON_UPDATE : " + id);
                             Dungeon existing = dungeonService.getDungeon(id);

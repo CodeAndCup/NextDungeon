@@ -4,8 +4,6 @@ import fr.perrier.cupcodeapi.commands.annotations.Command;
 import fr.perrier.cupcodeapi.commands.annotations.Param;
 import fr.perrier.cupcodeapi.utils.ChatUtil;
 import fr.perrier.dungeons.spigot.Main;
-import fr.perrier.dungeons.spigot.configuration.ConfigLoader;
-import fr.perrier.dungeons.spigot.configuration.RedisConfigLoader;
 import fr.perrier.dungeons.spigot.instance.InstanceInfo;
 import fr.perrier.dungeons.spigot.model.Dungeon;
 import fr.perrier.dungeons.spigot.model.FloorInstance;
@@ -36,9 +34,6 @@ public class AdminCommands {
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin queue &8- &fQueue management"));
         // Other commands
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin import &#D63333<world> <dungeon> <floor>"));
-        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin load &#D63333<config>"));
-        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin migrate-to-redis &#D63333<config>"));
-        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin migrate-all"));
         // Status commands
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin status &#D63333<dungeon> [floor]"));
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin goto &#D63333<server>"));
@@ -165,61 +160,6 @@ public class AdminCommands {
             permission = "nextdungeons.admin")
     public static void adminDungeonWebEditorStopCommand(Player player) {
         Main.getInstance().getWebEditorManager().stopWebEditor(player);
-    }
-
-    @Command(names = "dungeon admin test")
-    public static void adminDungeonPlayCommand(Player player, @Param(name = "Dungeon ID") String dungeonId, @Param(name = "Floor ID") String floorId) {
-        Floor floor = Floor.getFloor(dungeonId + "_" + floorId);
-        if (floor == null) {
-            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Floor not found."));
-            return;
-        }
-
-        FloorInstance.generateNewInstanceAsync(floor.getId(), Set.of(player.getUniqueId()), false,floorInstance -> floorInstance.sendToServer(player));
-        player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#00FF00✓ &fTest instance started for floor &e" + floor.getId() + "&f."));
-        player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&fPlease wait while the instance is being prepared..."));
-    }
-
-    @Command(names = "dungeon admin load")
-    public static void adminDungeonLoadCommand(Player player, @Param(name = "Dungeon") String dungeonName) {
-        long startTime = System.currentTimeMillis();
-        Dungeon loadedDungeon = ConfigLoader.loadDungeon(dungeonName);
-        long endTime = System.currentTimeMillis();
-        
-        player.sendMessage(ChatUtil.getBar());
-        if (loadedDungeon != null) {
-            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#00FF00✓ &fDungeon &e" + dungeonName + "&f loaded successfully in &e" + (endTime - startTime) + "ms&f."));
-            player.sendMessage(ChatUtil.translate("&7Floors loaded: &e" + loadedDungeon.getFloors().size()));
-        } else {
-            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Failed to load dungeon &e" + dungeonName + "&#FF0000."));
-        }
-        player.sendMessage(ChatUtil.getBar());
-    }
-
-    @Command(names = {"dungeon admin migrate-to-redis", "nd admin migrate-to-redis"}, permission = "nextdungeons.admin")
-    public static void adminMigrateDungeonCommand(Player player, @Param(name = "Dungeon config name") String dungeonName) {
-        player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&7Migrating &e" + dungeonName + "&7 to Redis..."));
-        Bukkit.getScheduler().runTaskAsynchronously(Main.getInstance(), () -> {
-            boolean success = RedisConfigLoader.migrateDungeonToRedis(dungeonName);
-            if (success) {
-                player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#00FF00✓ &fDungeon &e" + dungeonName + "&f migrated to Redis successfully!"));
-                player.sendMessage(ChatUtil.translate("&7Now set &eDungeonLoader: redis&7 in config.yml to use Redis loading."));
-            } else {
-                player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Migration failed for &e" + dungeonName + "&#FF0000. Check console for details."));
-            }
-        });
-    }
-
-    @Command(names = {"dungeon admin migrate-all", "nd admin migrate-all"}, permission = "nextdungeons.admin")
-    public static void adminMigrateAllCommand(Player player) {
-        player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&7Migrating all YAML dungeons to Redis..."));
-        Bukkit.getScheduler().runTaskAsynchronously(Main.getInstance(), () -> {
-            int count = RedisConfigLoader.migrateAllDungeonsToRedis();
-            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#00FF00✓ &fMigrated &e" + count + "&f dungeon(s) to Redis!"));
-            if (count > 0) {
-                player.sendMessage(ChatUtil.translate("&7Set &eDungeonLoader: redis&7 in config.yml to use Redis loading."));
-            }
-        });
     }
 
     @Command(names = "dungeon admin goto")
