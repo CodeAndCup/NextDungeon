@@ -93,7 +93,7 @@ When a floor instance is started in **edit mode** (`/dungeon admin edit start`),
 
 ## 4. CloudNet Instance Management
 
-Every floor run as a separate CloudNet service. The plugin (`CloudNetProvider`):
+Every floor runs as a separate CloudNet service. The plugin (`CloudNetProvider`):
 
 1. Creates a service from the floor CloudNet task template
 2. Injects instance metadata (floor ID, UUID, edit mode flag, creation timestamp) as service properties

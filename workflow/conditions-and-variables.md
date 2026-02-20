@@ -135,9 +135,14 @@ Use these inside any text field of message/title actions:
 
 Track how many mobs a player has killed in a run:
 
-
-
----
+```
+EntityDeathTrigger (type: ZOMBIE)
+  -- AddToVariableAction (variable: player.zombieKills, amount: 1)
+  -- IfCondition (left: {player.zombieKills}, op: >=, right: 10)
+       then:
+         -- SendMessageAction (message: "You killed 10 zombies!")
+         -- EndDungeonAction (success: true)
+```---
 
 ## Persistence
 

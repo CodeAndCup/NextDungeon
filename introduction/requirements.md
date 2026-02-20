@@ -21,7 +21,7 @@ The following must be present before NextDungeon can start:
 | **MMOCore** | Player level checks for floor requirements | Listed as a hard `depend` in `plugin.yml` |
 | **PacketEvents** | NPC library (NPC-Lib / ghost system) | Listed as a hard `depend` in `plugin.yml` |
 
-> **Important:** If MMOCore or packetevents are absent the plugin will refuse to load.
+> **Important:** If MMOCore or packetevents are absent, the plugin will refuse to load.
 
 ## Optional / Integration Dependencies
 
