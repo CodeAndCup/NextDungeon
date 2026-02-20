@@ -16,7 +16,6 @@
 ## Configuration
 
 * [Main Config File](configuration/main-config-file.md)
-* [Dungeon Config](configuration/dungeon-config.md)
 
 ## Dungeon Management
 
@@ -32,7 +31,6 @@
 ## Integrations
 
 * [CloudNet](integrations/cloudnet.md)
-* [ASP](integrations/asp.md)
 * [Parties](integrations/parties.md)
 * [MMOCore](integrations/mmocore.md)
 * [MythicMobs](integrations/mythicmobs.md)

@@ -12,7 +12,6 @@ icon: arrow-up-from-bracket
 Always create backups before updating:
 
 * **Plugin config**: `plugins/NextDungeon/config.yml`
-* **YAML dungeon configs**: `plugins/NextDungeon/dungeons/`
 * **Database**: Export your MySQL/MongoDB database
 * **Redis**: If you have important live data, snapshot your Redis instance (`BGSAVE`)
 
@@ -34,7 +33,7 @@ Review the release notes for the new version. Pay special attention to:
 
 Confirm that MMOCore, packetevents, CloudNet, and any other integration plugins are still compatible with the new NextDungeon version.
 
----
+***
 
 ## Update Procedure
 
@@ -58,23 +57,15 @@ Check the new default `config.yml` (generated on first start) and compare it to 
 
 Common areas to check between versions:
 
-| Section | What to look for |
-|---------|-----------------|
-| `RedisConfiguration` | New keys (e.g. `database` field added in 1.0.4) |
-| `InstanceProvider` | New provider types or renamed options |
-| `PartyProvider` | New provider options |
-| `ReviveSystem` | New revive/ghost configuration keys |
-| `NotificationConfiguration` | New notification type options |
+| Section                     | What to look for                                |
+| --------------------------- | ----------------------------------------------- |
+| `RedisConfiguration`        | New keys (e.g. `database` field added in 1.0.4) |
+| `InstanceProvider`          | New provider types or renamed options           |
+| `PartyProvider`             | New provider options                            |
+| `ReviveSystem`              | New revive/ghost configuration keys             |
+| `NotificationConfiguration` | New notification type options                   |
 
-### Step 4: Migrate Redis Data (if required)
-
-If the release notes mention Redis key structure changes, run the provided migration commands. For example, migrating dungeon data from YAML to Redis:
-
-```
-/dungeon admin migrate-all
-```
-
-### Step 5: Start Your Server
+### Step 4: Start Your Server
 
 Start the server and check the console for:
 
@@ -83,7 +74,7 @@ Start the server and check the console for:
 * `NextDungeon X.X.X started in N ms` message
 * Any `SEVERE` or `WARNING` messages indicating configuration issues
 
-### Step 6: Verify Functionality
+### Step 5: Verify Functionality
 
 Run the following checks:
 
@@ -99,7 +90,7 @@ Test that an existing dungeon floor can be entered by running:
 /dungeon admin test <dungeonId> <floorId>
 ```
 
----
+***
 
 ## Rolling Back
 
@@ -110,14 +101,13 @@ If the update introduces issues:
 3. If Redis data was modified, restore from your Redis snapshot
 4. Restart the server
 
----
+***
 
 ## Common Post-Update Issues
 
-| Symptom | Likely Cause | Fix |
-|---------|-------------|-----|
-| Plugin fails to load | Missing hard dependency (MMOCore, packetevents) | Install/update the missing dependency |
-| Redis connection error | Host/port/password changed or wrong | Update `RedisConfiguration` in `config.yml` |
-| Floors not loading | New `DungeonLoader` key missing | Add `DungeonLoader: "redis"` to `config.yml` |
-| Commands not found | New command alias added/removed | Check `plugin.yml` in the new release |
-| Database errors on start | Schema change in new version | Check release notes for migration SQL or MongoDB commands |
+| Symptom                  | Likely Cause                                    | Fix                                                       |
+| ------------------------ | ----------------------------------------------- | --------------------------------------------------------- |
+| Plugin fails to load     | Missing hard dependency (MMOCore, packetevents) | Install/update the missing dependency                     |
+| Redis connection error   | Host/port/password changed or wrong             | Update `RedisConfiguration` in `config.yml`               |
+| Commands not found       | New command alias added/removed                 | Check `plugin.yml` in the new release                     |
+| Database errors on start | Schema change in new version                    | Check release notes for migration SQL or MongoDB commands |
