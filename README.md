@@ -1,84 +1,42 @@
-# ![logo](logo.webp) NextDungeon 
+---
+icon: question
+---
 
-NextDungeon is a powerful and extensible plugin for Minecraft servers, designed to manage and automate custom dungeons with advanced workflow logic. Dungeons and floors are centrally managed and synchronized using Redis, with a flexible trigger-action system for custom mechanics. The plugin includes a web editor, admin/debug commands, and integrates with Parties for group management.
+# What is NextDungeon
 
-Main Documentation: [https://cupcode-1.gitbook.io/nextdungeon/](https://cupcode-1.gitbook.io/nextdungeon/)
+**NextDungeon** is a powerful, extensible Minecraft server plugin (version 1.0.4-SNAPSHOT) built for Spigot/Paper servers running Minecraft **1.21.4** and Java **21**. It enables server administrators to design, deploy, and run fully customizable dungeon instances with multi-floor support, advanced trigger/action workflow automation, and deep integration with popular third-party plugins.
 
-## Features
-- **Centralized Dungeon Management:** Dungeons and floors are managed as data objects and synchronized across servers using Redis.
-- **Flexible Workflow System:** Triggers, actions, and conditions allow for custom dungeon automation and scripting.
-- **Floor Configuration:** Each floor supports requirements, rules, steps, and triggers for granular control.
-- **Web Editor:** Integrated web interface for editing dungeons, floors, and workflow logic.
-- **Admin & Debug Tools:** Commands for editing, testing, importing, and managing dungeons and floors.
-- **Parties Integration:** Supports group management via PartiesAPI.
-- **Template System:** Asynchronous generation and management of floor templates.
-- **No Per-Dungeon Server Instancing:** Dungeons are not run on separate servers; all data is synchronized and managed centrally.
+<!-- INSERT HERE: screenshot of the NextDungeon main menu or dungeon gate UI -->
 
-## Requirements
-- Minecraft server 1.21.4
-- Java 21
-- Redis server
-- Dependencies:
-    - CloudNet v4.0.0-RC13 or higher
-    - Redis
-    - Parties
-    - MMOCore
-- SoftDependencies (optional):
-    - MythicLib / MythicMobs
+Dungeons and their floors are centrally synchronized across servers via **Redis**, meaning multiple game servers in a network share the same dungeon data in real time. Each floor runs as an isolated dungeon instance (managed by **CloudNet**), giving players a dedicated, lag-free environment to explore.
 
-## Installation
-1. Place the NextDungeon plugin in your server's `plugins` folder.
-2. Install and configure Redis.
-3. Ensure all dependencies are present.
-4. Restart your server.
+### Key Highlights
 
-## Configuration
-- Main configuration: `src/resources/config.yml`
-- Dungeons and floors: YAML files in `src/resources/dungeons/`
-- Example configuration: `dungeon_exemple.yml`
-- Redis and MySQL connection settings in the config file. `MongoDB is not supported for now but it's planned for future releases.`
+* **Multi-Floor Dungeon System**: Each dungeon (`Dungeon`) contains one or more floors (`Floor`). Every floor is independently configured with its own world settings, player requirements, game rules, and progression steps.
+* **Trigger-Action Workflow Engine**: An event-driven scripting system lets you attach behaviours to dungeons without writing code. Triggers (block click, region entry, entity death, etc.) fire sequences of actions (send message, teleport, summon mob, end dungeon, etc.) conditioned on optional logic blocks.
+* **Blockly Web Editor**: A browser-based drag-and-drop editor backed by Google Blockly lets you create and modify dungeon workflows visually while in edit-mode on a live server.
+* **Redis-Backed Synchronization**: All dungeon definitions, floor configurations, active instances, player queues, and profiles are stored in and broadcast through Redis, keeping the entire network consistent.
+* **CloudNet Instance Management**: Dungeon floors spin up as dedicated CloudNet service instances. The plugin handles creation, readiness detection, player routing, and cleanup automatically.
+* **Queue System**: Players (or parties) queue for a floor from a lobby server. The `QueueManager` monitors available instances and sends groups to a ready server when capacity opens up.
+* **Revive & Ghost System**: When a player dies they become a ghost for a configurable duration. Teammates can revive them using a special item. Running out of lives can trigger a configurable ban command.
+* **Party Integration**: Works with AlessioDP Parties or the built-in internal party system. Auto-detection mode picks the best available provider at startup.
+* **MMOCore Level Requirements**: Floor entry can require a minimum MMOCore level and completion of prerequisite floors.
+* **Persistent Player Profiles**: Per-player stats (completed floors, kills, deaths, completion time) are tracked and stored via Redis, then persisted to MySQL or MongoDB.
 
-## Usage
-- Use the web editor to create and manage dungeons, floors, triggers, and actions.
-- Admins can edit, test, import, and manage dungeons and floors using commands.
-- Debug commands allow inspection of dungeons, floors, and instances.
+### Project Modules
 
-## Commands
-### Admin Commands
-- `/dungeon admin help` — List admin commands
-- `/dungeon admin edit start <dungeon> <floor>` — Start edit mode for a floor
-- `/dungeon admin edit stop [--confirm]` — Stop edit mode
-- `/dungeon admin webeditor start` — Start web editor
-- `/dungeon admin webeditor stop` — Stop web editor
-- `/dungeon admin test <dungeon> <floor>` — Test a dungeon floor
-- `/dungeon admin import <world> <dungeon> <floor>` — Import a world as a dungeon floor
-- `/dungeon admin load <config>` — Reload configuration
-- `/dungeon admin status <dungeon> [floor]` — Check status
-- `/dungeon admin goto <server>` — Teleport to server
+| Module | Description |
+|--------|-------------|
+| `common` | Shared data models (`FloorData`, `FloorInstanceData`, `QueueEntry`, etc.) and the Pidgin messaging library |
+| `spigot` | Main game-server plugin containing all dungeon logic, workflow engine, commands, and listeners |
+| `velocity` | Velocity proxy plugin providing the web-editor reverse-proxy and dashboard integration |
+| `bungeecord` | BungeeCord proxy plugin (equivalent of Velocity module) |
+| `webserver` | Static HTML assets for the Blockly dungeon editor frontend |
 
-### Debug Commands
-- `/dungeon debug help` — List debug commands
-- `/dungeon debug list dungeons` — List all dungeons
-- `/dungeon debug list floors` — List all floors
-- `/dungeon debug list instances` — List all instances
-- `/dungeon debug openmenu` — Open example dungeon menu
-- `/dungeon debug print <message>` — Print a message
+### Supported Minecraft Platforms
 
-### Player Commands
-- `/dungeon` — Show available commands
-- `/dungeon help` — Show help
+NextDungeon targets **Spigot 1.21.4** and compatible forks (Paper, Purpur). The proxy module supports both **Velocity** and **BungeeCord**.
 
-## Workflow System
-- **Triggers:** Define events that start workflows (e.g., region entry, entity death).
-- **Actions:** Define effects (e.g., teleport, send message, set variable).
-- **Conditions:** Use logic blocks (if/else) for advanced automation.
-- All workflow logic is editable via the web editor.
+***
 
-## API & Development
-- No API available for now.
-
-## Contributing
-Contributions are welcome! Please open an issue or pull request on the GitHub repository.
-
-## License
-This project is licensed under the MIT License. See `LICENSE.md` for more information.
+Continue to the [Feature Overview](introduction/feature-overview.md) to see what you can do with NextDungeon!
