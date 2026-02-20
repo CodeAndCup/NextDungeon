@@ -1,9 +1,10 @@
 ---
 description: Using Advanced Slime Paper (ASP) as an alternative world management backend.
+hidden: true
 icon: layer-group
 ---
 
-# Advanced Slime Paper (ASP) Integration
+# ASP
 
 Advanced Slime Paper (ASP), developed by InfernalSuite, is an optimised world management solution for Minecraft servers. It loads worlds from compressed `.slime` format files, drastically reducing memory usage and world load times compared to standard vanilla worlds.
 
@@ -13,7 +14,7 @@ Advanced Slime Paper (ASP), developed by InfernalSuite, is an optimised world ma
 
 If you are looking to use ASP, watch for a future release that includes an `ASPInstanceProvider`. This page documents the intended integration model based on the `InstanceProvider` interface.
 
----
+***
 
 ## InstanceProvider Interface
 
@@ -31,7 +32,7 @@ public interface InstanceProvider {
 
 A future ASP provider would implement this interface, loading worlds from `.slime` files instead of CloudNet templates.
 
----
+***
 
 ## Planned Configuration
 
@@ -42,18 +43,18 @@ InstanceProvider:
   type: "ASP"   # Placeholder — not available in 1.0.4-SNAPSHOT
 ```
 
----
+***
 
 ## Why Use ASP?
 
-| Feature | Vanilla | CloudNet | ASP |
-|---------|---------|----------|-----|
-| World load time | Slow | Medium | Fast |
-| Memory usage | High | Medium | Low |
-| External service required | No | Yes (CloudNet) | No |
-| Recommended for production | No | Yes | Yes (when available) |
+| Feature                    | Vanilla | CloudNet       | ASP                  |
+| -------------------------- | ------- | -------------- | -------------------- |
+| World load time            | Slow    | Medium         | Fast                 |
+| Memory usage               | High    | Medium         | Low                  |
+| External service required  | No      | Yes (CloudNet) | No                   |
+| Recommended for production | No      | Yes            | Yes (when available) |
 
----
+***
 
 ## Resources
 

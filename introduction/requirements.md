@@ -1,6 +1,5 @@
 ---
-description: >-
-  Before installing NextDungeon, ensure your server meets all requirements.
+description: Before installing NextDungeon, ensure your server meets all requirements.
 icon: shield-check
 ---
 
@@ -15,22 +14,22 @@ icon: shield-check
 
 The following must be present before NextDungeon can start:
 
-| Dependency | Purpose | Notes |
-|-----------|---------|-------|
-| **Redis** | Cross-server data sync, dungeon state, queue management, player profiles | Accessed via Redisson (single-server mode) |
-| **MMOCore** | Player level checks for floor requirements | Listed as a hard `depend` in `plugin.yml` |
-| **PacketEvents** | NPC library (NPC-Lib / ghost system) | Listed as a hard `depend` in `plugin.yml` |
+| Dependency       | Purpose                                                                  | Notes                                      |
+| ---------------- | ------------------------------------------------------------------------ | ------------------------------------------ |
+| **Redis**        | Cross-server data sync, dungeon state, queue management, player profiles | Accessed via Redisson (single-server mode) |
+| **MMOCore**      | Player level checks for floor requirements                               | Listed as a hard `depend` in `plugin.yml`  |
+| **PacketEvents** | NPC library (NPC-Lib / ghost system)                                     | Listed as a hard `depend` in `plugin.yml`  |
 
 > **Important:** If MMOCore or packetevents are absent, the plugin will refuse to load.
 
 ## Optional / Integration Dependencies
 
-| Plugin | Feature | Declaration |
-|--------|---------|-------------|
-| **CloudNet v4.0.0-RC13+** | Dynamic dungeon instance creation and routing | `softdepend` |
-| **Parties (AlessioDP)** | Group play, party requirements | `softdepend` |
-| **MythicMobs** | Custom mobs and bosses inside dungeons | `softdepend` |
-| **WorldEdit / FAWE** | `WorldEdit*Action` workflow actions | Used at runtime if present |
+| Plugin                    | Feature                                       | Declaration                |
+| ------------------------- | --------------------------------------------- | -------------------------- |
+| **CloudNet v4.0.0-RC13+** | Dynamic dungeon instance creation and routing | `softdepend`               |
+| **Parties (AlessioDP)**   | Group play, party requirements                | `softdepend`               |
+| **MythicMobs**            | Custom mobs and bosses inside dungeons        | `softdepend`               |
+| **WorldEdit / FAWE**      | `WorldEdit*Action` workflow actions           | Used at runtime if present |
 
 > CloudNet is the only supported `InstanceProvider` type in `1.0.4-SNAPSHOT`. Without it the plugin can still run on a single server but cannot spin up isolated floor instances.
 
@@ -43,7 +42,7 @@ NextDungeon requires **one** of the following for persistent player stats and tr
 
 > MongoDB support for triggers is planned for future releases. Currently MySQL is the recommended choice.
 
-## Proxy (optional)
+## Proxy
 
 To use the **Blockly web editor** and the **dashboard**, install the appropriate proxy module:
 
@@ -61,7 +60,7 @@ The web editor HTTP server binds to the port defined by `WebEditor.proxy-port` (
 
 ## Hardware Recommendations
 
-* **RAM**: Minimum 4 GB for the network; add ~512 MB per simultaneous dungeon instance
+* **RAM**: Minimum 4 GB for the network; add \~512 MB per simultaneous dungeon instance
 * **Storage**: SSD recommended for faster world template loading via CloudNet
 * **CPU**: Modern multi-core processor; instance creation involves asynchronous tasks
 
