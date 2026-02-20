@@ -388,6 +388,15 @@ public class ActionFactory {
                     LocationBlock location = LocationBlockParser.parseFromJson(actionData, "location");
                     yield new SummonMobAction(mobType, location);
                 }
+                case "summon_mob_in_region_action" -> {
+                    String mobType = actionData.has("mobtype") ?
+                            actionData.get("mobtype").getAsString() : "ZOMBIE";
+                    int amount = actionData.has("amount") ?
+                            actionData.get("amount").getAsInt() : 1;
+                    LocationBlock pos1 = LocationBlockParser.parseFromJson(actionData, "pos1");
+                    LocationBlock pos2 = LocationBlockParser.parseFromJson(actionData, "pos2");
+                    yield new SummonMobInRegionAction(mobType, amount, pos1, pos2);
+                }
                 case "worldedit_schematic_action" -> {
                     String filename = actionData.has("filename") ?
                             actionData.get("filename").getAsString() : "schematic.schem";
