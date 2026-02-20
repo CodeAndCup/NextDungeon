@@ -1,552 +1,196 @@
 ---
-description: Here is an example configuration for a dungeon with multiple floors and steps.
-icon: gears
+description: Complete reference for dungeon and floor YAML configuration files.
+icon: dungeon
 ---
 
 # Dungeon Config
 
-Dungeon configuration files define the structure, requirements, rules, and progression of your dungeons. Each dungeon is configured in a separate YAML file located in `plugins/NextDungeon/dungeons/`.
+Dungeon configurations are YAML files stored in `plugins/NextDungeon/dungeons/`. Each file defines one dungeon with one or more floors. After initial setup it is recommended to migrate them to Redis using `/dungeon admin migrate-all` and then set `DungeonLoader: "redis"` in `config.yml`.
 
-## Configuration Overview
+The example file `plugins/NextDungeon/dungeons/dungeon_exemple.yml` is included with every installation.
 
-A dungeon configuration includes:
-* **Dungeon Metadata** - ID, name, and basic information
-* **Floors** - Multiple progressive stages/levels
-* **Requirements** - Entry prerequisites and restrictions
-* **Rules** - Gameplay rules and mechanics
-* **Steps** - Progression areas within each floor
-* **World Settings** - Spawn points and difficulty
+---
 
-## File Structure
-
-Create individual files for each dungeon in `plugins/NextDungeon/dungeons/`:
-* `starter_dungeon.yml`
-* `castle_raid.yml`
-* `mystic_tower.yml`
-
-## Complete Configuration Example
+## Top-Level Structure
 
 ```yaml
-# ╔════════════════════════════════════════════════════════════════════════╗
-# ║                       NextDungeon Configuration                        ║
-# ║         This file defines one dungeon and its floors configuration.    ║
-# ╚════════════════════════════════════════════════════════════════════════╝
-
 dungeon:
-  id: "example_dungeon"
-  name: "Example Dungeon"
+  id: "example"             # Unique dungeon identifier (alphanumeric, underscores)
+  name: "Dungeon Example"   # Human-readable display name
   floors:
-    - id: "floor1"
-      name: "The Forgotten Crypts"
-      description: "Explore the ancient crypts\nfilled with mysteries and dangers."
-
-      world:
-        difficulty: "normal"
-        spawn: { x: 0, y: 100, z: 0 }
-
-      requirements:
-        retry_cooldown: "15m" # Time before retrying
-        required_floor: [] # List of required floor(s) (id)
-        minimum_level: 0
-        party:
-          min_size: 2
-          max_size: 25
-        required_items:
-          - "Old Key"
-        forbidden_items:
-          - "Magic Wand"
-
-      rules:
-        death_ban: "15m"
-        gamemode: "SURVIVAL"
-        allow_flight: false
-
-      steps:
-        - id: "entrance"
-          name: "Catacombs Entrance"
-          region:
-            pos1: { x: -10, y: 60, z: -10 }
-            pos2: { x: 10, y: 80, z: 10 }
-
-        - id: "dark_gallery"
-          name: "Dark Gallery"
-          region:
-            pos1: { x: 10, y: 60, z: -10 }
-            pos2: { x: 30, y: 80, z: 10 }
-
-        - id: "trapped_room"
-          name: "Trapped Hall"
-          region:
-            pos1: { x: 30, y: 60, z: -10 }
-            pos2: { x: 50, y: 80, z: 10 }
-
-        - id: "mini_boss"
-          name: "Guardian Chamber"
-          region:
-            pos1: { x: 50, y: 60, z: -15 }
-            pos2: { x: 70, y: 85, z: 15 }
-
-        - id: "final_boss"
-          name: "Phantom Lord's Chamber"
-          region:
-            pos1: { x: 70, y: 60, z: -20 }
-            pos2: { x: 100, y: 90, z: 20 }
-    
-    - id: "floor2"
-      name: "The Shadow Labyrinth"
-      description: "Navigate through a labyrinth\nfilled with traps and creatures."
-
-      world:
-        difficulty: "hard"
-        spawn: { x: 0, y: 100, z: 0 }
-
-      requirements:
-        retry_cooldown: "30m"
-        required_floor: ["example_dungeon_floor1"]
-        minimum_level: 5
-        party:
-          min_size: 3
-          max_size: 20
-        required_items:
-          - "Silver Key"
-        forbidden_items:
-          - "Fire Sword"
-
-      rules:
-        death_ban: "30m"
-        gamemode: "SURVIVAL"
-        allow_flight: false
-
-      steps:
-        - id: "labyrinth_entrance"
-          name: "Labyrinth Entrance"
-          region:
-            pos1: { x: -15, y: 60, z: -15 }
-            pos2: { x: 15, y: 80, z: 15 }
-
-        - id: "winding_corridors"
-          name: "Winding Corridors"
-          region:
-            pos1: { x: 15, y: 60, z: -15 }
-            pos2: { x: 45, y: 80, z: 15 }
-
-        - id: "illusion_room"
-          name: "Hall of Illusions"
-          region:
-            pos1: { x: 45, y: 60, z: -20 }
-            pos2: { x: 75, y: 85, z: 20 }
-
-        - id: "labyrinth_boss"
-          name: "Labyrinth Guardian"
-          region:
-            pos1: { x: 75, y: 60, z: -25 }
-            pos2: { x: 110, y: 95, z: 25 }
+    - ...                   # One or more floor definitions (see below)
 ```
 
-## Configuration Fields Explained
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | string | Yes | Unique ID for this dungeon. Used as the first part of floor IDs (`dungeonId_floorId`). Must be unique across all dungeons. |
+| `name` | string | Yes | Display name shown to players in menus and messages |
+| `floors` | list | Yes | List of floor definitions (at least one) |
 
-### Dungeon Level
+---
 
-The root level defines the dungeon identity:
+## Floor Definition
+
+Each entry in the `floors` list is a complete floor configuration.
 
 ```yaml
-dungeon:
-  id: "my_dungeon"      # Unique identifier (lowercase, no spaces)
-  name: "My Dungeon"    # Display name shown to players
-  floors: []            # Array of floor configurations
+- id: "floor1"
+  name: "The Forgotten Crypts"
+  description: "Explore ancient crypts full of mystery and danger."
+
+  world:
+    difficulty: "normal"
+    spawn: { x: 0, y: 100, z: 0 }
+
+  requirements:
+    retry_cooldown: "15m"
+    required_floor: []
+    minimum_level: 0
+    party:
+      min_size: 2
+      max_size: 25
+    required_items:
+      - "Old Key"
+    forbidden_items:
+      - "Magic Wand"
+
+  rules:
+    max_lives: 3
+    death_ban: "15m"
+    gamemode: "SURVIVAL"
+    allow_flight: false
+    max_instance: 1
+
+  steps:
+    - id: "step1"
+      name: "Catacomb Entrance"
+      region:
+        pos1: { x: -10, y: 60, z: -10 }
+        pos2: { x: 10, y: 80, z: 10 }
 ```
 
-**Important Notes:**
-* `id` must be unique across all dungeons
-* Use descriptive IDs: `castle_raid`, `mystic_tower`, not `dungeon1`
-* `name` supports color codes: `&c&lEpic Dungeon`
+### Floor — Top-Level Fields
 
-### Floor Configuration
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | string | Yes | Unique floor ID within this dungeon. The full floor ID is `dungeonId_floorId` (e.g. `example_floor1`). |
+| `name` | string | Yes | Display name for this floor |
+| `description` | string | No | Multi-line description shown to players. Use `\n` for line breaks. |
 
-Each floor represents a complete dungeon level:
+---
 
-```yaml
-- id: "floor1"                  # Unique floor ID within this dungeon
-  name: "First Floor"           # Display name
-  description: "Description"    # Multi-line description (use \n for line breaks)
-```
-
-**Floor ID Format:**
-When referencing floors in `required_floor`, use format: `{dungeonId}_{floorId}`
-
-Example: `example_dungeon_floor1`
-
-### World Settings
-
-Configure the dungeon world:
+### `world` — World Configuration
 
 ```yaml
 world:
-  difficulty: "normal"          # peaceful, easy, normal, hard
-  spawn: { x: 0, y: 100, z: 0 } # Player spawn coordinates
+  difficulty: "normal"           # easy | normal | hard
+  spawn: { x: 0, y: 100, z: 0 } # Player spawn point for this floor
 ```
 
-**Difficulty Levels:**
-* `peaceful` - No hostile mob spawning
-* `easy` - Reduced mob damage
-* `normal` - Standard difficulty
-* `hard` - Increased mob damage and hunger
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `difficulty` | string | `normal` | Minecraft world difficulty: `easy`, `normal`, or `hard` |
+| `spawn.x` | integer | `0` | X coordinate of the spawn point |
+| `spawn.y` | integer | `100` | Y coordinate of the spawn point |
+| `spawn.z` | integer | `0` | Z coordinate of the spawn point |
 
-**Spawn Point:**
-* Use exact coordinates where players should spawn
-* Ensure the location is safe (not in walls, lava, etc.)
-* Consider spawn direction (players spawn facing south by default)
+---
 
-### Requirements
+### `requirements` — Entry Requirements
 
-Control who can enter the dungeon:
+Requirements are checked by `Floor.isRequirementsValid(player)` before allowing a player to enter.
 
 ```yaml
 requirements:
-  retry_cooldown: "15m"           # Cooldown between attempts
-  required_floor: []              # Prerequisites
-  minimum_level: 0                # MMOCore level requirement
+  retry_cooldown: "15m"          # Cooldown after a failed attempt (e.g. "10s", "5m", "1h")
+  required_floor: []             # Floor IDs that must be completed first (e.g. ["example_floor1"])
+  minimum_level: 0               # Minimum MMOCore player level (0 = no requirement)
   party:
-    min_size: 1                   # Minimum party size
-    max_size: 5                   # Maximum party size
-  required_items:                 # Items players must have
-    - "Dungeon Key"
-  forbidden_items:                # Items players cannot bring
-    - "Teleport Scroll"
+    min_size: 2                  # Minimum number of party members
+    max_size: 25                 # Maximum number of party members
+  required_items:                # Items (by display name) the player must have in inventory
+    - "Old Key"
+  forbidden_items:               # Items the player must NOT have in inventory
+    - "Magic Wand"
 ```
 
-#### Retry Cooldown
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `retry_cooldown` | duration string | — | How long a player must wait before retrying after a failure (e.g. `15m`, `1h30m`) |
+| `required_floor` | list of strings | `[]` | IDs of floors that must be completed before this one is accessible |
+| `minimum_level` | integer | `0` | Minimum MMOCore level required. `0` means no restriction. |
+| `party.min_size` | integer | `1` | Minimum party size to enter |
+| `party.max_size` | integer | unlimited | Maximum party size allowed |
+| `required_items` | list of strings | `[]` | Item display names the player must hold in their inventory |
+| `forbidden_items` | list of strings | `[]` | Item display names the player must NOT have in their inventory |
 
-Time format options:
-* `s` - Seconds: `30s`
-* `m` - Minutes: `15m`
-* `h` - Hours: `2h`
-* `d` - Days: `1d`
+---
 
-#### Required Floors
-
-```yaml
-required_floor: ["dungeon1_floor1", "dungeon2_floor3"]
-```
-
-All listed floors must be completed before entry.
-
-#### Minimum Level
-
-Requires MMOCore integration:
-```yaml
-minimum_level: 10  # Player must be level 10+
-```
-
-Set to `0` to disable level requirement.
-
-#### Party Size
-
-```yaml
-party:
-  min_size: 1   # Allow solo (1) or require party (2+)
-  max_size: 10  # Maximum party members
-```
-
-**Common Configurations:**
-* Solo play: `min_size: 1, max_size: 1`
-* Small party: `min_size: 2, max_size: 5`
-* Raid: `min_size: 10, max_size: 25`
-
-#### Required/Forbidden Items
-
-```yaml
-required_items:
-  - "Dungeon Key"         # Player must have this
-  - "Torch"               # And this
-
-forbidden_items:
-  - "Recall Scroll"       # Cannot bring this
-  - "Creative Wand"       # Or this
-```
-
-**Important Notes:**
-* Items checked by display name (case-sensitive)
-* Only checks inventory (not armor/offhand)
-* Items are not consumed on entry
-
-### Rules
-
-Define gameplay mechanics:
+### `rules` — Gameplay Rules
 
 ```yaml
 rules:
-  death_ban: "15m"           # Ban duration on death
-  gamemode: "SURVIVAL"       # SURVIVAL, ADVENTURE, CREATIVE
-  allow_flight: false        # Allow flying
+  max_lives: 3           # Lives per player (0 = unlimited, negative = instant-fail on death)
+  death_ban: "15m"       # Ban duration if all lives are exhausted
+  gamemode: "SURVIVAL"   # SURVIVAL | ADVENTURE | CREATIVE | SPECTATOR
+  allow_flight: false    # Whether players are allowed to fly
+  max_instance: 1        # Maximum simultaneous running instances of this floor (0 = unlimited)
 ```
 
-#### Death Ban
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `max_lives` | integer | `3` | Number of lives per player. When all lives are gone, `banCommand` is executed. Set to `0` for unlimited lives. |
+| `death_ban` | duration string | — | Duration of the ban applied when lives run out (passed to `banCommand` as `{time}`) |
+| `gamemode` | string | `SURVIVAL` | Minecraft gamemode for players inside this floor |
+| `allow_flight` | boolean | `false` | Whether flight is enabled inside the floor world |
+| `max_instance` | integer | `1` | How many simultaneous instances of this floor can exist. `0` means unlimited. Enforced by the queue system. |
 
-Duration player is banned from dungeon after death:
-```yaml
-death_ban: "15m"   # 15 minutes
-death_ban: "1h"    # 1 hour
-death_ban: "0s"    # No ban (respawn immediately)
-```
+---
 
-Uses the ban command from main config (`ReviveSystem.banCommand`).
+### `steps` — Progression Steps
 
-#### Gamemode
-
-```yaml
-gamemode: "SURVIVAL"    # Full survival mechanics
-gamemode: "ADVENTURE"   # Cannot break/place blocks
-gamemode: "CREATIVE"    # Creative mode (not recommended)
-```
-
-**Recommendation:** Use `ADVENTURE` to prevent griefing.
-
-#### Allow Flight
-
-```yaml
-allow_flight: true   # Players can fly
-allow_flight: false  # Flight disabled
-```
-
-### Steps
-
-Define progression areas within the floor:
+Steps are named waypoints / regions that define the progression path through the floor. Each step corresponds to a cuboid region in the world.
 
 ```yaml
 steps:
-  - id: "entrance"               # Unique step ID
-    name: "Entrance Hall"        # Display name
+  - id: "step1"
+    name: "Catacomb Entrance"
     region:
-      pos1: { x: 0, y: 60, z: 0 }    # First corner
-      pos2: { x: 20, y: 80, z: 20 }  # Opposite corner
+      pos1: { x: -10, y: 60, z: -10 }
+      pos2: { x: 10, y: 80, z: 10 }
+
+  - id: "step2"
+    name: "Dark Gallery"
+    region:
+      pos1: { x: 20, y: 60, z: -10 }
+      pos2: { x: 40, y: 80, z: 10 }
 ```
 
-#### Step Regions
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | string | Yes | Unique step identifier within this floor |
+| `name` | string | Yes | Display name shown in progress trackers |
+| `region.pos1` | coordinates | Yes | First corner of the step region |
+| `region.pos2` | coordinates | Yes | Second (opposite) corner of the step region |
 
-Regions define cuboid areas:
-* `pos1` and `pos2` are opposite corners
-* Forms a rectangular box
-* All coordinates must be valid world positions
+Steps are exposed to the `RegionTrigger` workflow trigger by name. The trigger fires when players enter or leave the corresponding region.
 
-**Getting Coordinates:**
-1. Stand at first corner, press F3, note coordinates
-2. Stand at opposite corner, note coordinates
-3. Use WorldEdit: `//pos1` and `//pos2`
+---
 
-**Region Tips:**
-* Make regions slightly larger than needed
-* Ensure regions don't overlap incorrectly
-* Use consistent Y-level ranges (e.g., 60-80)
+## Complete Example
 
-## Best Practices
+The full example dungeon config (`dungeon_exemple.yml`) ships with the plugin and defines two floors with multiple steps. Refer to it as a starting template.
 
-### Dungeon Design
-* **Progressive Difficulty**: Each floor should be harder than the last
-* **Clear Progression**: Players should understand how to advance
-* **Reasonable Requirements**: Don't make entry too restrictive
-* **Balanced Cooldowns**: Match cooldown to difficulty and length
+<!-- INSERT HERE: screenshot of the dungeon config loaded successfully in-game -->
 
-### Floor Structure
-* **Logical Flow**: Steps should follow a logical progression
-* **Varied Challenges**: Mix combat, puzzles, and exploration
-* **Fair Checkpoints**: Don't make players repeat too much
-* **Boss Placement**: Final step typically contains the boss
+---
 
-### Step Configuration
-* **Unique IDs**: Use descriptive step IDs (not `step1`, `step2`)
-* **Proper Sizing**: Make regions appropriate for their purpose
-* **Boss Rooms**: Larger regions for boss encounters
-* **Corridors**: Smaller regions for connecting areas
+## Loading and Migrating Configs
 
-### Testing Checklist
-- [ ] All coordinates are valid and correct
-- [ ] Spawn point is safe and accessible
-- [ ] Steps progress logically
-- [ ] Regions don't overlap incorrectly
-- [ ] Party size requirements are reasonable
-- [ ] Level requirements match difficulty
-- [ ] Cooldowns are balanced
-- [ ] Death ban duration is fair
+| Operation | Command |
+|-----------|---------|
+| Load a YAML file | `/dungeon admin load <fileName>` (without `.yml`) |
+| Migrate one file to Redis | `/dungeon admin migrate-to-redis <fileName>` |
+| Migrate all YAML files to Redis | `/dungeon admin migrate-all` |
 
-## Configuration Examples
-
-### Solo Dungeon
-
-```yaml
-dungeon:
-  id: "solo_challenge"
-  name: "Solo Challenge Dungeon"
-  floors:
-    - id: "main"
-      name: "The Trial"
-      requirements:
-        minimum_level: 15
-        party:
-          min_size: 1
-          max_size: 1    # Solo only
-        retry_cooldown: "30m"
-```
-
-### Party Dungeon
-
-```yaml
-dungeon:
-  id: "party_adventure"
-  name: "Party Adventure"
-  floors:
-    - id: "floor1"
-      name: "Teamwork Trial"
-      requirements:
-        party:
-          min_size: 3    # Requires party
-          max_size: 5
-        retry_cooldown: "1h"
-```
-
-### Progressive Multi-Floor
-
-```yaml
-dungeon:
-  id: "tower"
-  name: "The Tower of Ascension"
-  floors:
-    - id: "ground"
-      name: "Ground Floor"
-      requirements:
-        minimum_level: 1
-        party:
-          min_size: 1
-          max_size: 10
-    
-    - id: "second"
-      name: "Second Floor"
-      requirements:
-        required_floor: ["tower_ground"]
-        minimum_level: 5
-    
-    - id: "top"
-      name: "Top Floor"
-      requirements:
-        required_floor: ["tower_second"]
-        minimum_level: 10
-```
-
-### Raid Dungeon
-
-```yaml
-dungeon:
-  id: "epic_raid"
-  name: "Epic Raid Instance"
-  floors:
-    - id: "raid"
-      name: "The Final Confrontation"
-      requirements:
-        minimum_level: 50
-        party:
-          min_size: 10
-          max_size: 25
-        retry_cooldown: "24h"
-        required_items:
-          - "Raid Key"
-      rules:
-        death_ban: "1h"
-        gamemode: "ADVENTURE"
-        allow_flight: false
-```
-
-## Common Issues
-
-### Dungeon Won't Load
-
-**Check:**
-* YAML syntax is correct (proper indentation, spacing)
-* Dungeon ID is unique
-* All required fields are present
-* File is in `plugins/NextDungeon/dungeons/`
-
-**Test:** Use a YAML validator online.
-
-### Players Can't Enter
-
-**Check:**
-* Party size meets min/max requirements
-* Players meet level requirement
-* Required floors are completed
-* Required items are in inventory
-* Cooldown has expired
-
-### Steps Not Working
-
-**Check:**
-* Step IDs are unique within the floor
-* Coordinates are correct (not all zeros)
-* Regions are properly formed (pos1 and pos2 valid)
-* Regions don't have inverted coordinates
-
-### Required Floor Not Recognized
-
-**Format must be:** `{dungeonId}_{floorId}`
-
-**Example:**
-```yaml
-# Dungeon ID: tower
-# Floor ID: ground
-# Reference: tower_ground
-
-required_floor: ["tower_ground"]
-```
-
-## Advanced Topics
-
-### Dynamic Content
-
-Use the web editor to add:
-* Custom mob spawns per step
-* Trigger-based events
-* Conditional progression
-* Custom rewards
-
-### Multiple Paths
-
-Create branching dungeons:
-```yaml
-steps:
-  - id: "fork"
-    name: "The Crossroads"
-  - id: "path_left"
-    name: "Left Path"
-  - id: "path_right"
-    name: "Right Path"
-  - id: "convergence"
-    name: "The Meeting Point"
-```
-
-Configure logic via web editor.
-
-### Secret Areas
-
-Create optional secret steps:
-* Not required for completion
-* Contain bonus rewards
-* Hidden entrances
-
-### Time Trials
-
-Add time-based challenges:
-* Configure via web editor
-* Set time limits per step
-* Reward fast completion
-
-## Additional Resources
-
-* [Creating Dungeons Guide](../dungeon-management/creating-dungeons.md)
-* [Editing Dungeons](../dungeon-management/editing-dungeons.md)
-* [Web Editor Documentation](../dungeon-management/editing-dungeons.md)
-* [Quick Start Guide](../getting-started/quick-start-guide.md)
-
-***
-
-Proper dungeon configuration creates engaging and balanced experiences for players!
-
-
+After migration, set `DungeonLoader: "redis"` in `config.yml` and restart (or reload) the server.

@@ -1,435 +1,217 @@
 ---
-description: Here is the main config file to set up on your spigot/paper server.
-icon: gears
+description: Complete reference for the main NextDungeon configuration file.
+icon: gear
 ---
 
 # Main Config File
 
-The main configuration file (`config.yml`) controls all aspects of the NextDungeon plugin. This file is located in `plugins/NextDungeon/config.yml` after the plugin has been loaded for the first time.
+The main configuration file is located at `plugins/NextDungeon/config.yml`. It is generated automatically on first start with default values. The sections below document every available option.
 
-## Configuration Overview
+---
 
-The configuration file includes the following sections:
-* **Redis Configuration** - Cross-server communication
-* **Web Editor Configuration** - Visual editor settings
-* **Database Configuration** - Data storage settings
-* **Instance Provider** - Dungeon instance management (CloudNet/ASP/Vanilla)
-* **Revive System** - Player death and revival mechanics
+## DebugMode
 
-## Full Configuration Example
+Controls verbose logging for troubleshooting.
 
 ```yaml
-# =====================================================
-# NextDungeon Configuration File
-# =====================================================
-# Welcome to the NextDungeon configuration!
-# This configuration controls all aspects of the plugin.
-# =====================================================
-
-# ─────────────────────────────────────────────────────
-# 🔴 REDIS CONFIGURATION
-# ─────────────────────────────────────────────────────
-# Redis is used for cross-server communication
-# and real-time data storage.
-RedisConfiguration:
-    host: "127.0.0.1"
-    port: 6379
-    username: "default"
-    password: ""
-    topic: "dungeons:packets" # ⚠️ Don't modify unless you know what you're doing
-
-# ─────────────────────────────────────────────────────
-# 🌐 WEB EDITOR CONFIGURATION
-# ─────────────────────────────────────────────────────
-# Configuration for the web proxy server for the editor
-webeditor:
-    proxy-port: 7734 # Web proxy server port (Velocity/BungeeCord)
-
-# ─────────────────────────────────────────────────────
-# 💾 DATABASE CONFIGURATION
-# ─────────────────────────────────────────────────────
-# Available types: mongodb, mysql
-# Choose the database type that matches
-# your infrastructure.
-DatabaseConfiguration:
-    type: "mysql"
-
-    mysql:
-        host: "localhost"
-        port: 3306
-        database: "dungeons"
-        username: "root"
-        password: "root"
-
-    mongodb:
-        host: "localhost"
-        port: 27017
-        database: "dungeons"
-
-# ─────────────────────────────────────────────────────
-# ☁️  INSTANCE PROVIDER CONFIGURATION
-# ─────────────────────────────────────────────────────
-# Manages the instance creation and management system.
-#
-# Available types:
-#   • CLOUDNET   - Uses CloudNet (requires CloudNet installed)
-#   • ASP        - Advanced Slime World Manager (lightweight & performant)
-#   • VANILLA    - Native Minecraft system (always available)
-#
-InstanceProvider:
-    type: "CLOUDNET"
-
-    # ASP Configuration (Advanced Slime World Manager)
-    ASP:
-        loaderType: "FILE" # FILE, MYSQL, or MONGODB
-
-        mysql:
-            url: "jdbc:mysql://localhost:3306/asm"
-            host: "localhost"
-            port: 3306
-            database: "asm"
-            useSSL: false
-            username: "root"
-            password: "root"
-
-        mongodb:
-            database: "asm"
-            collection: "worlds"
-            username: ""
-            password: ""
-            authSource: ""
-            host: "localhost"
-            port: 27017
-            uri: ""
-
-# ─────────────────────────────────────────────────────
-# ⚰️  REVIVE SYSTEM
-# ─────────────────────────────────────────────────────
-# Manages the ghost and resurrection system when
-# a player dies. Teammates can resurrect them
-# using a special item before the timer runs out.
-#
-ReviveSystem:
-
-    # 📦 REVIVE ITEM
-    # The item used to resurrect a deceased player
-    ReviveItem:
-        type: "BEETROOT_SOUP"           # Minecraft item type
-        displayName: "&c&lRevive Item"  # Display name (supports color codes)
-        lore:                           # Item description
-            - "&7Use this to revive a fallen teammate"
-
-    # ⏱️  GHOST MODE DURATION
-    # Time in seconds before the player respawns
-    # (and consumes a life, or gets banned if they have none left)
-    ghostDuration: 15
-
-    # 📢 REVIVE MESSAGE
-    # Message shown to all players during a resurrection
-    # {player} will be replaced by the player's name
-    reviveMessage: "&a{player} has been revived!"
-
-    # 🚫 PERMANENT BAN
-    # Used when a player has no remaining lives
-    banCommand: "litebans:ban {player} {time} {reason}"
-    banReason: "You have died permanently in the dungeon."
-
-# =====================================================
-# 💡 CONFIGURATION TIPS
-# =====================================================
-# • Color codes: use Minecraft codes
-#   &0=black &1=blue &2=green &3=cyan &4=red &5=magenta
-#   &6=yellow &7=gray &8=dark gray &9=light blue &a=light green
-#   &b=light cyan &c=light red &d=light magenta &e=light yellow &f=white
-#   &l=bold &o=italic &n=underline &m=strikethrough
-#   Or use hex codes: &#RRGGBB
-#
-# • Test your configuration: restart the server and check the logs
-# • Need help? Check the documentation: https://cupcode-1.gitbook.io/nextdungeon/
-#
-# =====================================================
-
+DebugMode:
+  activated: false       # Set to true to enable detailed debug logs
+  logType: "CONSOLE"     # Where to show debug messages: CONSOLE | IN_GAME | BOTH
 ```
 
-## Configuration Sections Explained
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `activated` | boolean | `false` | Enables or disables debug mode. **Do not enable in production.** |
+| `logType` | string | `CONSOLE` | Output destination for debug messages: `CONSOLE` (server log), `IN_GAME` (admin chat), or `BOTH` |
 
-### Redis Configuration
+---
 
-Redis is required for cross-server communication, especially when using CloudNet for instance management.
+## RedisConfiguration
+
+Connection settings for the Redis server used for cross-server communication and data storage.
 
 ```yaml
 RedisConfiguration:
-    host: "127.0.0.1"      # Redis server address
-    port: 6379             # Redis server port (default: 6379)
-    username: "default"    # Redis username (if authentication enabled)
-    password: ""           # Redis password (leave empty if no auth)
-    topic: "dungeons:packets"  # Redis pub/sub topic for communication
+  host: "127.0.0.1"
+  port: 6379
+  username: "default"
+  password: ""
+  database: 0
+  topic: "nextdungeon"
 ```
 
-**Important Notes:**
-* Redis must be running and accessible for the plugin to work with CloudNet
-* The `topic` should remain unchanged unless you have multiple separate NextDungeon networks
-* If you change the topic, ensure all servers in your network use the same topic
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `host` | string | `127.0.0.1` | Redis server hostname or IP |
+| `port` | integer | `6379` | Redis server port |
+| `username` | string | `default` | Redis ACL username (use `default` for no authentication) |
+| `password` | string | `""` | Redis password (leave empty if no password is set) |
+| `database` | integer | `0` | Redis logical database index (0-15) |
+| `topic` | string | `nextdungeon` | Namespace prefix for all Redis keys and pub/sub channels. Change this if running multiple NextDungeon networks on the same Redis instance. |
 
-### Web Editor Configuration
+> **Warning:** Changing `topic` after initial setup requires migrating all stored Redis keys. Only change this if you know what you are doing.
 
-Settings for the Blockly-based visual web editor.
+---
+
+## DungeonLoader
+
+Specifies where dungeon definitions are loaded from at startup.
 
 ```yaml
-webeditor:
-    proxy-port: 7734  # Port for the web editor proxy server
+DungeonLoader: "redis"
 ```
 
-**Important Notes:**
-* This port must be accessible from your web browser
-* Ensure firewall allows connections on this port
-* Default port is 7734, change if conflicts occur
+| Value | Description |
+|-------|-------------|
+| `redis` | Load all dungeons and floors from Redis. Recommended for production. Required after migrating configs with `/dungeon admin migrate-all`. |
+| `yaml` | Load dungeons from YAML files in `plugins/NextDungeon/dungeons/`. Useful for initial setup or development. |
 
-### Database Configuration
+---
 
-NextDungeon supports MySQL and MongoDB for storing dungeon data, player progress, and statistics.
+## WebEditor
 
-#### MySQL Configuration (Recommended)
+Configuration for the Blockly web editor reverse-proxy endpoint (served by the Velocity/BungeeCord proxy module).
+
+```yaml
+WebEditor:
+  proxy-port: 7734
+```
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `proxy-port` | integer | `7734` | Port on which the proxy's web editor HTTP server listens. Make sure this matches the proxy module config. |
+
+---
+
+## NotificationConfiguration
+
+Controls how queue and dungeon event notifications are delivered to players.
+
+```yaml
+NotificationConfiguration:
+  type: "CHAT"
+```
+
+| Value | Description |
+|-------|-------------|
+| `CHAT` | Messages appear in the chat window |
+| `ACTION_BAR` | Messages appear on the action bar (above the hotbar) |
+| `TITLE` | Messages appear as screen titles |
+
+---
+
+## DatabaseConfiguration
+
+Persistent storage for player profiles and dungeon trigger data.
 
 ```yaml
 DatabaseConfiguration:
-    type: "mysql"
-    
-    mysql:
-        host: "localhost"    # Database server address
-        port: 3306          # Database server port (default: 3306)
-        database: "dungeons" # Database name
-        username: "root"     # Database username
-        password: "root"     # Database password
+  type: "mysql"    # mysql | mongodb
+
+  mysql:
+    host: "localhost"
+    port: 3306
+    database: "dungeons"
+    username: "root"
+    password: "root"
+
+  mongodb:
+    host: "localhost"
+    port: 27017
+    database: "dungeons"
 ```
 
-#### MongoDB Configuration
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `type` | string | `mysql` | Active database backend: `mysql` or `mongodb` |
+| `mysql.host` | string | `localhost` | MySQL hostname |
+| `mysql.port` | integer | `3306` | MySQL port |
+| `mysql.database` | string | `dungeons` | MySQL database name |
+| `mysql.username` | string | `root` | MySQL username |
+| `mysql.password` | string | `root` | MySQL password |
+| `mongodb.host` | string | `localhost` | MongoDB hostname |
+| `mongodb.port` | integer | `27017` | MongoDB port |
+| `mongodb.database` | string | `dungeons` | MongoDB database name |
+
+---
+
+## InstanceSettings
+
+Parameters related to dungeon instance lifecycle.
 
 ```yaml
-DatabaseConfiguration:
-    type: "mongodb"
-    
-    mongodb:
-        host: "localhost"    # MongoDB server address
-        port: 27017         # MongoDB server port (default: 27017)
-        database: "dungeons" # Database name
+InstanceSettings:
+  loadingTimeout: 120
 ```
 
-**Important Notes:**
-* Create the database before starting the plugin
-* Ensure the database user has proper permissions
-* Plugin will create necessary tables/collections automatically
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `loadingTimeout` | integer | `120` | Seconds to wait for an instance to become ready before timing out. If exceeded, `FloorInstance.cancelInstance()` is called and the player is notified. |
 
-### Instance Provider Configuration
+---
 
-Controls how dungeon instances are created and managed.
+## InstanceProvider
 
-#### CloudNet Provider (Recommended for Networks)
-
-```yaml
-InstanceProvider:
-    type: "CLOUDNET"
-```
-
-**Requirements:**
-* CloudNet 4.0.0-RC13+ installed
-* Redis configured and running
-* CloudNet task configured for dungeon instances
-
-See [CloudNet Integration](../integrations/cloudnet.md) for detailed setup.
-
-#### ASP Provider (Optimized Performance)
-
-```yaml
-InstanceProvider:
-    type: "ASP"
-    
-    ASP:
-        loaderType: "FILE"  # Options: FILE, MYSQL, MONGODB
-```
-
-**ASP with File Storage:**
-```yaml
-ASP:
-    loaderType: "FILE"
-```
-
-**ASP with MySQL Storage:**
-```yaml
-ASP:
-    loaderType: "MYSQL"
-    
-    mysql:
-        url: "jdbc:mysql://localhost:3306/asm"
-        host: "localhost"
-        port: 3306
-        database: "asm"
-        useSSL: false
-        username: "root"
-        password: "root"
-```
-
-**ASP with MongoDB Storage:**
-```yaml
-ASP:
-    loaderType: "MONGODB"
-    
-    mongodb:
-        database: "asm"
-        collection: "worlds"
-        username: ""
-        password: ""
-        authSource: "admin"
-        host: "localhost"
-        port: 27017
-        uri: ""  # Or use full connection URI
-```
-
-See [ASP Integration](../integrations/asp.md) for detailed setup.
-
-#### Vanilla Provider (Basic Setup)
+Controls which backend is used to spin up dungeon instances.
 
 ```yaml
 InstanceProvider:
-    type: "VANILLA"
+  type: "CLOUDNET"
 ```
 
-**Important Notes:**
-* Uses standard Minecraft world loading
-* Not recommended for production due to performance
-* No additional configuration needed
-* Best for testing or small servers
+| Value | Description |
+|-------|-------------|
+| `CLOUDNET` | Uses CloudNet v4 to create isolated server instances per floor run. This is the only fully supported option in `1.0.4-SNAPSHOT`. |
 
-### Revive System Configuration
+---
 
-Configure the death and revival mechanics for dungeons.
+## PartyProvider
+
+Selects the party system backend.
+
+```yaml
+PartyProvider:
+  type: "AUTO"
+```
+
+| Value | Description |
+|-------|-------------|
+| `AUTO` | Automatically selects the first available provider at startup (preferred) |
+| `AlessioDPParties` | Forces use of the AlessioDP Parties plugin |
+| `Internal` | Forces use of the built-in party system (no external plugin required) |
+
+---
+
+## ReviveSystem
+
+Configures the death/ghost/revive mechanic.
 
 ```yaml
 ReviveSystem:
-    ReviveItem:
-        type: "BEETROOT_SOUP"           # Item used for reviving
-        displayName: "&c&lRevive Item"  # Item display name
-        lore:
-            - "&7Use this to revive a fallen teammate"
-    
-    ghostDuration: 15  # Seconds before auto-respawn
-    
-    reviveMessage: "&a{player} has been revived!"
-    
-    banCommand: "litebans:ban {player} {time} {reason}"
-    banReason: "You have died permanently in the dungeon."
+
+  ReviveItem:
+    type: "BEETROOT_SOUP"
+    displayName: "&c&lRevive Item"
+    lore:
+      - "&7Use this to revive a fallen teammate"
+
+  ghostDuration: 15
+
+  reviveMessage: "&a{player} has been revived!"
+
+  deathMessage: "&c{player} has died! They have {lives} lives remaining."
+
+  banCommand: "litebans:ban {player} {time} {reason}"
+  banReason: "You have died permanently in the dungeon."
 ```
 
-**Configuration Options:**
-
-* **ReviveItem.type**: Any valid Minecraft item type (e.g., `GOLDEN_APPLE`, `TOTEM_OF_UNDYING`)
-* **ReviveItem.displayName**: Custom name with color codes (`&` or `&#RRGGBB`)
-* **ReviveItem.lore**: Array of description lines
-* **ghostDuration**: Time in seconds teammates have to revive (recommend: 10-30)
-* **reviveMessage**: Message broadcast on successful revival (use `{player}` placeholder)
-* **banCommand**: Command executed when player dies permanently (customize for your ban plugin)
-* **banReason**: Reason shown to player when banned
-
-**Important Notes:**
-* Players in ghost mode are invisible and cannot interact
-* Teammates must have the revive item in inventory to revive
-* Ban command can be customized for different ban plugins (Vanilla, LiteBans, AdvancedBan, etc.)
-* Set `ghostDuration: 0` to disable the revive system
-
-## Color Codes Reference
-
-NextDungeon supports standard Minecraft color codes and hex colors:
-
-### Standard Colors
-* `&0` - Black
-* `&1` - Dark Blue
-* `&2` - Dark Green
-* `&3` - Dark Aqua
-* `&4` - Dark Red
-* `&5` - Dark Purple
-* `&6` - Gold
-* `&7` - Gray
-* `&8` - Dark Gray
-* `&9` - Blue
-* `&a` - Green
-* `&b` - Aqua
-* `&c` - Red
-* `&d` - Light Purple
-* `&e` - Yellow
-* `&f` - White
-
-### Formatting Codes
-* `&l` - Bold
-* `&m` - Strikethrough
-* `&n` - Underline
-* `&o` - Italic
-* `&r` - Reset
-
-### Hex Colors (1.16+)
-* `&#FF0000` - Custom red
-* `&#00FF00` - Custom green
-* `&#0000FF` - Custom blue
-
-## Best Practices
-
-### General
-* **Backup before editing** - Always backup `config.yml` before making changes
-* **Test changes** - Restart server after editing to verify configuration
-* **Use comments** - Add notes to remember why settings were changed
-* **Version control** - Keep old configs when updating
-
-### Security
-* **Secure Redis** - Use password authentication for Redis in production
-* **Database security** - Use strong passwords for database access
-* **Limit access** - Don't expose database/Redis ports publicly
-* **Regular backups** - Backup database regularly
-
-### Performance
-* **Choose appropriate provider** - CloudNet for networks, ASP for optimization, Vanilla for testing
-* **Monitor resources** - Watch RAM and CPU usage
-* **Optimize database** - Regular maintenance and indexing
-* **Use Redis wisely** - Don't overload with excessive messages
-
-## Troubleshooting
-
-### Plugin Won't Load
-
-Check console for errors related to:
-* Database connection issues
-* Redis connection failures
-* Invalid YAML syntax
-* Missing dependencies
-
-### Database Connection Failed
-
-1. Verify database server is running
-2. Check credentials (host, port, username, password)
-3. Ensure database exists
-4. Test connection: `mysql -u username -p -h host database`
-
-### Redis Connection Failed
-
-1. Verify Redis server is running: `redis-cli ping`
-2. Check host and port settings
-3. Test authentication if password is set
-4. Ensure firewall allows connection
-
-### Configuration Changes Not Applied
-
-1. Ensure proper YAML syntax (spacing, indentation)
-2. Restart server (not just reload)
-3. Check console for configuration errors
-4. Verify file saved properly
-
-## Additional Resources
-
-* [Installation Guide](../getting-started/installation.md)
-* [Quick Start Guide](../getting-started/quick-start-guide.md)
-* [CloudNet Integration](../integrations/cloudnet.md)
-* [ASP Integration](../integrations/asp.md)
-
-***
-
-Properly configuring NextDungeon ensures optimal performance and functionality!
-
-
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `ReviveItem.type` | string | `BEETROOT_SOUP` | Minecraft material name for the revive item |
+| `ReviveItem.displayName` | string | `&c&lRevive Item` | Display name (supports `&` and `&#RRGGBB` colour codes) |
+| `ReviveItem.lore` | list | see above | Item lore lines |
+| `ghostDuration` | integer | `15` | Seconds a dead player remains as a ghost before losing a life |
+| `reviveMessage` | string | see above | Broadcast message when a player is revived. `{player}` = revived player name |
+| `deathMessage` | string | see above | Broadcast message on death. `{player}` = player name, `{lives}` = lives remaining |
+| `banCommand` | string | see above | Console command executed when a player runs out of lives. `{player}`, `{time}`, `{reason}` are replaced at runtime |
+| `banReason` | string | see above | Reason passed to `{reason}` in `banCommand` |

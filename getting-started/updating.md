@@ -5,208 +5,119 @@ icon: arrow-up-from-bracket
 
 # Updating
 
-Keeping NextDungeon up to date ensures you have the latest features, bug fixes, and security improvements. Follow this guide to safely update your installation.
-
 ## Before You Update
 
-### 1. Backup Your Data
+### 1. Back Up Your Data
 
-**Always** create backups before updating:
+Always create backups before updating:
 
-* **Configuration files**: `plugins/NextDungeon/`
-* **Dungeon configurations**: `plugins/NextDungeon/dungeons/`
+* **Plugin config**: `plugins/NextDungeon/config.yml`
+* **YAML dungeon configs**: `plugins/NextDungeon/dungeons/`
 * **Database**: Export your MySQL/MongoDB database
-* **World files**: If using vanilla instance provider
+* **Redis**: If you have important live data, snapshot your Redis instance (`BGSAVE`)
 
 ```bash
-# Example backup command
+# Example: back up the plugin folder
 cp -r plugins/NextDungeon/ plugins/NextDungeon-backup-$(date +%Y%m%d)/
 ```
 
-### 2. Check Compatibility
+### 2. Check the Changelog
 
-Before updating, verify that:
+Review the release notes for the new version. Pay special attention to:
 
-* Your Minecraft server version is supported
-* Required dependencies are compatible with the new version
-* CloudNet version meets requirements (if applicable)
-* Java version is correct (Java 21+ required)
+* New required configuration keys in `config.yml`
+* Database schema changes
+* New or renamed Redis keys
+* Removed or renamed commands and permissions
 
-### 3. Read the Changelog
+### 3. Verify Dependency Compatibility
 
-Review the [release notes](https://github.com/SAOFR-DEV/Dungeons/releases) for:
+Confirm that MMOCore, packetevents, CloudNet, and any other integration plugins are still compatible with the new NextDungeon version.
 
-* Breaking changes that may affect your configuration
-* New features you might want to use
-* Deprecated features that need migration
-* Known issues or migration notes
+---
 
-## Update Process
+## Update Procedure
 
 ### Step 1: Stop Your Server
 
-Properly shut down your Minecraft server to prevent data corruption:
+Gracefully shut down all game servers and the proxy before replacing files:
 
-```bash
-# Using screen/tmux
-stop
-
-# Or if running as a service
-systemctl stop minecraft
+```
+/stop
 ```
 
-> **Important:** Do not force-kill the server process. Allow it to save all data gracefully.
+### Step 2: Replace the Plugin JAR
 
-### Step 2: Download the New Version
+1. Delete the old `NextDungeon.jar` from `plugins/`
+2. Place the new `NextDungeon.jar` into `plugins/`
+3. Do the same for `NextDungeon-Velocity.jar` or `NextDungeon-BungeeCord.jar` on your proxy
 
-1. Visit the [releases page](https://github.com/SAOFR-DEV/Dungeons/releases)
-2. Download the latest version JAR file
-3. Verify the file integrity (checksum if provided)
+### Step 3: Migrate Configuration Changes
 
-### Step 3: Replace the Plugin File
+Check the new default `config.yml` (generated on first start) and compare it to your existing config. Add any new keys with appropriate values.
 
-```bash
-# Navigate to your plugins folder
-cd /path/to/your/server/plugins/
+Common areas to check between versions:
 
-# Remove the old version
-rm NextDungeon-*.jar
+| Section | What to look for |
+|---------|-----------------|
+| `RedisConfiguration` | New keys (e.g. `database` field added in 1.0.4) |
+| `InstanceProvider` | New provider types or renamed options |
+| `PartyProvider` | New provider options |
+| `ReviveSystem` | New revive/ghost configuration keys |
+| `NotificationConfiguration` | New notification type options |
 
-# Move the new version into the plugins folder
-mv /path/to/download/NextDungeon-1.0.1-SNAPSHOT.jar .
+### Step 4: Migrate Redis Data (if required)
+
+If the release notes mention Redis key structure changes, run the provided migration commands. For example, migrating dungeon data from YAML to Redis:
+
+```
+/dungeon admin migrate-all
 ```
 
-### Step 4: Update Dependencies
+### Step 5: Start Your Server
 
-Check if any dependency plugins also need updating:
+Start the server and check the console for:
 
-* **CloudNet**: Update to required version (4.0.0-RC13+)
-* **Parties**: Ensure compatibility
-* **MMOCore**: Check for updates
-* **MythicMobs**: Verify version compatibility
+* Successful Redis connection
+* Database connection confirmation
+* `NextDungeon X.X.X started in N ms` message
+* Any `SEVERE` or `WARNING` messages indicating configuration issues
 
-### Step 5: Review Configuration Changes
+### Step 6: Verify Functionality
 
-Some updates may introduce new configuration options:
+Run the following checks:
 
-1. Start your server once to generate new default configurations
-2. Compare your backup with the new default configs
-3. Merge any new options into your existing configuration
-4. Update deprecated settings as noted in the changelog
-
-> **Tip:** Use a diff tool to compare configuration files:
-> ```bash
-> diff plugins/NextDungeon/config.yml plugins/NextDungeon-backup-*/config.yml
-> ```
-
-### Step 6: Start and Verify
-
-1. Start your server
-2. Monitor the console for errors or warnings
-3. Check that the plugin loaded successfully:
-   ```
-   /dungeon debug list
-   ```
-4. Test a dungeon instance to ensure everything works
-
-### Step 7: Test Thoroughly
-
-Before allowing players back on:
-
-* Test dungeon creation and loading
-* Verify instance provider functionality
-* Check database connectivity
-* Test party functionality
-* Verify custom configurations still work
-* Test integrations (MythicMobs, MMOCore, etc.)
-
-## Version-Specific Notes
-
-### Updating to 1.0.1-SNAPSHOT
-
-Changes in version 1.0.1-SNAPSHOT:
-
-* Enhanced web editor functionality
-* Improved CloudNet integration
-* New database configuration options
-* Revive system improvements
-
-**Migration steps:**
-1. Review new `ReviveSystem` configuration options
-2. Update `webeditor.proxy-port` if needed
-3. Check new database configuration structure
-
-### Updating from Pre-1.0 Versions
-
-If updating from a version before 1.0:
-
-* Configuration file structure has changed significantly
-* Database schema may require migration
-* Some commands have been renamed or restructured
-* Consider a fresh installation for major version jumps
-
-## Rollback Procedure
-
-If something goes wrong after updating:
-
-### Step 1: Stop the Server
-
-```bash
-stop
+```
+/dungeon list
+/dungeon admin status
+/dungeon admin queue status
 ```
 
-### Step 2: Restore Plugin File
+Test that an existing dungeon floor can be entered by running:
 
-```bash
-cd /path/to/your/server/plugins/
-rm NextDungeon-*.jar
-cp ../NextDungeon-backup-*/NextDungeon-*.jar .
+```
+/dungeon admin test <dungeonId> <floorId>
 ```
 
-### Step 3: Restore Configuration
+---
 
-```bash
-rm -rf NextDungeon/
-cp -r ../NextDungeon-backup-*/ NextDungeon/
-```
+## Rolling Back
 
-### Step 4: Restore Database (if needed)
+If the update introduces issues:
 
-Import your database backup using MySQL/MongoDB tools.
+1. Stop the server
+2. Restore the old JAR and configuration backup
+3. If Redis data was modified, restore from your Redis snapshot
+4. Restart the server
 
-### Step 5: Restart Server
+---
 
-Start your server with the previous version restored.
+## Common Post-Update Issues
 
-## Automatic Updates
-
-> **Warning:** Automatic updates are **not recommended** for production servers. Always test updates in a staging environment first.
-
-## Update Checklist
-
-- [ ] Server and database backed up
-- [ ] Changelog reviewed
-- [ ] Compatibility verified
-- [ ] Dependencies updated
-- [ ] Plugin file replaced
-- [ ] Configuration files reviewed and updated
-- [ ] Server started successfully
-- [ ] Plugin loaded without errors
-- [ ] Dungeons tested and functional
-- [ ] Integrations working correctly
-- [ ] Players notified of any changes
-
-## Getting Help
-
-If you encounter issues during the update:
-
-1. Check the console logs for specific error messages
-2. Review the [troubleshooting guide](#) (if available)
-3. Search for similar issues on GitHub
-4. Join the Discord community for support
-5. Create a bug report with full details and logs
-
-***
-
-Stay up to date to enjoy the latest features and improvements!
-
+| Symptom | Likely Cause | Fix |
+|---------|-------------|-----|
+| Plugin fails to load | Missing hard dependency (MMOCore, packetevents) | Install/update the missing dependency |
+| Redis connection error | Host/port/password changed or wrong | Update `RedisConfiguration` in `config.yml` |
+| Floors not loading | New `DungeonLoader` key missing | Add `DungeonLoader: "redis"` to `config.yml` |
+| Commands not found | New command alias added/removed | Check `plugin.yml` in the new release |
+| Database errors on start | Schema change in new version | Check release notes for migration SQL or MongoDB commands |
