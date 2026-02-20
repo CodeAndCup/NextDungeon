@@ -23,6 +23,12 @@
 * [Creating Dungeons](dungeon-management/creating-dungeons.md)
 * [Editing Dungeons](dungeon-management/editing-dungeons.md)
 
+## Workflow System
+
+* [Triggers](workflow/triggers.md)
+* [Actions](workflow/actions.md)
+* [Conditions & Variables](workflow/conditions-and-variables.md)
+
 ## Integrations
 
 * [CloudNet](integrations/cloudnet.md)

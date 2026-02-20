@@ -1,57 +1,75 @@
 ---
 description: >-
-  Before installing and running the Dungeons Plugin, make sure your server meets
-  the following requirements and dependencies.
+  Before installing NextDungeon, ensure your server meets all requirements.
 icon: shield-check
 ---
 
 # Requirements
 
-### Server Platform
+## Server Platform
 
-* **Minecraft Server**: Spigot, Paper, or compatible fork (1.21.4+ recommended)
-* **Java Version**: Java 21 or newer
+* **Minecraft Server**: Spigot, Paper, or compatible fork — version **1.21.4** (API-version set to `1.21` in `plugin.yml`)
+* **Java Version**: Java **21** or newer (Maven compiler source and target set to `21`)
 
-### Required Dependencies
+## Required Dependencies
 
-The following are core requirements:
+The following must be present before NextDungeon can start:
 
-* **Redis Server** – Required for cross-server communication (especially with CloudNet)
-* **Database** – MySQL or MongoDB for storing dungeon data and player progress
+| Dependency | Purpose | Notes |
+|-----------|---------|-------|
+| **Redis** | Cross-server data sync, dungeon state, queue management, player profiles | Accessed via Redisson (single-server mode) |
+| **MMOCore** | Player level checks for floor requirements | Listed as a hard `depend` in `plugin.yml` |
+| **PacketEvents** | NPC library (NPC-Lib / ghost system) | Listed as a hard `depend` in `plugin.yml` |
 
-### Integration Plugins
+> **Important:** If MMOCore or packetevents are absent the plugin will refuse to load.
 
-These plugins provide additional functionality and are **optional** but recommended:
+## Optional / Integration Dependencies
 
-* [CloudNet](https://cloudnetservice.eu/) – For dynamic server and instance management _<mark style="color:orange;">(Requires Java 24/25 and version 4.0.0-RC13)</mark>_
-* [Advanced Slime Paper (ASP)](https://github.com/InfernalSuite/AdvancedSlimePaper) – For optimized world management (alternative to CloudNet)
-* [Parties](https://www.spigotmc.org/resources/parties.3709/) – For group play and party features
-* [MMOCore](https://www.spigotmc.org/resources/mmocore.87699/) – For RPG elements (classes, skills, level requirements)
-* [MythicMobs](https://www.spigotmc.org/resources/mythicmobs.5702/) – For custom mobs, bosses, and abilities
+| Plugin | Feature | Declaration |
+|--------|---------|-------------|
+| **CloudNet v4.0.0-RC13+** | Dynamic dungeon instance creation and routing | `softdepend` |
+| **Parties (AlessioDP)** | Group play, party requirements | `softdepend` |
+| **MythicMobs** | Custom mobs and bosses inside dungeons | `softdepend` |
+| **WorldEdit / FAWE** | `WorldEdit*Action` workflow actions | Used at runtime if present |
 
-> **Note:** NextDungeon works with vanilla Minecraft world management if CloudNet or ASP are not installed, though this is not recommended for production due to performance considerations.
+> CloudNet is the only supported `InstanceProvider` type in `1.0.4-SNAPSHOT`. Without it the plugin can still run on a single server but cannot spin up isolated floor instances.
 
-### Web Editor
+## Database
 
-To use the visual Blockly web editor for dungeon creation:
+NextDungeon requires **one** of the following for persistent player stats and trigger storage:
 
-* Access the provided web editor URL (details in Dungeon Creation)
-* Make sure your server and firewall allow connections between the editor and your Minecraft server
+* **MySQL** (default) — configured under `DatabaseConfiguration.mysql` in `config.yml`
+* **MongoDB** — configured under `DatabaseConfiguration.mongodb` in `config.yml`
 
-### Resources & Hardware
+> MongoDB support for triggers is planned for future releases. Currently MySQL is the recommended choice.
 
-* Sufficient RAM and CPU to run multiple dungeon instances (recommend at least 4GB RAM for medium-sized servers)
-* SSD storage recommended for faster world and instance loading
+## Proxy (optional)
 
-### Permissions
+To use the **Blockly web editor** and the **dashboard**, install the appropriate proxy module:
 
-* Admin or OP access recommended for installation and setup
-* Proper permissions must be granted for managing dungeons and using plugin commands (see Permissions)
+* **Velocity** — place `NextDungeon-Velocity.jar` in Velocity's `plugins/` folder
+* **BungeeCord** — place `NextDungeon-BungeeCord.jar` in BungeeCord's `plugins/` folder
 
-### Supported Minecraft Versions
+Both proxy modules require access to the same Redis instance as the Spigot servers.
 
-* The plugin is tested and supported on Minecraft 1.21.4 and above. Compatibility with future versions may depend on updates to dependencies.
+## Web Editor Access
+
+The web editor HTTP server binds to the port defined by `WebEditor.proxy-port` (default `7734`). Make sure:
+
+* The port is accessible from your admin's browser
+* Your firewall allows TCP connections on that port
+
+## Hardware Recommendations
+
+* **RAM**: Minimum 4 GB for the network; add ~512 MB per simultaneous dungeon instance
+* **Storage**: SSD recommended for faster world template loading via CloudNet
+* **CPU**: Modern multi-core processor; instance creation involves asynchronous tasks
+
+## Permissions
+
+* Server `OP` or the `nextdungeons.admin` permission node is required for admin commands
+* See [Commands and Permissions](commands-and-permissions.md) for the full permission list
 
 ***
 
-Ready to install? Continue to the Installation Guide.
+Ready to install? Continue to the [Installation Guide](../getting-started/installation.md).

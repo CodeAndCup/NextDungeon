@@ -1,50 +1,59 @@
 ---
-description: Get your first dungeon up and running in minutes with this quick start guide.
+description: Get your first dungeon up and running with this quick start guide.
 icon: rocket
 ---
 
 # Quick Start Guide
 
-This guide will help you quickly set up and run your first dungeon with NextDungeon. Make sure you have completed the [Installation](installation.md) before proceeding.
+This guide assumes you have already completed the [Installation](installation.md) steps and that your server is running with NextDungeon loaded.
 
 ## Step 1: Verify Installation
 
-After installing the plugin and starting your server, verify that NextDungeon is loaded:
+Run the following command in-game or from the console:
 
 ```
-/dungeon debug list dungeons
+/dungeon list
 ```
 
-This should show an empty list or any pre-configured dungeons.
+You should see an empty dungeon list (or the example dungeon if it was pre-loaded). If the plugin reports an error, check [Installation](installation.md) again.
 
-## Step 2: Prepare Your Dungeon World
+## Step 2: Build Your Dungeon World
 
-Before creating a dungeon, you need a world that will serve as your dungeon template:
+Before creating a floor configuration you need a Minecraft world that represents your dungeon:
 
-1. Build your dungeon in a separate world (or use a pre-built one)
-2. Make note of important coordinates:
-   * Spawn point where players will start
-   * Region boundaries for each step/area
-   * Boss room locations
+1. Build (or import) your dungeon in a separate world on one of your Spigot servers.
+2. Note down the **spawn coordinates** where players will enter the floor.
+3. Identify **region boundaries** for each step/area (cuboid min/max corners).
+4. Identify boss rooms, trap areas, and any locations where triggers will fire.
 
-> **Tip:** Use WorldEdit or similar tools to help identify coordinates and regions.
+> **Tip:** Use WorldEdit's `//pos1` and `//pos2` to capture region coordinates precisely.
 
-## Step 3: Create Your First Dungeon Configuration
+<!-- INSERT HERE: screenshot of a dungeon build with labelled regions -->
 
-Navigate to your `plugins/NextDungeon/dungeons/` folder and create a new file called `my-first-dungeon.yml`:
+## Step 3: Create a Dungeon Configuration
+
+### Option A: Web Dashboard (recommended)
+
+Open your browser and navigate to the dashboard served by your proxy module (e.g. `http://your-proxy-ip:7734`). Use the web interface to create a new dungeon and add floors visually.
+
+Changes are pushed to Redis automatically and all lobby servers reload them in real time.
+
+### Option B: YAML Config File
+
+Create a new YAML file in `plugins/NextDungeon/dungeons/` — for example `my_dungeon.yml`:
 
 ```yaml
 dungeon:
-  id: "starter_dungeon"
-  name: "Starter Dungeon"
+  id: "my_dungeon"
+  name: "My First Dungeon"
   floors:
     - id: "floor1"
-      name: "The Beginning"
-      description: "Your first dungeon floor"
+      name: "The Entrance"
+      description: "Survive the dungeon entrance."
 
       world:
         difficulty: "normal"
-        spawn: { x: 0, y: 100, z: 0 }
+        spawn: { x: 0, y: 64, z: 0 }
 
       requirements:
         retry_cooldown: "10m"
@@ -52,91 +61,97 @@ dungeon:
         minimum_level: 0
         party:
           min_size: 1
-          max_size: 5
+          max_size: 10
         required_items: []
         forbidden_items: []
 
       rules:
+        max_lives: 3
         death_ban: "10m"
         gamemode: "SURVIVAL"
         allow_flight: false
+        max_instance: 5
 
       steps:
-        - id: "entrance"
-          name: "Entrance"
+        - id: "step1"
+          name: "Entrance Hall"
           region:
             pos1: { x: -10, y: 60, z: -10 }
             pos2: { x: 10, y: 80, z: 10 }
-
-        - id: "boss_room"
-          name: "Boss Chamber"
-          region:
-            pos1: { x: 50, y: 60, z: 50 }
-            pos2: { x: 70, y: 80, z: 70 }
 ```
 
-> **Note:** Adjust coordinates to match your actual dungeon world.
-
-## Step 4: Load Your Dungeon
-
-Reload or restart your server, then load the dungeon configuration:
+Load the config in-game:
 
 ```
-/dungeon admin load starter_dungeon
+/dungeon admin load my_dungeon
 ```
 
-Check if the dungeon was loaded successfully:
+To migrate this YAML config to Redis (so it persists and syncs to all servers):
 
 ```
-/dungeon debug list dungeons
+/dungeon admin migrate-to-redis my_dungeon
 ```
 
-You should now see your "starter_dungeon" in the list.
+After migrating, set `DungeonLoader: "redis"` in `config.yml` so future startups load from Redis.
 
-## Step 5: Enter the Dungeon
+## Step 4: Create a CloudNet Task Template
 
-To test your dungeon:
+For every floor you want to run as an isolated instance, CloudNet needs a matching **task** with the same name as the floor ID (e.g. `my_dungeon_floor1`):
 
-1. Make sure you have the required party size (or adjust the config for solo play)
-2. Use the command to join/start the dungeon (exact command depends on your setup)
-3. The plugin will create an instance and teleport you to the dungeon
+1. In the CloudNet web panel or CLI, create a new task named `my_dungeon_floor1`.
+2. Assign it to your Minecraft nodes.
+3. Set the task to use the dungeon world as the static world template.
 
-> **Note:** If using CloudNet, ensure your CloudNet nodes are properly configured to handle dungeon instances.
+Refer to [CloudNet Integration](../integrations/cloudnet.md) for detailed steps.
 
-## Step 6: Edit and Customize
+## Step 5: Start Edit Mode
 
-Now that you have a basic dungeon running, you can:
+To place your dungeon world into the CloudNet template and configure triggers:
 
-* Edit the dungeon using `/dungeon admin edit starter_dungeon floor1`
-* Add custom mobs using MythicMobs integration
-* Configure triggers and actions using the web editor
-* Add rewards and progression mechanics
+```
+/dungeon admin edit start my_dungeon floor1
+```
 
-## Common Issues
+This creates a new CloudNet instance in edit mode and teleports you to it. You can then:
 
-### Dungeon won't load
-* Check console logs for errors
-* Verify CloudNet/ASP is properly configured
-* Ensure Redis is running and accessible
+* Modify the world (blocks, structures, etc.)
+* Use `/dungeon admin webeditor start` to open the Blockly web editor and add triggers/actions
+* When finished, save and stop edit mode:
 
-### Can't teleport to dungeon
-* Check party requirements (min/max size)
-* Verify player has required permissions
-* Check if required items are configured correctly
+```
+/dungeon admin edit stop --confirm
+```
 
-### Instance creation fails
-* For CloudNet: Check node status and templates
-* For ASP: Verify world data is accessible
-* Check available server resources (RAM/CPU)
+This saves the world template back to CloudNet and shuts down the edit server.
 
-## Next Steps
+<!-- INSERT HERE: screenshot of the Blockly editor with a sample trigger configured -->
 
-* Read the [Dungeon Configuration](../configuration/dungeon-config.md) guide for advanced options
-* Learn about [Creating Dungeons](../dungeon-management/creating-dungeons.md) in detail
-* Explore [Integrations](../integrations/cloudnet.md) to enhance your dungeons
-* Set up the [Web Editor](../dungeon-management/editing-dungeons.md) for visual dungeon design
+## Step 6: Test Your Dungeon
+
+Back on the lobby server:
+
+```
+/dungeon admin test my_dungeon floor1
+```
+
+A test instance is created and you are sent directly to it. Check that:
+
+* The spawn location is correct
+* Triggers fire as expected
+* The floor completes when the end condition is met
+
+## Step 7: Open the Dungeon to Players
+
+Players can now queue for your floor:
+
+```
+/dungeon join my_dungeon floor1
+```
+
+They will be placed in the queue and transferred to the dungeon once an instance is ready.
+
+Use `/dungeon admin queue status` to monitor the queue in real time.
 
 ***
 
-Need help? Check the troubleshooting section or join our community Discord for support.
-
+Your first dungeon is live! See [Editing Dungeons](../dungeon-management/editing-dungeons.md) to refine workflows, or explore the [Integrations](../integrations/cloudnet.md) section for advanced setups.

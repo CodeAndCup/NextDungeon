@@ -1,78 +1,147 @@
 ---
-description: Follow these steps to install the Dungeons Plugin on your Minecraft server.
+description: Follow these steps to install NextDungeon on your Minecraft server network.
 icon: screwdriver-wrench
 ---
 
 # Installation
 
-### Prerequisites
+## Prerequisites
 
-* **Minecraft Server:** Spigot, Paper, or a compatible fork (version 1.21.4 recommended)
-* **Java:** Java 21
-* **CloudNet:** v4.0.0-RC13
-* **Redis Server:** Running and accessible
-* **Required Dependencies:**
-  * CloudNet Driver/Bridge modules
-  * Parties
-  * MMOCore
-  * MythicMobs
+Before you begin, make sure the following are in place:
 
-> **Tip:** Make sure all dependencies are compatible with your server version.
+| Requirement | Version | Notes |
+|------------|---------|-------|
+| Minecraft server (Spigot/Paper) | 1.21.4 | Any compatible fork works |
+| Java | 21+ | Required for the plugin and CloudNet |
+| Redis | 6.x or 7.x | Local or remote; accessible from all servers |
+| MMOCore | Latest | Hard dependency |
+| PacketEvents | Latest | Hard dependency |
+| CloudNet | 4.0.0-RC13+ | For instance management |
+| MySQL **or** MongoDB | Any modern version | For player profiles and trigger persistence |
 
-### Step-by-Step Installation
+Optional but recommended:
+* **AlessioDP Parties** — group play
+* **MythicMobs** — custom mobs in dungeons
+* **WorldEdit / FAWE** — WorldEdit workflow actions
 
-#### 1. Download the Plugin
+---
 
-* Go to the [releases page](https://github.com/SAOFR-DEV/Dungeons/releases) of the Dungeons repository.
-* Download the latest version of the plugin JAR file.
+## Step 1: Set Up Redis
 
-#### 2. Add the Plugin to Your Server
+1. Install a Redis server (locally or on a dedicated host).
+2. Note the host, port (default `6379`), username, and password.
+3. Make sure all your Minecraft servers and proxy can reach Redis on that port.
 
-* Place the downloaded `NextDungeons.jar` file into the `plugins` folder of your Minecraft server.
+## Step 2: Set Up CloudNet
 
-#### 3. Install Dependencies
+1. Install CloudNet v4.0.0-RC13 or newer on your network machine.
+2. Configure CloudNet to manage your Minecraft server nodes.
+3. For each dungeon floor you create, you will need a **CloudNet task** named after the floor ID (e.g. `example_floor1`). See [Creating Dungeons](../dungeon-management/creating-dungeons.md) for details.
+4. Refer to the [CloudNet integration page](../integrations/cloudnet.md) for full CloudNet-specific setup.
 
-* Ensure the required dependency plugins (e.g., Parties) are also in the `plugins` folder.
-* Set up CloudNet and Redis according to their documentation.
+## Step 3: Install Required Plugins
 
-#### 4. Configure CloudNet
+Place the following JARs in the `plugins/` folder of every **game server** (lobby + instance servers):
 
-* Make sure CloudNet is installed and configured for your network.
-* Refer to the [CloudNet documentation](https://cloudnetservice.eu/) for setup instructions.
+* `NextDungeon.jar` — the main plugin
+* `MMOCore.jar`
+* `packetevents.jar`
 
-#### 5. Start Your Server
+Optional JARs (place in `plugins/` if you use these integrations):
+* `Parties.jar`
+* `MythicMobs.jar`
 
-* Start your Minecraft server to generate the default configuration files for Dungeons.
-* Check the console logs for any errors or missing dependencies.
+## Step 4: Install the Proxy Module
 
-#### 6. Configure the Plugin
+Choose the module matching your proxy software and place it in that proxy's `plugins/` folder:
 
-* Edit the main configuration file:\
-  `plugins/Dungeons/config.yml`
-*   Example configuration:
+* **Velocity** — `NextDungeon-Velocity.jar`
+* **BungeeCord** — `NextDungeon-BungeeCord.jar`
 
-    ```yaml
-    ServerConfiguration:
-      isLobby: false
+## Step 5: First Start — Generate Default Configs
 
-    RedisConfiguration:
-      host: "localhost"
-      port: 6379
-      password: "your_password"
-      topic: "dungeons"
-    ```
-* If needed, configure additional plugins and dependencies.
+Start your Minecraft server once to generate the default configuration files:
 
-#### 7. Set Up Dungeons and Floors
+```
+plugins/NextDungeon/config.yml
+plugins/NextDungeon/dungeons/dungeon_exemple.yml
+```
 
-* Use the provided configuration templates in the `dungeons/` folder to define your dungeons and floors.
-* See the Dungeon Configuration page for more details.
+Check the console for startup errors. The plugin will disable itself if Redis, MMOCore, or packetevents are unavailable.
 
-#### 8. Verify Installation
+## Step 6: Configure the Plugin
 
-* Use `/dungeon debug list` in-game to verify the plugin is loaded and dungeons are available.
-* Check the logs for successful initialization and any warnings.
+Edit `plugins/NextDungeon/config.yml`. At minimum, update the Redis and database sections:
+
+```yaml
+RedisConfiguration:
+  host: "your-redis-host"
+  port: 6379
+  username: "default"
+  password: "your-password"
+  database: 0
+  topic: "nextdungeon"
+
+DatabaseConfiguration:
+  type: "mysql"
+  mysql:
+    host: "localhost"
+    port: 3306
+    database: "dungeons"
+    username: "root"
+    password: "your-db-password"
+
+InstanceProvider:
+  type: "CLOUDNET"
+```
+
+See [Main Config File](../configuration/main-config-file.md) for all available options.
+
+## Step 7: Configure the Proxy Module
+
+**Velocity** (`plugins/NextDungeonVelocity/config.toml`):
+
+```toml
+[webeditor]
+port = 7734
+
+[redis]
+host = "your-redis-host"
+port = 6379
+topic = "nextdungeon"
+username = "default"
+password = ""
+database = 0
+```
+
+**BungeeCord** (`plugins/NextDungeonBungee/config.yml`):
+
+```yaml
+webeditor:
+  port: 7734
+
+redis:
+  host: "your-redis-host"
+  port: 6379
+  topic: "nextdungeon"
+  username: "default"
+  password: ""
+```
+
+## Step 8: Verify Installation
+
+Reload or restart the server. In-game, run:
+
+```
+/dungeon list
+```
+
+An empty list means the plugin is loaded correctly. Run `/dungeon debug list dungeons` to confirm Redis connectivity.
+
+---
+
+> **Troubleshooting:** If the plugin fails to start, check the console for errors about Redis connectivity, missing dependencies (MMOCore, packetevents), or database connection failures. Most startup failures are caught and logged with a descriptive message.
 
 ***
 
-Need more help? See the Troubleshooting section or join our Discord for support.
+Ready? Continue to the [Quick Start Guide](quick-start-guide.md) to create your first dungeon.
