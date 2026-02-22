@@ -3,7 +3,6 @@ package fr.perrier.dungeons.spigot.module;
 import fr.perrier.dungeons.common.module.ModuleBlockDescriptor;
 import fr.perrier.dungeons.common.module.ModuleBlockRegistry;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -34,13 +33,15 @@ public class DefaultModuleBlockRegistry implements ModuleBlockRegistry {
 
     @Override
     public List<ModuleBlockDescriptor> getAllBlocks() {
-        return new ArrayList<>(blocks.values());
+        // Use distinct() because each descriptor is stored under both dotted and underscored keys
+        return blocks.values().stream().distinct().collect(Collectors.toList());
     }
 
     @Override
     public List<ModuleBlockDescriptor> getBlocksByModule(String moduleId) {
         return blocks.values().stream()
                 .filter(b -> moduleId.equals(b.getModuleId()))
+                .distinct()
                 .collect(Collectors.toList());
     }
 
@@ -48,6 +49,7 @@ public class DefaultModuleBlockRegistry implements ModuleBlockRegistry {
     public List<ModuleBlockDescriptor> getBlocksByType(ModuleBlockDescriptor.BlockType type) {
         return blocks.values().stream()
                 .filter(b -> type.equals(b.getType()))
+                .distinct()
                 .collect(Collectors.toList());
     }
 
