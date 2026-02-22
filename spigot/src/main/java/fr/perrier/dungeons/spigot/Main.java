@@ -47,6 +47,7 @@ import fr.perrier.dungeons.spigot.storage.DungeonService;
 import fr.perrier.dungeons.spigot.queue.DungeonQueueService;
 import fr.perrier.dungeons.spigot.queue.QueueManager;
 import fr.perrier.dungeons.spigot.utils.ServerUtil;
+import fr.perrier.dungeons.spigot.module.ModuleLoader;
 import fr.perrier.dungeons.spigot.webeditor.DungeonWebEditorManager;
 import lombok.Getter;
 import lombok.Setter;
@@ -94,6 +95,9 @@ public final class Main extends JavaPlugin {
 
     // Web editor manager
     private DungeonWebEditorManager webEditorManager;
+
+    // Dynamic module loader
+    private ModuleLoader moduleLoader;
 
 
     // Global trigger manager
@@ -191,6 +195,9 @@ public final class Main extends JavaPlugin {
 
         databaseManager = DatabaseFactory.createDatabase();
 
+        // Load dynamic modules from /modules/ directory
+        moduleLoader = new ModuleLoader(new java.io.File(getDataFolder(), "modules"));
+        moduleLoader.loadAll();
 
         // Enabling other plugins API
         CupCodeAPI.enable(this);
@@ -299,6 +306,11 @@ public final class Main extends JavaPlugin {
         // Clear local Redis data
         if (dungeonService != null) {
             dungeonService.clearLocal();
+        }
+
+        // Unload dynamic modules
+        if (moduleLoader != null) {
+            moduleLoader.unloadAll();
         }
 
         CupCodeAPI.disable();

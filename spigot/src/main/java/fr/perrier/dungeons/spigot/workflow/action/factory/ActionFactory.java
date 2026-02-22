@@ -536,6 +536,29 @@ public class ActionFactory {
                     yield new DropItemAction(item, quantity, location);
                 }
                 default -> {
+                    // Check if a dynamic module provides a handler for this action type
+                    if (Main.getInstance().getModuleLoader() != null) {
+                        fr.perrier.dungeons.common.module.ModuleActionHandler handler =
+                                Main.getInstance().getModuleLoader().getActionHandler(type);
+                        if (handler != null) {
+                            java.util.Map<String, Object> params = new java.util.HashMap<>();
+                            for (java.util.Map.Entry<String, JsonElement> entry : actionData.entrySet()) {
+                                if (!"type".equals(entry.getKey()) && !"name".equals(entry.getKey())) {
+                                    JsonElement val = entry.getValue();
+                                    if (val.isJsonPrimitive()) {
+                                        if (val.getAsJsonPrimitive().isString()) {
+                                            params.put(entry.getKey(), val.getAsString());
+                                        } else if (val.getAsJsonPrimitive().isNumber()) {
+                                            params.put(entry.getKey(), val.getAsNumber());
+                                        } else if (val.getAsJsonPrimitive().isBoolean()) {
+                                            params.put(entry.getKey(), val.getAsBoolean());
+                                        }
+                                    }
+                                }
+                            }
+                            yield new ModuleAction(type, params, handler);
+                        }
+                    }
                     Main.getLoggerUtil().warning("Type d'action inconnu: " + type);
                     yield null;
                 }

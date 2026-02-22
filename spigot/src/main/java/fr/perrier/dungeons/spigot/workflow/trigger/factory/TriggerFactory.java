@@ -97,6 +97,16 @@ public class TriggerFactory {
         TRIGGER_CLASSES.put("player_jump_trigger", PlayerJumpTrigger.class);
     }
 
+    /**
+     * Register a new trigger type dynamically (used by dynamic modules).
+     *
+     * @param type         the trigger type string identifier
+     * @param triggerClass the concrete trigger class
+     */
+    public static void registerTriggerType(String type, Class<? extends Trigger> triggerClass) {
+        TRIGGER_CLASSES.put(type, triggerClass);
+    }
+
     private static final Gson gson = createGsonInstance();
 
     /**

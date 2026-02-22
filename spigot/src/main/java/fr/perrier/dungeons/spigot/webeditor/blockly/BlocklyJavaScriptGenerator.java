@@ -1,5 +1,8 @@
 package fr.perrier.dungeons.spigot.webeditor.blockly;
 
+import fr.perrier.dungeons.common.module.ModuleBlockDescriptor;
+import fr.perrier.dungeons.spigot.Main;
+import fr.perrier.dungeons.spigot.module.ModuleLoader;
 import fr.perrier.dungeons.spigot.webeditor.blockly.annotations.BlocklyInfo;
 import org.bukkit.entity.Player;
 import org.reflections.Reflections;
@@ -79,6 +82,9 @@ public class BlocklyJavaScriptGenerator {
 
         // Générer les blocs variables
         generateVariableBlocks(js);
+
+        // Générer les blocs dynamiques des modules
+        generateModuleBlocks(js);
 
         // Générer la toolbox
         generateToolbox(js);
@@ -484,6 +490,129 @@ public class BlocklyJavaScriptGenerator {
     }
 
     /**
+     * Generates Blockly block definitions for all blocks registered by dynamic modules.
+     */
+    private void generateModuleBlocks(StringBuilder js) {
+        ModuleLoader moduleLoader = Main.getInstance().getModuleLoader();
+        if (moduleLoader == null) return;
+
+        List<ModuleBlockDescriptor> allBlocks = moduleLoader.getBlockRegistry().getAllBlocks();
+        if (allBlocks.isEmpty()) return;
+
+        js.append("// ===== BLOCS MODULES DYNAMIQUES =====\n");
+
+        for (ModuleBlockDescriptor descriptor : allBlocks) {
+            String blockName = descriptor.getId().replace('.', '_');
+            String color = descriptor.getColor() != null ? descriptor.getColor() : "#9C27B0";
+
+            js.append("Blockly.Blocks['").append(blockName).append("'] = {\n");
+            js.append("    init: function() {\n");
+            js.append("        this.appendDummyInput()\n");
+            js.append("            .appendField(\"").append(escapeJavaScript(descriptor.getLabel())).append("\");\n");
+
+            // Generate fields from parameters
+            if (descriptor.getParameters() != null) {
+                for (ModuleBlockDescriptor.BlockParameter param : descriptor.getParameters()) {
+                    String fieldLabel = param.getLabel() != null ? param.getLabel() : param.getName();
+                    String defaultVal = param.getDefaultValue() != null ? param.getDefaultValue() : "";
+
+                    switch (param.getType() != null ? param.getType() : "string") {
+                        case "number" -> {
+                            js.append("        this.appendDummyInput()\n");
+                            js.append("            .appendField(\"").append(escapeJavaScript(fieldLabel)).append("\")\n");
+                            js.append("            .appendField(new Blockly.FieldNumber(")
+                                    .append(defaultVal.isEmpty() ? "0" : defaultVal).append("), '")
+                                    .append(param.getName()).append("');\n");
+                        }
+                        case "boolean" -> {
+                            js.append("        this.appendDummyInput()\n");
+                            js.append("            .appendField(\"").append(escapeJavaScript(fieldLabel)).append("\")\n");
+                            js.append("            .appendField(new Blockly.FieldCheckbox('")
+                                    .append("true".equalsIgnoreCase(defaultVal) ? "TRUE" : "FALSE").append("'), '")
+                                    .append(param.getName()).append("');\n");
+                        }
+                        case "dropdown" -> {
+                            js.append("        this.appendDummyInput()\n");
+                            js.append("            .appendField(\"").append(escapeJavaScript(fieldLabel)).append("\")\n");
+                            js.append("            .appendField(new Blockly.FieldDropdown([");
+                            String options = param.getOptions() != null ? param.getOptions() : defaultVal;
+                            if (!options.isEmpty()) {
+                                String[] opts = options.split(",");
+                                for (int i = 0; i < opts.length; i++) {
+                                    if (i > 0) js.append(", ");
+                                    js.append("[\"").append(escapeJavaScript(opts[i].trim())).append("\", \"")
+                                            .append(escapeJavaScript(opts[i].trim())).append("\"]");
+                                }
+                            }
+                            js.append("]), '").append(param.getName()).append("');\n");
+                        }
+                        default -> { // string
+                            js.append("        this.appendDummyInput()\n");
+                            js.append("            .appendField(\"").append(escapeJavaScript(fieldLabel)).append("\")\n");
+                            js.append("            .appendField(new Blockly.FieldTextInput(\"")
+                                    .append(escapeJavaScript(defaultVal)).append("\"), '")
+                                    .append(param.getName()).append("');\n");
+                        }
+                    }
+                }
+            }
+
+            // Actions can chain, triggers have statement inputs
+            if (descriptor.getType() == ModuleBlockDescriptor.BlockType.ACTION) {
+                js.append("        this.setPreviousStatement(true, \"Action\");\n");
+                js.append("        this.setNextStatement(true, \"Action\");\n");
+            } else if (descriptor.getType() == ModuleBlockDescriptor.BlockType.TRIGGER) {
+                js.append("        this.appendStatementInput(\"ACTIONS\")\n");
+                js.append("            .setCheck(\"Action\")\n");
+                js.append("            .appendField(\"Faire:\");\n");
+            }
+
+            js.append("        this.setColour('").append(color).append("');\n");
+            if (descriptor.getDescription() != null && !descriptor.getDescription().isEmpty()) {
+                js.append("        this.setTooltip(\"").append(escapeJavaScript(descriptor.getDescription())).append("\");\n");
+            }
+
+            js.append("    }\n");
+            js.append("};\n\n");
+        }
+    }
+
+    /**
+     * Generates toolbox categories for dynamic module blocks grouped by category.
+     */
+    private void generateModuleToolboxCategories(StringBuilder js) {
+        ModuleLoader moduleLoader = Main.getInstance().getModuleLoader();
+        if (moduleLoader == null) return;
+
+        List<ModuleBlockDescriptor> allBlocks = moduleLoader.getBlockRegistry().getAllBlocks();
+        if (allBlocks.isEmpty()) return;
+
+        // Group blocks by category
+        Map<String, List<ModuleBlockDescriptor>> byCategory = new LinkedHashMap<>();
+        for (ModuleBlockDescriptor block : allBlocks) {
+            String category = block.getCategory() != null ? block.getCategory() : block.getModuleId();
+            byCategory.computeIfAbsent(category, k -> new ArrayList<>()).add(block);
+        }
+
+        for (Map.Entry<String, List<ModuleBlockDescriptor>> entry : byCategory.entrySet()) {
+            String catColor = entry.getValue().get(0).getColor() != null ? entry.getValue().get(0).getColor() : "#9C27B0";
+            js.append("        {\n");
+            js.append("            \"kind\": \"category\",\n");
+            js.append("            \"name\": \"🧩 ").append(escapeJavaScript(entry.getKey())).append("\",\n");
+            js.append("            \"colour\": \"").append(catColor).append("\",\n");
+            js.append("            \"contents\": [\n");
+
+            for (ModuleBlockDescriptor block : entry.getValue()) {
+                String blockName = block.getId().replace('.', '_');
+                js.append("                {\"kind\": \"block\", \"type\": \"").append(blockName).append("\"},\n");
+            }
+
+            js.append("            ]\n");
+            js.append("        },\n");
+        }
+    }
+
+    /**
      * Génère la toolbox pour Blockly, qui contient les catégories et les blocs associés.
      *
      * @param js Le `StringBuilder` utilisé pour accumuler le code JavaScript généré.
@@ -591,7 +720,13 @@ public class BlocklyJavaScriptGenerator {
                                 {"kind": "block", "type": "location_xyz_world"},
                                 {"kind": "block", "type": "location_full"}
                             ]
-                        }
+                        },
+                """);
+
+        // Dynamic module categories
+        generateModuleToolboxCategories(js);
+
+        js.append("""
                     ]
                 };
 
