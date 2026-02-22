@@ -137,6 +137,35 @@ public class InstanceSerializer {
 
         String className = classNameElement.getAsString();
 
+        // Special handling for ModuleTrigger: reconstruct via TriggerFactory
+        // so module block descriptor lookups work properly
+        if (className.equals("fr.perrier.dungeons.spigot.workflow.trigger.impl.ModuleTrigger")) {
+            JsonObject data = dataElement.getAsJsonObject();
+            if (data.has("type")) {
+                try {
+                    // Build a flat trigger JSON for TriggerFactory
+                    JsonObject flatTrigger = new JsonObject();
+                    flatTrigger.addProperty("type", data.get("type").getAsString());
+                    if (data.has("name")) flatTrigger.addProperty("name", data.get("name").getAsString());
+                    if (data.has("enabled")) flatTrigger.add("enabled", data.get("enabled"));
+                    // Copy parameters from the nested "parameters" map
+                    if (data.has("parameters") && data.get("parameters").isJsonObject()) {
+                        for (java.util.Map.Entry<String, JsonElement> entry : data.getAsJsonObject("parameters").entrySet()) {
+                            flatTrigger.add(entry.getKey(), entry.getValue());
+                        }
+                    }
+                    // Copy actions
+                    if (data.has("actions")) {
+                        flatTrigger.add("actions", data.get("actions"));
+                    }
+                    return fr.perrier.dungeons.spigot.workflow.trigger.factory.TriggerFactory.createTriggerFromJson(flatTrigger);
+                } catch (Exception e) {
+                    Main.getLoggerUtil().warning("Error recreating ModuleTrigger: " + e.getMessage());
+                    return null;
+                }
+            }
+        }
+
         try {
             Class<?> clazz = Class.forName(className);
             JsonObject dataObject = dataElement.getAsJsonObject();

@@ -24,6 +24,12 @@ public class DefaultModuleBlockRegistry implements ModuleBlockRegistry {
             throw new IllegalArgumentException("Block descriptor and its ID must not be null");
         }
         blocks.put(descriptor.getId(), descriptor);
+        // Also register under the Blockly-normalized name (dots → underscores)
+        // so lookups from Blockly-generated types like "cinematic_add_camera_waypoint" work
+        String blocklyName = descriptor.getId().replace('.', '_');
+        if (!blocklyName.equals(descriptor.getId())) {
+            blocks.put(blocklyName, descriptor);
+        }
     }
 
     @Override

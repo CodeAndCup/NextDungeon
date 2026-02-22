@@ -614,6 +614,84 @@ public class BlocklyJavaScriptGenerator {
     }
 
     /**
+     * Generates JavaScript extraction cases for dynamic module trigger blocks.
+     * When a module trigger block is in the workspace, this extracts its fields
+     * and creates a trigger object with the correct type and actions.
+     */
+    private void generateModuleTriggerCases(StringBuilder js) {
+        ModuleLoader moduleLoader = Main.getInstance().getModuleLoader();
+        if (moduleLoader == null) return;
+
+        List<ModuleBlockDescriptor> allBlocks = moduleLoader.getBlockRegistry().getAllBlocks();
+        for (ModuleBlockDescriptor descriptor : allBlocks) {
+            if (descriptor.getType() != ModuleBlockDescriptor.BlockType.TRIGGER) continue;
+
+            String blockName = descriptor.getId().replace('.', '_');
+            js.append("                if (block.type === '").append(blockName).append("') {\n");
+            js.append("                    triggers.push({\n");
+            js.append("                        type: '").append(blockName).append("',\n");
+            js.append("                        name: 'ModuleTrigger_' + uuidv4(),\n");
+
+            if (descriptor.getParameters() != null) {
+                for (ModuleBlockDescriptor.BlockParameter param : descriptor.getParameters()) {
+                    String fieldName = param.getName();
+                    switch (param.getType() != null ? param.getType() : "string") {
+                        case "number" ->
+                            js.append("                        ").append(fieldName).append(": Number(block.getFieldValue('").append(fieldName).append("')),\n");
+                        case "boolean" ->
+                            js.append("                        ").append(fieldName).append(": block.getFieldValue('").append(fieldName).append("') === 'TRUE',\n");
+                        default ->
+                            js.append("                        ").append(fieldName).append(": block.getFieldValue('").append(fieldName).append("'),\n");
+                    }
+                }
+            }
+
+            js.append("                        actions: getActionsFromBlock(block)\n");
+            js.append("                    });\n");
+            js.append("                }\n");
+        }
+    }
+
+    /**
+     * Generates JavaScript loading cases for dynamic module trigger blocks.
+     * When loading saved triggers, this recreates module trigger blocks and
+     * sets their field values from saved data.
+     */
+    private void generateModuleTriggerLoadingCases(StringBuilder js) {
+        ModuleLoader moduleLoader = Main.getInstance().getModuleLoader();
+        if (moduleLoader == null) return;
+
+        List<ModuleBlockDescriptor> allBlocks = moduleLoader.getBlockRegistry().getAllBlocks();
+        for (ModuleBlockDescriptor descriptor : allBlocks) {
+            if (descriptor.getType() != ModuleBlockDescriptor.BlockType.TRIGGER) continue;
+
+            String blockName = descriptor.getId().replace('.', '_');
+            js.append("                if (trigger.type === '").append(blockName).append("') {\n");
+            js.append("                    const triggerBlock = workspace.newBlock('").append(blockName).append("');\n");
+
+            if (descriptor.getParameters() != null) {
+                for (ModuleBlockDescriptor.BlockParameter param : descriptor.getParameters()) {
+                    String fieldName = param.getName();
+                    switch (param.getType() != null ? param.getType() : "string") {
+                        case "boolean" ->
+                            js.append("                    triggerBlock.setFieldValue(trigger.").append(fieldName)
+                                    .append(" ? 'TRUE' : 'FALSE', '").append(fieldName).append("');\n");
+                        default ->
+                            js.append("                    if (trigger.").append(fieldName).append(" !== undefined) triggerBlock.setFieldValue(String(trigger.")
+                                    .append(fieldName).append("), '").append(fieldName).append("');\n");
+                    }
+                }
+            }
+
+            js.append("                    triggerBlock.initSvg();\n");
+            js.append("                    triggerBlock.render();\n");
+            js.append("                    loadActionsIntoBlock(triggerBlock, trigger.actions);\n");
+            js.append("                    triggerBlock.moveBy(20 + (index * 300), 20);\n");
+            js.append("                }\n");
+        }
+    }
+
+    /**
      * Generates JavaScript extraction cases for dynamic module action blocks.
      * When a module action block is encountered in the workspace, this extracts
      * all its field values and creates an action object with the correct type.
@@ -837,6 +915,9 @@ public class BlocklyJavaScriptGenerator {
             }
         }
 
+        // Generate extraction cases for dynamic module trigger blocks
+        generateModuleTriggerCases(js);
+
         js.append("""
                     });
                     
@@ -906,6 +987,9 @@ public class BlocklyJavaScriptGenerator {
                 generateTriggerLoadingCase(js, triggerClass);
             }
         }
+
+        // Generate loading cases for dynamic module trigger blocks
+        generateModuleTriggerLoadingCases(js);
 
         js.append("""
                     });

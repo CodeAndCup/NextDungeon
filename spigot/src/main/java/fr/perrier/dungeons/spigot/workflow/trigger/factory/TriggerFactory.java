@@ -146,6 +146,11 @@ public class TriggerFactory {
             // Get the concrete class for this trigger type
             Class<? extends Trigger> triggerClass = TRIGGER_CLASSES.get(type);
             if (triggerClass == null) {
+                // Check if a dynamic module provides a trigger descriptor for this type
+                Trigger moduleTrigger = tryCreateModuleTrigger(type, name, triggerData);
+                if (moduleTrigger != null) {
+                    return moduleTrigger;
+                }
                 Main.getLoggerUtil().warning("Trigger type unknown: " + type);
                 return null;
             }
@@ -183,6 +188,58 @@ public class TriggerFactory {
             e.printStackTrace(System.err);
             return null;
         }
+    }
+
+    /**
+     * Attempts to create a ModuleTrigger from JSON if the type matches a module trigger descriptor.
+     */
+    private static Trigger tryCreateModuleTrigger(String type, String name, JsonObject triggerData) {
+        if (Main.getInstance().getModuleLoader() == null) return null;
+
+        fr.perrier.dungeons.common.module.ModuleBlockDescriptor descriptor =
+                Main.getInstance().getModuleLoader().getBlockRegistry().getBlock(type);
+        if (descriptor == null) {
+            // Also try with dots → underscores conversion
+            descriptor = Main.getInstance().getModuleLoader().getBlockRegistry().getBlock(type.replace('_', '.'));
+        }
+        if (descriptor == null || descriptor.getType() != fr.perrier.dungeons.common.module.ModuleBlockDescriptor.BlockType.TRIGGER) {
+            return null;
+        }
+
+        // Extract parameters from JSON (everything except type, name, actions, enabled)
+        java.util.Map<String, Object> params = new java.util.HashMap<>();
+        for (java.util.Map.Entry<String, JsonElement> entry : triggerData.entrySet()) {
+            String key = entry.getKey();
+            if ("type".equals(key) || "name".equals(key) || "actions".equals(key) || "enabled".equals(key)) {
+                continue;
+            }
+            JsonElement val = entry.getValue();
+            if (val.isJsonPrimitive()) {
+                if (val.getAsJsonPrimitive().isString()) {
+                    params.put(key, val.getAsString());
+                } else if (val.getAsJsonPrimitive().isNumber()) {
+                    params.put(key, val.getAsNumber());
+                } else if (val.getAsJsonPrimitive().isBoolean()) {
+                    params.put(key, val.getAsBoolean());
+                }
+            }
+        }
+
+        ModuleTrigger trigger = new ModuleTrigger(name, type, params);
+        trigger.setEnabled(!triggerData.has("enabled") || triggerData.get("enabled").getAsBoolean());
+
+        // Parse actions
+        if (triggerData.has("actions")) {
+            JsonArray actionsArray = triggerData.getAsJsonArray("actions");
+            trigger.setActions(ActionFactory.parseActionsFromJson(actionsArray));
+        }
+
+        if (Main.getLoggerUtil().isDebugEnabled()) {
+            Main.getLoggerUtil().info("ModuleTrigger created: " + trigger.getName() + " (" + type + ") with "
+                    + trigger.getActions().size() + " action(s)");
+        }
+
+        return trigger;
     }
 
     /**

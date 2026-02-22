@@ -149,6 +149,22 @@ public class EditorSerializer {
                 triggerObj.addProperty("id", trigger.getTriggerId().toString());
                 triggerObj.addProperty("type", trigger.getType());
 
+                // For ModuleTrigger, flatten the parameters map to top-level fields
+                // so Blockly can read them directly (e.g. trigger.cinematicId)
+                if (trigger instanceof fr.perrier.dungeons.spigot.workflow.trigger.impl.ModuleTrigger moduleTrigger) {
+                    if (moduleTrigger.getParameters() != null) {
+                        for (java.util.Map.Entry<String, Object> param : moduleTrigger.getParameters().entrySet()) {
+                            if (param.getValue() instanceof String s) {
+                                triggerObj.addProperty(param.getKey(), s);
+                            } else if (param.getValue() instanceof Number n) {
+                                triggerObj.addProperty(param.getKey(), n);
+                            } else if (param.getValue() instanceof Boolean b) {
+                                triggerObj.addProperty(param.getKey(), b);
+                            }
+                        }
+                    }
+                }
+
                 // Serialize actions the same way
                 JsonArray actionsArray = new JsonArray();
                 for (ActionData actionData : trigger.getActions()) {
