@@ -536,11 +536,28 @@ public class ActionFactory {
                     yield new DropItemAction(item, quantity, location);
                 }
                 default -> {
-                    // Check if a dynamic module provides a handler for this action type
+                    // Check if a dynamic module provides a handler or block descriptor for this action type
                     if (Main.getInstance().getModuleLoader() != null) {
+                        // Try original type, then convert underscores to dots (Blockly uses _ but modules register with .)
                         fr.perrier.dungeons.common.module.ModuleActionHandler handler =
                                 Main.getInstance().getModuleLoader().getActionHandler(type);
-                        if (handler != null) {
+                        if (handler == null) {
+                            String dottedType = type.replace('_', '.');
+                            handler = Main.getInstance().getModuleLoader().getActionHandler(dottedType);
+                        }
+
+                        // Also check if a block descriptor exists (even without a handler)
+                        boolean isModuleBlock = handler != null;
+                        if (!isModuleBlock) {
+                            fr.perrier.dungeons.common.module.ModuleBlockDescriptor descriptor =
+                                    Main.getInstance().getModuleLoader().getBlockRegistry().getBlock(type);
+                            if (descriptor == null) {
+                                descriptor = Main.getInstance().getModuleLoader().getBlockRegistry().getBlock(type.replace('_', '.'));
+                            }
+                            isModuleBlock = descriptor != null;
+                        }
+
+                        if (isModuleBlock) {
                             java.util.Map<String, Object> params = new java.util.HashMap<>();
                             for (java.util.Map.Entry<String, JsonElement> entry : actionData.entrySet()) {
                                 if (!"type".equals(entry.getKey()) && !"name".equals(entry.getKey())) {

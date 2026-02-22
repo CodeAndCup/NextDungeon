@@ -216,6 +216,31 @@ public class InstanceSerializer {
             && dataElement != null && !dataElement.isJsonNull()) {
             // New format with className/data
             String className = classNameElement.getAsString();
+
+            // Special handling for ModuleAction: use ActionFactory to properly recreate
+            // (Gson alone can't reconstruct the transient handler field)
+            if (className.equals("fr.perrier.dungeons.spigot.workflow.action.impl.ModuleAction")) {
+                JsonObject data = dataElement.getAsJsonObject();
+                if (data.has("type")) {
+                    try {
+                        // Reconstruct the action JSON in flat format for ActionFactory
+                        JsonObject flatAction = new JsonObject();
+                        flatAction.addProperty("type", data.get("type").getAsString());
+                        if (data.has("name")) flatAction.addProperty("name", data.get("name").getAsString());
+                        // Copy parameters from the nested "parameters" map
+                        if (data.has("parameters") && data.get("parameters").isJsonObject()) {
+                            for (java.util.Map.Entry<String, JsonElement> entry : data.getAsJsonObject("parameters").entrySet()) {
+                                flatAction.add(entry.getKey(), entry.getValue());
+                            }
+                        }
+                        return ActionFactory.createActionFromJson(flatAction);
+                    } catch (Exception e) {
+                        Main.getLoggerUtil().warning("Error recreating ModuleAction: " + e.getMessage());
+                        return null;
+                    }
+                }
+            }
+
             try {
                 Class<?> clazz = Class.forName(className);
                 return (Action) baseGson.fromJson(dataElement, clazz);

@@ -160,6 +160,22 @@ public class EditorSerializer {
                     JsonObject actionObj = gson.toJsonTree(action, action.getClass()).getAsJsonObject();
                     actionObj.addProperty("type", action.getType());
 
+                    // For ModuleAction, flatten the parameters map to top-level fields
+                    // so Blockly can read them directly (e.g. action.cinematicId instead of action.parameters.cinematicId)
+                    if (action instanceof fr.perrier.dungeons.spigot.workflow.action.impl.ModuleAction moduleAction) {
+                        if (moduleAction.getParameters() != null) {
+                            for (java.util.Map.Entry<String, Object> param : moduleAction.getParameters().entrySet()) {
+                                if (param.getValue() instanceof String s) {
+                                    actionObj.addProperty(param.getKey(), s);
+                                } else if (param.getValue() instanceof Number n) {
+                                    actionObj.addProperty(param.getKey(), n);
+                                } else if (param.getValue() instanceof Boolean b) {
+                                    actionObj.addProperty(param.getKey(), b);
+                                }
+                            }
+                        }
+                    }
+
                     actionsArray.add(actionObj);
                 }
                 triggerObj.add("actions", actionsArray);

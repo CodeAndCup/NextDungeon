@@ -614,6 +614,79 @@ public class BlocklyJavaScriptGenerator {
     }
 
     /**
+     * Generates JavaScript extraction cases for dynamic module action blocks.
+     * When a module action block is encountered in the workspace, this extracts
+     * all its field values and creates an action object with the correct type.
+     */
+    private void generateModuleActionCases(StringBuilder js) {
+        ModuleLoader moduleLoader = Main.getInstance().getModuleLoader();
+        if (moduleLoader == null) return;
+
+        List<ModuleBlockDescriptor> allBlocks = moduleLoader.getBlockRegistry().getAllBlocks();
+        for (ModuleBlockDescriptor descriptor : allBlocks) {
+            if (descriptor.getType() != ModuleBlockDescriptor.BlockType.ACTION) continue;
+
+            String blockName = descriptor.getId().replace('.', '_');
+            js.append("                if (actionBlock.type === '").append(blockName).append("') {\n");
+            js.append("                    actions.push({\n");
+            js.append("                        type: '").append(blockName).append("'");
+
+            if (descriptor.getParameters() != null) {
+                for (ModuleBlockDescriptor.BlockParameter param : descriptor.getParameters()) {
+                    js.append(",\n                        ");
+                    String fieldName = param.getName();
+                    switch (param.getType() != null ? param.getType() : "string") {
+                        case "number" ->
+                            js.append(fieldName).append(": Number(actionBlock.getFieldValue('").append(fieldName).append("'))");
+                        case "boolean" ->
+                            js.append(fieldName).append(": actionBlock.getFieldValue('").append(fieldName).append("') === 'TRUE'");
+                        default ->
+                            js.append(fieldName).append(": actionBlock.getFieldValue('").append(fieldName).append("')");
+                    }
+                }
+            }
+
+            js.append("\n                    });\n");
+            js.append("                }\n");
+        }
+    }
+
+    /**
+     * Generates JavaScript loading cases for dynamic module action blocks.
+     * When loading a saved workflow, this recreates module action blocks in the workspace
+     * and sets their field values from the saved action data.
+     */
+    private void generateModuleActionLoadingCases(StringBuilder js) {
+        ModuleLoader moduleLoader = Main.getInstance().getModuleLoader();
+        if (moduleLoader == null) return;
+
+        List<ModuleBlockDescriptor> allBlocks = moduleLoader.getBlockRegistry().getAllBlocks();
+        for (ModuleBlockDescriptor descriptor : allBlocks) {
+            if (descriptor.getType() != ModuleBlockDescriptor.BlockType.ACTION) continue;
+
+            String blockName = descriptor.getId().replace('.', '_');
+            js.append("                if (action.type === '").append(blockName).append("') {\n");
+            js.append("                    actionBlock = workspace.newBlock('").append(blockName).append("');\n");
+
+            if (descriptor.getParameters() != null) {
+                for (ModuleBlockDescriptor.BlockParameter param : descriptor.getParameters()) {
+                    String fieldName = param.getName();
+                    switch (param.getType() != null ? param.getType() : "string") {
+                        case "boolean" ->
+                            js.append("                    actionBlock.setFieldValue(action.").append(fieldName)
+                                    .append(" ? 'TRUE' : 'FALSE', '").append(fieldName).append("');\n");
+                        default ->
+                            js.append("                    if (action.").append(fieldName).append(" !== undefined) actionBlock.setFieldValue(String(action.")
+                                    .append(fieldName).append("), '").append(fieldName).append("');\n");
+                    }
+                }
+            }
+
+            js.append("                }\n");
+        }
+    }
+
+    /**
      * Génère la toolbox pour Blockly, qui contient les catégories et les blocs associés.
      *
      * @param js Le `StringBuilder` utilisé pour accumuler le code JavaScript généré.
@@ -797,6 +870,9 @@ public class BlocklyJavaScriptGenerator {
             }
         }
 
+        // Generate extraction cases for dynamic module action blocks
+        generateModuleActionCases(js);
+
         js.append("""
                         actionBlock = actionBlock.getNextBlock();
                     }
@@ -864,6 +940,9 @@ public class BlocklyJavaScriptGenerator {
             }
         }
 
+        // Generate loading cases for dynamic module action blocks
+        generateModuleActionLoadingCases(js);
+
         // Add these helper functions in generateUtilityFunctions method:
         js.append("""
                                     if (actionBlock) {
@@ -905,6 +984,9 @@ public class BlocklyJavaScriptGenerator {
             }
         }
 
+        // Generate extraction cases for dynamic module action blocks
+        generateModuleActionCases(js);
+
         js.append("""
                          actionBlock = actionBlock.getNextBlock();
                      }
@@ -938,6 +1020,9 @@ public class BlocklyJavaScriptGenerator {
                 }
             }
         }
+
+        // Generate loading cases for dynamic module action blocks
+        generateModuleActionLoadingCases(js);
 
         js.append("""
                                     if (actionBlock) {

@@ -5,6 +5,7 @@ import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.webeditor.blockly.BlocklyAction;
 import fr.perrier.dungeons.spigot.workflow.action.Action;
 import lombok.Getter;
+import lombok.Setter;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
@@ -14,12 +15,18 @@ import java.util.Map;
 /**
  * Action that delegates execution to a dynamic module action handler.
  * Created by ActionFactory when the action type matches a module-registered block.
+ *
+ * <p>The {@code handler} field is transient so Gson can serialize/deserialize this class.
+ * On deserialization the handler is resolved lazily from the ModuleLoader at execution time.</p>
  */
 @Getter
 public class ModuleAction extends Action implements BlocklyAction {
 
     private final Map<String, Object> parameters;
-    private final ModuleActionHandler handler;
+
+    /** Transient: looked up from ModuleLoader at execution time */
+    @Setter
+    private transient ModuleActionHandler handler;
 
     public ModuleAction(String type, Map<String, Object> parameters, ModuleActionHandler handler) {
         super("ModuleAction:" + type, type);
@@ -29,6 +36,15 @@ public class ModuleAction extends Action implements BlocklyAction {
 
     @Override
     public boolean execute(Player player, Location location, Map<String, Object> data) {
+        // Lazy handler resolution: if handler is null (e.g. after deserialization), look it up
+        if (handler == null) {
+            handler = resolveHandler();
+        }
+        if (handler == null) {
+            Main.getLoggerUtil().warning("No handler registered for module action '" + type + "', cannot execute");
+            return false;
+        }
+
         Map<String, Object> merged = new HashMap<>(parameters);
         merged.put("player", player);
         merged.put("location", location);
@@ -42,5 +58,21 @@ public class ModuleAction extends Action implements BlocklyAction {
             e.printStackTrace(System.err);
             return false;
         }
+    }
+
+    /**
+     * Resolves the action handler from ModuleLoader using the action type.
+     * Tries both the original type and the dot-version (underscores → dots).
+     */
+    private ModuleActionHandler resolveHandler() {
+        if (Main.getInstance().getModuleLoader() == null) return null;
+
+        // Try original type first
+        ModuleActionHandler h = Main.getInstance().getModuleLoader().getActionHandler(type);
+        if (h != null) return h;
+
+        // Try converting underscores to dots (cinematic_start → cinematic.start)
+        String dottedType = type.replace('_', '.');
+        return Main.getInstance().getModuleLoader().getActionHandler(dottedType);
     }
 }
