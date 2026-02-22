@@ -11,7 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Generic trigger for module-provided trigger types (e.g. cinematic.on_end).
+ * Generic trigger for module-provided trigger types (e.g. cinematic_on_end).
  * Stores the module block type and any parameters from the Blockly editor.
  *
  * <p>Analogous to {@link ModuleAction} — this is a concrete Trigger subclass

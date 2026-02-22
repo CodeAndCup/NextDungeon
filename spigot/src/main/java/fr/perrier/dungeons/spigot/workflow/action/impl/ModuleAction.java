@@ -62,17 +62,9 @@ public class ModuleAction extends Action implements BlocklyAction {
 
     /**
      * Resolves the action handler from ModuleLoader using the action type.
-     * Tries both the original type and the dot-version (underscores → dots).
      */
     private ModuleActionHandler resolveHandler() {
         if (Main.getInstance().getModuleLoader() == null) return null;
-
-        // Try original type first
-        ModuleActionHandler h = Main.getInstance().getModuleLoader().getActionHandler(type);
-        if (h != null) return h;
-
-        // Try converting underscores to dots (cinematic_start → cinematic.start)
-        String dottedType = type.replace('_', '.');
-        return Main.getInstance().getModuleLoader().getActionHandler(dottedType);
+        return Main.getInstance().getModuleLoader().getActionHandler(type);
     }
 }

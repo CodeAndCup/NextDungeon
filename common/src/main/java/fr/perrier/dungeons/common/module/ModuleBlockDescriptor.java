@@ -21,7 +21,7 @@ public class ModuleBlockDescriptor implements Serializable {
         TRIGGER, ACTION, CONDITION
     }
 
-    /** Unique block identifier, e.g. "cinematic.start" */
+    /** Unique block identifier, e.g. "cinematic_start" */
     private String id;
 
     /** Block type */

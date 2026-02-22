@@ -130,7 +130,7 @@ public class ModuleLoader {
     /**
      * Register a handler for a module action block ID.
      *
-     * @param blockId the action block ID (e.g. "cinematic.start")
+     * @param blockId the action block ID (e.g. "cinematic_start")
      * @param handler the handler to invoke when this action is executed
      */
     public void registerActionHandler(String blockId, ModuleActionHandler handler) {

@@ -502,7 +502,7 @@ public class BlocklyJavaScriptGenerator {
         js.append("// ===== BLOCS MODULES DYNAMIQUES =====\n");
 
         for (ModuleBlockDescriptor descriptor : allBlocks) {
-            String blockName = descriptor.getId().replace('.', '_');
+            String blockName = descriptor.getId();
             String color = descriptor.getColor() != null ? descriptor.getColor() : "#9C27B0";
 
             js.append("Blockly.Blocks['").append(blockName).append("'] = {\n");
@@ -604,7 +604,7 @@ public class BlocklyJavaScriptGenerator {
             js.append("            \"contents\": [\n");
 
             for (ModuleBlockDescriptor block : categoryBlocks) {
-                String blockName = block.getId().replace('.', '_');
+                String blockName = block.getId();
                 js.append("                {\"kind\": \"block\", \"type\": \"").append(blockName).append("\"},\n");
             }
 
@@ -626,7 +626,7 @@ public class BlocklyJavaScriptGenerator {
         for (ModuleBlockDescriptor descriptor : allBlocks) {
             if (descriptor.getType() != ModuleBlockDescriptor.BlockType.TRIGGER) continue;
 
-            String blockName = descriptor.getId().replace('.', '_');
+            String blockName = descriptor.getId();
             js.append("                if (block.type === '").append(blockName).append("') {\n");
             js.append("                    triggers.push({\n");
             js.append("                        type: '").append(blockName).append("',\n");
@@ -665,7 +665,7 @@ public class BlocklyJavaScriptGenerator {
         for (ModuleBlockDescriptor descriptor : allBlocks) {
             if (descriptor.getType() != ModuleBlockDescriptor.BlockType.TRIGGER) continue;
 
-            String blockName = descriptor.getId().replace('.', '_');
+            String blockName = descriptor.getId();
             js.append("                if (trigger.type === '").append(blockName).append("') {\n");
             js.append("                    const triggerBlock = workspace.newBlock('").append(blockName).append("');\n");
 
@@ -704,7 +704,7 @@ public class BlocklyJavaScriptGenerator {
         for (ModuleBlockDescriptor descriptor : allBlocks) {
             if (descriptor.getType() != ModuleBlockDescriptor.BlockType.ACTION) continue;
 
-            String blockName = descriptor.getId().replace('.', '_');
+            String blockName = descriptor.getId();
             js.append("                if (actionBlock.type === '").append(blockName).append("') {\n");
             js.append("                    actions.push({\n");
             js.append("                        type: '").append(blockName).append("'");
@@ -742,7 +742,7 @@ public class BlocklyJavaScriptGenerator {
         for (ModuleBlockDescriptor descriptor : allBlocks) {
             if (descriptor.getType() != ModuleBlockDescriptor.BlockType.ACTION) continue;
 
-            String blockName = descriptor.getId().replace('.', '_');
+            String blockName = descriptor.getId();
             js.append("                if (action.type === '").append(blockName).append("') {\n");
             js.append("                    actionBlock = workspace.newBlock('").append(blockName).append("');\n");
 

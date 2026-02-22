@@ -3,6 +3,7 @@ package fr.perrier.dungeons.spigot.module;
 import fr.perrier.dungeons.common.module.ModuleBlockDescriptor;
 import fr.perrier.dungeons.common.module.ModuleBlockRegistry;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,25 +24,17 @@ public class DefaultModuleBlockRegistry implements ModuleBlockRegistry {
             throw new IllegalArgumentException("Block descriptor and its ID must not be null");
         }
         blocks.put(descriptor.getId(), descriptor);
-        // Also register under the Blockly-normalized name (dots → underscores)
-        // so lookups from Blockly-generated types like "cinematic_add_camera_waypoint" work
-        String blocklyName = descriptor.getId().replace('.', '_');
-        if (!blocklyName.equals(descriptor.getId())) {
-            blocks.put(blocklyName, descriptor);
-        }
     }
 
     @Override
     public List<ModuleBlockDescriptor> getAllBlocks() {
-        // Use distinct() because each descriptor is stored under both dotted and underscored keys
-        return blocks.values().stream().distinct().collect(Collectors.toList());
+        return new ArrayList<>(blocks.values());
     }
 
     @Override
     public List<ModuleBlockDescriptor> getBlocksByModule(String moduleId) {
         return blocks.values().stream()
                 .filter(b -> moduleId.equals(b.getModuleId()))
-                .distinct()
                 .collect(Collectors.toList());
     }
 
@@ -49,7 +42,6 @@ public class DefaultModuleBlockRegistry implements ModuleBlockRegistry {
     public List<ModuleBlockDescriptor> getBlocksByType(ModuleBlockDescriptor.BlockType type) {
         return blocks.values().stream()
                 .filter(b -> type.equals(b.getType()))
-                .distinct()
                 .collect(Collectors.toList());
     }
 

@@ -57,7 +57,7 @@ public class CinematicModule implements NextDungeonModule {
 
     private void registerStartCinematic(ModuleContext ctx) {
         ModuleBlockDescriptor block = new ModuleBlockDescriptor(
-                "cinematic.start", BlockType.ACTION,
+                "cinematic_start", BlockType.ACTION,
                 "🎬 Start Cinematic",
                 "Starts a cinematic sequence from JSON in the database",
                 getId()
@@ -73,7 +73,7 @@ public class CinematicModule implements NextDungeonModule {
 
     private void registerStopCinematic(ModuleContext ctx) {
         ModuleBlockDescriptor block = new ModuleBlockDescriptor(
-                "cinematic.stop", BlockType.ACTION,
+                "cinematic_stop", BlockType.ACTION,
                 "⏹ Stop Cinematic",
                 "Stops the currently playing cinematic for the player",
                 getId()
@@ -85,7 +85,7 @@ public class CinematicModule implements NextDungeonModule {
 
     private void registerAddCameraWaypoint(ModuleContext ctx) {
         ModuleBlockDescriptor block = new ModuleBlockDescriptor(
-                "cinematic.add_camera_waypoint", BlockType.ACTION,
+                "cinematic_add_camera_waypoint", BlockType.ACTION,
                 "📷 Add Camera Waypoint",
                 "Adds a camera waypoint to a cinematic timeline",
                 getId()
@@ -107,7 +107,7 @@ public class CinematicModule implements NextDungeonModule {
 
     private void registerMoveNpc(ModuleContext ctx) {
         ModuleBlockDescriptor block = new ModuleBlockDescriptor(
-                "cinematic.move_npc", BlockType.ACTION,
+                "cinematic_move_npc", BlockType.ACTION,
                 "🚶 Move NPC",
                 "Moves/synchronizes an NPC to a position on the timeline",
                 getId()
@@ -129,7 +129,7 @@ public class CinematicModule implements NextDungeonModule {
 
     private void registerTimelineEvent(ModuleContext ctx) {
         ModuleBlockDescriptor block = new ModuleBlockDescriptor(
-                "cinematic.timeline_event", BlockType.ACTION,
+                "cinematic_timeline_event", BlockType.ACTION,
                 "⏱ Timeline Event",
                 "Injects a timed event into the cinematic timeline (command, sound, title, etc.)",
                 getId()
@@ -152,7 +152,7 @@ public class CinematicModule implements NextDungeonModule {
 
     private void registerCinematicEndTrigger(ModuleContext ctx) {
         ModuleBlockDescriptor block = new ModuleBlockDescriptor(
-                "cinematic.on_end", BlockType.TRIGGER,
+                "cinematic_on_end", BlockType.TRIGGER,
                 "🎬 When Cinematic Ends",
                 "Triggers when a cinematic sequence finishes for a player",
                 getId()
@@ -168,7 +168,7 @@ public class CinematicModule implements NextDungeonModule {
 
     private void registerIsCinematicPlaying(ModuleContext ctx) {
         ModuleBlockDescriptor block = new ModuleBlockDescriptor(
-                "cinematic.is_playing", BlockType.CONDITION,
+                "cinematic_is_playing", BlockType.CONDITION,
                 "🎬 Is Cinematic Playing?",
                 "Checks if a cinematic is currently playing for the player",
                 getId()

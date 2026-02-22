@@ -200,9 +200,6 @@ public class TriggerFactory {
                 Main.getInstance().getModuleLoader().getBlockRegistry();
 
         fr.perrier.dungeons.common.module.ModuleBlockDescriptor descriptor = registry.getBlock(type);
-        if (descriptor == null) {
-            descriptor = registry.getBlock(type.replace('_', '.'));
-        }
         if (descriptor == null || descriptor.getType() != fr.perrier.dungeons.common.module.ModuleBlockDescriptor.BlockType.TRIGGER) {
             return null;
         }
