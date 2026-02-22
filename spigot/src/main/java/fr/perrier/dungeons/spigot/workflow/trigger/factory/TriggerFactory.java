@@ -196,11 +196,12 @@ public class TriggerFactory {
     private static Trigger tryCreateModuleTrigger(String type, String name, JsonObject triggerData) {
         if (Main.getInstance().getModuleLoader() == null) return null;
 
-        fr.perrier.dungeons.common.module.ModuleBlockDescriptor descriptor =
-                Main.getInstance().getModuleLoader().getBlockRegistry().getBlock(type);
+        fr.perrier.dungeons.common.module.ModuleBlockRegistry registry =
+                Main.getInstance().getModuleLoader().getBlockRegistry();
+
+        fr.perrier.dungeons.common.module.ModuleBlockDescriptor descriptor = registry.getBlock(type);
         if (descriptor == null) {
-            // Also try with dots → underscores conversion
-            descriptor = Main.getInstance().getModuleLoader().getBlockRegistry().getBlock(type.replace('_', '.'));
+            descriptor = registry.getBlock(type.replace('_', '.'));
         }
         if (descriptor == null || descriptor.getType() != fr.perrier.dungeons.common.module.ModuleBlockDescriptor.BlockType.TRIGGER) {
             return null;
