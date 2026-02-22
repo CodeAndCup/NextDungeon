@@ -25,6 +25,7 @@
         <module>spigot</module>
         <!--<module>bungeecord</module> -->
         <module>velocity</module>
+        <module>module-cinematic</module>
     </modules>
 
     <properties>
