@@ -82,8 +82,11 @@ public class CameraInterpolation {
 
     /**
      * Interpolates between two angles (in degrees), taking the shortest path.
+     * Normalizes the angle difference to the [-180, 180] range to ensure
+     * the interpolation always takes the shortest rotation direction.
      */
     private static double lerpAngle(double a, double b, double t) {
+        // Normalize difference to [-180, 180]: ((b-a) % 360 + 540) % 360 - 180
         double diff = ((b - a) % 360 + 540) % 360 - 180;
         return a + diff * t;
     }

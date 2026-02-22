@@ -595,14 +595,15 @@ public class BlocklyJavaScriptGenerator {
         }
 
         for (Map.Entry<String, List<ModuleBlockDescriptor>> entry : byCategory.entrySet()) {
-            String catColor = entry.getValue().get(0).getColor() != null ? entry.getValue().get(0).getColor() : "#9C27B0";
+            List<ModuleBlockDescriptor> categoryBlocks = entry.getValue();
+            String catColor = categoryBlocks.get(0).getColor() != null ? categoryBlocks.get(0).getColor() : "#9C27B0";
             js.append("        {\n");
             js.append("            \"kind\": \"category\",\n");
             js.append("            \"name\": \"🧩 ").append(escapeJavaScript(entry.getKey())).append("\",\n");
             js.append("            \"colour\": \"").append(catColor).append("\",\n");
             js.append("            \"contents\": [\n");
 
-            for (ModuleBlockDescriptor block : entry.getValue()) {
+            for (ModuleBlockDescriptor block : categoryBlocks) {
                 String blockName = block.getId().replace('.', '_');
                 js.append("                {\"kind\": \"block\", \"type\": \"").append(blockName).append("\"},\n");
             }

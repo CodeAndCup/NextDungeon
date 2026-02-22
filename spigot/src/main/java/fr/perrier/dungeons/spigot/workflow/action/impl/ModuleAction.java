@@ -22,7 +22,7 @@ public class ModuleAction extends Action implements BlocklyAction {
     private final ModuleActionHandler handler;
 
     public ModuleAction(String type, Map<String, Object> parameters, ModuleActionHandler handler) {
-        super("ModuleAction", type);
+        super("ModuleAction:" + type, type);
         this.parameters = parameters;
         this.handler = handler;
     }
