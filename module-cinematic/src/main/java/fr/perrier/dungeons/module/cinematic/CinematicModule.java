@@ -19,7 +19,7 @@ public class CinematicModule implements NextDungeonModule {
 
     @Override
     public void onEnable(ModuleContext ctx) {
-        // Register action blocks
+        // Register action blocks (descriptors for Blockly UI)
         registerStartCinematic(ctx);
         registerStopCinematic(ctx);
         registerAddCameraWaypoint(ctx);
@@ -31,6 +31,9 @@ public class CinematicModule implements NextDungeonModule {
 
         // Register condition blocks
         registerIsCinematicPlaying(ctx);
+
+        // Register action execution handlers
+        registerActionHandlers(ctx);
     }
 
     @Override
@@ -187,5 +190,58 @@ public class CinematicModule implements NextDungeonModule {
                 "Camera interpolation mode", "CATMULL_ROM");
         p.setOptions("LINEAR,CATMULL_ROM,CUBIC");
         return p;
+    }
+
+    // --- Action Handler Registration ---
+
+    private void registerActionHandlers(ModuleContext ctx) {
+        ctx.registerActionHandler("cinematic_start", params -> {
+            String cinematicId = String.valueOf(params.getOrDefault("cinematicId", ""));
+            System.out.println("[Cinematic] Starting cinematic: " + cinematicId);
+            // TODO: Implement cinematic playback via CinematicPlayer
+            return true;
+        });
+
+        ctx.registerActionHandler("cinematic_stop", params -> {
+            System.out.println("[Cinematic] Stopping cinematic for player");
+            // TODO: Implement cinematic stop via CinematicPlayer
+            return true;
+        });
+
+        ctx.registerActionHandler("cinematic_add_camera_waypoint", params -> {
+            String cinematicId = String.valueOf(params.getOrDefault("cinematicId", ""));
+            Number tick = (Number) params.getOrDefault("tick", 0);
+            Number x = (Number) params.getOrDefault("x", 0);
+            Number y = (Number) params.getOrDefault("y", 64);
+            Number z = (Number) params.getOrDefault("z", 0);
+            Number yaw = (Number) params.getOrDefault("yaw", 0);
+            Number pitch = (Number) params.getOrDefault("pitch", 0);
+            String interpolation = String.valueOf(params.getOrDefault("interpolation", "LINEAR"));
+            System.out.println("[Cinematic] Adding camera waypoint to '" + cinematicId
+                    + "' at tick " + tick + " pos(" + x + "," + y + "," + z
+                    + ") yaw=" + yaw + " pitch=" + pitch + " interp=" + interpolation);
+            // TODO: Implement waypoint addition to CinematicData
+            return true;
+        });
+
+        ctx.registerActionHandler("cinematic_move_npc", params -> {
+            String cinematicId = String.valueOf(params.getOrDefault("cinematicId", ""));
+            String actorId = String.valueOf(params.getOrDefault("actorId", ""));
+            Number tick = (Number) params.getOrDefault("tick", 0);
+            System.out.println("[Cinematic] Moving NPC '" + actorId + "' in cinematic '" + cinematicId + "' at tick " + tick);
+            // TODO: Implement NPC movement via CinematicData
+            return true;
+        });
+
+        ctx.registerActionHandler("cinematic_timeline_event", params -> {
+            String cinematicId = String.valueOf(params.getOrDefault("cinematicId", ""));
+            String eventType = String.valueOf(params.getOrDefault("eventType", "COMMAND"));
+            String value = String.valueOf(params.getOrDefault("value", ""));
+            Number tick = (Number) params.getOrDefault("tick", 0);
+            System.out.println("[Cinematic] Timeline event in '" + cinematicId
+                    + "' at tick " + tick + ": " + eventType + " = " + value);
+            // TODO: Implement timeline event injection
+            return true;
+        });
     }
 }

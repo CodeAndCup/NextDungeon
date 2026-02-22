@@ -91,7 +91,7 @@ public class ModuleLoader {
         }
 
         // Enable the module with a context
-        DefaultModuleContext ctx = new DefaultModuleContext(blockRegistry);
+        DefaultModuleContext ctx = new DefaultModuleContext(blockRegistry, this::registerActionHandler);
         module.onEnable(ctx);
 
         loadedModules.put(moduleId, module);

@@ -62,9 +62,21 @@ public class ModuleAction extends Action implements BlocklyAction {
 
     /**
      * Resolves the action handler from ModuleLoader using the action type.
+     * Also handles backward compatibility for old DB data with dotted IDs
+     * (e.g. "cinematic.start" → tries "cinematic_start").
      */
     private ModuleActionHandler resolveHandler() {
         if (Main.getInstance().getModuleLoader() == null) return null;
-        return Main.getInstance().getModuleLoader().getActionHandler(type);
+
+        // Direct lookup
+        ModuleActionHandler h = Main.getInstance().getModuleLoader().getActionHandler(type);
+        if (h != null) return h;
+
+        // Backward compat: old DB data may have dots instead of underscores
+        String normalized = type.replace('.', '_');
+        if (!normalized.equals(type)) {
+            return Main.getInstance().getModuleLoader().getActionHandler(normalized);
+        }
+        return null;
     }
 }
