@@ -128,15 +128,20 @@ public final class Main extends JavaPlugin {
 
         // Save default config
         saveDefaultConfig();
+        if(getConfig().getString("config-version") == null) {
+            getLogger().severe("Invalid configuration file (missing config-version), please check your config.yml");
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
 
         // Initialize Redis Configuration
         Config config = new Config();
         config.useSingleServer().setAddress("redis://"
-                        + Main.getInstance().getConfig().getString("RedisConfiguration.host")
+                        + Objects.requireNonNull(Main.getInstance().getConfig().getString("RedisConfiguration.host"))
                         + ":"
                         + Main.getInstance().getConfig().getInt("RedisConfiguration.port"))
-                .setUsername(Main.getInstance().getConfig().getString("RedisConfiguration.username"))
-                .setPassword(Main.getInstance().getConfig().getString("RedisConfiguration.password"))
+                .setUsername(Objects.requireNonNull(Main.getInstance().getConfig().getString("RedisConfiguration.username")))
+                .setPassword(Objects.requireNonNull(Main.getInstance().getConfig().getString("RedisConfiguration.password")))
                 .setDatabase(Main.getInstance().getConfig().getInt("RedisConfiguration.database"));
 
         // Create Redis client
@@ -231,7 +236,7 @@ public final class Main extends JavaPlugin {
         }
 
         // Enabling messaging system
-        this.messaging = new Pidgin(getConfig().getString("RedisConfiguration.topic"),config);
+        this.messaging = new Pidgin(Objects.requireNonNull(getConfig().getString("RedisConfiguration.topic")),config);
         this.messaging.registerAdapter(PlayerSwitchServerPacket.class, new PlayerSwitchServerSubscriber());
         this.messaging.registerAdapter(WebEditorRequestPacket.class, new WebEditorRequestSubscriber());
         this.messaging.registerAdapter(WebEditorResponsePacket.class, null);
@@ -474,7 +479,7 @@ public final class Main extends JavaPlugin {
      */
     private void subscribeDashboardSyncChannel() {
         try {
-            String topic = getConfig().getString("RedisConfiguration.topic", "nextdungeon");
+            String topic = Objects.requireNonNull(getConfig().getString("RedisConfiguration.topic"));
             // Subscribe au canal string (messages JSON du dashboard proxy)
             dungeonService.getRedissonClient()
                     .getTopic(topic + ":sync")
@@ -506,7 +511,7 @@ public final class Main extends JavaPlugin {
                             Dungeon existing = dungeonService.getDungeon(id);
                             if (existing == null) {
                                 // Lire le nom depuis la clé dd:{id} (StringCodec, JSON)
-                                String ddKey = getConfig().getString("RedisConfiguration.topic", "nextdungeon") + ":dd:" + id;
+                                String ddKey = Objects.requireNonNull(getConfig().getString("RedisConfiguration.topic")) + ":dd:" + id;
                                 String entryJson = (String) dungeonService.getRedissonClient()
                                         .getBucket(ddKey, org.redisson.client.codec.StringCodec.INSTANCE).get();
                                 String name = id; // fallback

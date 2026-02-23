@@ -7,9 +7,11 @@ import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.workflow.action.Action;
 import fr.perrier.dungeons.spigot.workflow.action.factory.ActionFactory;
 import fr.perrier.dungeons.spigot.workflow.trigger.Trigger;
+import fr.perrier.dungeons.spigot.workflow.trigger.factory.TriggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Serializer/Deserializer to convert triggers to and from JSON.
@@ -150,7 +152,7 @@ public class InstanceSerializer {
                     if (data.has("enabled")) flatTrigger.add("enabled", data.get("enabled"));
                     // Copy parameters from the nested "parameters" map
                     if (data.has("parameters") && data.get("parameters").isJsonObject()) {
-                        for (java.util.Map.Entry<String, JsonElement> entry : data.getAsJsonObject("parameters").entrySet()) {
+                        for (Map.Entry<String, JsonElement> entry : data.getAsJsonObject("parameters").entrySet()) {
                             flatTrigger.add(entry.getKey(), entry.getValue());
                         }
                     }
@@ -158,7 +160,7 @@ public class InstanceSerializer {
                     if (data.has("actions")) {
                         flatTrigger.add("actions", data.get("actions"));
                     }
-                    return fr.perrier.dungeons.spigot.workflow.trigger.factory.TriggerFactory.createTriggerFromJson(flatTrigger);
+                    return TriggerFactory.createTriggerFromJson(flatTrigger);
                 } catch (Exception e) {
                     Main.getLoggerUtil().warning("Error recreating ModuleTrigger: " + e.getMessage());
                     return null;

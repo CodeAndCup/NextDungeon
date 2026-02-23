@@ -10,6 +10,8 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import java.util.Objects;
+
 /**
  * Listener for the revive item system.
  * Handles player interactions with the revive item and revives nearby ghost players.
@@ -46,7 +48,7 @@ public class ReviveItemListener implements Listener {
                 InstancePlayerDeathListener.revivePlayer(deadPlayer);
 
                 // Message de confirmation
-                String reviveMessage = Main.getInstance().getConfig().getString("ReviveSystem.reviveMessage", "&f{player} has been revived!");
+                String reviveMessage = Objects.requireNonNull(Main.getInstance().getConfig().getString("ReviveSystem.reviveMessage"));
                 player.sendMessage(ChatUtil.translate("&#00FF00✓ " + reviveMessage.replace("{player}", deadPlayer.getName())));
             } else {
                 player.sendMessage(ChatUtil.translate("&#FF0000✗ &fNo ghost player nearby to revive!"));
@@ -66,7 +68,7 @@ public class ReviveItemListener implements Listener {
         }
 
         // Vérifier le type d'item
-        String configuredType = Main.getInstance().getConfig().getString("ReviveSystem.ReviveItem.type", "BEETROOT_SOUP");
+        String configuredType = Objects.requireNonNull(Main.getInstance().getConfig().getString("ReviveSystem.ReviveItem.type"));
         if(!item.getType().name().equalsIgnoreCase(configuredType)) {
             return false;
         }
@@ -74,7 +76,7 @@ public class ReviveItemListener implements Listener {
         // Vérifier le nom de l'item (optionnel)
         ItemMeta meta = item.getItemMeta();
         if(meta != null && meta.hasDisplayName()) {
-            String configuredName = Main.getInstance().getConfig().getString("ReviveSystem.ReviveItem.displayName", "&#FF0000&lRevive Item");
+            String configuredName = Objects.requireNonNull(Main.getInstance().getConfig().getString("ReviveSystem.ReviveItem.displayName"));
             String translatedConfigName = ChatUtil.translate(configuredName);
 
             // Comparer les noms après traduction

@@ -94,7 +94,11 @@ public class ProfileMenu extends GlassMenu {
                             "",
                             "&7Best Time: &#90FFFF" + TimeUtil.getDuration(floorStats.getFastestCompletionTime()),
                             "&7Total kills: &#90FFFF" + floorStats.getTotalEnemiesKilled(),
+                            "&7Most kills in a run: &#90FFFF" + floorStats.getMostEnemiesKilledInRun(),
                             "&7Total deaths: &#90FFFF" + floorStats.getTotalDeaths(),
+                            "&7Most deaths in a run: &#90FFFF" + floorStats.getMostDeathsInRun(),
+                            "&7Total runs: &#90FFFF" + floorStats.getTotalRuns(),
+                            "&7Total completions: &#90FFFF" + floorStats.getTotalCompletions(),
                             ""
                     )
                     .toItemStack();

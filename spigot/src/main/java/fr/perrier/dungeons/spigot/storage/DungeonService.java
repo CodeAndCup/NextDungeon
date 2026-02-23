@@ -16,6 +16,7 @@ import org.redisson.api.RMap;
 import org.redisson.api.RTopic;
 import org.redisson.api.RedissonClient;
 
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -25,11 +26,11 @@ public class DungeonService {
     private final RedissonClient redissonClient;
 
     // Redis Maps and Topics
-    private static final String DUNGEON_MAP = Main.getInstance().getConfig().getString("RedisConfiguration.topic") + ":dungeons";
-    private static final String FLOOR_MAP = Main.getInstance().getConfig().getString("RedisConfiguration.topic") + ":floors";
-    private static final String FLOOR_METADATA_MAP = Main.getInstance().getConfig().getString("RedisConfiguration.topic") + ":floor_metadata";
-    private static final String INSTANCE_MAP = Main.getInstance().getConfig().getString("RedisConfiguration.topic") + ":instances";
-    private static final String SYNC_CHANNEL = Main.getInstance().getConfig().getString("RedisConfiguration.topic") + ":sync";
+    private static final String DUNGEON_MAP = Objects.requireNonNull(Main.getInstance().getConfig().getString("RedisConfiguration.topic")) + ":dungeons";
+    private static final String FLOOR_MAP = Objects.requireNonNull(Main.getInstance().getConfig().getString("RedisConfiguration.topic")) + ":floors";
+    private static final String FLOOR_METADATA_MAP = Objects.requireNonNull(Main.getInstance().getConfig().getString("RedisConfiguration.topic")) + ":floor_metadata";
+    private static final String INSTANCE_MAP = Objects.requireNonNull(Main.getInstance().getConfig().getString("RedisConfiguration.topic")) + ":instances";
+    private static final String SYNC_CHANNEL = Objects.requireNonNull(Main.getInstance().getConfig().getString("RedisConfiguration.topic")) + ":sync";
 
     // Local references to current floor and instance
     private final AtomicReference<FloorData> currentFloor = new AtomicReference<>();

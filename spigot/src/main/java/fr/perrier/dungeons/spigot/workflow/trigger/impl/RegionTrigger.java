@@ -48,15 +48,27 @@ public class RegionTrigger extends Trigger implements BlocklyTrigger {
     @BlocklyField(type = BlocklyField.FieldType.NUMBER_INPUT, label = "Cooldown (sec):", defaultValue = "0", order = 5)
     private int cooldownSeconds = 0;
 
-    private final Map<String, Long> playerTriggerHistory = new HashMap<>();
+    private transient Map<String, Long> playerTriggerHistory;
 
     public RegionTrigger(String name) {
         super(name);
         this.worldName = "world";
+        this.playerTriggerHistory = new HashMap<>();
+    }
+
+    /**
+     * Initialise playerTriggerHistory s'il est null (peut arriver après désérialisation)
+     */
+    private void ensurePlayerTriggerHistoryInitialized() {
+        if (this.playerTriggerHistory == null) {
+            this.playerTriggerHistory = new HashMap<>();
+        }
     }
 
     @Override
     public boolean execute(Player player, Location location, Map<String, Object> data) {
+        ensurePlayerTriggerHistoryInitialized();
+
         if(ServerUtil.isInEditMode()) return false;
 
         if (!checkConditions(player, data)) {
@@ -110,7 +122,7 @@ public class RegionTrigger extends Trigger implements BlocklyTrigger {
      * (utilisée par le RegionTriggerHandler)
      */
     public boolean isPlayerInRegion(Player player) {
-        if (player == null) return false;
+        if (player == null || pos1 == null || pos2 == null) return false;
 
         Location playerLoc = player.getLocation();
 

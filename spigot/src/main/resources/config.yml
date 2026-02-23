@@ -136,6 +136,9 @@ ReviveSystem:
     banCommand: "litebans:ban {player} {time} {reason}"
     banReason: "You have died permanently in the dungeon."
 
+# Dernière ligne du fichier - ne pas supprimer
+config-version: 1
+
 # =====================================================
 # 💡 CONSEILS DE CONFIGURATION
 # =====================================================
