@@ -255,6 +255,12 @@ public class WorldEditModule implements NextDungeonModule {
         int y = toInt(params.getOrDefault("y", 64));
         int z = toInt(params.getOrDefault("z", 0));
 
+        // Sanitize filename to prevent path traversal
+        if (filename.contains("..") || filename.contains("/") || filename.contains("\\")) {
+            System.out.println("[WorldEdit] Invalid schematic filename: " + filename);
+            return false;
+        }
+
         // Look for schematic file in plugin data folder
         File pluginDir = Bukkit.getPluginManager().getPlugin("NextDungeon") != null
                 ? Bukkit.getPluginManager().getPlugin("NextDungeon").getDataFolder()
@@ -350,7 +356,7 @@ public class WorldEditModule implements NextDungeonModule {
         return list;
     }
 
-    private List<com.sk89q.worldedit.world.block.BlockType> parseFromPattern(String pattern) {
+    private static List<com.sk89q.worldedit.world.block.BlockType> parseFromPattern(String pattern) {
         List<com.sk89q.worldedit.world.block.BlockType> types = new ArrayList<>();
         for (String part : pattern.split(",")) {
             String blockId = part.trim();

@@ -91,6 +91,7 @@ public class CinematicManager {
         // Store original game mode for restoration
         GameMode originalMode = player.getGameMode();
         Location originalLocation = player.getLocation().clone();
+        org.bukkit.World playerWorld = player.getWorld();
 
         // Set player to spectator mode for free camera movement
         player.setGameMode(GameMode.SPECTATOR);
@@ -99,7 +100,7 @@ public class CinematicManager {
             @Override
             public void setCameraPosition(double x, double y, double z, float yaw, float pitch) {
                 if (player.isOnline()) {
-                    Location loc = new Location(player.getWorld(), x, y, z, yaw, pitch);
+                    Location loc = new Location(playerWorld, x, y, z, yaw, pitch);
                     player.teleport(loc);
                 }
             }
@@ -173,8 +174,8 @@ public class CinematicManager {
     public void stopCinematic(Player player) {
         ActiveSession session = activeSessions.remove(player.getUniqueId());
         if (session != null) {
-            session.player.cancel();
             session.task.cancel();
+            session.player.cancel();
             System.out.println("[Cinematic] Stopped cinematic for " + player.getName());
         }
     }
