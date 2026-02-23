@@ -19,7 +19,8 @@ public class CinematicTitleAction extends SimpleCinematicAction<TitleSegment> {
         int totalDuration = segment.getEndFrame() - segment.getStartFrame();
         int stayDuration = totalDuration - segment.getFadeIn() - segment.getFadeOut();
 
-        // Convert frames to ticks (1 frame = 50ms, 1 tick = 50ms, so 1:1)
+        // Frames and Minecraft ticks both run at 50ms each (20 per second),
+        // so frame counts map directly to tick values for sendTitle
         player.sendTitle(
                 segment.getTitle(),
                 segment.getSubtitle(),

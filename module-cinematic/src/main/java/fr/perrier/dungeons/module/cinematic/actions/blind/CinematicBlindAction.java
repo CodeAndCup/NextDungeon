@@ -18,7 +18,8 @@ public class CinematicBlindAction extends SimpleCinematicAction<BlindSegment> {
 
     @Override
     protected void onSegmentStart(Player player, BlindSegment segment) throws Exception {
-        // Duration in frames = endFrame - startFrame; each frame is 1 tick (50ms)
+        // Frames and Minecraft ticks both run at 50ms (20 per second),
+        // so frame count maps directly to PotionEffect tick duration
         int durationTicks = segment.getEndFrame() - segment.getStartFrame();
         player.addPotionEffect(new PotionEffect(
                 PotionEffectType.BLINDNESS,

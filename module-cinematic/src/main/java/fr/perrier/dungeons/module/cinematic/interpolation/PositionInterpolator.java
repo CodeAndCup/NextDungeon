@@ -110,8 +110,7 @@ public class PositionInterpolator {
                 + (2 * p0.getPitch() - 5 * p1.getPitch() + 4 * p2.getPitch() - p3.getPitch()) * t2
                 + (-p0.getPitch() + 3 * p1.getPitch() - 3 * p2.getPitch() + p3.getPitch()) * t3));
 
-        CameraWaypoint result = new CameraWaypoint(0, x, y, z, yaw, pitch);
-        return result;
+        return new CameraWaypoint(0, x, y, z, yaw, pitch);
     }
 
     /**
