@@ -397,33 +397,6 @@ public class ActionFactory {
                     LocationBlock pos2 = LocationBlockParser.parseFromJson(actionData, "pos2");
                     yield new SummonMobInRegionAction(mobType, amount, pos1, pos2);
                 }
-                case "worldedit_schematic_action" -> {
-                    String filename = actionData.has("filename") ?
-                            actionData.get("filename").getAsString() : "schematic.schem";
-                    LocationBlock location = LocationBlockParser.parseFromJson(actionData, "location");
-                    yield new WorldEditSchematicAction(filename, location);
-                }
-                case "worldedit_set_action" -> {
-                    LocationBlock pos1 = LocationBlockParser.parseFromJson(actionData, "pos1");
-                    LocationBlock pos2 = LocationBlockParser.parseFromJson(actionData, "pos2");
-                    String pattern = actionData.has("pattern") ?
-                            actionData.get("pattern").getAsString() : "stone";
-                    yield new WorldEditSetAction(pos1, pos2, pattern);
-                }
-                case "worldedit_cut_action" -> {
-                    LocationBlock pos1 = LocationBlockParser.parseFromJson(actionData, "pos1");
-                    LocationBlock pos2 = LocationBlockParser.parseFromJson(actionData, "pos2");
-                    yield new WorldEditCutAction(pos1, pos2);
-                }
-                case "worldedit_replace_action" -> {
-                    LocationBlock pos1 = LocationBlockParser.parseFromJson(actionData, "pos1");
-                    LocationBlock pos2 = LocationBlockParser.parseFromJson(actionData, "pos2");
-                    String fromPattern = actionData.has("fromPattern") ?
-                            actionData.get("fromPattern").getAsString() : "stone";
-                    String toPattern = actionData.has("toPattern") ?
-                            actionData.get("toPattern").getAsString() : "gravel";
-                    yield new WorldEditReplaceAction(pos1, pos2, fromPattern, toPattern);
-                }
                 case "broadcast_command_action" -> {
                     String command = actionData.has("command") ?
                             actionData.get("command").getAsString() : "say Hello World!";

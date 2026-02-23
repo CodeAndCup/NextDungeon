@@ -19,8 +19,11 @@ import java.util.List;
  */
 public class CinematicModule implements NextDungeonModule {
 
+    private CinematicManager manager;
+
     @Override
     public void onEnable(ModuleContext ctx) {
+        this.manager = new CinematicManager();
         // Register action blocks (descriptors for Blockly UI)
         registerStartCinematic(ctx);
         registerStopCinematic(ctx);
@@ -40,7 +43,9 @@ public class CinematicModule implements NextDungeonModule {
 
     @Override
     public void onDisable() {
-        // Cleanup if needed
+        if (manager != null) {
+            manager.shutdown();
+        }
     }
 
     @Override
@@ -199,51 +204,76 @@ public class CinematicModule implements NextDungeonModule {
     private void registerActionHandlers(ModuleContext ctx) {
         ctx.registerActionHandler("cinematic_start", params -> {
             String cinematicId = String.valueOf(params.getOrDefault("cinematicId", ""));
-            System.out.println("[Cinematic] Starting cinematic: " + cinematicId);
-            // TODO: Implement cinematic playback via CinematicPlayer
-            return true;
+            Object playerObj = params.get("player");
+            if (!(playerObj instanceof Player player)) {
+                System.out.println("[Cinematic] cinematic_start: no player in context");
+                return false;
+            }
+            return manager.startCinematic(cinematicId, player);
         });
 
         ctx.registerActionHandler("cinematic_stop", params -> {
-            System.out.println("[Cinematic] Stopping cinematic for player");
-            // TODO: Implement cinematic stop via CinematicPlayer
+            Object playerObj = params.get("player");
+            if (!(playerObj instanceof Player player)) {
+                System.out.println("[Cinematic] cinematic_stop: no player in context");
+                return false;
+            }
+            manager.stopCinematic(player);
             return true;
         });
 
         ctx.registerActionHandler("cinematic_add_camera_waypoint", params -> {
             String cinematicId = String.valueOf(params.getOrDefault("cinematicId", ""));
-            Number tick = (Number) params.getOrDefault("tick", 0);
-            Number x = (Number) params.getOrDefault("x", 0);
-            Number y = (Number) params.getOrDefault("y", 64);
-            Number z = (Number) params.getOrDefault("z", 0);
-            Number yaw = (Number) params.getOrDefault("yaw", 0);
-            Number pitch = (Number) params.getOrDefault("pitch", 0);
-            String interpolation = String.valueOf(params.getOrDefault("interpolation", "LINEAR"));
-            System.out.println("[Cinematic] Adding camera waypoint to '" + cinematicId
-                    + "' at tick " + tick + " pos(" + x + "," + y + "," + z
-                    + ") yaw=" + yaw + " pitch=" + pitch + " interp=" + interpolation);
-            // TODO: Implement waypoint addition to CinematicData
+            int tick = toInt(params.getOrDefault("tick", 0));
+            double x = toDouble(params.getOrDefault("x", 0));
+            double y = toDouble(params.getOrDefault("y", 64));
+            double z = toDouble(params.getOrDefault("z", 0));
+            float yaw = toFloat(params.getOrDefault("yaw", 0));
+            float pitch = toFloat(params.getOrDefault("pitch", 0));
+            String interpStr = String.valueOf(params.getOrDefault("interpolation", "LINEAR"));
+            CameraWaypoint.InterpolationMode interpolation;
+            try {
+                interpolation = CameraWaypoint.InterpolationMode.valueOf(interpStr.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                interpolation = CameraWaypoint.InterpolationMode.LINEAR;
+            }
+            manager.addCameraWaypoint(cinematicId, tick, x, y, z, yaw, pitch, interpolation);
             return true;
         });
 
         ctx.registerActionHandler("cinematic_move_npc", params -> {
+            // NPC movement — logged for now, full NPC lib integration is TODO
             String cinematicId = String.valueOf(params.getOrDefault("cinematicId", ""));
             String actorId = String.valueOf(params.getOrDefault("actorId", ""));
-            Number tick = (Number) params.getOrDefault("tick", 0);
-            System.out.println("[Cinematic] Moving NPC '" + actorId + "' in cinematic '" + cinematicId + "' at tick " + tick);
-            // TODO: Implement NPC movement via CinematicData
+            int tick = toInt(params.getOrDefault("tick", 0));
+            System.out.println("[Cinematic] Move NPC '" + actorId + "' in '" + cinematicId + "' at tick " + tick);
             return true;
         });
 
         ctx.registerActionHandler("cinematic_timeline_event", params -> {
+            // Timeline events — logged for now, full implementation is TODO
             String cinematicId = String.valueOf(params.getOrDefault("cinematicId", ""));
             String eventType = String.valueOf(params.getOrDefault("eventType", "COMMAND"));
             String value = String.valueOf(params.getOrDefault("value", ""));
-            Number tick = (Number) params.getOrDefault("tick", 0);
-            System.out.println("[Cinematic] Timeline event in '" + cinematicId
-                    + "' at tick " + tick + ": " + eventType + " = " + value);
-            // TODO: Implement timeline event injection
+            int tick = toInt(params.getOrDefault("tick", 0));
+            System.out.println("[Cinematic] Timeline event '" + eventType + "' at tick " + tick
+                    + " in '" + cinematicId + "': " + value);
             return true;
         });
+    }
+
+    private static int toInt(Object obj) {
+        if (obj instanceof Number n) return n.intValue();
+        try { return Integer.parseInt(String.valueOf(obj)); } catch (Exception e) { return 0; }
+    }
+
+    private static double toDouble(Object obj) {
+        if (obj instanceof Number n) return n.doubleValue();
+        try { return Double.parseDouble(String.valueOf(obj)); } catch (Exception e) { return 0; }
+    }
+
+    private static float toFloat(Object obj) {
+        if (obj instanceof Number n) return n.floatValue();
+        try { return Float.parseFloat(String.valueOf(obj)); } catch (Exception e) { return 0; }
     }
 }
