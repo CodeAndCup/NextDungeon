@@ -63,7 +63,7 @@ public class PartyService {
      * @return the selected provider
      */
     private IPartyProvider selectProvider() {
-        String configuredType = Main.getInstance().getConfig().getString("PartyProvider.type", "AUTO");
+        String configuredType = Objects.requireNonNull(Main.getInstance().getConfig().getString("PartyProvider.type"));
         logger.info("Configured party provider type: " + configuredType);
 
         // AUTO mode: select first available provider

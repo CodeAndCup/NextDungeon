@@ -19,8 +19,8 @@ import java.util.function.Consumer;
 public class DungeonQueueService {
     private final RedissonClient redissonClient;
 
-    private static final String QUEUE_PREFIX = Main.getInstance().getConfig().getString("RedisConfiguration.topic") + ":queue:";
-    private static final String INSTANCE_COUNT_PREFIX = Main.getInstance().getConfig().getString("RedisConfiguration.topic") + ":instance_count:";
+    private static final String QUEUE_PREFIX = Objects.requireNonNull(Main.getInstance().getConfig().getString("RedisConfiguration.topic")) + ":queue:";
+    private static final String INSTANCE_COUNT_PREFIX = Objects.requireNonNull(Main.getInstance().getConfig().getString("RedisConfiguration.topic")) + ":instance_count:";
 
     // Cache of active queue floors to avoid expensive Redis pattern matching
     private final Set<String> activeQueueFloorsCache = ConcurrentHashMap.newKeySet();

@@ -25,6 +25,8 @@
         <module>spigot</module>
         <!--<module>bungeecord</module> -->
         <module>velocity</module>
+        <module>module-cinematic</module>
+        <module>module-worldedit</module>
     </modules>
 
     <properties>

@@ -29,5 +29,16 @@ public interface DatabaseManager {
     CompletableFuture<Boolean> triggersExist(String floorId);
     CompletableFuture<Void> deleteTriggers(String floorId);
 
+    // Cinematic CRUD operations (stored as JSON in DB)
+    CompletableFuture<String> loadCinematic(String cinematicId);
+    CompletableFuture<Void> saveCinematic(String cinematicId, String name, String creator, String payloadJson);
+    CompletableFuture<Void> deleteCinematic(String cinematicId);
+    CompletableFuture<List<String[]>> listCinematics();
+
+    // Workflow storage operations
+    CompletableFuture<String> loadWorkflow(String workflowId);
+    CompletableFuture<Void> saveWorkflow(String workflowId, String name, String graphJson);
+    CompletableFuture<Void> deleteWorkflow(String workflowId);
+
     <T> CompletableFuture<T> handleAsyncOperation(CompletableFuture<T> future, String operationName);
 }

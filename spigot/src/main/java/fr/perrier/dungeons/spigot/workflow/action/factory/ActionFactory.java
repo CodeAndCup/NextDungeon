@@ -27,15 +27,15 @@ public class ActionFactory {
             // Edit here and edit in TriggerSaveManager too
             return switch (type) {
                 case "send_message_action" -> {
-                    String targetPlayer = actionData.has("targetplayer") ?
-                            actionData.get("targetplayer").getAsString() : "player";
+                    String targetPlayer = actionData.has("targetPlayer") ?
+                            actionData.get("targetPlayer").getAsString() : "player";
                     String message = actionData.has("message") ?
                             actionData.get("message").getAsString() : "";
                     yield new SendMessageAction(targetPlayer, message);
                 }
                 case "send_title_action" -> {
-                    String targetPlayer = actionData.has("targetplayer") ?
-                            actionData.get("targetplayer").getAsString() : "player";
+                    String targetPlayer = actionData.has("targetPlayer") ?
+                            actionData.get("targetPlayer").getAsString() : "player";
                     String title = actionData.has("title") ?
                             actionData.get("title").getAsString() : "";
                     String subtitle = actionData.has("subtitle") ?
@@ -49,13 +49,13 @@ public class ActionFactory {
                     yield new SendTitleAction(targetPlayer, title, subtitle, fadeIn, stay, fadeOut);
                 }
                 case "call_function_action" -> {
-                    String functionName = actionData.has("functionname") ?
-                            actionData.get("functionname").getAsString() : "ma_fonction";
+                    String functionName = actionData.has("functionName") ?
+                            actionData.get("functionName").getAsString() : "ma_fonction";
                     yield new CallFunctionAction(functionName);
                 }
                 case "set_variable_action" -> {
-                    String variableName = actionData.has("variablename") ?
-                            actionData.get("variablename").getAsString() : "ma_variable";
+                    String variableName = actionData.has("variableName") ?
+                            actionData.get("variableName").getAsString() : "ma_variable";
                     String value = actionData.has("value") ?
                             actionData.get("value").getAsString() : "0";
                     String scope = actionData.has("scope") ?
@@ -63,8 +63,8 @@ public class ActionFactory {
                     yield new SetVariableAction(variableName, value, scope);
                 }
                 case "add_to_variable_action" -> {
-                    String variableName = actionData.has("variablename") ?
-                            actionData.get("variablename").getAsString() : "ma_variable";
+                    String variableName = actionData.has("variableName") ?
+                            actionData.get("variableName").getAsString() : "ma_variable";
                     String value = actionData.has("value") ?
                             actionData.get("value").getAsString() : "1";
                     String scope = actionData.has("scope") ?
@@ -72,8 +72,8 @@ public class ActionFactory {
                     yield new AddToVariableAction(variableName, value, scope);
                 }
                 case "subtract_from_variable_action" -> {
-                    String variableName = actionData.has("variablename") ?
-                            actionData.get("variablename").getAsString() : "ma_variable";
+                    String variableName = actionData.has("variableName") ?
+                            actionData.get("variableName").getAsString() : "ma_variable";
                     String value = actionData.has("value") ?
                             actionData.get("value").getAsString() : "1";
                     String scope = actionData.has("scope") ?
@@ -84,19 +84,19 @@ public class ActionFactory {
                     IfCondition ifCondition = new IfCondition();
 
                     // Set condition if provided
-                    if (actionData.has("leftvalue")) {
-                        Object leftValue = parseValue(actionData.get("leftvalue"));
+                    if (actionData.has("leftValue")) {
+                        Object leftValue = parseValue(actionData.get("leftValue"));
                         String operator = actionData.has("operator") ?
                                 actionData.get("operator").getAsString() : "==";
-                        Object rightValue = actionData.has("rightvalue") ?
-                                parseValue(actionData.get("rightvalue")) : null;
+                        Object rightValue = actionData.has("rightValue") ?
+                                parseValue(actionData.get("rightValue")) : null;
 
                         ifCondition.setCondition(leftValue, operator, rightValue);
                     }
 
                     // Load IF actions
-                    if (actionData.has("ifactions")) {
-                        JsonArray ifActionsArray = actionData.getAsJsonArray("ifactions");
+                    if (actionData.has("ifActions")) {
+                        JsonArray ifActionsArray = actionData.getAsJsonArray("ifActions");
                         for (JsonElement actionElement : ifActionsArray) {
                             Action action = createActionFromJson(actionElement.getAsJsonObject());
                             if (action != null) {
@@ -106,8 +106,8 @@ public class ActionFactory {
                     }
 
                     // Load ELSE actions
-                    if (actionData.has("elseactions")) {
-                        JsonArray elseActionsArray = actionData.getAsJsonArray("elseactions");
+                    if (actionData.has("elseActions")) {
+                        JsonArray elseActionsArray = actionData.getAsJsonArray("elseActions");
                         for (JsonElement actionElement : elseActionsArray) {
                             Action action = createActionFromJson(actionElement.getAsJsonObject());
                             if (action != null) {
@@ -121,22 +121,22 @@ public class ActionFactory {
                 case "player_has_item_condition" -> {
                     PlayerHasItemCondition condition = new PlayerHasItemCondition();
 
-                    if (actionData.has("itemmaterial")) {
-                        condition.setItemMaterial(actionData.get("itemmaterial").getAsString());
+                    if (actionData.has("itemMaterial")) {
+                        condition.setItemMaterial(actionData.get("itemMaterial").getAsString());
                     }
-                    if (actionData.has("minamount")) {
-                        condition.setMinAmount(actionData.get("minamount").getAsInt());
+                    if (actionData.has("minAmount")) {
+                        condition.setMinAmount(actionData.get("minAmount").getAsInt());
                     }
-                    if (actionData.has("checkname")) {
-                        condition.setCheckName(actionData.get("checkname").getAsBoolean());
+                    if (actionData.has("checkName")) {
+                        condition.setCheckName(actionData.get("checkName").getAsBoolean());
                     }
-                    if (actionData.has("itemname")) {
-                        condition.setItemName(actionData.get("itemname").getAsString());
+                    if (actionData.has("itemName")) {
+                        condition.setItemName(actionData.get("itemName").getAsString());
                     }
 
                     // Load IF actions
-                    if (actionData.has("ifactions")) {
-                        JsonArray ifActionsArray = actionData.getAsJsonArray("ifactions");
+                    if (actionData.has("ifActions")) {
+                        JsonArray ifActionsArray = actionData.getAsJsonArray("ifActions");
                         for (JsonElement actionElement : ifActionsArray) {
                             Action action = createActionFromJson(actionElement.getAsJsonObject());
                             if (action != null) {
@@ -146,8 +146,8 @@ public class ActionFactory {
                     }
 
                     // Load ELSE actions
-                    if (actionData.has("elseactions")) {
-                        JsonArray elseActionsArray = actionData.getAsJsonArray("elseactions");
+                    if (actionData.has("elseActions")) {
+                        JsonArray elseActionsArray = actionData.getAsJsonArray("elseActions");
                         for (JsonElement actionElement : elseActionsArray) {
                             Action action = createActionFromJson(actionElement.getAsJsonObject());
                             if (action != null) {
@@ -164,16 +164,16 @@ public class ActionFactory {
                     if (actionData.has("location")) {
                         condition.setLocation(fr.perrier.dungeons.spigot.workflow.blocks.LocationBlockParser.parseFromJson(actionData, "location"));
                     }
-                    if (actionData.has("checksolidground")) {
-                        condition.setCheckSolidGround(actionData.get("checksolidground").getAsBoolean());
+                    if (actionData.has("checkSolidGround")) {
+                        condition.setCheckSolidGround(actionData.get("checkSolidGround").getAsBoolean());
                     }
-                    if (actionData.has("checkdangerousblocks")) {
-                        condition.setCheckDangerousBlocks(actionData.get("checkdangerousblocks").getAsBoolean());
+                    if (actionData.has("checkDangerousBlocks")) {
+                        condition.setCheckDangerousBlocks(actionData.get("checkDangerousBlocks").getAsBoolean());
                     }
 
                     // Load IF actions
-                    if (actionData.has("ifactions")) {
-                        JsonArray ifActionsArray = actionData.getAsJsonArray("ifactions");
+                    if (actionData.has("ifActions")) {
+                        JsonArray ifActionsArray = actionData.getAsJsonArray("ifActions");
                         for (JsonElement actionElement : ifActionsArray) {
                             Action action = createActionFromJson(actionElement.getAsJsonObject());
                             if (action != null) {
@@ -183,8 +183,8 @@ public class ActionFactory {
                     }
 
                     // Load ELSE actions
-                    if (actionData.has("elseactions")) {
-                        JsonArray elseActionsArray = actionData.getAsJsonArray("elseactions");
+                    if (actionData.has("elseActions")) {
+                        JsonArray elseActionsArray = actionData.getAsJsonArray("elseActions");
                         for (JsonElement actionElement : elseActionsArray) {
                             Action action = createActionFromJson(actionElement.getAsJsonObject());
                             if (action != null) {
@@ -198,19 +198,19 @@ public class ActionFactory {
                 case "time_of_day_condition" -> {
                     TimeOfDayCondition condition = new TimeOfDayCondition();
 
-                    if (actionData.has("timeperiod")) {
-                        condition.setTimePeriod(actionData.get("timeperiod").getAsString());
+                    if (actionData.has("timePeriod")) {
+                        condition.setTimePeriod(actionData.get("timePeriod").getAsString());
                     }
-                    if (actionData.has("customtime")) {
-                        condition.setCustomTime(actionData.get("customtime").getAsLong());
+                    if (actionData.has("customTime")) {
+                        condition.setCustomTime(actionData.get("customTime").getAsLong());
                     }
                     if (actionData.has("operator")) {
                         condition.setOperator(actionData.get("operator").getAsString());
                     }
 
                     // Load IF actions
-                    if (actionData.has("ifactions")) {
-                        JsonArray ifActionsArray = actionData.getAsJsonArray("ifactions");
+                    if (actionData.has("ifActions")) {
+                        JsonArray ifActionsArray = actionData.getAsJsonArray("ifActions");
                         for (JsonElement actionElement : ifActionsArray) {
                             Action action = createActionFromJson(actionElement.getAsJsonObject());
                             if (action != null) {
@@ -220,8 +220,8 @@ public class ActionFactory {
                     }
 
                     // Load ELSE actions
-                    if (actionData.has("elseactions")) {
-                        JsonArray elseActionsArray = actionData.getAsJsonArray("elseactions");
+                    if (actionData.has("elseActions")) {
+                        JsonArray elseActionsArray = actionData.getAsJsonArray("elseActions");
                         for (JsonElement actionElement : elseActionsArray) {
                             Action action = createActionFromJson(actionElement.getAsJsonObject());
                             if (action != null) {
@@ -235,16 +235,16 @@ public class ActionFactory {
                 case "entity_type_is_condition" -> {
                     EntityTypeIsCondition condition = new EntityTypeIsCondition();
 
-                    if (actionData.has("entitytype")) {
-                        condition.setEntityType(actionData.get("entitytype").getAsString());
+                    if (actionData.has("entityType")) {
+                        condition.setEntityType(actionData.get("entityType").getAsString());
                     }
                     if (actionData.has("comparison")) {
                         condition.setComparison(actionData.get("comparison").getAsString());
                     }
 
                     // Load IF actions
-                    if (actionData.has("ifactions")) {
-                        JsonArray ifActionsArray = actionData.getAsJsonArray("ifactions");
+                    if (actionData.has("ifActions")) {
+                        JsonArray ifActionsArray = actionData.getAsJsonArray("ifActions");
                         for (JsonElement actionElement : ifActionsArray) {
                             Action action = createActionFromJson(actionElement.getAsJsonObject());
                             if (action != null) {
@@ -254,8 +254,8 @@ public class ActionFactory {
                     }
 
                     // Load ELSE actions
-                    if (actionData.has("elseactions")) {
-                        JsonArray elseActionsArray = actionData.getAsJsonArray("elseactions");
+                    if (actionData.has("elseActions")) {
+                        JsonArray elseActionsArray = actionData.getAsJsonArray("elseActions");
                         for (JsonElement actionElement : elseActionsArray) {
                             Action action = createActionFromJson(actionElement.getAsJsonObject());
                             if (action != null) {
@@ -281,8 +281,8 @@ public class ActionFactory {
                     }
 
                     // Load IF actions
-                    if (actionData.has("ifactions")) {
-                        JsonArray ifActionsArray = actionData.getAsJsonArray("ifactions");
+                    if (actionData.has("ifActions")) {
+                        JsonArray ifActionsArray = actionData.getAsJsonArray("ifActions");
                         for (JsonElement actionElement : ifActionsArray) {
                             Action action = createActionFromJson(actionElement.getAsJsonObject());
                             if (action != null) {
@@ -292,8 +292,8 @@ public class ActionFactory {
                     }
 
                     // Load ELSE actions
-                    if (actionData.has("elseactions")) {
-                        JsonArray elseActionsArray = actionData.getAsJsonArray("elseactions");
+                    if (actionData.has("elseActions")) {
+                        JsonArray elseActionsArray = actionData.getAsJsonArray("elseActions");
                         for (JsonElement actionElement : elseActionsArray) {
                             Action action = createActionFromJson(actionElement.getAsJsonObject());
                             if (action != null) {
@@ -316,16 +316,16 @@ public class ActionFactory {
                     if (actionData.has("z")) {
                         condition.setZ(actionData.get("z").getAsDouble());
                     }
-                    if (actionData.has("blocktype")) {
-                        condition.setBlockType(actionData.get("blocktype").getAsString());
+                    if (actionData.has("blockType")) {
+                        condition.setBlockType(actionData.get("blockType").getAsString());
                     }
                     if (actionData.has("comparison")) {
                         condition.setComparison(actionData.get("comparison").getAsString());
                     }
 
                     // Load IF actions
-                    if (actionData.has("ifactions")) {
-                        JsonArray ifActionsArray = actionData.getAsJsonArray("ifactions");
+                    if (actionData.has("ifActions")) {
+                        JsonArray ifActionsArray = actionData.getAsJsonArray("ifActions");
                         for (JsonElement actionElement : ifActionsArray) {
                             Action action = createActionFromJson(actionElement.getAsJsonObject());
                             if (action != null) {
@@ -335,8 +335,8 @@ public class ActionFactory {
                     }
 
                     // Load ELSE actions
-                    if (actionData.has("elseactions")) {
-                        JsonArray elseActionsArray = actionData.getAsJsonArray("elseactions");
+                    if (actionData.has("elseActions")) {
+                        JsonArray elseActionsArray = actionData.getAsJsonArray("elseActions");
                         for (JsonElement actionElement : elseActionsArray) {
                             Action action = createActionFromJson(actionElement.getAsJsonObject());
                             if (action != null) {
@@ -358,8 +358,8 @@ public class ActionFactory {
                     }
 
                     // Load IF actions
-                    if (actionData.has("ifactions")) {
-                        JsonArray ifActionsArray = actionData.getAsJsonArray("ifactions");
+                    if (actionData.has("ifActions")) {
+                        JsonArray ifActionsArray = actionData.getAsJsonArray("ifActions");
                         for (JsonElement actionElement : ifActionsArray) {
                             Action action = createActionFromJson(actionElement.getAsJsonObject());
                             if (action != null) {
@@ -369,8 +369,8 @@ public class ActionFactory {
                     }
 
                     // Load ELSE actions
-                    if (actionData.has("elseactions")) {
-                        JsonArray elseActionsArray = actionData.getAsJsonArray("elseactions");
+                    if (actionData.has("elseActions")) {
+                        JsonArray elseActionsArray = actionData.getAsJsonArray("elseActions");
                         for (JsonElement actionElement : elseActionsArray) {
                             Action action = createActionFromJson(actionElement.getAsJsonObject());
                             if (action != null) {
@@ -383,46 +383,19 @@ public class ActionFactory {
                 }
                 case "end_dungeon_action" -> new EndDungeonAction();
                 case "summon_mob_action" -> {
-                    String mobType = actionData.has("mobtype") ?
-                            actionData.get("mobtype").getAsString() : "ZOMBIE";
+                    String mobType = actionData.has("mobType") ?
+                            actionData.get("mobType").getAsString() : "ZOMBIE";
                     LocationBlock location = LocationBlockParser.parseFromJson(actionData, "location");
                     yield new SummonMobAction(mobType, location);
                 }
                 case "summon_mob_in_region_action" -> {
-                    String mobType = actionData.has("mobtype") ?
-                            actionData.get("mobtype").getAsString() : "ZOMBIE";
+                    String mobType = actionData.has("mobType") ?
+                            actionData.get("mobType").getAsString() : "ZOMBIE";
                     int amount = actionData.has("amount") ?
                             actionData.get("amount").getAsInt() : 1;
                     LocationBlock pos1 = LocationBlockParser.parseFromJson(actionData, "pos1");
                     LocationBlock pos2 = LocationBlockParser.parseFromJson(actionData, "pos2");
                     yield new SummonMobInRegionAction(mobType, amount, pos1, pos2);
-                }
-                case "worldedit_schematic_action" -> {
-                    String filename = actionData.has("filename") ?
-                            actionData.get("filename").getAsString() : "schematic.schem";
-                    LocationBlock location = LocationBlockParser.parseFromJson(actionData, "location");
-                    yield new WorldEditSchematicAction(filename, location);
-                }
-                case "worldedit_set_action" -> {
-                    LocationBlock pos1 = LocationBlockParser.parseFromJson(actionData, "pos1");
-                    LocationBlock pos2 = LocationBlockParser.parseFromJson(actionData, "pos2");
-                    String pattern = actionData.has("pattern") ?
-                            actionData.get("pattern").getAsString() : "stone";
-                    yield new WorldEditSetAction(pos1, pos2, pattern);
-                }
-                case "worldedit_cut_action" -> {
-                    LocationBlock pos1 = LocationBlockParser.parseFromJson(actionData, "pos1");
-                    LocationBlock pos2 = LocationBlockParser.parseFromJson(actionData, "pos2");
-                    yield new WorldEditCutAction(pos1, pos2);
-                }
-                case "worldedit_replace_action" -> {
-                    LocationBlock pos1 = LocationBlockParser.parseFromJson(actionData, "pos1");
-                    LocationBlock pos2 = LocationBlockParser.parseFromJson(actionData, "pos2");
-                    String fromPattern = actionData.has("frompattern") ?
-                            actionData.get("frompattern").getAsString() : "stone";
-                    String toPattern = actionData.has("topattern") ?
-                            actionData.get("topattern").getAsString() : "gravel";
-                    yield new WorldEditReplaceAction(pos1, pos2, fromPattern, toPattern);
                 }
                 case "broadcast_command_action" -> {
                     String command = actionData.has("command") ?
@@ -435,27 +408,27 @@ public class ActionFactory {
                     yield new DelayAction(ticks);
                 }
                 case "get_variable_action" -> {
-                    String sourceVariableName = actionData.has("sourcevariablename") ?
-                            actionData.get("sourcevariablename").getAsString() : "ma_variable";
-                    String destinationVariableName = actionData.has("destinationvariablename") ?
-                            actionData.get("destinationvariablename").getAsString() : "resultat_variable";
-                    String sourceScope = actionData.has("sourcescope") ?
-                            actionData.get("sourcescope").getAsString() : "player";
-                    String destinationScope = actionData.has("destinationscope") ?
-                            actionData.get("destinationscope").getAsString() : "player";
+                    String sourceVariableName = actionData.has("sourceVariableName") ?
+                            actionData.get("sourceVariableName").getAsString() : "ma_variable";
+                    String destinationVariableName = actionData.has("destinationVariableName") ?
+                            actionData.get("destinationVariableName").getAsString() : "resultat_variable";
+                    String sourceScope = actionData.has("sourceScope") ?
+                            actionData.get("sourceScope").getAsString() : "player";
+                    String destinationScope = actionData.has("destinationScope") ?
+                            actionData.get("destinationScope").getAsString() : "player";
                     yield new GetVariableAction(sourceVariableName, destinationVariableName, sourceScope, destinationScope);
                 }
                 case "math_operation_action" -> {
-                    String firstValue = actionData.has("firstvalue") ?
-                            actionData.get("firstvalue").getAsString() : "5";
+                    String firstValue = actionData.has("firstValue") ?
+                            actionData.get("firstValue").getAsString() : "5";
                     String operation = actionData.has("operation") ?
                             actionData.get("operation").getAsString() : "add";
-                    String secondValue = actionData.has("secondvalue") ?
-                            actionData.get("secondvalue").getAsString() : "3";
-                    String resultVariableName = actionData.has("resultvariablename") ?
-                            actionData.get("resultvariablename").getAsString() : "resultat";
-                    String resultScope = actionData.has("resultscope") ?
-                            actionData.get("resultscope").getAsString() : "player";
+                    String secondValue = actionData.has("secondValue") ?
+                            actionData.get("secondValue").getAsString() : "3";
+                    String resultVariableName = actionData.has("resultVariableName") ?
+                            actionData.get("resultVariableName").getAsString() : "resultat";
+                    String resultScope = actionData.has("resultScope") ?
+                            actionData.get("resultScope").getAsString() : "player";
                     yield new MathOperationAction(firstValue, operation, secondValue, resultVariableName, resultScope);
                 }
                 case "play_sound_action" -> {
@@ -470,19 +443,19 @@ public class ActionFactory {
                     yield new PlaySoundAction(sound, volume, pitch, target);
                 }
                 case "give_item_action" -> {
-                    String itemMaterial = actionData.has("itemmaterial") ?
-                            actionData.get("itemmaterial").getAsString() : "DIAMOND";
+                    String itemMaterial = actionData.has("itemMaterial") ?
+                            actionData.get("itemMaterial").getAsString() : "DIAMOND";
                     int amount = actionData.has("amount") ?
                             actionData.get("amount").getAsInt() : 1;
-                    String customName = actionData.has("customname") ?
-                            actionData.get("customname").getAsString() : "";
+                    String customName = actionData.has("customName") ?
+                            actionData.get("customName").getAsString() : "";
                     String target = actionData.has("target") ?
                             actionData.get("target").getAsString() : "player";
                     yield new GiveItemAction(itemMaterial, amount, customName, target);
                 }
                 case "apply_potion_effect_action" -> {
-                    String effectType = actionData.has("effecttype") ?
-                            actionData.get("effecttype").getAsString() : "SPEED";
+                    String effectType = actionData.has("effectType") ?
+                            actionData.get("effectType").getAsString() : "SPEED";
                     int duration = actionData.has("duration") ?
                             actionData.get("duration").getAsInt() : 10;
                     int amplifier = actionData.has("amplifier") ?
@@ -505,8 +478,8 @@ public class ActionFactory {
                     yield new SetHealthAction(operation, value, target);
                 }
                 case "spawn_particle_action" -> {
-                    String particleType = actionData.has("particletype") ?
-                            actionData.get("particletype").getAsString() : "FLAME";
+                    String particleType = actionData.has("particleType") ?
+                            actionData.get("particleType").getAsString() : "FLAME";
                     int count = actionData.has("count") ?
                             actionData.get("count").getAsInt() : 10;
                     double offsetX = actionData.has("offsetx") ?
@@ -517,13 +490,13 @@ public class ActionFactory {
                             actionData.get("offsetz").getAsDouble() : 0.5;
                     double speed = actionData.has("speed") ?
                             actionData.get("speed").getAsDouble() : 0.1;
-                    String locationSource = actionData.has("locationsource") ?
-                            actionData.get("locationsource").getAsString() : "player";
+                    String locationSource = actionData.has("locationSource") ?
+                            actionData.get("locationSource").getAsString() : "player";
                     yield new SpawnParticleAction(particleType, count, offsetX, offsetY, offsetZ, speed, locationSource);
                 }
                 case "teleport_location_action" -> {
-                    String targetPlayer = actionData.has("targetplayer") ?
-                            actionData.get("targetplayer").getAsString() : "player";
+                    String targetPlayer = actionData.has("targetPlayer") ?
+                            actionData.get("targetPlayer").getAsString() : "player";
                     LocationBlock location = LocationBlockParser.parseFromJson(actionData, "location");
                     yield new TeleportLocationAction(targetPlayer, location);
                 }
@@ -536,6 +509,38 @@ public class ActionFactory {
                     yield new DropItemAction(item, quantity, location);
                 }
                 default -> {
+                    // Check if a dynamic module provides a handler or block descriptor for this action type
+                    if (Main.getInstance().getModuleLoader() != null) {
+                        fr.perrier.dungeons.common.module.ModuleActionHandler handler =
+                                Main.getInstance().getModuleLoader().getActionHandler(type);
+
+                        // Also check if a block descriptor exists (even without a handler)
+                        boolean isModuleBlock = handler != null;
+                        if (!isModuleBlock) {
+                            fr.perrier.dungeons.common.module.ModuleBlockDescriptor descriptor =
+                                    Main.getInstance().getModuleLoader().getBlockRegistry().getBlock(type);
+                            isModuleBlock = descriptor != null;
+                        }
+
+                        if (isModuleBlock) {
+                            java.util.Map<String, Object> params = new java.util.HashMap<>();
+                            for (java.util.Map.Entry<String, JsonElement> entry : actionData.entrySet()) {
+                                if (!"type".equals(entry.getKey()) && !"name".equals(entry.getKey())) {
+                                    JsonElement val = entry.getValue();
+                                    if (val.isJsonPrimitive()) {
+                                        if (val.getAsJsonPrimitive().isString()) {
+                                            params.put(entry.getKey(), val.getAsString());
+                                        } else if (val.getAsJsonPrimitive().isNumber()) {
+                                            params.put(entry.getKey(), val.getAsNumber());
+                                        } else if (val.getAsJsonPrimitive().isBoolean()) {
+                                            params.put(entry.getKey(), val.getAsBoolean());
+                                        }
+                                    }
+                                }
+                            }
+                            yield new ModuleAction(type, params, handler);
+                        }
+                    }
                     Main.getLoggerUtil().warning("Type d'action inconnu: " + type);
                     yield null;
                 }

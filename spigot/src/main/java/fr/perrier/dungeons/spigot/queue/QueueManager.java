@@ -13,6 +13,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -271,7 +272,7 @@ public class QueueManager {
      * @param message the message to send
      */
     public void notifyPlayer(Player player, String message) {
-        String configType = Main.getInstance().getConfig().getString("NotificationConfiguration.type", "CHAT");
+        String configType = Objects.requireNonNull(Main.getInstance().getConfig().getString("NotificationConfiguration.type"));
         NotificationType type;
         
         try {

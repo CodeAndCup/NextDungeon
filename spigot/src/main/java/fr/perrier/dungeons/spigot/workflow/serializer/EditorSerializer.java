@@ -16,6 +16,8 @@ import com.google.gson.JsonArray;
 import org.bukkit.entity.Player;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Manager for saving and loading workflows (triggers and actions)
@@ -73,38 +75,47 @@ public class EditorSerializer {
 
             Main.getInstance().getTriggersRegistry().refreshTriggerCache();
 
-            // Save to database asynchronously
-            DatabaseTriggersManager.saveTriggers(floorId, triggers).thenAccept(fileSaved -> {
-                if (fileSaved) {
+            // Save to database and wait for completion
+            boolean databaseSaved;
+            try {
+                databaseSaved = DatabaseTriggersManager.saveTriggers(floorId, triggers)
+                    .orTimeout(30, TimeUnit.SECONDS) // Add timeout to prevent indefinite wait
+                    .join(); // Wait for the database save to complete
+
+                if (databaseSaved) {
                     Main.getLoggerUtil().info("Triggers saved in the database for floor: " + floorId);
                 } else {
                     Main.getLoggerUtil().warning("Failed to save triggers in the database for floor: " + floorId);
                 }
-            }).exceptionally(ex -> {
+            } catch (Exception ex) {
                 Main.getLoggerUtil().severe("An error occurred during trigger save: " + ex.getMessage());
                 ex.printStackTrace(System.err);
-                return null;
-            });
+                databaseSaved = false;
+            }
 
-            // Notify the editor
+            // Only notify editor after database save is confirmed
             if (editor != null && editor.isOnline()) {
-                editor.sendMessage(ChatUtil.translate("&#00FF00✓ Triggers saved successfully!"));
-                editor.sendMessage(ChatUtil.translate("&7➤ " + triggers.size() + " trigger(s) saved"));
-                editor.sendMessage(ChatUtil.translate("&7➤ Database: &e" + Main.getInstance().getConfig().getString("DatabaseConfiguration.type")));
+                if (databaseSaved) {
+                    editor.sendMessage(ChatUtil.translate("&#00FF00✓ Triggers saved successfully!"));
+                    editor.sendMessage(ChatUtil.translate("&7➤ " + triggers.size() + " trigger(s) saved"));
+                    editor.sendMessage(ChatUtil.translate("&7➤ Database: &e" + Objects.requireNonNull(Main.getInstance().getConfig().getString("DatabaseConfiguration.type"))));
 
-                // Details of triggers
-                for (TriggerData triggerData : triggers) {
-                    if(triggerData instanceof Trigger trigger)
-                        editor.sendMessage(ChatUtil.translate("&8  • &f" + trigger.getName() + " &7(" + trigger.getType() + ")"));
-                    else {
-                        editor.sendMessage(ChatUtil.translate("&8  • &fUnknown Trigger Type"));
-                        Main.getLoggerUtil().warning("Unknown TriggerData type: " + triggerData.toString());
+                    // Details of triggers
+                    for (TriggerData triggerData : triggers) {
+                        if(triggerData instanceof Trigger trigger)
+                            editor.sendMessage(ChatUtil.translate("&8  • &f" + trigger.getName() + " &7(" + trigger.getType() + ")"));
+                        else {
+                            editor.sendMessage(ChatUtil.translate("&8  • &fUnknown Trigger Type"));
+                            Main.getLoggerUtil().warning("Unknown TriggerData type: " + triggerData.toString());
+                        }
                     }
+                } else {
+                    editor.sendMessage(ChatUtil.translate("&#FF0000❌ Failed to save triggers to database!"));
                 }
             }
 
             Main.getLoggerUtil().info("Save process completed: " + triggers.size() + " triggers");
-            return true;
+            return databaseSaved;
 
         } catch (Exception e) {
             Main.getLoggerUtil().severe("An error occurred while saving triggers: " + e.getMessage());
@@ -149,6 +160,22 @@ public class EditorSerializer {
                 triggerObj.addProperty("id", trigger.getTriggerId().toString());
                 triggerObj.addProperty("type", trigger.getType());
 
+                // For ModuleTrigger, flatten the parameters map to top-level fields
+                // so Blockly can read them directly (e.g. trigger.cinematicId)
+                if (trigger instanceof fr.perrier.dungeons.spigot.workflow.trigger.impl.ModuleTrigger moduleTrigger) {
+                    if (moduleTrigger.getParameters() != null) {
+                        for (java.util.Map.Entry<String, Object> param : moduleTrigger.getParameters().entrySet()) {
+                            if (param.getValue() instanceof String s) {
+                                triggerObj.addProperty(param.getKey(), s);
+                            } else if (param.getValue() instanceof Number n) {
+                                triggerObj.addProperty(param.getKey(), n);
+                            } else if (param.getValue() instanceof Boolean b) {
+                                triggerObj.addProperty(param.getKey(), b);
+                            }
+                        }
+                    }
+                }
+
                 // Serialize actions the same way
                 JsonArray actionsArray = new JsonArray();
                 for (ActionData actionData : trigger.getActions()) {
@@ -159,6 +186,22 @@ public class EditorSerializer {
 
                     JsonObject actionObj = gson.toJsonTree(action, action.getClass()).getAsJsonObject();
                     actionObj.addProperty("type", action.getType());
+
+                    // For ModuleAction, flatten the parameters map to top-level fields
+                    // so Blockly can read them directly (e.g. action.cinematicId instead of action.parameters.cinematicId)
+                    if (action instanceof fr.perrier.dungeons.spigot.workflow.action.impl.ModuleAction moduleAction) {
+                        if (moduleAction.getParameters() != null) {
+                            for (java.util.Map.Entry<String, Object> param : moduleAction.getParameters().entrySet()) {
+                                if (param.getValue() instanceof String s) {
+                                    actionObj.addProperty(param.getKey(), s);
+                                } else if (param.getValue() instanceof Number n) {
+                                    actionObj.addProperty(param.getKey(), n);
+                                } else if (param.getValue() instanceof Boolean b) {
+                                    actionObj.addProperty(param.getKey(), b);
+                                }
+                            }
+                        }
+                    }
 
                     actionsArray.add(actionObj);
                 }

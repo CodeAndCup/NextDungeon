@@ -8,6 +8,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.messaging.PluginMessageListener;
 
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -18,7 +19,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class ServerNameService implements PluginMessageListener {
 
-    private static final String DUNGEONS_CHANNEL = Main.getInstance().getConfig().getString("RedisConfiguration.topic") + ":main";
+    private static final String DUNGEONS_CHANNEL = Objects.requireNonNull(Main.getInstance().getConfig().getString("RedisConfiguration.topic")) + ":main";
 
     private final AtomicReference<String> cachedServerName = new AtomicReference<>(null);
     private final AtomicReference<CompletableFuture<String>> pendingRequest = new AtomicReference<>(null);

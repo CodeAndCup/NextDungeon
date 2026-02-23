@@ -5,6 +5,7 @@ import fr.perrier.cupcodeapi.commands.annotations.Param;
 import fr.perrier.cupcodeapi.utils.ChatUtil;
 import fr.perrier.dungeons.common.model.dungeon.FloorData;
 import fr.perrier.dungeons.common.model.dungeon.config.FloorInstanceData;
+import fr.perrier.dungeons.common.module.ModuleActionHandler;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.menu.dungeon.DungeonGateMenu;
 import fr.perrier.dungeons.spigot.model.Dungeon;
@@ -14,6 +15,9 @@ import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.entity.Player;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class DebugCommands {
 
@@ -131,5 +135,50 @@ public class DebugCommands {
             player.sendMessage(ChatUtil.translate("  &b" + trigger.toString()));
         });
         player.sendMessage(ChatUtil.getBar());
+    }
+
+    @Command(names = "dungeon debug cinematic test")
+    public static void debugCinematicTestCommand(Player player, @Param(name = "cinematicId") String cinematicId, @Param(name ="interpolation") String interpolation) {
+        player.sendMessage(ChatUtil.translate("&#D10000Testing cinematic: &f" + cinematicId));
+
+        // Add waypoints
+        player.sendMessage(ChatUtil.translate("&#D100001. Adding waypoints..."));
+        int[] ticks = {0, 50, 100, 150};
+        double[][] positions = {
+            {-14, 65, 36}, {-14, 65, 45}, {-6, 65, 47}, {-6, 65, 53}
+        };
+        float[][] rotations = {
+            {0, 0}, {-70, 0}, {-15, 0}, {0, 0}
+        };
+
+        for (int i = 0; i < ticks.length; i++) {
+            Map<String, Object> params = new HashMap<>();
+            params.put("cinematicId", cinematicId);
+            params.put("tick", ticks[i]);
+            params.put("x", positions[i][0]);
+            params.put("y", positions[i][1]);
+            params.put("z", positions[i][2]);
+            params.put("yaw", rotations[i][0]);
+            params.put("pitch", rotations[i][1]);
+            params.put("interpolation", interpolation);
+
+            ModuleActionHandler handler = Main.getInstance().getModuleLoader().getActionHandler("cinematic_add_camera_waypoint");
+            if (handler != null) {
+                boolean result = handler.execute(params);
+                player.sendMessage(ChatUtil.translate("   &8- Waypoint " + (i+1) + " added: " + (result ? "&aOK" : "&cFAILED")));
+            }
+        }
+
+        // Start cinematic
+        player.sendMessage(ChatUtil.translate("&#D100002. Starting cinematic..."));
+        Map<String, Object> startParams = new HashMap<>();
+        startParams.put("cinematicId", cinematicId);
+        startParams.put("player", player);
+
+        ModuleActionHandler handler = Main.getInstance().getModuleLoader().getActionHandler("cinematic_start");
+        if (handler != null) {
+            boolean result = handler.execute(startParams);
+            player.sendMessage(ChatUtil.translate("   &8- Start result: " + (result ? "&aOK" : "&cFAILED")));
+        }
     }
 }

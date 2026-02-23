@@ -88,7 +88,7 @@ public class InstancePlayerDeathListener implements Listener {
         player.setRespawnLocation(player.getLocation().clone().add(0,2,0));
 
         Bukkit.broadcastMessage(ChatUtil.translate(
-                Main.getInstance().getConfig().getString("ReviveSystem.deathMessage", "&#FF0000{player} has fallen! Becoming a ghost...")
+                Objects.requireNonNull(Main.getInstance().getConfig().getString("ReviveSystem.deathMessage"))
                         .replace("{player}", player.getName())
                         .replace("{lives}", String.valueOf(
                                 Main.getInstance().getDungeonService()
@@ -249,7 +249,7 @@ public class InstancePlayerDeathListener implements Listener {
 
                 // Téléporter et afficher message
                 player.teleport(data.getDeathLocation());
-                String reviveMessage = Main.getInstance().getConfig().getString("ReviveSystem.reviveMessage", "&#00FF00{player} has been revived!");
+                String reviveMessage = Objects.requireNonNull(Main.getInstance().getConfig().getString("ReviveSystem.reviveMessage"));
                 Bukkit.broadcastMessage(ChatUtil.translate(reviveMessage.replace("{player}", player.getName())));
 
                 // Nettoyer
@@ -282,7 +282,7 @@ public class InstancePlayerDeathListener implements Listener {
                     Objects.requireNonNull(Main.getInstance().getConfig().getString("ReviveSystem.banCommand"))
                             .replace("{player}", player.getName())
                             .replace("{time}", instance.getFloor().getRules().getDeathBanDuration())
-                            .replace("{reason}", Main.getInstance().getConfig().getString("ReviveSystem.banReason", "You have died too many times in the dungeon"))
+                            .replace("{reason}", Objects.requireNonNull(Main.getInstance().getConfig().getString("ReviveSystem.banReason")))
             );
         }
         instance.syncInstance();

@@ -103,6 +103,7 @@ public class TriggersRegistry implements Listener {
     public void refreshTriggerCache() {
         triggersByType.clear();
         triggersByEventType.clear();
+        clearFunctions(); // Clear old functions before re-registering
 
         try {
             List<TriggerData> allTriggers = Main.getInstance().getDungeonService().getCurrentFloor().getTriggers();
@@ -114,6 +115,11 @@ public class TriggersRegistry implements Listener {
                 }
 
                 if (!trigger.isEnabled()) continue;
+
+                // Register FunctionTriggers to the registry
+                if (trigger instanceof FunctionTrigger functionTrigger) {
+                    registerFunction(functionTrigger);
+                }
 
                 // Cache par type de trigger
                 triggersByType.computeIfAbsent(trigger.getType(), k -> new ArrayList<>()).add(trigger);

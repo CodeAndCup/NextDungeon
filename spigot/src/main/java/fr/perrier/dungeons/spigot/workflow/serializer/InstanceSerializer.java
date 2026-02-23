@@ -7,9 +7,11 @@ import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.workflow.action.Action;
 import fr.perrier.dungeons.spigot.workflow.action.factory.ActionFactory;
 import fr.perrier.dungeons.spigot.workflow.trigger.Trigger;
+import fr.perrier.dungeons.spigot.workflow.trigger.factory.TriggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Serializer/Deserializer to convert triggers to and from JSON.
@@ -137,6 +139,35 @@ public class InstanceSerializer {
 
         String className = classNameElement.getAsString();
 
+        // Special handling for ModuleTrigger: reconstruct via TriggerFactory
+        // so module block descriptor lookups work properly
+        if (className.equals("fr.perrier.dungeons.spigot.workflow.trigger.impl.ModuleTrigger")) {
+            JsonObject data = dataElement.getAsJsonObject();
+            if (data.has("type")) {
+                try {
+                    // Build a flat trigger JSON for TriggerFactory
+                    JsonObject flatTrigger = new JsonObject();
+                    flatTrigger.addProperty("type", data.get("type").getAsString());
+                    if (data.has("name")) flatTrigger.addProperty("name", data.get("name").getAsString());
+                    if (data.has("enabled")) flatTrigger.add("enabled", data.get("enabled"));
+                    // Copy parameters from the nested "parameters" map
+                    if (data.has("parameters") && data.get("parameters").isJsonObject()) {
+                        for (Map.Entry<String, JsonElement> entry : data.getAsJsonObject("parameters").entrySet()) {
+                            flatTrigger.add(entry.getKey(), entry.getValue());
+                        }
+                    }
+                    // Copy actions
+                    if (data.has("actions")) {
+                        flatTrigger.add("actions", data.get("actions"));
+                    }
+                    return TriggerFactory.createTriggerFromJson(flatTrigger);
+                } catch (Exception e) {
+                    Main.getLoggerUtil().warning("Error recreating ModuleTrigger: " + e.getMessage());
+                    return null;
+                }
+            }
+        }
+
         try {
             Class<?> clazz = Class.forName(className);
             JsonObject dataObject = dataElement.getAsJsonObject();
@@ -216,6 +247,31 @@ public class InstanceSerializer {
             && dataElement != null && !dataElement.isJsonNull()) {
             // New format with className/data
             String className = classNameElement.getAsString();
+
+            // Special handling for ModuleAction: use ActionFactory to properly recreate
+            // (Gson alone can't reconstruct the transient handler field)
+            if (className.equals("fr.perrier.dungeons.spigot.workflow.action.impl.ModuleAction")) {
+                JsonObject data = dataElement.getAsJsonObject();
+                if (data.has("type")) {
+                    try {
+                        // Reconstruct the action JSON in flat format for ActionFactory
+                        JsonObject flatAction = new JsonObject();
+                        flatAction.addProperty("type", data.get("type").getAsString());
+                        if (data.has("name")) flatAction.addProperty("name", data.get("name").getAsString());
+                        // Copy parameters from the nested "parameters" map
+                        if (data.has("parameters") && data.get("parameters").isJsonObject()) {
+                            for (java.util.Map.Entry<String, JsonElement> entry : data.getAsJsonObject("parameters").entrySet()) {
+                                flatAction.add(entry.getKey(), entry.getValue());
+                            }
+                        }
+                        return ActionFactory.createActionFromJson(flatAction);
+                    } catch (Exception e) {
+                        Main.getLoggerUtil().warning("Error recreating ModuleAction: " + e.getMessage());
+                        return null;
+                    }
+                }
+            }
+
             try {
                 Class<?> clazz = Class.forName(className);
                 return (Action) baseGson.fromJson(dataElement, clazz);

@@ -12,6 +12,7 @@ import fr.perrier.dungeons.spigot.utils.ServerUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -110,7 +111,7 @@ public class AdminCommands {
             if (success) {
                 player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#00FF00✓ &fWorld changes saved to template."));
                 player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&7Provider: &e" + Main.getInstance().getInstanceProvider().getType()));
-                player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&7Triggers saved in database: &e" + Main.getInstance().getConfig().getString("DatabaseConfiguration.type")));
+                player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&7Triggers saved in database: &e" + Objects.requireNonNull(Main.getInstance().getConfig().getString("DatabaseConfiguration.type"))));
                 player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&fThe server will now shutdown."));
 
                 Bukkit.getScheduler().runTaskLater(Main.getInstance(), Bukkit::shutdown, 100L);
