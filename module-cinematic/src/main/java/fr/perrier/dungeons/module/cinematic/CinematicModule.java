@@ -5,6 +5,8 @@ import fr.perrier.dungeons.common.module.ModuleBlockDescriptor.BlockParameter;
 import fr.perrier.dungeons.common.module.ModuleBlockDescriptor.BlockType;
 import fr.perrier.dungeons.common.module.ModuleContext;
 import fr.perrier.dungeons.common.module.NextDungeonModule;
+import fr.perrier.dungeons.module.cinematic.model.CameraWaypoint;
+import org.bukkit.entity.Player;
 
 import java.util.List;
 
