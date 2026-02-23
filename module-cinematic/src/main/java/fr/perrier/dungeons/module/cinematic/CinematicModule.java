@@ -203,6 +203,7 @@ public class CinematicModule implements NextDungeonModule {
 
     private void registerActionHandlers(ModuleContext ctx) {
         ctx.registerActionHandler("cinematic_start", params -> {
+            System.out.println("[Cinematic DEBUG] Handler cinematic_start received params: " + params);
             String cinematicId = String.valueOf(params.getOrDefault("cinematicId", ""));
             Object playerObj = params.get("player");
             if (!(playerObj instanceof Player player)) {
@@ -237,6 +238,8 @@ public class CinematicModule implements NextDungeonModule {
             } catch (IllegalArgumentException e) {
                 interpolation = CameraWaypoint.InterpolationMode.LINEAR;
             }
+            System.out.println("[Cinematic] Adding camera waypoint to '" + cinematicId + "' at tick " + tick
+                    + " pos(" + x + "," + y + "," + z + ") yaw=" + yaw + " pitch=" + pitch + " interp=" + interpolation);
             manager.addCameraWaypoint(cinematicId, tick, x, y, z, yaw, pitch, interpolation);
             return true;
         });

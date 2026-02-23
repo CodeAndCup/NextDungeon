@@ -40,9 +40,21 @@ public class CinematicPlayer {
     private final CinematicData data;
     private final PlaybackCallback callback;
 
-    private int currentTick;
+    // Timing: use real time to advance ticks at the correct speed
+    // This ensures ticks progress at the intended rate regardless of update frequency
+    private double currentTick = 0.0;
     private boolean playing;
     private boolean cancelled;
+
+    // Track elapsed time since start to calculate tick progression
+    private long startTimeNanos = 0;
+
+    // ========== TIMING CONFIGURATION ==========
+    /** How many real-world milliseconds per cinematic tick
+     *  Default Bukkit tick = 50ms
+     *  This allows the cinematic to progress at the original speed
+     */
+    private static final long MILLISECONDS_PER_TICK = 50L;
 
     public CinematicPlayer(UUID viewerId, CinematicData data, PlaybackCallback callback) {
         this.viewerId = viewerId;
@@ -58,21 +70,33 @@ public class CinematicPlayer {
      */
     public void start() {
         this.playing = true;
-        this.currentTick = 0;
+        this.currentTick = 0.0;
+        this.startTimeNanos = System.nanoTime();
     }
 
     /**
-     * Advance one tick. Should be called every server tick (50ms) during playback.
-     * Performs camera interpolation, NPC movement, and event firing for this tick.
+     * Update the cinematic playback.
+     * Can be called at any frequency - tick progression is based on real elapsed time.
      */
     public void tick() {
         if (!playing || cancelled) return;
 
-        if (currentTick > data.getDurationTicks()) {
+        // Calculate elapsed time and convert to ticks
+        long elapsedNanos = System.nanoTime() - startTimeNanos;
+        long elapsedMillis = elapsedNanos / 1_000_000;
+        double newTick = elapsedMillis / (double) MILLISECONDS_PER_TICK;
+
+        // Check if we've reached the end
+        if (newTick >= data.getDurationTicks()) {
             playing = false;
             callback.onComplete();
             return;
         }
+
+        // Store previous tick for event detection
+        int prevIntTick = (int) Math.floor(currentTick);
+        currentTick = newTick;
+        int currentIntTick = (int) Math.floor(currentTick);
 
         // Camera interpolation
         interpolateCamera();
@@ -82,14 +106,14 @@ public class CinematicPlayer {
             interpolateNpc(actor);
         }
 
-        // Timeline events
-        for (TimelineEvent event : data.getEvents()) {
-            if (event.getTick() == currentTick) {
-                callback.fireEvent(event);
+        // Timeline events (only fire once when crossing integer ticks)
+        if (currentIntTick > prevIntTick) {
+            for (TimelineEvent event : data.getEvents()) {
+                if (event.getTick() >= prevIntTick && event.getTick() < currentIntTick) {
+                    callback.fireEvent(event);
+                }
             }
         }
-
-        currentTick++;
     }
 
     /**
@@ -108,7 +132,7 @@ public class CinematicPlayer {
         return viewerId;
     }
 
-    public int getCurrentTick() {
+    public double getCurrentTick() {
         return currentTick;
     }
 

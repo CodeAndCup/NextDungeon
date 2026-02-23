@@ -15,25 +15,54 @@ import java.util.Comparator;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
- * Manages cinematic data (waypoints), playback state, and Bukkit scheduling.
+ * Manages cinematic data (waypoints), playback state, and precise timing.
  *
  * <p>Workflow:
  * <ol>
  *   <li>{@code cinematic_add_camera_waypoint} actions populate waypoints in a {@link CinematicData}</li>
- *   <li>{@code cinematic_start} creates a {@link CinematicPlayer} and schedules a repeating Bukkit task</li>
- *   <li>Each tick, the player is teleported to the interpolated camera position</li>
+ *   <li>{@code cinematic_start} creates a {@link CinematicPlayer} and schedules updates via ScheduledExecutorService</li>
+ *   <li>Each update, the player is teleported to the interpolated camera position</li>
  *   <li>On completion, the task is cancelled and the player's game mode is restored</li>
  * </ol>
+ *
+ * <p>Uses ScheduledExecutorService for precise timing (microsecond resolution) instead of Bukkit ticks,
+ * allowing smooth camera movement with configurable frame rate.</p>
  */
 public class CinematicManager {
+
+    // ========== SMOOTHNESS CONFIGURATION ==========
+    /** Update frequency in microseconds
+     *
+     *  Common values:
+     *  - 41666 µs = ~24 FPS (very smooth, ~3-4 updates per Bukkit tick)
+     *  - 33333 µs = ~30 FPS (smooth, ~4-5 updates per Bukkit tick)
+     *  - 16666 µs = ~60 FPS (very smooth, ~8-10 updates per Bukkit tick)
+     *  - 13333 µs = ~75 FPS (ultra smooth, ~12-15 updates per Bukkit tick)
+     *
+     *  Adjust this value to control how smooth the camera movement is.
+     *  Lower values = smoother but more CPU usage
+     *  Higher values = less smooth but less CPU usage
+     */
+    private static final long UPDATE_INTERVAL_MICROSECONDS = 33333L;
 
     /** Cinematic definitions keyed by cinematic ID */
     private final Map<String, CinematicData> cinematics = new ConcurrentHashMap<>();
 
     /** Active playback sessions keyed by player UUID */
     private final Map<UUID, ActiveSession> activeSessions = new ConcurrentHashMap<>();
+
+    /** Executor for precise timing of cinematic updates */
+    private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t = new Thread(r, "Cinematic-Player");
+        t.setDaemon(true);
+        return t;
+    });
 
     /** Callback to invoke when a cinematic ends (for trigger system) */
     private Runnable onCinematicEndCallback;
@@ -91,7 +120,7 @@ public class CinematicManager {
         // Store original game mode for restoration
         GameMode originalMode = player.getGameMode();
         Location originalLocation = player.getLocation().clone();
-        org.bukkit.World playerWorld = player.getWorld();
+        final org.bukkit.World playerWorld = player.getWorld();
 
         // Set player to spectator mode for free camera movement
         player.setGameMode(GameMode.SPECTATOR);
@@ -141,7 +170,7 @@ public class CinematicManager {
                 // Restore player state
                 ActiveSession session = activeSessions.remove(player.getUniqueId());
                 if (session != null) {
-                    session.task.cancel();
+                    session.future.cancel(false);
                 }
                 if (player.isOnline()) {
                     player.setGameMode(originalMode);
@@ -153,16 +182,20 @@ public class CinematicManager {
 
         cinematicPlayer.start();
 
-        // Schedule a repeating task (every tick = 50ms)
-        BukkitTask task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-            if (!player.isOnline()) {
-                stopCinematic(player);
-                return;
-            }
-            cinematicPlayer.tick();
-        }, 0L, 1L);
+        // Schedule updates with precise timing using ScheduledExecutorService
+        // UPDATE_INTERVAL_MICROSECONDS controls the update frequency
+        ScheduledFuture<?> future = executor.scheduleAtFixedRate(() -> {
+            // Always run cinematic updates on the Bukkit thread for safety
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (!player.isOnline()) {
+                    stopCinematic(player);
+                    return;
+                }
+                cinematicPlayer.tick();
+            });
+        }, 0, UPDATE_INTERVAL_MICROSECONDS, TimeUnit.MICROSECONDS);
 
-        activeSessions.put(player.getUniqueId(), new ActiveSession(cinematicPlayer, task, cinematicId));
+        activeSessions.put(player.getUniqueId(), new ActiveSession(cinematicPlayer, future, cinematicId));
         System.out.println("[Cinematic] Started cinematic '" + cinematicId + "' for " + player.getName()
                 + " (" + data.getCameraWaypoints().size() + " waypoints, " + data.getDurationTicks() + " ticks)");
         return true;
@@ -174,7 +207,7 @@ public class CinematicManager {
     public void stopCinematic(Player player) {
         ActiveSession session = activeSessions.remove(player.getUniqueId());
         if (session != null) {
-            session.task.cancel();
+            session.future.cancel(false);
             session.player.cancel();
             System.out.println("[Cinematic] Stopped cinematic for " + player.getName());
         }
@@ -198,16 +231,17 @@ public class CinematicManager {
     }
 
     /**
-     * Shutdown: cancel all active cinematics.
+     * Shutdown: cancel all active cinematics and stop the executor service.
      */
     public void shutdown() {
         for (ActiveSession session : activeSessions.values()) {
             session.player.cancel();
-            session.task.cancel();
+            session.future.cancel(false);
         }
         activeSessions.clear();
         cinematics.clear();
+        executor.shutdown();
     }
 
-    private record ActiveSession(CinematicPlayer player, BukkitTask task, String cinematicId) {}
+    private record ActiveSession(CinematicPlayer player, ScheduledFuture<?> future, String cinematicId) {}
 }
