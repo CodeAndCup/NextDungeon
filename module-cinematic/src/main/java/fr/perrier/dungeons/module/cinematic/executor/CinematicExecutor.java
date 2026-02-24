@@ -2,7 +2,11 @@ package fr.perrier.dungeons.module.cinematic.executor;
 
 import fr.perrier.dungeons.module.cinematic.action.CinematicAction;
 import fr.perrier.dungeons.module.cinematic.clock.CinematicClock;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -42,6 +46,26 @@ public class CinematicExecutor {
         // Capturer état joueur
         stateSnapshot = new PlayerCinematicState();
         stateSnapshot.captureState(player);
+
+        // TIER 1A: Rendre joueur invisible durant cinématique (ref: Typewriter CameraCinematicEntry.kt:215)
+        player.addPotionEffect(new PotionEffect(
+                PotionEffectType.INVISIBILITY,
+                Integer.MAX_VALUE,
+                0,
+                false,  // pas de particules ambiantes
+                false   // pas de particules du tout
+        ));
+
+        // TIER 1A: Cacher joueurs mutuellement (ref: Typewriter CameraCinematicEntry.kt:216-218)
+        Plugin plugin = Bukkit.getPluginManager().getPlugin("NextDungeon");
+        if (plugin != null) {
+            for (Player other : Bukkit.getOnlinePlayers()) {
+                if (!other.getUniqueId().equals(player.getUniqueId())) {
+                    other.hidePlayer(plugin, player);
+                    player.hidePlayer(plugin, other);
+                }
+            }
+        }
 
         // Setup toutes les actions
         for (CinematicAction action : actions) {
@@ -109,7 +133,21 @@ public class CinematicExecutor {
                 }
             }
 
-            // Restaurer état joueur
+            // TIER 1A: Retirer invisibilité (ref: Typewriter CameraCinematicEntry.kt teardown)
+            player.removePotionEffect(PotionEffectType.INVISIBILITY);
+
+            // TIER 1A: Remontrer joueurs mutuellement
+            Plugin plugin = Bukkit.getPluginManager().getPlugin("NextDungeon");
+            if (plugin != null) {
+                for (Player other : Bukkit.getOnlinePlayers()) {
+                    if (!other.getUniqueId().equals(player.getUniqueId())) {
+                        other.showPlayer(plugin, player);
+                        player.showPlayer(plugin, other);
+                    }
+                }
+            }
+
+            // Restaurer état joueur (inclut velocity, visibilité fine-grained)
             if (stateSnapshot != null) {
                 stateSnapshot.restoreState(player);
             }

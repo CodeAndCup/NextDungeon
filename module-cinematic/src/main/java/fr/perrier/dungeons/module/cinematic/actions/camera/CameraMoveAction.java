@@ -10,6 +10,8 @@ import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientIn
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientPlayerPosition;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientPlayerPositionAndRotation;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerPlayerPositionAndLook;
+import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSetSlot;
+import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerWindowItems;
 import fr.perrier.dungeons.module.cinematic.action.SimpleCinematicAction;
 import fr.perrier.dungeons.module.cinematic.interpolation.PositionInterpolator;
 import fr.perrier.dungeons.module.cinematic.model.CameraWaypoint;
@@ -91,6 +93,8 @@ public class CameraMoveAction extends SimpleCinematicAction<CameraSegment> {
     protected void onSegmentStop(Player player, CameraSegment segment) throws Exception {
         segmentPaths.remove(segment);
         cleanupPacketInterception();
+        // Restaurer l'affichage inventaire après suppression de l'interception
+        player.updateInventory();
     }
 
     @Override
@@ -125,11 +129,38 @@ public class CameraMoveAction extends SimpleCinematicAction<CameraSegment> {
                             new WrapperPlayServerPlayerPositionAndLook(event);
                     packet.setY(packet.getY() + FAKE_Y_OFFSET);
                 }
+                // SERVER→CLIENT: Fake inventory vide (ref: Typewriter keepFakeInventory)
+                else if (event.getPacketType() == PacketType.Play.Server.WINDOW_ITEMS) {
+                    WrapperPlayServerWindowItems packet =
+                            new WrapperPlayServerWindowItems(event);
+                    List<com.github.retrooper.packetevents.protocol.item.ItemStack> fakeItems =
+                            new ArrayList<>();
+                    for (int i = 0; i < packet.getItems().size(); i++) {
+                        fakeItems.add(com.github.retrooper.packetevents.protocol.item.ItemStack.EMPTY);
+                    }
+                    packet.setItems(fakeItems);
+                }
+                // SERVER→CLIENT: Fake slot vide (ref: Typewriter keepFakeInventory)
+                else if (event.getPacketType() == PacketType.Play.Server.SET_SLOT) {
+                    WrapperPlayServerSetSlot packet =
+                            new WrapperPlayServerSetSlot(event);
+                    packet.setItem(com.github.retrooper.packetevents.protocol.item.ItemStack.EMPTY);
+                }
             }
 
             @Override
             public void onPacketReceive(PacketReceiveEvent event) {
                 if (!playerUUID.equals(event.getUser().getUUID())) return;
+
+                // CLIENT→SERVER: Bloquer clicks inventaire durant cinématique (ref: Typewriter keepFakeInventory)
+                if (event.getPacketType() == PacketType.Play.Client.CLICK_WINDOW) {
+                    event.setCancelled(true);
+                    return;
+                }
+                if (event.getPacketType() == PacketType.Play.Client.CLICK_WINDOW_BUTTON) {
+                    event.setCancelled(true);
+                    return;
+                }
 
                 // CLIENT→SERVER: Corriger Y position (-500) pour la vraie position serveur
                 if (event.getPacketType() == PacketType.Play.Client.PLAYER_POSITION) {
