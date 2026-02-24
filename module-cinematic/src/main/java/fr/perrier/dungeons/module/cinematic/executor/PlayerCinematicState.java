@@ -104,27 +104,23 @@ public class PlayerCinematicState {
                 }
 
                 // Restaurer visibilité des joueurs (ref: Typewriter VISIBLE_PLAYERS)
+                // Seulement pour les joueurs qui existaient au moment de la capture
                 if (visiblePlayers != null) {
                     for (Player other : Bukkit.getOnlinePlayers()) {
-                        if (!other.getUniqueId().equals(player.getUniqueId())) {
-                            if (visiblePlayers.contains(other.getUniqueId())) {
-                                player.showPlayer(plugin, other);
-                            } else {
-                                player.hidePlayer(plugin, other);
-                            }
+                        UUID otherUUID = other.getUniqueId();
+                        if (!otherUUID.equals(player.getUniqueId()) && visiblePlayers.contains(otherUUID)) {
+                            player.showPlayer(plugin, other);
                         }
                     }
                 }
 
                 // Restaurer qui peut voir ce joueur (ref: Typewriter SHOWING_PLAYER)
+                // Seulement pour les joueurs qui existaient au moment de la capture
                 if (showingPlayers != null) {
                     for (Player other : Bukkit.getOnlinePlayers()) {
-                        if (!other.getUniqueId().equals(player.getUniqueId())) {
-                            if (showingPlayers.contains(other.getUniqueId())) {
-                                other.showPlayer(plugin, player);
-                            } else {
-                                other.hidePlayer(plugin, player);
-                            }
+                        UUID otherUUID = other.getUniqueId();
+                        if (!otherUUID.equals(player.getUniqueId()) && showingPlayers.contains(otherUUID)) {
+                            other.showPlayer(plugin, player);
                         }
                     }
                 }

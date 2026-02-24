@@ -181,10 +181,12 @@ public class CameraMoveAction extends SimpleCinematicAction<CameraSegment> {
     /**
      * Vérifie si le joueur est un joueur Bedrock via Floodgate (Geyser).
      * Les joueurs Bedrock ne supportent pas la manipulation de paquets Java.
+     * Détection par préfixe UUID Floodgate: 00000000-0000-0000-0009-*
      */
     private boolean isFloodgatePlayer(Player player) {
         try {
-            return player.getClass().getName().contains("Floodgate");
+            String uuid = player.getUniqueId().toString();
+            return uuid.startsWith("00000000-0000-0000-0009-");
         } catch (Exception e) {
             return false;
         }
