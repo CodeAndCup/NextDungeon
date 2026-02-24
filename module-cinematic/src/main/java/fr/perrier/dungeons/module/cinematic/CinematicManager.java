@@ -1,17 +1,36 @@
 package fr.perrier.dungeons.module.cinematic;
 
+import fr.perrier.dungeons.module.cinematic.action.CinematicAction;
+import fr.perrier.dungeons.module.cinematic.actions.blind.BlindSegment;
+import fr.perrier.dungeons.module.cinematic.actions.blind.CinematicBlindAction;
+import fr.perrier.dungeons.module.cinematic.actions.camera.CameraMoveAction;
+import fr.perrier.dungeons.module.cinematic.actions.camera.CameraSegment;
+import fr.perrier.dungeons.module.cinematic.actions.message.CinematicMessageAction;
+import fr.perrier.dungeons.module.cinematic.actions.message.MessageSegment;
+import fr.perrier.dungeons.module.cinematic.actions.sound.CinematicSoundAction;
+import fr.perrier.dungeons.module.cinematic.actions.sound.SoundSegment;
+import fr.perrier.dungeons.module.cinematic.actions.title.CinematicTitleAction;
+import fr.perrier.dungeons.module.cinematic.actions.title.TitleSegment;
+import fr.perrier.dungeons.module.cinematic.clock.CinematicClock;
+import fr.perrier.dungeons.module.cinematic.executor.CinematicExecutor;
 import fr.perrier.dungeons.module.cinematic.execution.CinematicPlayer;
 import fr.perrier.dungeons.module.cinematic.model.CameraWaypoint;
 import fr.perrier.dungeons.module.cinematic.model.CinematicData;
 import fr.perrier.dungeons.module.cinematic.model.TimelineEvent;
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import lombok.Setter;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.scheduler.BukkitTask;
 
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -37,18 +56,7 @@ import java.util.concurrent.TimeUnit;
 public class CinematicManager {
 
     // ========== SMOOTHNESS CONFIGURATION ==========
-    /** Update frequency in microseconds
-     *
-     *  Common values:
-     *  - 41666 µs = ~24 FPS (very smooth, ~3-4 updates per Bukkit tick)
-     *  - 33333 µs = ~30 FPS (smooth, ~4-5 updates per Bukkit tick)
-     *  - 16666 µs = ~60 FPS (very smooth, ~8-10 updates per Bukkit tick)
-     *  - 13333 µs = ~75 FPS (ultra smooth, ~12-15 updates per Bukkit tick)
-     *
-     *  Adjust this value to control how smooth the camera movement is.
-     *  Lower values = smoother but more CPU usage
-     *  Higher values = less smooth but less CPU usage
-     */
+    /** Update frequency in microseconds */
     private static final long UPDATE_INTERVAL_MICROSECONDS = 33333L;
 
     /** Cinematic definitions keyed by cinematic ID */
@@ -56,6 +64,9 @@ public class CinematicManager {
 
     /** Active playback sessions keyed by player UUID */
     private final Map<UUID, ActiveSession> activeSessions = new ConcurrentHashMap<>();
+
+    /** Active segment-based cinematic executors keyed by player UUID */
+    private final Map<UUID, CinematicExecutor> activeExecutors = new ConcurrentHashMap<>();
 
     /** Executor for precise timing of cinematic updates */
     private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(r -> {
@@ -66,6 +77,12 @@ public class CinematicManager {
 
     /** Callback to invoke when a cinematic ends (for trigger system) */
     private Runnable onCinematicEndCallback;
+
+    /** Real-time cinematic clock for segment-based actions */
+    @Setter
+    private CinematicClock cinematicClock;
+
+    private static final Gson GSON = new Gson();
 
     /**
      * Get or create a CinematicData for the given ID.
@@ -239,8 +256,128 @@ public class CinematicManager {
             session.future.cancel(false);
         }
         activeSessions.clear();
+
+        // Stop all segment-based executors
+        for (CinematicExecutor exec : activeExecutors.values()) {
+            exec.stop();
+        }
+        activeExecutors.clear();
+
         cinematics.clear();
         executor.shutdown();
+    }
+
+    // ========== Segment-Based Cinematic Action Execution ==========
+
+    /**
+     * Execute a camera move action using the segment-based system.
+     */
+    public boolean executeCameraMove(Player player, int startFrame, int endFrame, String pathPointsJson) {
+        if (cinematicClock == null) return false;
+
+        List<CameraWaypoint> waypoints = parseWaypointsFromJson(pathPointsJson);
+        if (waypoints.isEmpty()) return false;
+
+        CameraSegment segment = new CameraSegment(startFrame, endFrame, waypoints);
+        CameraMoveAction action = new CameraMoveAction();
+        action.getCinematicSegments().add(segment);
+
+        return startSegmentAction(player, action);
+    }
+
+    /**
+     * Execute a title action using the segment-based system.
+     */
+    public boolean executeTitle(Player player, int startFrame, int endFrame,
+                                String title, String subtitle, int fadeIn, int fadeOut) {
+        if (cinematicClock == null) return false;
+
+        TitleSegment segment = new TitleSegment(startFrame, endFrame, title, subtitle, fadeIn, fadeOut);
+        CinematicTitleAction action = new CinematicTitleAction();
+        action.getCinematicSegments().add(segment);
+
+        return startSegmentAction(player, action);
+    }
+
+    /**
+     * Execute a sound action using the segment-based system.
+     */
+    public boolean executeSound(Player player, int startFrame, int endFrame,
+                                String soundType, float volume, float pitch) {
+        if (cinematicClock == null) return false;
+
+        SoundSegment segment = new SoundSegment(startFrame, endFrame, soundType, volume, pitch);
+        CinematicSoundAction action = new CinematicSoundAction();
+        action.getCinematicSegments().add(segment);
+
+        return startSegmentAction(player, action);
+    }
+
+    /**
+     * Execute a message action using the segment-based system.
+     */
+    public boolean executeMessage(Player player, int startFrame, int endFrame,
+                                  String message, String displayType) {
+        if (cinematicClock == null) return false;
+
+        MessageSegment segment = new MessageSegment(startFrame, endFrame, message, displayType);
+        CinematicMessageAction action = new CinematicMessageAction();
+        action.getCinematicSegments().add(segment);
+
+        return startSegmentAction(player, action);
+    }
+
+    /**
+     * Execute a blind action using the segment-based system.
+     */
+    public boolean executeBlind(Player player, int startFrame, int endFrame) {
+        if (cinematicClock == null) return false;
+
+        BlindSegment segment = new BlindSegment(startFrame, endFrame);
+        CinematicBlindAction action = new CinematicBlindAction();
+        action.getCinematicSegments().add(segment);
+
+        return startSegmentAction(player, action);
+    }
+
+    /**
+     * Start a segment-based cinematic action via the CinematicExecutor.
+     */
+    private boolean startSegmentAction(Player player, CinematicAction action) {
+        // Stop any existing segment-based executor for this player
+        CinematicExecutor existing = activeExecutors.remove(player.getUniqueId());
+        if (existing != null && existing.isRunning()) {
+            existing.stop();
+        }
+
+        CinematicExecutor exec = new CinematicExecutor(List.of(action), player, cinematicClock);
+        activeExecutors.put(player.getUniqueId(), exec);
+        exec.start();
+        return true;
+    }
+
+    /**
+     * Parse camera waypoints from a JSON array string.
+     */
+    private List<CameraWaypoint> parseWaypointsFromJson(String json) {
+        List<CameraWaypoint> waypoints = new ArrayList<>();
+        try {
+            JsonArray arr = GSON.fromJson(json, JsonArray.class);
+            if (arr == null) return waypoints;
+            for (JsonElement el : arr) {
+                JsonObject obj = el.getAsJsonObject();
+                double x = obj.has("x") ? obj.get("x").getAsDouble() : 0;
+                double y = obj.has("y") ? obj.get("y").getAsDouble() : 64;
+                double z = obj.has("z") ? obj.get("z").getAsDouble() : 0;
+                float yaw = obj.has("yaw") ? obj.get("yaw").getAsFloat() : 0;
+                float pitch = obj.has("pitch") ? obj.get("pitch").getAsFloat() : 0;
+                int tick = obj.has("tick") ? obj.get("tick").getAsInt() : 0;
+                waypoints.add(new CameraWaypoint(tick, x, y, z, yaw, pitch));
+            }
+        } catch (Exception e) {
+            System.err.println("[Cinematic] Failed to parse waypoints JSON: " + e.getMessage());
+        }
+        return waypoints;
     }
 
     private record ActiveSession(CinematicPlayer player, ScheduledFuture<?> future, String cinematicId) {}

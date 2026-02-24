@@ -5,9 +5,14 @@ import fr.perrier.dungeons.common.module.ModuleBlockDescriptor.BlockParameter;
 import fr.perrier.dungeons.common.module.ModuleBlockDescriptor.BlockType;
 import fr.perrier.dungeons.common.module.ModuleContext;
 import fr.perrier.dungeons.common.module.NextDungeonModule;
+import fr.perrier.dungeons.module.cinematic.clock.CinematicClock;
+import fr.perrier.dungeons.module.cinematic.clock.CinematicClockImpl;
 import fr.perrier.dungeons.module.cinematic.model.CameraWaypoint;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
 
+import java.time.Duration;
 import java.util.List;
 
 /**
@@ -16,20 +21,47 @@ import java.util.List;
  * data-driven cinematic sequences (camera, NPCs, timeline events).
  *
  * <p>All cinematic data is stored in the database as JSON — no files on disk.</p>
+ *
+ * <p>Includes a real-time cinematic clock (20 fps, 50ms/frame) and
+ * a segment-based action system with Catmull-Rom interpolation for
+ * smooth camera movement.</p>
  */
 public class CinematicModule implements NextDungeonModule {
 
     private CinematicManager manager;
+    private CinematicClock cinematicClock;
 
     @Override
     public void onEnable(ModuleContext ctx) {
         this.manager = new CinematicManager();
+
+        // Initialize the real-time cinematic clock (20 fps)
+        this.cinematicClock = new CinematicClockImpl();
+        Plugin plugin = Bukkit.getPluginManager().getPlugin("NextDungeon");
+        if (plugin != null) {
+            // Tick every Bukkit tick (50ms) matching the 20 fps frame rate
+            Bukkit.getScheduler().runTaskTimerAsynchronously(plugin,
+                    () -> cinematicClock.tick(Duration.ofMillis(50)),
+                    0, 1);
+            System.out.println("[Cinematic] Cinematic clock initialized (20 fps)");
+        }
+
+        // Make clock available to the manager
+        manager.setCinematicClock(cinematicClock);
+
         // Register action blocks (descriptors for Blockly UI)
         registerStartCinematic(ctx);
         registerStopCinematic(ctx);
         registerAddCameraWaypoint(ctx);
         registerMoveNpc(ctx);
         registerTimelineEvent(ctx);
+
+        // Register new segment-based cinematic action blocks
+        registerCameraMoveAction(ctx);
+        registerTitleAction(ctx);
+        registerSoundAction(ctx);
+        registerMessageAction(ctx);
+        registerBlindAction(ctx);
 
         // Register trigger blocks
         registerCinematicEndTrigger(ctx);
@@ -199,6 +231,104 @@ public class CinematicModule implements NextDungeonModule {
         return p;
     }
 
+    // --- New Segment-Based Cinematic Action Blocks ---
+
+    private void registerCameraMoveAction(ModuleContext ctx) {
+        ModuleBlockDescriptor block = new ModuleBlockDescriptor(
+                "cinematic_camera_move", BlockType.ACTION,
+                "🎥 Camera Move",
+                "Smooth camera movement along an interpolated Catmull-Rom path",
+                getId()
+        );
+        block.setColor("#FF5722");
+        block.setCategory("Cinematic");
+        block.setParameters(List.of(
+                new BlockParameter("startFrame", "number", "Start Frame:", "Frame to start the camera movement", "0"),
+                new BlockParameter("endFrame", "number", "End Frame:", "Frame to end the camera movement", "100"),
+                new BlockParameter("pathPoints", "string", "Path Points (JSON):",
+                        "JSON array of waypoints [{x,y,z,yaw,pitch}, ...]", "[]")
+        ));
+        ctx.getBlockRegistry().registerBlock(block);
+    }
+
+    private void registerTitleAction(ModuleContext ctx) {
+        ModuleBlockDescriptor block = new ModuleBlockDescriptor(
+                "cinematic_title", BlockType.ACTION,
+                "📝 Cinematic Title",
+                "Display a title and subtitle with fade in/out during a cinematic",
+                getId()
+        );
+        block.setColor("#2196F3");
+        block.setCategory("Cinematic");
+        block.setParameters(List.of(
+                new BlockParameter("startFrame", "number", "Start Frame:", "Frame to show the title", "0"),
+                new BlockParameter("endFrame", "number", "End Frame:", "Frame to hide the title", "60"),
+                new BlockParameter("title", "string", "Title:", "Main title text", ""),
+                new BlockParameter("subtitle", "string", "Subtitle:", "Subtitle text", ""),
+                new BlockParameter("fadeIn", "number", "Fade In (frames):", "Fade in duration in frames", "10"),
+                new BlockParameter("fadeOut", "number", "Fade Out (frames):", "Fade out duration in frames", "10")
+        ));
+        ctx.getBlockRegistry().registerBlock(block);
+    }
+
+    private void registerSoundAction(ModuleContext ctx) {
+        ModuleBlockDescriptor block = new ModuleBlockDescriptor(
+                "cinematic_sound", BlockType.ACTION,
+                "🔊 Cinematic Sound",
+                "Play a sound at a specific frame in the cinematic",
+                getId()
+        );
+        block.setColor("#FFC107");
+        block.setCategory("Cinematic");
+        block.setParameters(List.of(
+                new BlockParameter("startFrame", "number", "Frame:", "Frame to play the sound", "0"),
+                new BlockParameter("endFrame", "number", "End Frame:", "End frame (same as start for instant)", "1"),
+                new BlockParameter("soundType", "string", "Sound:", "Sound name (e.g. ENTITY_GENERIC_EXPLODE)", "ENTITY_GENERIC_EXPLODE"),
+                new BlockParameter("volume", "number", "Volume:", "Sound volume (0.0-1.0)", "1.0"),
+                new BlockParameter("pitch", "number", "Pitch:", "Sound pitch (0.5-2.0)", "1.0")
+        ));
+        ctx.getBlockRegistry().registerBlock(block);
+    }
+
+    private void registerMessageAction(ModuleContext ctx) {
+        ModuleBlockDescriptor block = new ModuleBlockDescriptor(
+                "cinematic_message", BlockType.ACTION,
+                "💬 Cinematic Message",
+                "Send a chat or action bar message at a specific frame",
+                getId()
+        );
+        block.setColor("#9C27B0");
+        block.setCategory("Cinematic");
+
+        BlockParameter displayType = new BlockParameter("displayType", "dropdown", "Display Type:",
+                "Where to display the message", "CHAT");
+        displayType.setOptions("CHAT,ACTION_BAR");
+
+        block.setParameters(List.of(
+                new BlockParameter("startFrame", "number", "Frame:", "Frame to send the message", "0"),
+                new BlockParameter("endFrame", "number", "End Frame:", "End frame", "1"),
+                new BlockParameter("message", "string", "Message:", "Message text to display", ""),
+                displayType
+        ));
+        ctx.getBlockRegistry().registerBlock(block);
+    }
+
+    private void registerBlindAction(ModuleContext ctx) {
+        ModuleBlockDescriptor block = new ModuleBlockDescriptor(
+                "cinematic_blind", BlockType.ACTION,
+                "🌑 Screen Black",
+                "Black screen (blindness effect) during a segment of the cinematic",
+                getId()
+        );
+        block.setColor("#424242");
+        block.setCategory("Cinematic");
+        block.setParameters(List.of(
+                new BlockParameter("startFrame", "number", "Start Frame:", "Frame to start the black screen", "0"),
+                new BlockParameter("endFrame", "number", "End Frame:", "Frame to end the black screen", "20")
+        ));
+        ctx.getBlockRegistry().registerBlock(block);
+    }
+
     // --- Action Handler Registration ---
 
     private void registerActionHandlers(ModuleContext ctx) {
@@ -262,6 +392,58 @@ public class CinematicModule implements NextDungeonModule {
             System.out.println("[Cinematic] Timeline event '" + eventType + "' at tick " + tick
                     + " in '" + cinematicId + "': " + value);
             return true;
+        });
+
+        // --- Segment-based cinematic action handlers ---
+
+        ctx.registerActionHandler("cinematic_camera_move", params -> {
+            Object playerObj = params.get("player");
+            if (!(playerObj instanceof Player player)) return false;
+            int startFrame = toInt(params.getOrDefault("startFrame", 0));
+            int endFrame = toInt(params.getOrDefault("endFrame", 100));
+            String pathJson = String.valueOf(params.getOrDefault("pathPoints", "[]"));
+            return manager.executeCameraMove(player, startFrame, endFrame, pathJson);
+        });
+
+        ctx.registerActionHandler("cinematic_title", params -> {
+            Object playerObj = params.get("player");
+            if (!(playerObj instanceof Player player)) return false;
+            int startFrame = toInt(params.getOrDefault("startFrame", 0));
+            int endFrame = toInt(params.getOrDefault("endFrame", 60));
+            String title = String.valueOf(params.getOrDefault("title", ""));
+            String subtitle = String.valueOf(params.getOrDefault("subtitle", ""));
+            int fadeIn = toInt(params.getOrDefault("fadeIn", 10));
+            int fadeOut = toInt(params.getOrDefault("fadeOut", 10));
+            return manager.executeTitle(player, startFrame, endFrame, title, subtitle, fadeIn, fadeOut);
+        });
+
+        ctx.registerActionHandler("cinematic_sound", params -> {
+            Object playerObj = params.get("player");
+            if (!(playerObj instanceof Player player)) return false;
+            int startFrame = toInt(params.getOrDefault("startFrame", 0));
+            int endFrame = toInt(params.getOrDefault("endFrame", 1));
+            String soundType = String.valueOf(params.getOrDefault("soundType", "ENTITY_GENERIC_EXPLODE"));
+            float volume = toFloat(params.getOrDefault("volume", 1.0f));
+            float pitch = toFloat(params.getOrDefault("pitch", 1.0f));
+            return manager.executeSound(player, startFrame, endFrame, soundType, volume, pitch);
+        });
+
+        ctx.registerActionHandler("cinematic_message", params -> {
+            Object playerObj = params.get("player");
+            if (!(playerObj instanceof Player player)) return false;
+            int startFrame = toInt(params.getOrDefault("startFrame", 0));
+            int endFrame = toInt(params.getOrDefault("endFrame", 1));
+            String message = String.valueOf(params.getOrDefault("message", ""));
+            String displayType = String.valueOf(params.getOrDefault("displayType", "CHAT"));
+            return manager.executeMessage(player, startFrame, endFrame, message, displayType);
+        });
+
+        ctx.registerActionHandler("cinematic_blind", params -> {
+            Object playerObj = params.get("player");
+            if (!(playerObj instanceof Player player)) return false;
+            int startFrame = toInt(params.getOrDefault("startFrame", 0));
+            int endFrame = toInt(params.getOrDefault("endFrame", 20));
+            return manager.executeBlind(player, startFrame, endFrame);
         });
     }
 
