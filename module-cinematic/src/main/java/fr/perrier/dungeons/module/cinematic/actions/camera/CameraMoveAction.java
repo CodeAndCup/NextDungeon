@@ -93,6 +93,7 @@ public class CameraMoveAction extends SimpleCinematicAction<CameraSegment> {
                 player.setGameMode(GameMode.SPECTATOR);
                 player.setSpectatorTarget(null);
                 player.teleport(cameraEntity, PlayerTeleportEvent.TeleportCause.SPECTATE);
+                // BUGGED
                 Bukkit.getScheduler().scheduleSyncDelayedTask(plugin,()->{
                     player.setSpectatorTarget(cameraEntity);
                 },8);
