@@ -4,64 +4,100 @@ import fr.perrier.dungeons.module.cinematic.clock.CinematicClock;
 import fr.perrier.dungeons.module.cinematic.segment.CinematicSegment;
 import org.bukkit.entity.Player;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
 
 /**
- * Classe helper abstraite pour les actions cinématiques avec gestion automatique
- * des segments (startSegment → tickSegment → stopSegment).
+ * Abstract helper for cinematic actions with automatic segment lifecycle management.
  * <p>
- * Inspiré du pattern SimpleCinematicAction de Typewriter.
+ * Exact replica of Typewriter's {@code SimpleCinematicAction<S>}:
+ * <ul>
+ *   <li>Tracks a single {@code previousSegment} (not a Set of active segments)</li>
+ *   <li>On each tick: finds the active segment, compares with previous</li>
+ *   <li>If segment changed: stop old → start new → tick new</li>
+ *   <li>If same segment: just tick</li>
+ *   <li>On teardown: stop the current segment if any</li>
+ * </ul>
  *
- * @param <S> le type de segment géré par cette action
+ * @param <S> the segment type managed by this action
+ * @see <a href="https://github.com/gabber235/Typewriter">Typewriter SimpleCinematicAction.kt</a>
  */
 public abstract class SimpleCinematicAction<S extends CinematicSegment> implements CinematicAction {
 
-    private final transient Set<S> activeSegments = new HashSet<>();
+    /**
+     * The last frame that was ticked.
+     * Exposed for subclasses (e.g. frame-skip detection like Typewriter's {@code abs(frame - lastFrame) > 5}).
+     */
+    protected int lastFrame = 0;
+
+    private S previousSegment = null;
 
     @Override
     public void onCinematicSetup(Player player, CinematicClock clock) throws Exception {
-        // Override si besoin d'initialisation globale
+        // Override if global initialization is needed
     }
 
+    /**
+     * Tick logic matching Typewriter's SimpleCinematicAction.tick():
+     * <pre>
+     * lastFrame = frame
+     * segment = segments activeSegmentAt frame
+     *
+     * if (segment == previousSegment) {
+     *     segment?.let { tickSegment(it, frame) }
+     *     return
+     * }
+     *
+     * previousSegment?.let { stopSegment(it) }
+     * segment?.let {
+     *     startSegment(it)
+     *     tickSegment(it, frame)
+     * }
+     * </pre>
+     */
     @Override
     public void onCinematicTick(Player player, int frame) throws Exception {
-        for (S segment : getCinematicSegments()) {
-            boolean wasActive = activeSegments.contains(segment);
-            boolean isActive = segment.isActiveAt(frame);
+        lastFrame = frame;
 
-            if (!wasActive && isActive) {
-                // Segment vient de démarrer
-                activeSegments.add(segment);
-                onSegmentStart(player, segment);
-            }
+        // Find the active segment at this frame (ref: Typewriter segments activeSegmentAt frame)
+        S segment = activeSegmentAt(frame);
 
-            if (isActive) {
-                // Segment actif → tick
+        if (segment == previousSegment) {
+            // Same segment as before — just tick it
+            if (segment != null) {
                 onSegmentTick(player, segment, frame);
             }
-
-            if (wasActive && !isActive) {
-                // Segment vient de se terminer
-                activeSegments.remove(segment);
-                onSegmentStop(player, segment);
-            }
+            return;
         }
+
+        // Segment changed — stop old, start new
+        if (previousSegment != null) {
+            onSegmentStop(player, previousSegment);
+        }
+
+        if (segment != null) {
+            onSegmentStart(player, segment);
+            onSegmentTick(player, segment, frame);
+        }
+
+        previousSegment = segment;
     }
 
     @Override
     public void onCinematicStop(Player player) throws Exception {
-        // Arrêter tous les segments encore actifs
-        for (S segment : activeSegments) {
-            onSegmentStop(player, segment);
+        // Stop the current segment if any (ref: Typewriter teardown)
+        if (previousSegment != null) {
+            onSegmentStop(player, previousSegment);
+            previousSegment = null;
         }
-        activeSegments.clear();
     }
 
+    /**
+     * Matches Typewriter's {@code segments canFinishAt frame} which checks {@code frame > endFrame}.
+     */
     @Override
     public boolean canCinematicFinish(int frame) {
         for (CinematicSegment segment : getCinematicSegments()) {
-            if (frame < segment.getEndFrame()) {
+            if (frame <= segment.getEndFrame()) {
                 return false;
             }
         }
@@ -69,26 +105,37 @@ public abstract class SimpleCinematicAction<S extends CinematicSegment> implemen
     }
 
     /**
-     * Appelé quand un segment démarre (frame == startFrame)
+     * Called when a segment starts (transitions in).
      */
     protected void onSegmentStart(Player player, S segment) throws Exception {
-        // Override optionnel
     }
 
     /**
-     * Appelé à chaque frame pendant que le segment est actif
+     * Called each frame while the segment is active.
      */
     protected void onSegmentTick(Player player, S segment, int frame) throws Exception {
-        // Override optionnel
     }
 
     /**
-     * Appelé quand un segment se termine (frame &gt; endFrame)
+     * Called when a segment ends (transitions out).
      */
     protected void onSegmentStop(Player player, S segment) throws Exception {
-        // Override optionnel
+    }
+
+    /**
+     * Finds the first segment active at the given frame.
+     * Mirrors Typewriter's {@code List<Segment>.activeSegmentAt(frame)}.
+     */
+    @SuppressWarnings("unchecked")
+    private S activeSegmentAt(int frame) {
+        for (CinematicSegment segment : getCinematicSegments()) {
+            if (segment.isActiveAt(frame)) {
+                return (S) segment;
+            }
+        }
+        return null;
     }
 
     @Override
-    public abstract java.util.List<S> getCinematicSegments();
+    public abstract List<S> getCinematicSegments();
 }

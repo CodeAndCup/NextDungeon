@@ -4,6 +4,14 @@ import fr.perrier.dungeons.module.cinematic.action.CinematicAction;
 import fr.perrier.dungeons.module.cinematic.clock.CinematicClock;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.HandlerList;
+import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityTargetEvent;
+import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -14,11 +22,16 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
- * Exécuteur orchestrant une cinématique: coordonne l'horloge,
- * les actions et l'état du joueur.
+ * Orchestrates a cinematic: coordinates the clock, actions, and player state.
  * <p>
- * Les actions sont tickées en parallèle via CompletableFuture
- * pour supporter 100+ actions sans ralentissement.
+ * Architecture mirrors Typewriter's CameraCinematicAction:
+ * <ul>
+ *   <li>Player setup: save state → invisibility → hide players → damage event cancellation</li>
+ *   <li>Tick: delegate to all actions in parallel</li>
+ *   <li>Teardown: unregister events → restore state</li>
+ * </ul>
+ *
+ * @see <a href="https://github.com/gabber235/Typewriter">Typewriter CameraCinematicEntry.kt</a>
  */
 public class CinematicExecutor {
 
@@ -27,6 +40,7 @@ public class CinematicExecutor {
     private final CinematicClock clock;
     private PlayerCinematicState stateSnapshot;
     private Consumer<Integer> frameListener;
+    private Listener damageListener;
     private boolean isRunning = false;
 
     public CinematicExecutor(List<CinematicAction> actions, Player player, CinematicClock clock) {
@@ -36,27 +50,40 @@ public class CinematicExecutor {
     }
 
     /**
-     * Démarre la cinématique: capture l'état joueur, setup les actions,
-     * et s'abonne à l'horloge.
+     * Starts the cinematic: captures player state, applies cinematic setup, registers events.
+     * <p>
+     * Mirrors Typewriter CameraCinematicAction.setup() flow:
+     * <ol>
+     *   <li>Capture player state (location, flight, visibility, effects)</li>
+     *   <li>Set invisible + flying</li>
+     *   <li>Hide players mutually</li>
+     *   <li>Register damage event cancellation listeners</li>
+     *   <li>Setup all cinematic actions</li>
+     *   <li>Subscribe to clock frame changes</li>
+     * </ol>
      */
     public void start() {
         if (isRunning) return;
         isRunning = true;
 
-        // Capturer état joueur
+        // 1. Capture player state (ref: Typewriter originalState = state(...))
         stateSnapshot = new PlayerCinematicState();
         stateSnapshot.captureState(player);
 
-        // TIER 1A: Rendre joueur invisible durant cinématique (ref: Typewriter CameraCinematicEntry.kt:215)
+        // 2. Invisibility (ref: Typewriter CameraCinematicEntry.kt:215)
         player.addPotionEffect(new PotionEffect(
                 PotionEffectType.INVISIBILITY,
                 Integer.MAX_VALUE,
                 0,
-                false,  // pas de particules ambiantes
-                false   // pas de particules du tout
+                false,
+                false
         ));
 
-        // TIER 1A: Cacher joueurs mutuellement (ref: Typewriter CameraCinematicEntry.kt:216-218)
+        // 3. Allow flight + flying (ref: Typewriter setup: allowFlight = true; isFlying = true)
+        player.setAllowFlight(true);
+        player.setFlying(true);
+
+        // 4. Hide players mutually (ref: Typewriter CameraCinematicEntry.kt:216-218)
         Plugin plugin = Bukkit.getPluginManager().getPlugin("NextDungeon");
         if (plugin != null) {
             for (Player other : Bukkit.getOnlinePlayers()) {
@@ -67,7 +94,10 @@ public class CinematicExecutor {
             }
         }
 
-        // Setup toutes les actions
+        // 5. Register damage/target event cancellation (ref: Typewriter CameraCinematicEntry.kt:226-239)
+        registerDamageListeners(plugin);
+
+        // 6. Setup all cinematic actions
         for (CinematicAction action : actions) {
             try {
                 action.onCinematicSetup(player, clock);
@@ -76,19 +106,18 @@ public class CinematicExecutor {
             }
         }
 
-        // Listener à chaque frame
+        // 7. Subscribe to clock frame changes
         frameListener = this::tickFrame;
         clock.addFrameChangeListener(frameListener);
     }
 
     /**
-     * Tick toutes les actions en parallèle pour le frame donné
+     * Ticks all actions in parallel for the given frame.
      */
     private void tickFrame(int frame) {
         if (!isRunning) return;
 
         try {
-            // Parallèle: toutes les actions
             List<CompletableFuture<Void>> futures = actions.stream()
                     .map(action -> CompletableFuture.runAsync(() -> {
                         try {
@@ -99,32 +128,39 @@ public class CinematicExecutor {
                     }))
                     .collect(Collectors.toList());
 
-            // Attendre toutes les actions
             CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
         } catch (Exception e) {
             System.err.println("[Cinematic] Tick error: " + e.getMessage());
         }
 
-        // Vérifier fin
         if (canFinish(frame)) {
             stop();
         }
     }
 
     /**
-     * Arrête la cinématique: nettoie les actions et restaure l'état joueur
+     * Stops the cinematic: stops all actions, unregisters events, restores player state.
+     * <p>
+     * Mirrors Typewriter CameraCinematicAction.teardown() flow:
+     * <ol>
+     *   <li>Unsubscribe from clock</li>
+     *   <li>Stop all cinematic actions</li>
+     *   <li>Unregister damage listeners</li>
+     *   <li>Remove invisibility</li>
+     *   <li>Restore player state (location, flight, visibility, effects)</li>
+     * </ol>
      */
     public void stop() {
         if (!isRunning) return;
         isRunning = false;
 
-        // Retirer le listener de l'horloge
+        // 1. Unsubscribe from clock
         if (frameListener != null) {
             clock.removeFrameChangeListener(frameListener);
         }
 
         try {
-            // Arrêter toutes les actions
+            // 2. Stop all cinematic actions
             for (CinematicAction action : actions) {
                 try {
                     action.onCinematicStop(player);
@@ -133,21 +169,13 @@ public class CinematicExecutor {
                 }
             }
 
-            // TIER 1A: Retirer invisibilité (ref: Typewriter CameraCinematicEntry.kt teardown)
+            // 3. Unregister damage listeners
+            unregisterDamageListeners();
+
+            // 4. Remove invisibility
             player.removePotionEffect(PotionEffectType.INVISIBILITY);
 
-            // TIER 1A: Remontrer joueurs mutuellement
-            Plugin plugin = Bukkit.getPluginManager().getPlugin("NextDungeon");
-            if (plugin != null) {
-                for (Player other : Bukkit.getOnlinePlayers()) {
-                    if (!other.getUniqueId().equals(player.getUniqueId())) {
-                        other.showPlayer(plugin, player);
-                        player.showPlayer(plugin, other);
-                    }
-                }
-            }
-
-            // Restaurer état joueur (inclut velocity, visibilité fine-grained)
+            // 5. Restore player state (ref: Typewriter teardown → restore(originalState))
             if (stateSnapshot != null) {
                 stateSnapshot.restoreState(player);
             }
@@ -157,8 +185,52 @@ public class CinematicExecutor {
     }
 
     /**
-     * Vérifie si toutes les actions ont terminé
+     * Registers Bukkit event listeners to cancel damage and targeting during cinematics.
+     * Exact replica of Typewriter's event listeners in CameraCinematicEntry.kt:226-239.
      */
+    private void registerDamageListeners(Plugin plugin) {
+        if (plugin == null) return;
+
+        damageListener = new Listener() {
+            @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+            public void onDamage(EntityDamageEvent event) {
+                if (event.getEntity().getUniqueId().equals(player.getUniqueId())) {
+                    event.setCancelled(true);
+                }
+            }
+
+            @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+            public void onDamageByEntity(EntityDamageByEntityEvent event) {
+                if (event.getEntity().getUniqueId().equals(player.getUniqueId())) {
+                    event.setCancelled(true);
+                }
+            }
+
+            @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+            public void onTarget(EntityTargetEvent event) {
+                if (player.equals(event.getTarget())) {
+                    event.setCancelled(true);
+                }
+            }
+
+            @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+            public void onTargetLiving(EntityTargetLivingEntityEvent event) {
+                if (player.equals(event.getTarget())) {
+                    event.setCancelled(true);
+                }
+            }
+        };
+
+        Bukkit.getPluginManager().registerEvents(damageListener, plugin);
+    }
+
+    private void unregisterDamageListeners() {
+        if (damageListener != null) {
+            HandlerList.unregisterAll(damageListener);
+            damageListener = null;
+        }
+    }
+
     private boolean canFinish(int frame) {
         for (CinematicAction action : actions) {
             if (!action.canCinematicFinish(frame)) {
@@ -168,9 +240,6 @@ public class CinematicExecutor {
         return true;
     }
 
-    /**
-     * @return true si la cinématique est en cours d'exécution
-     */
     public boolean isRunning() {
         return isRunning;
     }

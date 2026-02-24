@@ -22,128 +22,130 @@ import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 /**
- * Camera movement action replicating Typewriter's {@code DisplayCameraAction} exactly.
+ * Camera movement action replicating Typewriter's {@code CameraCinematicAction} + {@code DisplayCameraAction}.
  * <p>
- * How it works (ref: Typewriter DisplayCameraAction / CameraCinematicEntry.kt):
- * <ol>
- *   <li>Path points are converted to frame-based {@link PathSegment}s with Catmull-Rom at runtime</li>
- *   <li>A {@code TEXT_DISPLAY} entity is created with {@code positionRotationInterpolationDuration = 10}
- *       so the client smoothly interpolates between positions</li>
- *   <li>The player spectates the entity via {@link WrapperPlayServerCamera}</li>
- *   <li>Each frame: entity is teleported to the interpolated position</li>
- *   <li>Player is teleported only every 10 frames or when &gt; 25 blocks away (chunk loading)</li>
- *   <li>On large frame skips (&gt; 5 frames), the entity is seamlessly recreated</li>
- *   <li>Packet interception: fake Y+500, fake inventory, block self-interact</li>
- * </ol>
+ * Architecture (mirrors Typewriter exactly):
+ * <ul>
+ *   <li>{@code CameraCinematicAction} wraps a {@code CameraAction} (Display/Teleport/Bedrock strategy)</li>
+ *   <li>{@code DisplayCameraAction} creates a TEXT_DISPLAY entity with {@code positionRotationInterpolationDuration = 10}</li>
+ *   <li>Player spectates entity via Camera packet → client-side smooth interpolation</li>
+ *   <li>Path points are transformed into frame-based {@code PointSegment}s with Catmull-Rom interpolation</li>
+ *   <li>On segment start: setupPath → teleport → spawn entity → spectate</li>
+ *   <li>On tick: interpolate position → teleport entity. Player teleported only when needed for chunk loading</li>
+ *   <li>On frame skip (&gt;5 frames): switchSeamless → recreate entity at current position</li>
+ *   <li>On segment switch (same world): switchSeamless. Different world: switchWithStop</li>
+ *   <li>Packet interception: Y+500 offset, fake inventory, block self-interact</li>
+ * </ul>
  *
- * @see <a href="https://github.com/gabber235/Typewriter">Typewriter</a>
+ * @see <a href="https://github.com/gabber235/Typewriter">Typewriter CameraCinematicEntry.kt</a>
  */
 public class CameraMoveAction extends SimpleCinematicAction<CameraSegment> {
 
-    // ref: Typewriter CameraCinematicEntry.kt — fake Y offset for anti-clipping
+    // ── Constants matching Typewriter exactly ──
+
+    /** ref: Typewriter CameraCinematicEntry.kt — fake Y offset for anti-self-clipping */
     private static final double FAKE_Y_OFFSET = 500.0;
-    // ref: Typewriter DisplayCameraAction.BASE_INTERPOLATION = 10
+    /** ref: Typewriter DisplayCameraAction.BASE_INTERPOLATION = 10 */
     private static final int BASE_INTERPOLATION = 10;
-    // ref: Typewriter MAX_DISTANCE_SQUARED = 25 * 25
+    /** ref: Typewriter MAX_DISTANCE_SQUARED = 25 * 25 */
     private static final double MAX_DISTANCE_SQUARED = 625.0;
-    // ref: Typewriter DisplayCameraAction.setupPath — playerDefaultEyeHeight = 1.6
-    private static final double EYE_HEIGHT = 1.6;
+    /** ref: Typewriter DisplayCameraAction.setupPath — playerDefaultEyeHeight = 1.6 */
+    private static final double PLAYER_DEFAULT_EYE_HEIGHT = 1.6;
+
+    // ── State ──
 
     private List<CameraSegment> segments = new ArrayList<>();
-    private final transient Map<CameraSegment, List<PathSegment>> segmentPaths = new HashMap<>();
+    private transient List<PointSegment> currentPath = List.of();
     private transient PacketListenerAbstract packetListener = null;
-    private transient WrapperEntity cameraEntity = null;
-    private transient int lastFrame = -1;
+    private transient WrapperEntity entity = null;
+    private transient boolean isActive = false;
 
     /**
-     * Internal frame-based path segment (mirrors Typewriter's PointSegment).
-     * Each segment represents a path point with a frame range during which it is the "current" point.
+     * Frame-based path segment mirroring Typewriter's {@code PointSegment}.
+     * Each represents a path point with a frame range during which it is the "current" point for interpolation.
      */
-    private record PathSegment(int startFrame, int endFrame, double x, double y, double z, float yaw, float pitch) {
+    private record PointSegment(int startFrame, int endFrame, double x, double y, double z, float yaw, float pitch) {
+        /** ref: Typewriter Segment.isActiveAt(frame) — frame in startFrame..endFrame */
         boolean isActiveAt(int frame) {
-            return frame >= startFrame && frame < endFrame;
+            return frame >= startFrame && frame <= endFrame;
         }
     }
 
     // ────────────────────────────────────────────────────────────────────────
-    // Segment lifecycle (ref: Typewriter DisplayCameraAction)
+    // Segment lifecycle (mirrors Typewriter CameraCinematicAction.tick)
     // ────────────────────────────────────────────────────────────────────────
 
     @Override
     protected void onSegmentStart(Player player, CameraSegment segment) throws Exception {
-        // Build frame-based path (ref: Typewriter DisplayCameraAction.setupPath)
-        List<PathSegment> path = buildPath(segment);
-        segmentPaths.put(segment, path);
-        if (path.isEmpty()) return;
+        // ref: Typewriter CameraCinematicAction.tick — if previousSegment == null && segment != null → player.setup() + action.startSegment
+        setupPath(player, segment);
 
-        PathSegment start = path.get(0);
-        Location startLoc = new Location(player.getWorld(),
-                start.x, start.y, start.z, start.yaw, start.pitch);
+        if (currentPath.isEmpty()) return;
+
+        // Setup packet interception (ref: Typewriter CameraCinematicAction.Player.setup → interceptPackets)
+        if (!isFloodgatePlayer(player)) {
+            setupPacketInterception(player);
+        }
 
         // ref: Typewriter DisplayCameraAction.startSegment
+        PointSegment first = currentPath.get(0);
+        Location startLoc = toLocation(player, first);
+
         player.teleport(startLoc);
         player.setAllowFlight(true);
         player.setFlying(true);
 
-        // Spawn entity and spectate (ref: Typewriter DisplayCameraAction.startSegment)
-        spawnCameraEntity(player, toPacketLocation(start));
-
-        // Packet interception (skip Bedrock/Floodgate players)
-        if (!isFloodgatePlayer(player)) {
-            setupPacketInterception(player);
-        }
+        entity = createEntity();
+        entity.spawn(toPacketLocation(first));
+        entity.addViewer(player.getUniqueId());
+        spectateEntity(player, entity);
+        isActive = true;
     }
 
     @Override
     protected void onSegmentTick(Player player, CameraSegment segment, int frame) throws Exception {
-        List<PathSegment> path = segmentPaths.get(segment);
-        if (path == null || path.isEmpty()) return;
+        if (currentPath.isEmpty()) return;
 
-        // Use frame relative to segment start (ref: Typewriter baseFrame = frame - segment.startFrame)
-        int relativeFrame = frame - segment.getStartFrame();
+        // ref: Typewriter CameraCinematicAction.tick — baseFrame = frame - segment.startFrame
+        int baseFrame = frame - segment.getStartFrame();
 
-        // Frame skip detection: recreate entity seamlessly (ref: Typewriter skipToFrame)
-        if (cameraEntity != null && Math.abs(frame - lastFrame) > 5 && relativeFrame > 0) {
-            switchSeamless(player, path, relativeFrame);
+        // Frame skip detection → switchSeamless (ref: Typewriter — abs(frame - lastFrame) > 5)
+        if (isActive && Math.abs(frame - lastFrame) > 5 && baseFrame > 0) {
+            switchSeamless(player, baseFrame);
         }
-        lastFrame = frame;
 
-        // Runtime Catmull-Rom interpolation (ref: Typewriter List<PointSegment>.interpolate)
-        double[] pos = interpolatePath(path, relativeFrame);
+        // ref: Typewriter DisplayCameraAction.tickSegment
+        double[] pos = interpolatePath(currentPath, baseFrame);
         if (pos == null) return;
 
         com.github.retrooper.packetevents.protocol.world.Location packetLoc =
                 new com.github.retrooper.packetevents.protocol.world.Location(
                         pos[0], pos[1], pos[2], (float) pos[3], (float) pos[4]);
 
-        // Entity teleported every frame → client interpolates smoothly
-        // ref: Typewriter DisplayCameraAction.tickSegment
-        if (cameraEntity != null) {
-            cameraEntity.teleport(packetLoc);
+        // Entity teleported every frame → client interpolates smoothly via BASE_INTERPOLATION
+        if (entity != null) {
+            entity.teleport(packetLoc);
         }
 
         // Player teleported only for chunk loading (ref: Typewriter teleportIfNeeded)
         Location loc = new Location(player.getWorld(), pos[0], pos[1], pos[2], (float) pos[3], (float) pos[4]);
         double distSq = player.getLocation().distanceSquared(loc);
-        if (relativeFrame % 10 == 0 || distSq > MAX_DISTANCE_SQUARED) {
+        if (baseFrame % 10 == 0 || distSq > MAX_DISTANCE_SQUARED) {
             player.teleport(loc);
         }
     }
 
     @Override
     protected void onSegmentStop(Player player, CameraSegment segment) throws Exception {
-        // ref: Typewriter DisplayCameraAction.stop / onSegmentStop
-        despawnCameraEntity(player);
-        segmentPaths.remove(segment);
+        // ref: Typewriter DisplayCameraAction.stop
+        stop(player);
         cleanupPacketInterception();
         player.updateInventory();
-        lastFrame = -1;
     }
 
     @Override
@@ -152,71 +154,86 @@ public class CameraMoveAction extends SimpleCinematicAction<CameraSegment> {
     }
 
     // ────────────────────────────────────────────────────────────────────────
-    // Path building (ref: Typewriter List<PathPoint>.transform)
+    // Path setup (mirrors Typewriter List<PathPoint>.transform)
     // ────────────────────────────────────────────────────────────────────────
 
     /**
-     * Converts waypoints to frame-based {@link PathSegment}s, mirroring Typewriter's
-     * {@code List<PathPoint>.transform()} function.
+     * Converts waypoints to frame-based {@link PointSegment}s.
+     * Exact replica of Typewriter's {@code List<PathPoint>.transform()} function.
      * <p>
-     * Key Typewriter behaviors replicated:
+     * Key Typewriter behaviors:
      * <ul>
-     *   <li>Duration adjusted by {@code BASE_INTERPOLATION} (10 ticks shorter)</li>
-     *   <li>Eye height offset (+1.6) added to Y positions</li>
-     *   <li>Frames distributed evenly among path point transitions</li>
+     *   <li>Total duration = segment.duration - BASE_INTERPOLATION</li>
+     *   <li>Eye height offset (+1.6) added to Y</li>
+     *   <li>Duration distributed evenly among path points without explicit duration</li>
+     *   <li>Last path point always has duration 0</li>
      * </ul>
      */
-    private List<PathSegment> buildPath(CameraSegment segment) {
+    private void setupPath(Player player, CameraSegment segment) {
         List<CameraWaypoint> waypoints = segment.getPathPoints();
-        if (waypoints == null || waypoints.isEmpty()) return List.of();
-
-        // ref: Typewriter — segment.duration - BASE_INTERPOLATION
-        int segDuration = (segment.getEndFrame() - segment.getStartFrame()) - BASE_INTERPOLATION;
-        segDuration = Math.max(segDuration, 1);
-
-        int n = waypoints.size();
-        if (n == 1) {
-            CameraWaypoint wp = waypoints.get(0);
-            return List.of(new PathSegment(0, segDuration,
-                    wp.getX(), wp.getY() + EYE_HEIGHT, wp.getZ(), wp.getYaw(), wp.getPitch()));
+        if (waypoints == null || waypoints.isEmpty()) {
+            currentPath = List.of();
+            return;
         }
 
-        // Distribute frames evenly among transitions (ref: Typewriter default when no duration specified)
-        List<PathSegment> result = new ArrayList<>();
-        int transitionCount = n - 1;
-        int framesPerTransition = segDuration / transitionCount;
-        int leftover = segDuration % transitionCount;
+        // ref: Typewriter — segment.duration - BASE_INTERPOLATION
+        int totalDuration = (segment.getEndFrame() - segment.getStartFrame()) - BASE_INTERPOLATION;
+        totalDuration = Math.max(totalDuration, 1);
+
+        int n = waypoints.size();
+
+        if (n == 1) {
+            CameraWaypoint wp = waypoints.get(0);
+            currentPath = List.of(new PointSegment(0, totalDuration,
+                    wp.getX(), wp.getY() + PLAYER_DEFAULT_EYE_HEIGHT, wp.getZ(),
+                    wp.getYaw(), wp.getPitch()));
+            return;
+        }
+
+        // All path points distribute duration evenly (ref: Typewriter — when no duration is specified on PathPoint)
+        // The last segment should never have a duration — it's reached when the cinematic ends
+        int transitions = n - 1;
+        int durationPerSegment = totalDuration / transitions;
+        int leftOverDuration = totalDuration % transitions;
+
+        List<PointSegment> result = new ArrayList<>();
         int currentFrame = 0;
 
         for (int i = 0; i < n; i++) {
             CameraWaypoint wp = waypoints.get(i);
             int duration;
-            if (i < transitionCount) {
-                duration = framesPerTransition + (i < leftover ? 1 : 0);
+            if (i < transitions) {
+                // ref: Typewriter — distribute leftover +1 to early segments
+                duration = durationPerSegment;
+                if (leftOverDuration > 0) {
+                    duration++;
+                    leftOverDuration--;
+                }
             } else {
-                // Last point has no duration (ref: Typewriter — last segment reached when cinematic ends)
+                // Last point has duration 0 (ref: Typewriter — last segment reached when cinematic ends)
                 duration = 0;
             }
             int endFrame = currentFrame + duration;
-            result.add(new PathSegment(currentFrame, endFrame,
-                    wp.getX(), wp.getY() + EYE_HEIGHT, wp.getZ(), wp.getYaw(), wp.getPitch()));
+            result.add(new PointSegment(currentFrame, endFrame,
+                    wp.getX(), wp.getY() + PLAYER_DEFAULT_EYE_HEIGHT, wp.getZ(),
+                    wp.getYaw(), wp.getPitch()));
             currentFrame = endFrame;
         }
 
-        return result;
+        currentPath = result;
     }
 
     // ────────────────────────────────────────────────────────────────────────
-    // Runtime Catmull-Rom interpolation (ref: Typewriter Interpolation.kt)
+    // Catmull-Rom interpolation (mirrors Typewriter Interpolation.kt)
     // ────────────────────────────────────────────────────────────────────────
 
     /**
      * Interpolates position on the path at the given frame using Catmull-Rom.
-     * Exact replica of Typewriter's {@code List<PointSegment>.interpolate(frame)} function.
+     * Exact replica of Typewriter's {@code List<PointSegment>.interpolate(frame)}.
      *
      * @return [x, y, z, yaw, pitch] or null if path is empty
      */
-    private static double[] interpolatePath(List<PathSegment> path, int frame) {
+    private static double[] interpolatePath(List<PointSegment> path, int frame) {
         if (path.isEmpty()) return null;
 
         // Find active segment (ref: Typewriter indexOfFirst { it isActiveAt frame })
@@ -230,38 +247,40 @@ public class CameraMoveAction extends SimpleCinematicAction<CameraSegment> {
 
         if (index == -1) {
             // Past the end — hold at last position (ref: Typewriter return last().position)
-            PathSegment last = path.get(path.size() - 1);
+            PointSegment last = path.get(path.size() - 1);
             return new double[]{last.x, last.y, last.z, last.yaw, last.pitch};
         }
 
-        PathSegment current = path.get(index);
-        int totalFrames = current.endFrame - current.startFrame;
-        int currentFrame = frame - current.startFrame;
+        PointSegment segment = path.get(index);
+        int totalFrames = segment.endFrame - segment.startFrame;
+        int currentFrame = frame - segment.startFrame;
         double percentage = totalFrames > 0 ? (double) currentFrame / totalFrames : 0;
 
-        // Get 4 surrounding points for Catmull-Rom (ref: Typewriter PointSegment interpolation)
-        PathSegment prev = index > 0 ? path.get(index - 1) : current;
-        PathSegment next = index + 1 < path.size() ? path.get(index + 1) : current;
-        PathSegment nextNext = index + 2 < path.size() ? path.get(index + 2) : next;
+        // Get 4 surrounding points for Catmull-Rom (ref: Typewriter CameraCinematicEntry.kt interpolate)
+        PointSegment prev = index > 0 ? path.get(index - 1) : segment;
+        PointSegment next = index + 1 < path.size() ? path.get(index + 1) : segment;
+        PointSegment nextNext = index + 2 < path.size() ? path.get(index + 2) : next;
 
-        double x = catmullRom(prev.x, current.x, next.x, nextNext.x, percentage);
-        double y = catmullRom(prev.y, current.y, next.y, nextNext.y, percentage);
-        double z = catmullRom(prev.z, current.z, next.z, nextNext.z, percentage);
+        // Position interpolation
+        double x = catmullRom(prev.x, segment.x, next.x, nextNext.x, percentage);
+        double y = catmullRom(prev.y, segment.y, next.y, nextNext.y, percentage);
+        double z = catmullRom(prev.z, segment.z, next.z, nextNext.z, percentage);
 
-        // Yaw correction for wrap-around before interpolation (ref: Typewriter correctYaw in Rotatable.kt)
+        // Yaw with correction for 360° wrap-around (ref: Typewriter Interpolation.kt correctYaw chain)
         double prevYaw = prev.yaw;
-        double curYaw = correctYaw(prevYaw, current.yaw);
+        double curYaw = correctYaw(prevYaw, segment.yaw);
         double nextYaw = correctYaw(curYaw, next.yaw);
         double nextNextYaw = correctYaw(nextYaw, nextNext.yaw);
         float yaw = (float) catmullRom(prevYaw, curYaw, nextYaw, nextNextYaw, percentage);
 
-        float pitch = (float) catmullRom(prev.pitch, current.pitch, next.pitch, nextNext.pitch, percentage);
+        // Pitch (no wrap correction needed)
+        float pitch = (float) catmullRom(prev.pitch, segment.pitch, next.pitch, nextNext.pitch, percentage);
 
         return new double[]{x, y, z, yaw, pitch};
     }
 
     /**
-     * Catmull-Rom interpolation between 4 values.
+     * Catmull-Rom interpolation between 4 scalar values.
      * Exact formula from Typewriter's {@code interpolatePoints()} in Interpolation.kt:
      * {@code 0.5 * ((2*P1) + (-P0+P2)*t + (2*P0-5*P1+4*P2-P3)*t² + (-P0+3*P1-3*P2+P3)*t³)}
      */
@@ -275,7 +294,7 @@ public class CameraMoveAction extends SimpleCinematicAction<CameraSegment> {
     }
 
     /**
-     * Correct yaw so that it interpolates via the shortest path around the 360° boundary.
+     * Corrects yaw to interpolate via the shortest path around the 360° boundary.
      * Exact replica of Typewriter's {@code correctYaw()} from Rotatable.kt.
      */
     private static double correctYaw(double currentYaw, double nextYaw) {
@@ -289,123 +308,122 @@ public class CameraMoveAction extends SimpleCinematicAction<CameraSegment> {
     }
 
     // ────────────────────────────────────────────────────────────────────────
-    // Camera entity management (ref: Typewriter DisplayCameraAction)
+    // DisplayCameraAction entity management (mirrors Typewriter DisplayCameraAction)
     // ────────────────────────────────────────────────────────────────────────
 
     /**
-     * Creates a new TEXT_DISPLAY entity with interpolation configured.
-     * Exact replica of Typewriter's {@code DisplayCameraAction.createEntity()}.
+     * Creates a new TEXT_DISPLAY entity with interpolation duration.
+     * ref: Typewriter DisplayCameraAction.createEntity()
      */
-    private WrapperEntity createCameraEntity() {
-        WrapperEntity entity = new WrapperEntity(EntityTypes.TEXT_DISPLAY);
-        if (entity.getEntityMeta() instanceof TextDisplayMeta meta) {
+    private WrapperEntity createEntity() {
+        WrapperEntity e = new WrapperEntity(EntityTypes.TEXT_DISPLAY);
+        if (e.getEntityMeta() instanceof TextDisplayMeta meta) {
             meta.setNotifyAboutChanges(false);
             meta.setPositionRotationInterpolationDuration(BASE_INTERPOLATION);
             meta.setNotifyAboutChanges(true);
         }
-        return entity;
+        return e;
     }
 
     /**
-     * Spawns the camera entity and makes the player spectate it.
-     * Spawn order matches Typewriter: spawn → addViewer → spectateEntity.
-     */
-    private void spawnCameraEntity(Player player,
-                                   com.github.retrooper.packetevents.protocol.world.Location location) {
-        if (cameraEntity != null) {
-            despawnCameraEntity(player);
-        }
-        cameraEntity = createCameraEntity();
-        cameraEntity.spawn(location);
-        cameraEntity.addViewer(player.getUniqueId());
-        spectateEntity(player, cameraEntity);
-    }
-
-    /**
-     * Seamlessly recreates the camera entity at a new position.
-     * Used for frame skip handling and segment switching.
-     * Exact replica of Typewriter's {@code DisplayCameraAction.switchSeamless()}.
+     * Seamlessly recreates the entity at a new position without visual pop.
+     * ref: Typewriter DisplayCameraAction.switchSeamless()
      * <p>
-     * Order: create new → spawn new → addViewer → spectate new → despawn old → remove old.
+     * Order: create new → spawn → addViewer → spectate → despawn old → remove old.
      */
-    private void switchSeamless(Player player, List<PathSegment> path, int frame) {
-        double[] pos = interpolatePath(path, frame);
-        if (pos == null) return;
+    private void switchSeamless(Player player, int frame) {
+        switchSeamless(player, frame, currentPath.get(0));
+    }
 
-        com.github.retrooper.packetevents.protocol.world.Location packetLoc =
-                new com.github.retrooper.packetevents.protocol.world.Location(
-                        pos[0], pos[1], pos[2], (float) pos[3], (float) pos[4]);
+    private void switchSeamless(Player player, int frame, PointSegment fallback) {
+        double[] pos = interpolatePath(currentPath, frame);
+        com.github.retrooper.packetevents.protocol.world.Location packetLoc;
+        if (pos != null) {
+            packetLoc = new com.github.retrooper.packetevents.protocol.world.Location(
+                    pos[0], pos[1], pos[2], (float) pos[3], (float) pos[4]);
+        } else {
+            packetLoc = toPacketLocation(fallback);
+        }
 
-        // Create and spawn new entity before destroying old (ref: Typewriter switchSeamless)
-        WrapperEntity newEntity = createCameraEntity();
+        WrapperEntity newEntity = createEntity();
         newEntity.spawn(packetLoc);
         newEntity.addViewer(player.getUniqueId());
         spectateEntity(player, newEntity);
 
-        // Destroy old entity
-        if (cameraEntity != null) {
-            cameraEntity.despawn();
-            cameraEntity.remove();
+        if (entity != null) {
+            entity.despawn();
+            entity.remove();
         }
-        cameraEntity = newEntity;
-    }
+        entity = newEntity;
 
-    /**
-     * Stops spectating and despawns the camera entity.
-     * Mirrors Typewriter's {@code DisplayCameraAction.stop()} behavior.
-     */
-    private void despawnCameraEntity(Player player) {
-        if (cameraEntity != null) {
-            stopSpectatingEntity(player);
-            cameraEntity.despawn();
-            cameraEntity.remove();
-            cameraEntity = null;
+        // Teleport player to new position for chunk loading
+        if (pos != null) {
+            player.teleport(new Location(player.getWorld(), pos[0], pos[1], pos[2], (float) pos[3], (float) pos[4]));
         }
     }
 
     /**
-     * Sends a Camera packet to make the player spectate an entity.
-     * ref: Typewriter PlayerPackets.kt — {@code Player.spectateEntity(entity)}
+     * Stops the display camera action.
+     * ref: Typewriter DisplayCameraAction.stop()
      */
-    private void spectateEntity(Player player, WrapperEntity entity) {
+    private void stop(Player player) {
+        if (!isActive) return;
+        isActive = false;
+        stopSpectatingEntity(player);
+        if (entity != null) {
+            entity.despawn();
+            entity.remove();
+            entity = null;
+        }
+    }
+
+    /**
+     * Sends Camera packet to make the player spectate an entity.
+     * ref: Typewriter PlayerPackets.kt — Player.spectateEntity(entity)
+     */
+    private void spectateEntity(Player player, WrapperEntity e) {
         try {
             PacketEvents.getAPI().getPlayerManager().sendPacket(
-                    player,
-                    new WrapperPlayServerCamera(entity.getEntityId()));
-        } catch (Exception e) {
-            System.err.println("[Cinematic] Failed to spectate entity: " + e.getMessage());
+                    player, new WrapperPlayServerCamera(e.getEntityId()));
+        } catch (Exception ex) {
+            System.err.println("[Cinematic] Failed to spectate entity: " + ex.getMessage());
         }
     }
 
     /**
-     * Sends a Camera packet to stop spectating (return to player's own POV).
-     * ref: Typewriter PlayerPackets.kt — {@code Player.stopSpectatingEntity()}
+     * Sends Camera packet to stop spectating (return to player's own POV).
+     * ref: Typewriter PlayerPackets.kt — Player.stopSpectatingEntity()
      */
     private void stopSpectatingEntity(Player player) {
         try {
             PacketEvents.getAPI().getPlayerManager().sendPacket(
-                    player,
-                    new WrapperPlayServerCamera(player.getEntityId()));
-        } catch (Exception e) {
-            System.err.println("[Cinematic] Failed to stop spectating entity: " + e.getMessage());
+                    player, new WrapperPlayServerCamera(player.getEntityId()));
+        } catch (Exception ex) {
+            System.err.println("[Cinematic] Failed to stop spectating: " + ex.getMessage());
         }
     }
 
-    private static com.github.retrooper.packetevents.protocol.world.Location toPacketLocation(PathSegment seg) {
+    // ── Utility ──
+
+    private static com.github.retrooper.packetevents.protocol.world.Location toPacketLocation(PointSegment seg) {
         return new com.github.retrooper.packetevents.protocol.world.Location(
                 seg.x, seg.y, seg.z, seg.yaw, seg.pitch);
     }
 
+    private static Location toLocation(Player player, PointSegment seg) {
+        return new Location(player.getWorld(), seg.x, seg.y, seg.z, seg.yaw, seg.pitch);
+    }
+
     // ────────────────────────────────────────────────────────────────────────
-    // Packet interception (ref: Typewriter CameraCinematicEntry.kt setup())
+    // Packet interception (mirrors Typewriter CameraCinematicEntry.kt setup())
     // ────────────────────────────────────────────────────────────────────────
 
     /**
-     * Configures packet interception mirroring Typewriter's {@code interceptPackets} block:
+     * Configures packet interception matching Typewriter's interceptPackets block:
      * <ul>
      *   <li>SERVER→CLIENT: Position Y+500 (anti-self-clipping)</li>
-     *   <li>SERVER→CLIENT: Fake inventory vide ({@code keepFakeInventory})</li>
-     *   <li>CLIENT→SERVER: Correction Y-500</li>
+     *   <li>SERVER→CLIENT: Fake inventory empty (keepFakeInventory)</li>
+     *   <li>CLIENT→SERVER: Y-500 correction</li>
      *   <li>CLIENT→SERVER: Block inventory clicks + self-interact</li>
      * </ul>
      */
@@ -429,12 +447,9 @@ public class CameraMoveAction extends SimpleCinematicAction<CameraSegment> {
                     WrapperPlayServerWindowItems packet =
                             new WrapperPlayServerWindowItems(event);
                     int itemCount = packet.getItems().size();
-                    List<com.github.retrooper.packetevents.protocol.item.ItemStack> fakeItems =
-                            new ArrayList<>(java.util.Collections.nCopies(
-                                    itemCount,
-                                    com.github.retrooper.packetevents.protocol.item.ItemStack.EMPTY
-                            ));
-                    packet.setItems(fakeItems);
+                    packet.setItems(new ArrayList<>(Collections.nCopies(
+                            itemCount,
+                            com.github.retrooper.packetevents.protocol.item.ItemStack.EMPTY)));
                 }
                 else if (event.getPacketType() == PacketType.Play.Server.SET_SLOT) {
                     WrapperPlayServerSetSlot packet =
@@ -447,15 +462,14 @@ public class CameraMoveAction extends SimpleCinematicAction<CameraSegment> {
             public void onPacketReceive(PacketReceiveEvent event) {
                 if (!playerUUID.equals(event.getUser().getUUID())) return;
 
-                if (event.getPacketType() == PacketType.Play.Client.CLICK_WINDOW) {
-                    event.setCancelled(true);
-                    return;
-                }
-                if (event.getPacketType() == PacketType.Play.Client.CLICK_WINDOW_BUTTON) {
+                // Block inventory clicks (ref: Typewriter keepFakeInventory)
+                if (event.getPacketType() == PacketType.Play.Client.CLICK_WINDOW
+                        || event.getPacketType() == PacketType.Play.Client.CLICK_WINDOW_BUTTON) {
                     event.setCancelled(true);
                     return;
                 }
 
+                // Y correction SERVER←CLIENT
                 if (event.getPacketType() == PacketType.Play.Client.PLAYER_POSITION) {
                     WrapperPlayClientPlayerPosition packet =
                             new WrapperPlayClientPlayerPosition(event);
@@ -468,6 +482,7 @@ public class CameraMoveAction extends SimpleCinematicAction<CameraSegment> {
                     Vector3d pos = packet.getPosition();
                     packet.setPosition(new Vector3d(pos.x, pos.y - FAKE_Y_OFFSET, pos.z));
                 }
+                // Block self-interaction
                 else if (event.getPacketType() == PacketType.Play.Client.INTERACT_ENTITY) {
                     WrapperPlayClientInteractEntity packet =
                             new WrapperPlayClientInteractEntity(event);
@@ -499,12 +514,11 @@ public class CameraMoveAction extends SimpleCinematicAction<CameraSegment> {
 
     /**
      * Detects Bedrock players via Floodgate UUID prefix.
-     * Bedrock players don't support Java packet manipulation.
+     * ref: Typewriter CameraCinematicEntry.kt — player.isFloodgate check
      */
     private boolean isFloodgatePlayer(Player player) {
         try {
-            String uuid = player.getUniqueId().toString();
-            return uuid.startsWith("00000000-0000-0000-0009-");
+            return player.getUniqueId().toString().startsWith("00000000-0000-0000-0009-");
         } catch (Exception e) {
             return false;
         }
