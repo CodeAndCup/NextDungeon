@@ -143,12 +143,12 @@ public class DebugCommands {
 
         // Add waypoints
         player.sendMessage(ChatUtil.translate("&#D100001. Adding waypoints..."));
-        int[] ticks = {0, 50, 100, 150};
+        int[] ticks = {0, 50, 100, 125, 190};
         double[][] positions = {
-            {-14, 65, 36}, {-14, 65, 45}, {-6, 65, 47}, {-6, 65, 53}
+            {-189, 122, -80}, {-171, 116, -82}, {-150, 107, -75}, {-108, 103, -79}, {-75, 100, -77}
         };
         float[][] rotations = {
-            {0, 0}, {-70, 0}, {-15, 0}, {0, 0}
+            {0, 0}, {-65, 0}, {-85, 0}, {-90, 0}, {-90, -35}
         };
 
         for (int i = 0; i < ticks.length; i++) {
