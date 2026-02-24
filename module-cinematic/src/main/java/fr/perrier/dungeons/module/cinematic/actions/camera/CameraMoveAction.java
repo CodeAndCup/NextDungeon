@@ -138,7 +138,7 @@ public class CameraMoveAction extends SimpleCinematicAction<CameraSegment> {
 
     @Override
     protected void onSegmentStop(Player player, CameraSegment segment) throws Exception {
-        // ref: Typewriter DisplayCameraAction.stop
+        // ref: Typewriter DisplayCameraAction.stop / onSegmentStop
         despawnCameraEntity(player);
         segmentPaths.remove(segment);
         cleanupPacketInterception();
@@ -352,7 +352,7 @@ public class CameraMoveAction extends SimpleCinematicAction<CameraSegment> {
 
     /**
      * Stops spectating and despawns the camera entity.
-     * Exact replica of Typewriter's {@code DisplayCameraAction.stop()}.
+     * Mirrors Typewriter's {@code DisplayCameraAction.stop()} behavior.
      */
     private void despawnCameraEntity(Player player) {
         if (cameraEntity != null) {
