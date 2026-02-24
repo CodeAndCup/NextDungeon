@@ -33,9 +33,9 @@
 
         <!-- PacketEvents API (provided by server plugin at runtime) -->
         <dependency>
-            <groupId>com.github.retrooper.packetevents</groupId>
-            <artifactId>spigot</artifactId>
-            <version>2.7.0</version>
+            <groupId>com.github.retrooper</groupId>
+            <artifactId>packetevents-spigot</artifactId>
+            <version>2.9.5</version>
             <scope>provided</scope>
         </dependency>
 
