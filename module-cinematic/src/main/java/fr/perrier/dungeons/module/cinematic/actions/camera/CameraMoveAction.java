@@ -133,11 +133,12 @@ public class CameraMoveAction extends SimpleCinematicAction<CameraSegment> {
                 else if (event.getPacketType() == PacketType.Play.Server.WINDOW_ITEMS) {
                     WrapperPlayServerWindowItems packet =
                             new WrapperPlayServerWindowItems(event);
+                    int itemCount = packet.getItems().size();
                     List<com.github.retrooper.packetevents.protocol.item.ItemStack> fakeItems =
-                            new ArrayList<>();
-                    for (int i = 0; i < packet.getItems().size(); i++) {
-                        fakeItems.add(com.github.retrooper.packetevents.protocol.item.ItemStack.EMPTY);
-                    }
+                            new ArrayList<>(java.util.Collections.nCopies(
+                                    itemCount,
+                                    com.github.retrooper.packetevents.protocol.item.ItemStack.EMPTY
+                            ));
                     packet.setItems(fakeItems);
                 }
                 // SERVER→CLIENT: Fake slot vide (ref: Typewriter keepFakeInventory)
