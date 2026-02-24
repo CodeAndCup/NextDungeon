@@ -13,7 +13,7 @@ import fr.perrier.dungeons.module.cinematic.actions.title.CinematicTitleAction;
 import fr.perrier.dungeons.module.cinematic.actions.title.TitleSegment;
 import fr.perrier.dungeons.module.cinematic.clock.CinematicClock;
 import fr.perrier.dungeons.module.cinematic.executor.CinematicExecutor;
-import fr.perrier.dungeons.module.cinematic.execution.CinematicPlayer;
+import fr.perrier.dungeons.module.cinematic.interpolation.PositionInterpolator;
 import fr.perrier.dungeons.module.cinematic.model.CameraWaypoint;
 import fr.perrier.dungeons.module.cinematic.model.CinematicData;
 import fr.perrier.dungeons.module.cinematic.model.TimelineEvent;
@@ -25,8 +25,14 @@ import lombok.Setter;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.entity.Display;
+import org.bukkit.entity.EntityType;
+import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -34,30 +40,23 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 
 /**
- * Manages cinematic data (waypoints), playback state, and precise timing.
+ * Gère les données cinématiques (waypoints), l'état de lecture et le timing.
  *
- * <p>Workflow:
+ * <p>Workflow (système waypoints simple) :
  * <ol>
- *   <li>{@code cinematic_add_camera_waypoint} actions populate waypoints in a {@link CinematicData}</li>
- *   <li>{@code cinematic_start} creates a {@link CinematicPlayer} and schedules updates via ScheduledExecutorService</li>
- *   <li>Each update, the player is teleported to the interpolated camera position</li>
- *   <li>On completion, the task is cancelled and the player's game mode is restored</li>
+ *   <li>Les actions {@code cinematic_add_camera_waypoint} alimentent un {@link CinematicData}</li>
+ *   <li>{@code cinematic_start} pré-calcule le chemin Catmull-Rom, spawn un {@link ItemDisplay},
+ *       passe le joueur en SPECTATOR et lui fait spectater l'entité</li>
+ *   <li>Un {@link BukkitTask} à 1 tick avance la position de l'entité le long du chemin</li>
+ *   <li>À la fin, l'entité est supprimée et le joueur est restauré</li>
  * </ol>
  *
- * <p>Uses ScheduledExecutorService for precise timing (microsecond resolution) instead of Bukkit ticks,
- * allowing smooth camera movement with configurable frame rate.</p>
+ * <p>Le système segment-based (segment actions) utilise {@link CinematicExecutor} +
+ * {@link fr.perrier.dungeons.module.cinematic.actions.camera.CameraMoveAction} en parallèle.</p>
  */
 public class CinematicManager {
-
-    // ========== SMOOTHNESS CONFIGURATION ==========
-    /** Update frequency in microseconds */
-    private static final long UPDATE_INTERVAL_MICROSECONDS = 33333L;
 
     /** Cinematic definitions keyed by cinematic ID */
     private final Map<String, CinematicData> cinematics = new ConcurrentHashMap<>();
@@ -68,12 +67,6 @@ public class CinematicManager {
     /** Active segment-based cinematic executors keyed by player UUID */
     private final Map<UUID, CinematicExecutor> activeExecutors = new ConcurrentHashMap<>();
 
-    /** Executor for precise timing of cinematic updates */
-    private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(r -> {
-        Thread t = new Thread(r, "Cinematic-Player");
-        t.setDaemon(true);
-        return t;
-    });
 
     /** Callback to invoke when a cinematic ends (for trigger system) */
     private Runnable onCinematicEndCallback;
@@ -117,11 +110,14 @@ public class CinematicManager {
 
     /**
      * Start cinematic playback for a player.
+     * Pré-calcule le chemin Catmull-Rom, spawn un ItemDisplay, passe le joueur
+     * en SPECTATOR et advance la caméra à chaque tick Bukkit.
+     * (ref: didacculo/CinematicManager.playCinematicInternal)
      */
     public boolean startCinematic(String cinematicId, Player player) {
         CinematicData data = cinematics.get(cinematicId);
         if (data == null || data.getCameraWaypoints().isEmpty()) {
-            System.out.println("[Cinematic] No waypoints found for cinematic '" + cinematicId + "', cannot start");
+            System.out.println("[Cinematic] Aucun waypoint pour '" + cinematicId + "', impossible de démarrer");
             return false;
         }
 
@@ -130,91 +126,100 @@ public class CinematicManager {
 
         Plugin plugin = Bukkit.getPluginManager().getPlugin("NextDungeon");
         if (plugin == null) {
-            System.out.println("[Cinematic] NextDungeon plugin not found, cannot schedule cinematic");
+            System.out.println("[Cinematic] Plugin NextDungeon introuvable");
             return false;
         }
 
-        // Store original game mode for restoration
-        GameMode originalMode = player.getGameMode();
-        Location originalLocation = player.getLocation().clone();
-        final org.bukkit.World playerWorld = player.getWorld();
+        List<CameraWaypoint> waypoints = data.getCameraWaypoints();
+        if (waypoints.size() < 1) return false;
 
-        // Set player to spectator mode for free camera movement
+        // Nombre total de ticks
+        int totalTicks = data.getDurationTicks();
+        int transitions = Math.max(1, waypoints.size() - 1);
+        int stepsPerTransition = Math.max(1, totalTicks / transitions);
+
+        // Pré-calcul du chemin Catmull-Rom (inclut ajout des waypoints fantômes)
+        // On duplique premier et dernier point comme dans didacculo pour que
+        // CatmullRom ait toujours 4 points autour de chaque segment
+        List<CameraWaypoint> extendedWaypoints = new ArrayList<>();
+        extendedWaypoints.add(waypoints.get(0));
+        extendedWaypoints.addAll(waypoints);
+        extendedWaypoints.add(waypoints.get(waypoints.size() - 1));
+
+        final List<CameraWaypoint> smoothPath =
+                PositionInterpolator.interpolatePath(extendedWaypoints, stepsPerTransition);
+
+        if (smoothPath.isEmpty()) return false;
+
+        // Sauvegarder l'état du joueur
+        final GameMode originalMode = player.getGameMode();
+        final Location originalLocation = player.getLocation().clone();
+
+        // Préparer le premier point
+        CameraWaypoint first = smoothPath.get(0);
+        Location startLoc = new Location(player.getWorld(),
+                first.getX(), first.getY(), first.getZ(),
+                first.getYaw(), first.getPitch());
+
+        // Spawner l'entité ItemDisplay (ref: didacculo — ItemDisplay avec teleportDuration=4)
+        ItemDisplay camera = (ItemDisplay) player.getWorld().spawnEntity(startLoc, EntityType.ITEM_DISPLAY);
+        camera.setItemStack(new ItemStack(Material.AIR));
+        camera.setBillboard(Display.Billboard.FIXED);
+        camera.setTeleportDuration(4);
+
+        // Passer le joueur en SPECTATOR et lui faire spectater la caméra
+        // TP d'abord le joueur sur l'entité (setSpectatorTarget requiert proximité)
+        player.teleport(startLoc);
         player.setGameMode(GameMode.SPECTATOR);
+        player.setSpectatorTarget(camera);
 
-        CinematicPlayer cinematicPlayer = new CinematicPlayer(player.getUniqueId(), data, new CinematicPlayer.PlaybackCallback() {
-            @Override
-            public void setCameraPosition(double x, double y, double z, float yaw, float pitch) {
+        final int[] tickRef = {0};
+
+        // BukkitTask à 1 tick (ref: didacculo runTaskTimer 0L, 1L)
+        BukkitTask task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            if (!player.isOnline() || !activeSessions.containsKey(player.getUniqueId())) {
+                camera.remove();
+                return;
+            }
+
+            if (tickRef[0] >= smoothPath.size()) {
+                // Fin de la cinématique
+                camera.remove();
+                activeSessions.remove(player.getUniqueId());
                 if (player.isOnline()) {
-                    Location loc = new Location(playerWorld, x, y, z, yaw, pitch);
-                    player.teleport(loc);
-                }
-            }
-
-            @Override
-            public void moveNpc(String actorId, double x, double y, double z, float yaw, float pitch, String animation) {
-                // NPC movement - can be implemented with NPC library integration
-            }
-
-            @Override
-            public void fireEvent(TimelineEvent event) {
-                if (!player.isOnline()) return;
-                if (event.getType() == null) return;
-
-                switch (event.getType().toUpperCase()) {
-                    case "COMMAND" -> {
-                        String cmd = event.getParameters().getOrDefault("value", "");
-                        if (!cmd.isEmpty()) {
-                            Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
-                                    cmd.replace("{player}", player.getName()));
-                        }
-                    }
-                    case "TITLE" -> {
-                        String title = event.getParameters().getOrDefault("value", "");
-                        player.sendTitle(title, "", 10, 40, 10);
-                    }
-                    case "SOUND" -> {
-                        String sound = event.getParameters().getOrDefault("value", "");
-                        if (!sound.isEmpty()) {
-                            player.playSound(player.getLocation(), sound, 1f, 1f);
-                        }
-                    }
-                }
-            }
-
-            @Override
-            public void onComplete() {
-                // Restore player state
-                ActiveSession session = activeSessions.remove(player.getUniqueId());
-                if (session != null) {
-                    session.future.cancel(false);
-                }
-                if (player.isOnline()) {
+                    player.setSpectatorTarget(null);
                     player.setGameMode(originalMode);
                     player.teleport(originalLocation);
                 }
-                System.out.println("[Cinematic] Cinematic '" + cinematicId + "' completed for " + player.getName());
+                System.out.println("[Cinematic] Cinématique '" + cinematicId + "' terminée pour " + player.getName());
+                return;
             }
-        });
 
-        cinematicPlayer.start();
+            CameraWaypoint wp = smoothPath.get(tickRef[0]);
+            Location target = new Location(player.getWorld(),
+                    wp.getX(), wp.getY(), wp.getZ(),
+                    wp.getYaw(), wp.getPitch());
+            camera.teleport(target);
 
-        // Schedule updates with precise timing using ScheduledExecutorService
-        // UPDATE_INTERVAL_MICROSECONDS controls the update frequency
-        ScheduledFuture<?> future = executor.scheduleAtFixedRate(() -> {
-            // Always run cinematic updates on the Bukkit thread for safety
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                if (!player.isOnline()) {
-                    stopCinematic(player);
-                    return;
+            // Re-vérifier spectating toutes les 10 ticks (ref: didacculo tick % 10)
+            if (tickRef[0] % 10 == 0) {
+                if (player.getGameMode() != GameMode.SPECTATOR) {
+                    player.setGameMode(GameMode.SPECTATOR);
                 }
-                cinematicPlayer.tick();
-            });
-        }, 0, UPDATE_INTERVAL_MICROSECONDS, TimeUnit.MICROSECONDS);
+                if (player.getSpectatorTarget() != camera) {
+                    // Re-TP sur l'entité avant de re-spectater
+                    player.teleport(target);
+                    player.setSpectatorTarget(camera);
+                }
+            }
 
-        activeSessions.put(player.getUniqueId(), new ActiveSession(cinematicPlayer, future, cinematicId));
-        System.out.println("[Cinematic] Started cinematic '" + cinematicId + "' for " + player.getName()
-                + " (" + data.getCameraWaypoints().size() + " waypoints, " + data.getDurationTicks() + " ticks)");
+            tickRef[0]++;
+        }, 0L, 1L);
+
+        activeSessions.put(player.getUniqueId(),
+                new ActiveSession(task, camera, cinematicId, originalMode, originalLocation));
+        System.out.println("[Cinematic] Démarrage de '" + cinematicId + "' pour " + player.getName()
+                + " (" + waypoints.size() + " waypoints, " + smoothPath.size() + " points, " + totalTicks + " ticks)");
         return true;
     }
 
@@ -224,9 +229,16 @@ public class CinematicManager {
     public void stopCinematic(Player player) {
         ActiveSession session = activeSessions.remove(player.getUniqueId());
         if (session != null) {
-            session.future.cancel(false);
-            session.player.cancel();
-            System.out.println("[Cinematic] Stopped cinematic for " + player.getName());
+            session.task.cancel();
+            if (session.camera != null && !session.camera.isDead()) {
+                session.camera.remove();
+            }
+            if (player.isOnline()) {
+                player.setSpectatorTarget(null);
+                player.setGameMode(session.originalMode);
+                player.teleport(session.originalLocation);
+            }
+            System.out.println("[Cinematic] Cinématique stoppée pour " + player.getName());
         }
     }
 
@@ -234,8 +246,7 @@ public class CinematicManager {
      * Check if a player has an active cinematic.
      */
     public boolean isPlaying(UUID playerId) {
-        ActiveSession session = activeSessions.get(playerId);
-        return session != null && session.player.isPlaying();
+        return activeSessions.containsKey(playerId);
     }
 
     /**
@@ -243,17 +254,19 @@ public class CinematicManager {
      */
     public boolean isPlaying(UUID playerId, String cinematicId) {
         ActiveSession session = activeSessions.get(playerId);
-        return session != null && session.player.isPlaying()
+        return session != null
                 && (cinematicId == null || cinematicId.isEmpty() || cinematicId.equals(session.cinematicId));
     }
 
     /**
-     * Shutdown: cancel all active cinematics and stop the executor service.
+     * Shutdown: cancel all active cinematics.
      */
     public void shutdown() {
         for (ActiveSession session : activeSessions.values()) {
-            session.player.cancel();
-            session.future.cancel(false);
+            session.task.cancel();
+            if (session.camera != null && !session.camera.isDead()) {
+                session.camera.remove();
+            }
         }
         activeSessions.clear();
 
@@ -264,7 +277,6 @@ public class CinematicManager {
         activeExecutors.clear();
 
         cinematics.clear();
-        executor.shutdown();
     }
 
     // ========== Segment-Based Cinematic Action Execution ==========
@@ -380,5 +392,6 @@ public class CinematicManager {
         return waypoints;
     }
 
-    private record ActiveSession(CinematicPlayer player, ScheduledFuture<?> future, String cinematicId) {}
+    private record ActiveSession(BukkitTask task, ItemDisplay camera, String cinematicId,
+                                  GameMode originalMode, Location originalLocation) {}
 }

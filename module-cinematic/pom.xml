@@ -41,9 +41,9 @@
 
         <!-- EntityLib for packet-level entity management (provided by server plugin at runtime) -->
         <dependency>
-            <groupId>me.tofaa.entitylib</groupId>
+            <groupId>io.github.tofaa2</groupId>
             <artifactId>spigot</artifactId>
-            <version>2.4.10</version>
+            <version>3.0.3-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
 
@@ -69,6 +69,11 @@
         <repository>
             <id>codemc-releases</id>
             <url>https://repo.codemc.io/repository/maven-releases/</url>
+        </repository>
+        <repository>
+            <id>pvphub-maven-tofaa</id>
+            <name>PvPHub Maven</name>
+            <url>https://maven.pvphub.me/tofaa</url>
         </repository>
     </repositories>
 
