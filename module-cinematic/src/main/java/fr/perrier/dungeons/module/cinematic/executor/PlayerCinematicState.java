@@ -3,51 +3,97 @@ package fr.perrier.dungeons.module.cinematic.executor;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Bukkit;
-import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.potion.PotionEffect;
+import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.List;
+import java.util.UUID;
 
 /**
- * Capture et restaure l'état complet d'un joueur avant/après une cinématique.
- * Permet de revenir à l'état exact du joueur une fois la cinématique terminée.
+ * Captures and restores the complete player state before/after a cinematic.
+ * <p>
+ * Mirrors Typewriter's {@code PlayerState.kt} provider-based approach:
+ * <ul>
+ *   <li>{@code LOCATION} — player location</li>
+ *   <li>{@code ALLOW_FLIGHT} — flight permission</li>
+ *   <li>{@code FLYING} — active flight status</li>
+ *   <li>{@code VISIBLE_PLAYERS} — players visible to this player</li>
+ *   <li>{@code SHOWING_PLAYER} — players that can see this player</li>
+ *   <li>{@code EffectStateProvider(INVISIBILITY)} — invisibility effect</li>
+ *   <li>{@code VELOCITY} — player velocity (optional, for advancedCameraSettings.restoreVelocity)</li>
+ * </ul>
+ *
+ * @see <a href="https://github.com/gabber235/Typewriter">Typewriter PlayerState.kt</a>
  */
 @Getter
 @Setter
 public class PlayerCinematicState {
 
-    private GameMode gameMode;
-    private Collection<PotionEffect> potionEffects;
+    // ref: Typewriter GenericPlayerStateProvider.LOCATION
     private Location location;
+    // ref: Typewriter GenericPlayerStateProvider.ALLOW_FLIGHT
     private boolean allowFlight;
+    // ref: Typewriter GenericPlayerStateProvider.FLYING
     private boolean flying;
-    private double health;
-    private int foodLevel;
-    private float exhaustion;
+    // ref: Typewriter GenericPlayerStateProvider.VISIBLE_PLAYERS
+    private List<UUID> visiblePlayers;
+    // ref: Typewriter GenericPlayerStateProvider.SHOWING_PLAYER
+    private List<UUID> showingPlayers;
+    // ref: Typewriter EffectStateProvider(INVISIBILITY)
+    private PotionEffect invisibilityEffect;
+    // ref: Typewriter GenericPlayerStateProvider.VELOCITY
+    private Vector velocity;
 
     /**
-     * Capture l'état courant du joueur
-     * @param player le joueur dont l'état doit être sauvegardé
+     * Captures the current player state.
+     * Matches Typewriter's {@code player.state(LOCATION, ALLOW_FLIGHT, FLYING, VISIBLE_PLAYERS, SHOWING_PLAYER, EffectStateProvider(INVISIBILITY), VELOCITY)}.
+     *
+     * @param player the player whose state to capture
      */
     public void captureState(Player player) {
-        this.gameMode = player.getGameMode();
-        this.potionEffects = new ArrayList<>(player.getActivePotionEffects());
+        // LOCATION
         this.location = player.getLocation().clone();
+
+        // ALLOW_FLIGHT
         this.allowFlight = player.getAllowFlight();
+
+        // FLYING
         this.flying = player.isFlying();
-        this.health = player.getHealth();
-        this.foodLevel = player.getFoodLevel();
-        this.exhaustion = player.getExhaustion();
+
+        // VISIBLE_PLAYERS — players visible TO this player (ref: Typewriter VISIBLE_PLAYERS store)
+        this.visiblePlayers = new ArrayList<>();
+        for (Player other : Bukkit.getOnlinePlayers()) {
+            if (!other.getUniqueId().equals(player.getUniqueId()) && player.canSee(other)) {
+                visiblePlayers.add(other.getUniqueId());
+            }
+        }
+
+        // SHOWING_PLAYER — players that can see this player (ref: Typewriter SHOWING_PLAYER store)
+        this.showingPlayers = new ArrayList<>();
+        for (Player other : Bukkit.getOnlinePlayers()) {
+            if (!other.getUniqueId().equals(player.getUniqueId()) && other.canSee(player)) {
+                showingPlayers.add(other.getUniqueId());
+            }
+        }
+
+        // EffectStateProvider(INVISIBILITY) — current invisibility effect if any
+        this.invisibilityEffect = player.getPotionEffect(org.bukkit.potion.PotionEffectType.INVISIBILITY);
+
+        // VELOCITY
+        this.velocity = player.getVelocity().clone();
     }
 
     /**
-     * Restaure l'état sauvegardé sur le joueur.
-     * Exécuté sur le thread principal Bukkit pour la sécurité thread.
-     * @param player le joueur dont l'état doit être restauré
+     * Restores the saved state to the player.
+     * Executed on the main Bukkit thread for thread safety.
+     * <p>
+     * Matches Typewriter's {@code player.restore(state)} which calls each provider's restore.
+     *
+     * @param player the player to restore
      */
     public void restoreState(Player player) {
         Plugin plugin = Bukkit.getPluginManager().getPlugin("NextDungeon");
@@ -55,21 +101,47 @@ public class PlayerCinematicState {
 
         Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> {
             try {
-                player.setGameMode(gameMode);
+                // LOCATION (ref: Typewriter LOCATION restore → teleport)
+                if (location != null) {
+                    player.teleport(location);
+                }
 
-                // Enlever tous les effets actifs
-                player.getActivePotionEffects().forEach(effect ->
-                        player.removePotionEffect(effect.getType()));
-
-                // Restaurer anciens effets
-                potionEffects.forEach(player::addPotionEffect);
-
-                player.teleport(location);
+                // ALLOW_FLIGHT (ref: Typewriter ALLOW_FLIGHT restore)
                 player.setAllowFlight(allowFlight);
+
+                // FLYING (ref: Typewriter FLYING restore)
                 player.setFlying(flying);
-                player.setHealth(health);
-                player.setFoodLevel(foodLevel);
-                player.setExhaustion(exhaustion);
+
+                // VISIBLE_PLAYERS (ref: Typewriter VISIBLE_PLAYERS restore — show only those that were visible)
+                if (visiblePlayers != null) {
+                    for (Player other : Bukkit.getOnlinePlayers()) {
+                        if (!other.getUniqueId().equals(player.getUniqueId())
+                                && visiblePlayers.contains(other.getUniqueId())) {
+                            player.showPlayer(plugin, other);
+                        }
+                    }
+                }
+
+                // SHOWING_PLAYER (ref: Typewriter SHOWING_PLAYER restore — show player to those that could see them)
+                if (showingPlayers != null) {
+                    for (Player other : Bukkit.getOnlinePlayers()) {
+                        if (!other.getUniqueId().equals(player.getUniqueId())
+                                && showingPlayers.contains(other.getUniqueId())) {
+                            other.showPlayer(plugin, player);
+                        }
+                    }
+                }
+
+                // EffectStateProvider(INVISIBILITY) (ref: Typewriter EffectStateProvider restore)
+                player.removePotionEffect(org.bukkit.potion.PotionEffectType.INVISIBILITY);
+                if (invisibilityEffect != null) {
+                    player.addPotionEffect(invisibilityEffect);
+                }
+
+                // VELOCITY (ref: Typewriter VELOCITY restore)
+                if (velocity != null) {
+                    player.setVelocity(velocity);
+                }
             } catch (Exception e) {
                 System.err.println("[Cinematic] Restore player state error: " + e.getMessage());
             }

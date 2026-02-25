@@ -52,6 +52,7 @@ public class CinematicModule implements NextDungeonModule {
         // Register action blocks (descriptors for Blockly UI)
         registerStartCinematic(ctx);
         registerStopCinematic(ctx);
+        registerClearCinematic(ctx);
         registerAddCameraWaypoint(ctx);
         registerMoveNpc(ctx);
         registerTimelineEvent(ctx);
@@ -122,6 +123,22 @@ public class CinematicModule implements NextDungeonModule {
         );
         block.setColor("#9C27B0");
         block.setCategory("Cinematic");
+        ctx.getBlockRegistry().registerBlock(block);
+    }
+
+    private void registerClearCinematic(ModuleContext ctx) {
+        ModuleBlockDescriptor block = new ModuleBlockDescriptor(
+                "cinematic_clear", BlockType.ACTION,
+                "🗑 Clear Cinematic",
+                "Clears all waypoints of a cinematic (call before redefining waypoints on replay)",
+                getId()
+        );
+        block.setColor("#9C27B0");
+        block.setCategory("Cinematic");
+        block.setParameters(List.of(
+                new BlockParameter("cinematicId", "string", "Cinematic ID:",
+                        "ID de la cinématique à réinitialiser", "")
+        ));
         ctx.getBlockRegistry().registerBlock(block);
     }
 
@@ -350,6 +367,14 @@ public class CinematicModule implements NextDungeonModule {
                 return false;
             }
             manager.stopCinematic(player);
+            return true;
+        });
+
+        ctx.registerActionHandler("cinematic_clear", params -> {
+            String cinematicId = String.valueOf(params.getOrDefault("cinematicId", ""));
+            if (cinematicId.isEmpty()) return false;
+            manager.clearCinematic(cinematicId);
+            System.out.println("[Cinematic] Cinematic '" + cinematicId + "' cleared (waypoints reset)");
             return true;
         });
 
