@@ -102,6 +102,109 @@ public class ModuleLoader {
     }
 
     /**
+     * Loads a module from a specific JAR file in the modules directory by filename.
+     * Returns the module ID on success, null on failure.
+     *
+     * @param jarFileName the filename of the JAR (e.g. "module-cinematic.jar")
+     * @return the loaded module ID, or null if loading failed
+     */
+    public String loadModuleFromFile(String jarFileName) {
+        File jarFile = new File(modulesDirectory, jarFileName);
+        if (!jarFile.exists()) {
+            logger.warning("[ModuleLoader] JAR file not found: " + jarFile.getAbsolutePath());
+            return null;
+        }
+        // Snapshot existing IDs to detect the newly added module
+        Set<String> before = new HashSet<>(loadedModules.keySet());
+        try {
+            loadModule(jarFile);
+        } catch (Exception e) {
+            logger.severe("[ModuleLoader] Failed to load module from " + jarFileName + ": " + e.getMessage());
+            e.printStackTrace(System.err);
+            return null;
+        }
+        // The new module is whichever ID appeared after loading
+        for (String id : loadedModules.keySet()) {
+            if (!before.contains(id)) {
+                return id;
+            }
+        }
+        // Module was already loaded (duplicate ID) — nothing new added
+        return null;
+    }
+
+    /**
+     * Unloads a single module by its ID, disabling it and closing its classloader.
+     * Also removes all blocks it registered from the registry.
+     *
+     * @param moduleId the ID of the module to unload
+     * @return true if the module was found and unloaded, false otherwise
+     */
+    public boolean unloadModule(String moduleId) {
+        NextDungeonModule module = loadedModules.remove(moduleId);
+        if (module == null) {
+            logger.warning("[ModuleLoader] No loaded module with ID: " + moduleId);
+            return false;
+        }
+        try {
+            module.onDisable();
+        } catch (Exception e) {
+            logger.warning("[ModuleLoader] Error disabling module " + moduleId + ": " + e.getMessage());
+        }
+        // Remove all blocks registered by this module
+        blockRegistry.unregisterModule(moduleId);
+        // Remove action handlers registered by this module
+        // (there is no per-module tracking — remove handlers whose key starts with moduleId + "_")
+        actionHandlers.entrySet().removeIf(e -> e.getKey().startsWith(moduleId + "_") || e.getKey().equals(moduleId));
+        URLClassLoader classLoader = moduleClassLoaders.remove(moduleId);
+        if (classLoader != null) {
+            try {
+                classLoader.close();
+            } catch (Exception e) {
+                logger.warning("[ModuleLoader] Error closing classloader for " + moduleId + ": " + e.getMessage());
+            }
+        }
+        logger.info("[ModuleLoader] Module '" + moduleId + "' unloaded");
+        return true;
+    }
+
+    /**
+     * Reloads a module by its ID: finds its JAR, unloads the module, then re-loads it.
+     *
+     * @param moduleId the ID of the module to reload
+     * @return true if reload was successful, false otherwise
+     */
+    public boolean reloadModule(String moduleId) {
+        // Find the JAR URL before unloading
+        URLClassLoader oldClassLoader = moduleClassLoaders.get(moduleId);
+        File jarFile = null;
+        if (oldClassLoader != null && oldClassLoader.getURLs().length > 0) {
+            try {
+                jarFile = new File(oldClassLoader.getURLs()[0].toURI());
+            } catch (Exception e) {
+                logger.warning("[ModuleLoader] Could not resolve JAR path for module " + moduleId);
+            }
+        }
+        if (jarFile == null || !jarFile.exists()) {
+            logger.warning("[ModuleLoader] Cannot reload module '" + moduleId + "': JAR file not found");
+            return false;
+        }
+        // Unload
+        boolean unloaded = unloadModule(moduleId);
+        if (!unloaded) return false;
+        // Re-load
+        try {
+            loadModule(jarFile);
+            logger.info("[ModuleLoader] Module '" + moduleId + "' reloaded successfully");
+            return true;
+        } catch (Exception e) {
+            logger.severe("[ModuleLoader] Failed to reload module '" + moduleId + "': " + e.getMessage());
+            e.printStackTrace(System.err);
+            return false;
+        }
+    }
+
+    /**
      * Finds and instantiates the NextDungeonModule implementation in a JAR.
      */
     private NextDungeonModule findModuleClass(File jarFile, ClassLoader classLoader) throws Exception {

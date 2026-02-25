@@ -1,5 +1,7 @@
 package fr.perrier.dungeons.module.cinematic;
 
+import com.github.retrooper.packetevents.PacketEvents;
+import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerCamera;
 import fr.perrier.dungeons.module.cinematic.action.CinematicAction;
 import fr.perrier.dungeons.module.cinematic.actions.blind.BlindSegment;
 import fr.perrier.dungeons.module.cinematic.actions.blind.CinematicBlindAction;
@@ -32,6 +34,8 @@ import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
@@ -89,23 +93,39 @@ public class CinematicManager {
     }
 
     /**
+     * Clear all waypoints of a cinematic, resetting it for a fresh definition.
+     * Should be called before re-defining a cinematic's waypoints (e.g. before a replay
+     * sequence that re-adds waypoints via workflow actions).
+     */
+    public void clearCinematic(String cinematicId) {
+        CinematicData data = cinematics.get(cinematicId);
+        if (data != null) {
+            data.getCameraWaypoints().clear();
+            data.setDurationTicks(0);
+        }
+    }
+
+    /**
      * Add a camera waypoint to a cinematic.
+     * If a waypoint already exists at the same tick, it is replaced (idempotent —
+     * safe to call multiple times e.g. on cinematic replay from a workflow trigger).
      */
     public void addCameraWaypoint(String cinematicId, int tick, double x, double y, double z,
                                    float yaw, float pitch, CameraWaypoint.InterpolationMode interpolation) {
         CinematicData data = getOrCreate(cinematicId);
         CameraWaypoint wp = new CameraWaypoint(tick, x, y, z, yaw, pitch);
         wp.setInterpolation(interpolation);
+
+        // Replace existing waypoint at the same tick to avoid accumulation on replay
+        data.getCameraWaypoints().removeIf(existing -> existing.getTick() == tick);
         data.getCameraWaypoints().add(wp);
 
-        // Sort waypoints by tick and update duration
+        // Sort waypoints by tick and recompute duration from scratch
         data.getCameraWaypoints().sort(Comparator.comparingInt(CameraWaypoint::getTick));
         int maxTick = data.getCameraWaypoints().stream()
                 .mapToInt(CameraWaypoint::getTick)
                 .max().orElse(0);
-        if (maxTick > data.getDurationTicks()) {
-            data.setDurationTicks(maxTick);
-        }
+        data.setDurationTicks(maxTick);
     }
 
     /**
@@ -121,8 +141,13 @@ public class CinematicManager {
             return false;
         }
 
-        // Stop any existing cinematic for this player
-        stopCinematic(player);
+        // Sauvegarder l'état AVANT de stopper une éventuelle cinématique précédente
+        // (stopCinematic téléporte le joueur, ce qui polluerait originalLocation)
+        final GameMode originalMode = player.getGameMode();
+        final Location originalLocation = player.getLocation().clone();
+
+        // Stop any existing cinematic for this player (sans restauration de position)
+        stopCinematicSilent(player);
 
         Plugin plugin = Bukkit.getPluginManager().getPlugin("NextDungeon");
         if (plugin == null) {
@@ -151,10 +176,6 @@ public class CinematicManager {
 
         if (smoothPath.isEmpty()) return false;
 
-        // Sauvegarder l'état du joueur
-        final GameMode originalMode = player.getGameMode();
-        final Location originalLocation = player.getLocation().clone();
-
         // Préparer le premier point
         CameraWaypoint first = smoothPath.get(0);
         Location startLoc = new Location(player.getWorld(),
@@ -167,23 +188,34 @@ public class CinematicManager {
         camera.setBillboard(Display.Billboard.FIXED);
         camera.setTeleportDuration(4);
 
-        // Passer le joueur en SPECTATOR et lui faire spectater la caméra
-        // TP d'abord le joueur sur l'entité (setSpectatorTarget requiert proximité)
+        final int[] tickRef = {0};
+        // Flag pour bloquer la boucle principale tant que le setup spectateur n'est pas fait
+        final boolean[] ready = {false};
+
         player.teleport(startLoc);
         player.setGameMode(GameMode.SPECTATOR);
-        player.setSpectatorTarget(camera);
-
-        final int[] tickRef = {0};
+        player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 40, 1, false, false,false));
+        Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> {
+            player.setSpectatorTarget(camera);
+            ready[0] = true;
+        },8L);
 
         // BukkitTask à 1 tick (ref: didacculo runTaskTimer 0L, 1L)
+        // taskRef[0] est rempli juste après la création pour permettre l'auto-annulation
+        final BukkitTask[] taskRef = {null};
         BukkitTask task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             if (!player.isOnline() || !activeSessions.containsKey(player.getUniqueId())) {
                 camera.remove();
+                if (taskRef[0] != null) taskRef[0].cancel();
                 return;
             }
 
+            // Attendre que le setup spectateur soit terminé (différé de 2 ticks)
+            if (!ready[0]) return;
+
             if (tickRef[0] >= smoothPath.size()) {
-                // Fin de la cinématique
+                // Fin de la cinématique — annuler la task en premier
+                if (taskRef[0] != null) taskRef[0].cancel();
                 camera.remove();
                 activeSessions.remove(player.getUniqueId());
                 if (player.isOnline()) {
@@ -201,30 +233,30 @@ public class CinematicManager {
                     wp.getYaw(), wp.getPitch());
             camera.teleport(target);
 
-            // Re-vérifier spectating toutes les 10 ticks (ref: didacculo tick % 10)
-            if (tickRef[0] % 10 == 0) {
-                if (player.getGameMode() != GameMode.SPECTATOR) {
-                    player.setGameMode(GameMode.SPECTATOR);
-                }
-                if (player.getSpectatorTarget() != camera) {
-                    // Re-TP sur l'entité avant de re-spectater
-                    player.teleport(target);
-                    player.setSpectatorTarget(camera);
-                }
+            // Re-vérifier spectating toutes les 10 ticks sans TP brutal
+            if (player.getGameMode() != GameMode.SPECTATOR) {
+                player.sendMessage("DEBUG: Re-setting spectator mode (tick " + tickRef[0] + ")");
+                player.setGameMode(GameMode.SPECTATOR);
+            }
+            if (player.getSpectatorTarget() != camera) {
+                player.sendMessage("DEBUG: Re-setting spectator target (" + camera.getName() + ")");
+                player.setSpectatorTarget(camera);
             }
 
             tickRef[0]++;
         }, 0L, 1L);
 
+        taskRef[0] = task;
         activeSessions.put(player.getUniqueId(),
                 new ActiveSession(task, camera, cinematicId, originalMode, originalLocation));
+
         System.out.println("[Cinematic] Démarrage de '" + cinematicId + "' pour " + player.getName()
                 + " (" + waypoints.size() + " waypoints, " + smoothPath.size() + " points, " + totalTicks + " ticks)");
         return true;
     }
 
     /**
-     * Stop the currently playing cinematic for a player.
+     * Stop the currently playing cinematic for a player and restore their state.
      */
     public void stopCinematic(Player player) {
         ActiveSession session = activeSessions.remove(player.getUniqueId());
@@ -239,6 +271,26 @@ public class CinematicManager {
                 player.teleport(session.originalLocation);
             }
             System.out.println("[Cinematic] Cinématique stoppée pour " + player.getName());
+        }
+    }
+
+    /**
+     * Stop the currently playing cinematic for a player WITHOUT restoring their position.
+     * Used internally when starting a new cinematic to avoid capturing a teleported location.
+     */
+    private void stopCinematicSilent(Player player) {
+        ActiveSession session = activeSessions.remove(player.getUniqueId());
+        if (session != null) {
+            session.task.cancel();
+            if (session.camera != null && !session.camera.isDead()) {
+                session.camera.remove();
+            }
+            if (player.isOnline()) {
+                player.setSpectatorTarget(null);
+                // Restore gamemode but do NOT teleport — we want the real pre-cinematic location
+                player.setGameMode(session.originalMode);
+            }
+            System.out.println("[Cinematic] Cinématique précédente arrêtée silencieusement pour " + player.getName());
         }
     }
 

@@ -3,11 +3,13 @@ package fr.perrier.dungeons.spigot.commands;
 import fr.perrier.cupcodeapi.commands.annotations.Command;
 import fr.perrier.cupcodeapi.commands.annotations.Param;
 import fr.perrier.cupcodeapi.utils.ChatUtil;
+import fr.perrier.dungeons.common.module.NextDungeonModule;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.instance.InstanceInfo;
 import fr.perrier.dungeons.spigot.model.Dungeon;
 import fr.perrier.dungeons.spigot.model.FloorInstance;
 import fr.perrier.dungeons.spigot.model.Floor;
+import fr.perrier.dungeons.spigot.module.ModuleLoader;
 import fr.perrier.dungeons.spigot.utils.ServerUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -38,6 +40,11 @@ public class AdminCommands {
         // Status commands
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin status &#D63333<dungeon> [floor]"));
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin goto &#D63333<server>"));
+        // Module commands
+        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin module list"));
+        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin module load &#D63333<file.jar>"));
+        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin module unload &#D63333<moduleId>"));
+        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin module reload &#D63333<moduleId>"));
         player.sendMessage(ChatUtil.getBar());
     }
 
@@ -302,5 +309,106 @@ public class AdminCommands {
 
         player.sendMessage("");
         player.sendMessage(ChatUtil.getBar());
+    }
+
+    // ======================= Module Commands =======================
+
+    @Command(names = {"dungeon admin module list", "dungeons admin module list", "nd admin module list"}, permission = "nextdungeons.admin")
+    public static void adminModuleListCommand(Player player) {
+        ModuleLoader loader = Main.getInstance().getModuleLoader();
+        if (loader == null) {
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Module system not available."));
+            return;
+        }
+
+        player.sendMessage(ChatUtil.getBar());
+        player.sendMessage(ChatUtil.translate("<gradient:#8B0000:bold>NextDungeon</gradient:#D10000> &8| &fLoaded Modules"));
+        player.sendMessage("");
+
+        var modules = loader.getLoadedModules();
+        if (modules.isEmpty()) {
+            player.sendMessage(ChatUtil.translate("&7Aucun module chargé."));
+        } else {
+            for (NextDungeonModule module : modules.values()) {
+                int blockCount = loader.getBlockRegistry().getBlocksByModule(module.getId()).size();
+                player.sendMessage(ChatUtil.translate(String.format(
+                    "&#00FF00● &f%s &7v%s &8(&e%s&8) &7— &b%d block(s)",
+                    module.getName(),
+                    module.getVersion(),
+                    module.getId(),
+                    blockCount
+                )));
+            }
+        }
+
+        player.sendMessage("");
+        player.sendMessage(ChatUtil.translate("&7Total : &e" + modules.size() + " module(s)"));
+        player.sendMessage(ChatUtil.getBar());
+    }
+
+    @Command(names = {"dungeon admin module load", "dungeons admin module load", "nd admin module load"}, permission = "nextdungeons.admin")
+    public static void adminModuleLoadCommand(Player player, @Param(name = "JAR file name") String jarFileName) {
+        ModuleLoader loader = Main.getInstance().getModuleLoader();
+        if (loader == null) {
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Module system not available."));
+            return;
+        }
+
+        player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&7Loading module from &e" + jarFileName + "&7..."));
+        String moduleId = loader.loadModuleFromFile(jarFileName);
+        if (moduleId != null) {
+            NextDungeonModule module = loader.getLoadedModules().get(moduleId);
+            String name = module != null ? module.getName() : moduleId;
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#00FF00✓ &fModule &e" + name + " &f(&7" + moduleId + "&f) chargé avec succès."));
+        } else {
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Échec du chargement. Vérifiez la console pour les détails."));
+        }
+    }
+
+    @Command(names = {"dungeon admin module unload", "dungeons admin module unload", "nd admin module unload"}, permission = "nextdungeons.admin")
+    public static void adminModuleUnloadCommand(Player player, @Param(name = "Module ID") String moduleId) {
+        ModuleLoader loader = Main.getInstance().getModuleLoader();
+        if (loader == null) {
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Module system not available."));
+            return;
+        }
+
+        NextDungeonModule module = loader.getLoadedModules().get(moduleId);
+        if (module == null) {
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Aucun module chargé avec l'ID : &e" + moduleId));
+            return;
+        }
+
+        String name = module.getName();
+        boolean success = loader.unloadModule(moduleId);
+        if (success) {
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#00FF00✓ &fModule &e" + name + " &f(&7" + moduleId + "&f) déchargé avec succès."));
+        } else {
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Échec du déchargement. Vérifiez la console pour les détails."));
+        }
+    }
+
+    @Command(names = {"dungeon admin module reload", "dungeons admin module reload", "nd admin module reload"}, permission = "nextdungeons.admin")
+    public static void adminModuleReloadCommand(Player player, @Param(name = "Module ID") String moduleId) {
+        ModuleLoader loader = Main.getInstance().getModuleLoader();
+        if (loader == null) {
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Module system not available."));
+            return;
+        }
+
+        NextDungeonModule module = loader.getLoadedModules().get(moduleId);
+        if (module == null) {
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Aucun module chargé avec l'ID : &e" + moduleId));
+            return;
+        }
+
+        String name = module.getName();
+        player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&7Rechargement du module &e" + name + "&7..."));
+        boolean success = loader.reloadModule(moduleId);
+        if (success) {
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#00FF00✓ &fModule &e" + name + " &f(&7" + moduleId + "&f) rechargé avec succès."));
+        } else {
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Échec du rechargement. Vérifiez la console pour les détails."));
+        }
     }
 }

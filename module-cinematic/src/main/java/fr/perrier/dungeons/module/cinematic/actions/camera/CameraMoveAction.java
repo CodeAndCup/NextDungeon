@@ -83,6 +83,7 @@ public class CameraMoveAction extends SimpleCinematicAction<CameraSegment> {
         if (plugin == null) return;
 
         Bukkit.getScheduler().runTask(plugin, () -> {
+            player.sendMessage("DEBUG: Démarrage de la caméra, téléportation à " + startLoc);
             try {
                 // Spawner l'entité caméra (ItemDisplay invisible)
                 cameraEntity = Objects.requireNonNull(startLoc.getWorld()).spawn(startLoc, ItemDisplay.class, (entity) -> {
@@ -91,12 +92,12 @@ public class CameraMoveAction extends SimpleCinematicAction<CameraSegment> {
                     entity.setBillboard(Display.Billboard.FIXED);
                 });
                 player.setGameMode(GameMode.SPECTATOR);
-                player.setSpectatorTarget(null);
-                player.teleport(cameraEntity, PlayerTeleportEvent.TeleportCause.SPECTATE);
-                // BUGGED
-                Bukkit.getScheduler().scheduleSyncDelayedTask(plugin,()->{
+                player.teleport(cameraEntity);
+                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    cameraEntity.addPassenger(player);
                     player.setSpectatorTarget(cameraEntity);
-                },8);
+                    player.sendMessage("DEBUG: Caméra démarrée, spectating l'entité " + cameraEntity.getUniqueId());
+                },5L);
 
             } catch (Exception e) {
                 System.err.println("[Cinematic] Erreur lors du démarrage de la caméra : " + e.getMessage());
@@ -132,8 +133,12 @@ public class CameraMoveAction extends SimpleCinematicAction<CameraSegment> {
                             player.setGameMode(GameMode.SPECTATOR);
                         }
                         // Re-TP le joueur sur l'entité pour que setSpectatorTarget fonctionne
-                        player.teleport(loc);
-                        player.setSpectatorTarget(entity);
+                        player.teleport(entity);
+                        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                            cameraEntity.addPassenger(player);
+                            player.setSpectatorTarget(cameraEntity);
+                            player.sendMessage("DEBUG: Re-spectating l'entité (segment-tick) " + cameraEntity.getUniqueId());
+                        },5L);
                     }
                 }
             } catch (Exception e) {

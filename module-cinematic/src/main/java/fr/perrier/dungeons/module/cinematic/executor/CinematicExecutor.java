@@ -2,6 +2,7 @@ package fr.perrier.dungeons.module.cinematic.executor;
 
 import fr.perrier.dungeons.module.cinematic.action.CinematicAction;
 import fr.perrier.dungeons.module.cinematic.clock.CinematicClock;
+import fr.perrier.dungeons.module.cinematic.clock.CinematicClockImpl;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -16,6 +17,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
@@ -37,16 +39,22 @@ public class CinematicExecutor {
 
     private final List<CinematicAction> actions;
     private final Player player;
-    private final CinematicClock clock;
+    /** Master clock shared by the module — used only to receive ticks and drive the private clock */
+    private final CinematicClock masterClock;
+    /** Private clock per executor, always starts at frame 0 */
+    private final CinematicClockImpl privateClock;
     private PlayerCinematicState stateSnapshot;
     private Consumer<Integer> frameListener;
+    /** Listener on the masterClock that relays ticks to the privateClock */
+    private Consumer<Integer> masterTickRelay;
     private Listener damageListener;
     private boolean isRunning = false;
 
-    public CinematicExecutor(List<CinematicAction> actions, Player player, CinematicClock clock) {
+    public CinematicExecutor(List<CinematicAction> actions, Player player, CinematicClock masterClock) {
         this.actions = actions;
         this.player = player;
-        this.clock = clock;
+        this.masterClock = masterClock;
+        this.privateClock = new CinematicClockImpl();
     }
 
     /**
@@ -97,18 +105,26 @@ public class CinematicExecutor {
         // 5. Register damage/target event cancellation (ref: Typewriter CameraCinematicEntry.kt:226-239)
         registerDamageListeners(plugin);
 
-        // 6. Setup all cinematic actions
+        // 6. Reset private clock to frame 0 so segments always start at the right frame
+        privateClock.setFrame(0);
+
+        // 7. Setup all cinematic actions (pass the private clock so they see frame 0)
         for (CinematicAction action : actions) {
             try {
-                action.onCinematicSetup(player, clock);
+                action.onCinematicSetup(player, privateClock);
             } catch (Exception e) {
                 System.err.println("[Cinematic] Setup action error: " + e.getMessage());
             }
         }
 
-        // 7. Subscribe to clock frame changes
+        // 8. Subscribe to masterClock: relay each tick to the private clock
+        //    The private clock advances in lockstep with the master but starts at 0
+        masterTickRelay = masterFrame -> privateClock.tick(Duration.ofMillis(50));
+        masterClock.addFrameChangeListener(masterTickRelay);
+
+        // 9. Subscribe to private clock frame changes to tick our actions
         frameListener = this::tickFrame;
-        clock.addFrameChangeListener(frameListener);
+        privateClock.addFrameChangeListener(frameListener);
     }
 
     /**
@@ -154,9 +170,14 @@ public class CinematicExecutor {
         if (!isRunning) return;
         isRunning = false;
 
-        // 1. Unsubscribe from clock
+        // 1. Unsubscribe from clocks
         if (frameListener != null) {
-            clock.removeFrameChangeListener(frameListener);
+            privateClock.removeFrameChangeListener(frameListener);
+            frameListener = null;
+        }
+        if (masterTickRelay != null) {
+            masterClock.removeFrameChangeListener(masterTickRelay);
+            masterTickRelay = null;
         }
 
         try {
