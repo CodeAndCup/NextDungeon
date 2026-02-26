@@ -1,7 +1,9 @@
 package fr.perrier.dungeons.spigot.configuration;
 
 import fr.perrier.dungeons.common.model.dungeon.FloorData;
+import fr.perrier.dungeons.common.workflow.trigger.TriggerData;
 import fr.perrier.dungeons.spigot.Main;
+import fr.perrier.dungeons.spigot.database.DatabaseTriggersManager;
 import fr.perrier.dungeons.spigot.model.Dungeon;
 import fr.perrier.dungeons.spigot.model.Floor;
 import org.redisson.api.RMap;
@@ -89,10 +91,23 @@ public class RedisConfigLoader {
     /**
      * Construit un Floor depuis un FloorData, l'enregistre dans Redis (updateMap)
      * et génère le template monde si nécessaire.
+     * Les triggers sont toujours chargés depuis la BDD afin de ne pas écraser
+     * les triggers existants lors d'un rechargement Redis.
      */
     private static Floor loadFloor(FloorData fd) {
         try {
             Floor floor = new Floor(fd);
+
+            // Charger les triggers depuis la BDD (source de vérité pour les triggers)
+            List<TriggerData> triggers =
+                    DatabaseTriggersManager.loadTriggers(fd.getId());
+            if (!triggers.isEmpty()) {
+                floor.setTriggers(triggers);
+                Main.getLoggerUtil().info("[RedisConfigLoader] " + triggers.size() +
+                        " trigger(s) chargé(s) depuis la BDD pour : " + fd.getId());
+            }
+
+            // Re-synchroniser vers Redis avec les triggers inclus
             floor.updateMap();
             floor.generateTemplate();
             Main.getLoggerUtil().info("[RedisConfigLoader] Floor chargé : " + fd.getId());

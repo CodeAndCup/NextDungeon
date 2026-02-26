@@ -35,6 +35,9 @@ public class CinematicModule implements NextDungeonModule {
     public void onEnable(ModuleContext ctx) {
         this.manager = new CinematicManager();
 
+        // Give the manager access to ctx so it can fire triggers (e.g. cinematic_on_end)
+        manager.setModuleContext(ctx);
+
         // Initialize the real-time cinematic clock (20 fps)
         this.cinematicClock = new CinematicClockImpl();
         Plugin plugin = Bukkit.getPluginManager().getPlugin("NextDungeon");

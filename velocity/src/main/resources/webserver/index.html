@@ -18,6 +18,9 @@
     <script src="https://unpkg.com/blockly/javascript_compressed.js"></script>
     <script src="https://unpkg.com/blockly/msg/js/fr.js"></script>
 
+    <!-- Blockly Plugin: Cross-tab Copy/Paste (Ctrl+C / Ctrl+V entre onglets) -->
+    <script src="https://unpkg.com/@blockly/plugin-cross-tab-copy-paste/dist/index.js"></script>
+
     <style>
         /* Dark theme inspired by Spark - Modern & Clean */
         :root {
@@ -284,6 +287,18 @@
 
             updateDebugInfo("✅ Éditeur initialisé avec succès!");
             showStatus('🎉 Éditeur prêt à utiliser!', 'success');
+
+            // Initialiser le plugin cross-tab copy/paste (Ctrl+C / Ctrl+V entre onglets)
+            if (typeof CrossTabCopyPaste !== 'undefined') {
+                const crossTabCopyPaste = new CrossTabCopyPaste();
+                crossTabCopyPaste.init(
+                    { contextMenu: true, shortcut: true },
+                    () => workspace
+                );
+                updateDebugInfo("✅ Plugin Copy/Paste inter-onglets activé (Ctrl+C / Ctrl+V)");
+            } else {
+                console.warn('⚠️ Plugin cross-tab copy-paste non disponible');
+            }
 
             // Test de l'API
             await testAPI();

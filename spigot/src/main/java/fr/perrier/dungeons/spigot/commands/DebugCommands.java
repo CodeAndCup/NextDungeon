@@ -117,8 +117,8 @@ public class DebugCommands {
         player.sendMessage(ChatUtil.translate("  &8- &eID: &f" + floor.getId()));
         player.sendMessage(ChatUtil.translate("  &8- &eName: &f" + floor.getName()));
         player.sendMessage(ChatUtil.translate("  &8- &eDescription: &f" + floor.getDescription()));
-        player.sendMessage(ChatUtil.translate("  &8- &eNumber of Steps: &f" + floor.getSteps().size()));
-        player.sendMessage(ChatUtil.translate("  &8- &eNumber of Triggers: &f" + floor.getTriggers().size()));
+        player.sendMessage(ChatUtil.translate("  &8- &eNumber of Steps: &f" + (floor.getSteps() != null ? floor.getSteps().size() : 0)));
+        player.sendMessage(ChatUtil.translate("  &8- &eNumber of Triggers: &f" + (floor.getTriggers() != null ? floor.getTriggers().size() : 0)));
         player.sendMessage(ChatUtil.getBar());
     }
 
@@ -131,9 +131,13 @@ public class DebugCommands {
         }
         player.sendMessage(ChatUtil.getBar());
         player.sendMessage(ChatUtil.translate("&6Triggers for Floor: &e" + floor.getName()));
-        floor.getTriggers().forEach(trigger -> {
-            player.sendMessage(ChatUtil.translate("  &b" + trigger.toString()));
-        });
+        if (floor.getTriggers() == null || floor.getTriggers().isEmpty()) {
+            player.sendMessage(ChatUtil.translate("  &cNo triggers found for this floor."));
+        } else {
+            floor.getTriggers().forEach(trigger -> {
+                player.sendMessage(ChatUtil.translate("  &b" + trigger.toString()));
+            });
+        }
         player.sendMessage(ChatUtil.getBar());
     }
 

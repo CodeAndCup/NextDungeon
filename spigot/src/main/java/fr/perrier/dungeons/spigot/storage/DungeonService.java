@@ -35,6 +35,8 @@ public class DungeonService {
     // Local references to current floor and instance
     private final AtomicReference<FloorData> currentFloor = new AtomicReference<>();
     private final AtomicReference<UUID> currentInstanceId = new AtomicReference<>();
+    // Local cache of the current FloorInstanceData — never requires a Redis call on the server thread
+    private final AtomicReference<FloorInstanceData> currentInstanceData = new AtomicReference<>();
 
     // Redis Maps
     @Getter
@@ -91,6 +93,8 @@ public class DungeonService {
 
         // Set current instance ID only
         currentInstanceId.set(instanceId);
+        // Cache instance data locally so it never needs a blocking Redis call
+        currentInstanceData.set(instanceData);
 
         // Get and set floor
         FloorData floorData = floorsMap.get(floorId);
@@ -169,6 +173,12 @@ public class DungeonService {
      * @param instanceData the floor instance to synchronize.
      */
     public void syncInstance(FloorInstanceData instanceData) {
+        // Keep local cache up-to-date first (no Redis required for reads after this)
+        if (currentInstanceId.get() != null &&
+                currentInstanceId.get().equals(instanceData.getInstanceId())) {
+            currentInstanceData.set(instanceData);
+        }
+
         RedisMessage<FloorInstanceData> message = RedisMessage.create(
                 SYNC_CHANNEL,
                 Bukkit.getServer().getIp() + ":" + Bukkit.getServer().getPort(),
@@ -214,11 +224,12 @@ public class DungeonService {
                 }
                 case INSTANCE_UPDATE -> {
                     FloorInstanceData instanceData = (FloorInstanceData) message.getData();
-                    // Just log - data will be fetched fresh from Redis when needed
+                    // Update local cache if it's our current instance
                     if (currentInstanceId.get() != null &&
                             currentInstanceId.get().equals(instanceData.getInstanceId())) {
+                        currentInstanceData.set(instanceData);
                         Main.getLoggerUtil().info(
-                                String.format("Instance %s updated in Redis",
+                                String.format("Instance %s updated in local cache from Redis",
                                         instanceData.getInstanceId())
                         );
                     }
@@ -228,6 +239,7 @@ public class DungeonService {
                     if (currentInstanceId.get() != null &&
                             currentInstanceId.get().equals(instanceData.getInstanceId())) {
                         currentInstanceId.set(null);
+                        currentInstanceData.set(null);
                         currentFloor.set(null);
                         Main.getLoggerUtil().info(String.format("Removed local instanceData: %s", instanceData.getInstanceId()));
                     }
@@ -289,6 +301,7 @@ public class DungeonService {
     public void clearLocal() {
         currentFloor.set(null);
         currentInstanceId.set(null);
+        currentInstanceData.set(null);
         Main.getLoggerUtil().info("Cleared local floor and instance references");
     }
 
@@ -358,14 +371,10 @@ public class DungeonService {
     }
 
     /**
-     * Get the current floor instance state
+     * Get the current floor instance state — reads from local cache, never blocks on Redis.
      */
     public FloorInstanceState getInstanceState() {
-        UUID instanceId = currentInstanceId.get();
-        if (instanceId == null) {
-            return FloorInstanceState.NONE;
-        }
-        FloorInstanceData instance = instancesMap.get(instanceId);
+        FloorInstanceData instance = currentInstanceData.get();
         if (instance == null) {
             return FloorInstanceState.NONE;
         }
@@ -379,17 +388,13 @@ public class DungeonService {
     }
 
     /**
-     * Get the current floor instance
+     * Get the current floor instance — reads from local cache, never blocks on Redis.
      * @return the current FloorInstance
      */
     public FloorInstance getCurrentInstance() {
-        UUID instanceId = currentInstanceId.get();
-        if (instanceId == null) {
-            throw new IllegalStateException("No current instance available");
-        }
-        FloorInstanceData instanceData = instancesMap.get(instanceId);
+        FloorInstanceData instanceData = currentInstanceData.get();
         if (instanceData == null) {
-            throw new IllegalStateException("Current instance not found in Redis: " + instanceId);
+            throw new IllegalStateException("No current instance available");
         }
         return new FloorInstance(instanceData);
     }
