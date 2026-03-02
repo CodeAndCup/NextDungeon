@@ -20,15 +20,12 @@ import lombok.NonNull;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.util.Collections;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -224,8 +221,8 @@ public class CloudNetProvider implements InstanceProvider {
 
                 // 2. Supprimer le template CloudNet (local storage)
                 ServiceTemplate template = new ServiceTemplate.Builder()
-                        .prefix(floorId)
-                        .name("default")
+                        .prefix(floorId.split("_")[0])
+                        .name(floorId.split("_")[1])
                         .storage("local")
                         .priority(0)
                         .alwaysCopyToStaticServices(false)
@@ -263,8 +260,8 @@ public class CloudNetProvider implements InstanceProvider {
                 .build();
 
         ServiceTemplate targetTemplate = new ServiceTemplate.Builder()
-                .prefix(floor.getId())
-                .name("default")
+                .prefix(floor.getId().split("_")[0])
+                .name(floor.getId().split("_")[1])
                 .storage("local")
                 .priority(0)
                 .alwaysCopyToStaticServices(false)
@@ -299,10 +296,24 @@ public class CloudNetProvider implements InstanceProvider {
                                 .startPort(44955)
                                 .minServiceCount(0)
                                 .templates(
-                                        Collections.singletonList(
+                                        Arrays.asList(
                                                 new ServiceTemplate.Builder()
-                                                        .prefix(floor.getId())
-                                                        .name("default")
+                                                        .prefix(floor.getId().split("_")[0])
+                                                        .name(floor.getId().split("_")[1])
+                                                        .storage("local")
+                                                        .priority(0)
+                                                        .alwaysCopyToStaticServices(false)
+                                                        .build(),
+                                                new ServiceTemplate.Builder()
+                                                        .prefix("Global")
+                                                        .name("Global-Dungeon")
+                                                        .storage("local")
+                                                        .priority(0)
+                                                        .alwaysCopyToStaticServices(false)
+                                                        .build(),
+                                                new ServiceTemplate.Builder()
+                                                        .prefix("Global")
+                                                        .name("Global-Server")
                                                         .storage("local")
                                                         .priority(0)
                                                         .alwaysCopyToStaticServices(false)
@@ -371,22 +382,55 @@ public class CloudNetProvider implements InstanceProvider {
             try {
                 Main.getLoggerUtil().info("Saving the world of publishing for " + floor.getId() + " (CloudNet)...");
 
-                // Sauvegarder le monde
                 Objects.requireNonNull(Bukkit.getWorld("world")).save();
 
-                // Chemins spécifiques à CloudNet
-                File worldSource = new File(Main.getInstance().getDataFolder() + "/../../world");
-                File templateDest = new File(Main.getInstance().getDataFolder() + "/../../../../../local/templates/" + floor.getId() + "/default/world");
+                String[] floorParts = floor.getId().split("_", 2);
+                if (floorParts.length < 2) {
+                    Main.getLoggerUtil().severe("Invalid floor ID format: " + floor.getId());
+                    future.complete(false);
+                    return;
+                }
 
-                // Copier les fichiers du monde vers le template CloudNet
-                jodd.io.FileUtil.copyDir(new File(worldSource, "data"), new File(templateDest, "data"));
-                jodd.io.FileUtil.copyDir(new File(worldSource, "entities"), new File(templateDest, "entities"));
-                jodd.io.FileUtil.copyDir(new File(worldSource, "region"), new File(templateDest, "region"));
-                jodd.io.FileUtil.copyFile(new File(worldSource, "uid.dat"), new File(templateDest, "uid.dat"));
-                jodd.io.FileUtil.copyFile(new File(worldSource, "level.dat"), new File(templateDest, "level.dat"));
+                ServiceTemplate targetTemplate = new ServiceTemplate.Builder()
+                        .prefix(floorParts[0])
+                        .name(floorParts[1])
+                        .storage("local")
+                        .priority(0)
+                        .alwaysCopyToStaticServices(false)
+                        .build();
 
-                Main.getLoggerUtil().info("World saved in the CloudNet template for " + floor.getId());
-                future.complete(true);
+                Path worldSource = Path.of(Main.getInstance().getDataFolder() + "/../../world");
+
+                TemplateStorage templateStorage = targetTemplate.storage();
+
+                long startTime = System.currentTimeMillis();
+
+                templateStorage.hasFileAsync(targetTemplate, "world").thenAccept(hasWorld -> {
+                    if (hasWorld) {
+                        Main.getLoggerUtil().info("Removing old world data from template...");
+                        templateStorage.listFilesAsync(targetTemplate, "world", true).thenAccept(files -> {
+                            files.forEach(fileInfo -> {
+                                try {
+                                    templateStorage.deleteFile(targetTemplate, fileInfo.path());
+                                } catch (Exception e) {
+                                    Main.getLoggerUtil().warning("Could not delete file: " + fileInfo.path());
+                                }
+                            });
+
+                            deployWorld(targetTemplate, worldSource, future, startTime);
+                        }).exceptionally(throwable -> {
+                            Main.getLoggerUtil().severe("Error listing old world files: " + throwable.getMessage());
+                            future.complete(false);
+                            return null;
+                        });
+                    } else {
+                        deployWorld(targetTemplate, worldSource, future, startTime);
+                    }
+                }).exceptionally(throwable -> {
+                    Main.getLoggerUtil().severe("Error checking world directory: " + throwable.getMessage());
+                    future.complete(false);
+                    return null;
+                });
             } catch (Exception e) {
                 Main.getLoggerUtil().severe("Error during CloudNet backup: " + e.getMessage());
                 e.printStackTrace(System.err);
@@ -395,6 +439,37 @@ public class CloudNetProvider implements InstanceProvider {
         });
 
         return future;
+    }
+
+    /**
+     * Déploie le dossier monde vers le template CloudNet.
+     */
+    private void deployWorld(ServiceTemplate targetTemplate, Path worldSource, CompletableFuture<Boolean> future, long startTime) {
+        Bukkit.getScheduler().runTaskAsynchronously(Main.getInstance(), () -> {
+            try {
+                TemplateStorage templateStorage = targetTemplate.storage();
+
+                templateStorage.deployDirectoryAsync(targetTemplate, worldSource.resolve("world"))
+                        .thenAccept(deployed -> {
+                            if (deployed) {
+                                long duration = System.currentTimeMillis() - startTime;
+                                Main.getLoggerUtil().info("World saved in the CloudNet template for " + targetTemplate.prefix() + "_" + targetTemplate.name() + " (took " + duration + "ms)");
+                                future.complete(true);
+                            } else {
+                                Main.getLoggerUtil().severe("Failed to deploy world directory to template");
+                                future.complete(false);
+                            }
+                        })
+                        .exceptionally(throwable -> {
+                            Main.getLoggerUtil().severe("Error deploying world directory: " + throwable.getMessage());
+                            future.complete(false);
+                            return null;
+                        });
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Error deploying world: " + e.getMessage());
+                future.complete(false);
+            }
+        });
     }
 
     @Override
