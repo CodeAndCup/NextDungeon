@@ -8,7 +8,6 @@ import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.workflow.serializer.InstanceSerializer;
 import fr.perrier.dungeons.spigot.model.ProfileData;
 import lombok.Getter;
-import org.apache.commons.lang.NotImplementedException;
 import org.bson.Document;
 import org.bukkit.Bukkit;
 
@@ -55,7 +54,7 @@ public class MongoManager implements DatabaseManager {
      */
     @Override
     public void loadData() {
-        throw new NotImplementedException("Not implemented yet");
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
     /**
@@ -80,7 +79,7 @@ public class MongoManager implements DatabaseManager {
      */
     @Override
     public ProfileData loadProfileData(java.util.UUID playerId) {
-        throw new NotImplementedException("Not implemented yet");
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
     /**
@@ -90,7 +89,7 @@ public class MongoManager implements DatabaseManager {
      */
     @Override
     public void saveProfileData(java.util.UUID playerId, ProfileData profileData) {
-        throw new NotImplementedException("Not implemented yet");
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
     // ==================== TRIGGER OPERATIONS ====================
