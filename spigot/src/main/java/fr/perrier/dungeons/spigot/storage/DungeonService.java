@@ -400,6 +400,40 @@ public class DungeonService {
     }
 
     /**
+     * Checks whether the given player UUID is already part of any instance (local cached or in Redis).
+     * Useful to prevent creating duplicate instances for the same players.
+     *
+     * @param playerId the UUID of the player to check
+     * @return true if the player is present in any known instance
+     */
+    public boolean isPlayerInAnyInstance(UUID playerId) {
+        if (playerId == null) return false;
+
+        // Check local cached current instance first
+        FloorInstanceData local = currentInstanceData.get();
+        if (local != null && local.getPlayers() != null && local.getPlayers().contains(playerId)) {
+            return true;
+        }
+
+        // Check Redis-backed instances map (may be remote)
+        if (instancesMap != null) {
+            try {
+                for (FloorInstanceData inst : instancesMap.values()) {
+                    if (inst != null && inst.getPlayers() != null && inst.getPlayers().contains(playerId)) {
+                        return true;
+                    }
+                }
+            } catch (Exception e) {
+                Main.getLoggerUtil().warning("Failed to check instancesMap for player membership: " + e.getMessage());
+                // On failure to check remote map, conservatively return false so caller can proceed or implement additional locking
+                return false;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Get the current floor
      * @return the current Floor
      */

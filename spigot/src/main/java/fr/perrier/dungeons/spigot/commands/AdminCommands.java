@@ -58,6 +58,11 @@ public class AdminCommands {
             return;
         }
 
+        // Prevent starting edit instance if player already in an instance
+        if (Main.getInstance().getDungeonService().isPlayerInAnyInstance(player.getUniqueId())) {
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000You are already in an instance or it is being prepared."));
+            return;
+        }
         FloorInstance.generateNewInstanceAsync(floor.getId(), Set.of(player.getUniqueId()), true, floorInstance -> floorInstance.sendToServer(player));
         player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#00FF00✓ &fEdit mode started for floor &e" + floor.getId() + "&f."));
         player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&fPlease wait while the instance is being prepared..."));

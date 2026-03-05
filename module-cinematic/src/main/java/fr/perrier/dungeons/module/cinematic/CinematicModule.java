@@ -110,9 +110,13 @@ public class CinematicModule implements NextDungeonModule {
         );
         block.setColor("#9C27B0");
         block.setCategory("Cinematic");
+        BlockParameter targetParam = new BlockParameter("target", "dropdown", "Target:",
+                "Play cinematic for the triggering player or globally for the instance", "PLAYER");
+        targetParam.setOptions("PLAYER,GLOBAL");
         block.setParameters(List.of(
                 new BlockParameter("cinematicId", "string", "Cinematic ID:",
-                        "ID de la cinématique à lancer", "")
+                        "ID de la cinématique à lancer", ""),
+                targetParam
         ));
         ctx.getBlockRegistry().registerBlock(block);
     }
@@ -355,12 +359,26 @@ public class CinematicModule implements NextDungeonModule {
         ctx.registerActionHandler("cinematic_start", params -> {
             System.out.println("[Cinematic DEBUG] Handler cinematic_start received params: " + params);
             String cinematicId = String.valueOf(params.getOrDefault("cinematicId", ""));
+            String target = String.valueOf(params.getOrDefault("target", "PLAYER"));
             Object playerObj = params.get("player");
             if (!(playerObj instanceof Player player)) {
                 System.out.println("[Cinematic] cinematic_start: no player in context");
                 return false;
             }
-            return manager.startCinematic(cinematicId, player);
+
+            if ("GLOBAL".equalsIgnoreCase(target)) {
+                boolean anyStarted = false;
+                for (Player p : Bukkit.getOnlinePlayers()) {
+                    boolean started = manager.startCinematic(cinematicId, p);
+                    anyStarted = anyStarted || started;
+                }
+                if (!anyStarted) {
+                    System.out.println("[Cinematic] cinematic_start: no online players to start cinematic");
+                }
+                return anyStarted;
+            } else {
+                return manager.startCinematic(cinematicId, player);
+            }
         });
 
         ctx.registerActionHandler("cinematic_stop", params -> {

@@ -10,6 +10,7 @@ import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.menu.dungeon.DungeonGateMenu;
 import fr.perrier.dungeons.spigot.model.Dungeon;
 import fr.perrier.dungeons.spigot.model.Floor;
+import fr.perrier.dungeons.spigot.parties.impl.DungeonPartyImpl;
 import fr.perrier.dungeons.spigot.utils.LoggerUtil;
 import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.chat.HoverEvent;
@@ -184,5 +185,24 @@ public class DebugCommands {
             boolean result = handler.execute(startParams);
             player.sendMessage(ChatUtil.translate("   &8- Start result: " + (result ? "&aOK" : "&cFAILED")));
         }
+    }
+
+    @Command(names = "dungeon debug party list")
+    public static void debugPartyListCommand(Player player) {
+        player.sendMessage(ChatUtil.getBar());
+        player.sendMessage(ChatUtil.translate("&6Parties:"));
+        DungeonPartyImpl.getDungeonParties().values().forEach(party -> {
+            TextComponent partyComponent = new TextComponent(ChatUtil.translate("  &8- &e" + party.getParty().getPartyId() + " &8(&7&o" + party.getDungeonId() + "&8)"));
+            HoverEvent hoverEvent = new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ComponentBuilder(party.toString()).create());
+            partyComponent.setHoverEvent(hoverEvent);
+            player.spigot().sendMessage(partyComponent);
+        });
+        player.sendMessage(ChatUtil.getBar());
+    }
+
+    @Command(names = "dungeon debug party clean")
+    public static void debugPartyCleanCommand(Player player) {
+        DungeonPartyImpl.getDungeonParties().values().forEach(DungeonPartyImpl::disband);
+        player.sendMessage(ChatUtil.translate("&#D10000All parties have been disbanded."));
     }
 }

@@ -171,6 +171,12 @@ public class QueueManager {
         if (canCreateInstance(floor)) {
 
             // Create instance - it will register itself when it starts
+            UUID leaderId = DungeonPartyImpl.getDungeonPartyOf(player).getLeaderId();
+            if (Main.getInstance().getDungeonService().isPlayerInAnyInstance(leaderId)) {
+                notifyPlayer(player, "An instance for your party is already being prepared or active. Please wait...");
+                return;
+            }
+
             FloorInstance.generateNewInstanceAsync(floor.getId(), DungeonPartyImpl.getDungeonPartyOf(player).getMemberIds(),false, floorInstance -> {
                 if(isNotMatchingRequirements(floorInstance.getPlayers(), floorInstance.getFloor())) {
                     floorInstance.getPlayers().forEach(uuid -> {
@@ -184,10 +190,10 @@ public class QueueManager {
                 }
                 floorInstance.sendToServer(DungeonPartyImpl.getDungeonPartyOf(player));
             });
-        } else {
-            // Add to queue
-            addPlayerToQueue(player, floor);
-        }
+         } else {
+             // Add to queue
+             addPlayerToQueue(player, floor);
+         }
     }
 
     /**
@@ -235,6 +241,12 @@ public class QueueManager {
             }
 
             // Create instance for player - it will register itself when it starts
+            UUID leaderId = DungeonPartyImpl.getDungeonPartyOf(player).getLeaderId();
+            if (Main.getInstance().getDungeonService().isPlayerInAnyInstance(leaderId)) {
+                notifyPlayer(player, "An instance for your party is already being prepared or active. Please wait...");
+                return;
+            }
+
             FloorInstance.generateNewInstanceAsync(floor.getId(), DungeonPartyImpl.getDungeonPartyOf(player).getMemberIds(),false, floorInstance -> {
                 if(isNotMatchingRequirements(floorInstance.getPlayers(), floorInstance.getFloor())) {
                     floorInstance.getPlayers().forEach(uuid -> {

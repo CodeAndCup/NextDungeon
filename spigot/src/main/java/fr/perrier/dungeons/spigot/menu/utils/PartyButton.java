@@ -17,6 +17,7 @@ import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class PartyButton extends Button {
     private final IDungeonParty dungeonParty;
@@ -57,7 +58,7 @@ public class PartyButton extends Button {
     public static List<String> getLore(IDungeonParty dungeonParty) {
         List<String> lore = new ArrayList<>();
         lore.add("&7Dungeon: &#90FFFF" + dungeonParty.getDungeonId());
-        lore.add("&7Floor: &#90FFFF" + Main.getInstance().getDungeonService().getFloor(dungeonParty.getFloorId()).getName());
+        lore.add("&7Floor: &#90FFFF" + Objects.requireNonNull(Main.getInstance().getDungeonService().getFloor(dungeonParty.getFloorId())).getName());
         lore.add("&7Description: &f" + dungeonParty.getDescription());
         lore.add("&7Min Level: &#90FFFF" + dungeonParty.getMinLevel());
         lore.add("&7Members:");

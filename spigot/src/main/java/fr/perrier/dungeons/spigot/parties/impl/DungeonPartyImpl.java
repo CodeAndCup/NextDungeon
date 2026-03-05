@@ -127,6 +127,12 @@ public class DungeonPartyImpl implements IDungeonParty {
         return party.getSize();
     }
 
+    @Override
+    public void disband() {
+        party.disband();
+        unregister();
+    }
+
     private void updateCache() {
         dungeonParties.put(party.getLeaderId(), this);
     }

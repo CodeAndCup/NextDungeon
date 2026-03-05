@@ -449,7 +449,7 @@ public class CloudNetProvider implements InstanceProvider {
             try {
                 TemplateStorage templateStorage = targetTemplate.storage();
 
-                templateStorage.deployDirectoryAsync(targetTemplate, worldSource.resolve("world"))
+                templateStorage.deployDirectoryAsync(targetTemplate, worldSource)
                         .thenAccept(deployed -> {
                             if (deployed) {
                                 long duration = System.currentTimeMillis() - startTime;

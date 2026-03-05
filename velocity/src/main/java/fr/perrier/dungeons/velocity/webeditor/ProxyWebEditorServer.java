@@ -15,8 +15,9 @@ import lombok.Getter;
 import org.redisson.api.RedissonClient;
 
 import java.io.*;
-import java.net.InetSocketAddress;
+import java.net.*;
 import java.nio.charset.StandardCharsets;
+import java.util.Enumeration;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 
@@ -393,7 +394,7 @@ public class ProxyWebEditorServer {
                         
                         response.addProperty("success", true);
                         response.addProperty("sessionId", sessionId);
-                        response.addProperty("url", "http://localhost:" + port + "/" + sessionId + "/editor/");
+                        response.addProperty("url", "http://" + getPrivateIp() + ":" + port + "/" + sessionId + "/editor/");
 
                         NextDungeonVelocity.getInstance().getLogger().info("✅ Session créée: " + sessionId + " pour " + playerName);
                     }
@@ -419,6 +420,21 @@ public class ProxyWebEditorServer {
                 sendErrorResponse(exchange, "Error processing request: " + e.getMessage());
             }
         }
+    }
+
+    private String getPrivateIp() throws SocketException {
+        Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+        while (interfaces.hasMoreElements()) {
+            NetworkInterface iface = interfaces.nextElement();
+            if (iface.isLoopback() || !iface.isUp()) continue;
+            for (InterfaceAddress addr : iface.getInterfaceAddresses()) {
+                InetAddress inetAddr = addr.getAddress();
+                if (inetAddr instanceof Inet4Address && !inetAddr.isLoopbackAddress() && inetAddr.isSiteLocalAddress()) {
+                    return inetAddr.getHostAddress();
+                }
+            }
+        }
+        return null;
     }
 
     /**
