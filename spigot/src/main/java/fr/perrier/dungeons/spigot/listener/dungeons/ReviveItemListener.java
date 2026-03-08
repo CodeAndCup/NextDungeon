@@ -10,6 +10,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -97,19 +98,18 @@ public class ReviveItemListener implements Listener {
         Player nearestGhost = null;
         double nearestDistance = searchRadius;
 
-        for(Player potentialGhost : reviver.getWorld().getPlayers()) {
-            // Vérifier si le joueur est en mode fantôme (est dans GHOST_DATA et pas ressuscité)
-            if(InstancePlayerDeathListener.getGHOST_DATA().containsKey(potentialGhost.getUniqueId())) {
-                InstancePlayerDeathListener.GhostData ghostData = InstancePlayerDeathListener.getGHOST_DATA().get(potentialGhost.getUniqueId());
+        for (Map.Entry<java.util.UUID, InstancePlayerDeathListener.GhostData> entry :
+                InstancePlayerDeathListener.getGHOST_DATA().entrySet()) {
+            InstancePlayerDeathListener.GhostData ghostData = entry.getValue();
+            if (ghostData.isRevived()) continue;
 
-                if(!ghostData.isRevived()) {
-                    double distance = reviver.getLocation().distance(potentialGhost.getLocation());
+            Player potentialGhost = org.bukkit.Bukkit.getPlayer(entry.getKey());
+            if (potentialGhost == null || !potentialGhost.getWorld().equals(reviver.getWorld())) continue;
 
-                    if(distance < nearestDistance) {
-                        nearestGhost = potentialGhost;
-                        nearestDistance = distance;
-                    }
-                }
+            double distance = reviver.getLocation().distance(potentialGhost.getLocation());
+            if (distance < nearestDistance) {
+                nearestGhost = potentialGhost;
+                nearestDistance = distance;
             }
         }
 

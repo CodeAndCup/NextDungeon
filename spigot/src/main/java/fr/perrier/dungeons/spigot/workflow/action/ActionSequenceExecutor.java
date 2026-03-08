@@ -48,7 +48,7 @@ public class ActionSequenceExecutor {
                 executeNext();
             }
         } catch (Exception e) {
-            e.printStackTrace(System.err);
+            Main.getLoggerUtil().severe("Error executing action " + actionData.getClass().getSimpleName() + ": " + e.getMessage());
             // Continue quand même la séquence
             executeNext();
         }

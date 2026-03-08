@@ -63,12 +63,12 @@ public class ProfileService {
      * @return the ProfileData object for the given player ID, or null if not found
      */
     public ProfileData getProfileData(UUID playerId) {
-        if(!profilesMap.containsKey(playerId)) {
-            ProfileData profileData = Main.getInstance().getDatabaseManager().loadProfileData(playerId);
-            profilesMap.fastPut(playerId, profileData);
-            return profileData;
+        ProfileData data = profilesMap.get(playerId);
+        if (data == null) {
+            data = Main.getInstance().getDatabaseManager().loadProfileData(playerId);
+            profilesMap.fastPut(playerId, data);
         }
-        return profilesMap.get(playerId);
+        return data;
     }
 
     /**

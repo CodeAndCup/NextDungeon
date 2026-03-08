@@ -46,12 +46,19 @@ public class MySQLManager implements DatabaseManager {
         this.username = username;
         this.password = password;
 
-        // Create a thread pool for database operations
-        this.executorService = Executors.newCachedThreadPool(r -> {
-            Thread thread = new Thread(r, "MySQL-Worker-" + ThreadLocalRandom.current().nextInt(1000));
-            thread.setDaemon(true);
-            return thread;
-        });
+        // Create a bounded thread pool for database operations
+        this.executorService = new ThreadPoolExecutor(
+                5,   // core pool size
+                20,  // maximum pool size
+                60L, TimeUnit.SECONDS,  // keep-alive time for idle threads
+                new java.util.concurrent.LinkedBlockingQueue<>(200),  // bounded work queue
+                r -> {
+                    Thread thread = new Thread(r, "MySQL-Worker-" + ThreadLocalRandom.current().nextInt(1000));
+                    thread.setDaemon(true);
+                    return thread;
+                },
+                new ThreadPoolExecutor.CallerRunsPolicy()  // back-pressure when queue is full
+        );
     }
 
     /**
@@ -63,6 +70,12 @@ public class MySQLManager implements DatabaseManager {
         config.setJdbcUrl("jdbc:mysql://" + host + ":" + port + "/" + database + "?useSSL=false&#00FF00llowPublicKeyRetrieval=true&serverTimezone=UTC");
         config.setUsername(username);
         config.setPassword(password);
+        config.setConnectionTimeout(30000);
+        config.setIdleTimeout(600000);
+        config.setMaxLifetime(1800000);
+        config.setMaximumPoolSize(20);
+        config.setMinimumIdle(5);
+        config.setLeakDetectionThreshold(60000);
 
         this.dataSource = new HikariDataSource(config);
         createTables();
