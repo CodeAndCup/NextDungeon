@@ -28,10 +28,12 @@ public class GlobalLeaveListener implements Listener {
         Player player = event.getPlayer();
 
         // Clean up player-specific variables to prevent memory leak
-        Main.getInstance().getVariableRegistry().clearPlayerVariables(player);
+        if(Main.getInstance().getVariableRegistry() != null)
+            Main.getInstance().getVariableRegistry().clearPlayerVariables(player);
 
         // Clean up region trigger handler state to prevent memory leak
-        Main.getInstance().getTriggersRegistry().cleanupPlayer(player.getUniqueId());
+        if( Main.getInstance().getTriggersRegistry() != null)
+            Main.getInstance().getTriggersRegistry().cleanupPlayer(player.getUniqueId());
 
         BukkitTask task = Bukkit.getScheduler().runTaskLaterAsynchronously(Main.getInstance(), () -> {
             Main.getInstance().getProfileService().saveProfileData(player.getUniqueId());
