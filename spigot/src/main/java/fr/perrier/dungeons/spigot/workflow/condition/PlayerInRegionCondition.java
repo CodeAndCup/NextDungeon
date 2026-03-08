@@ -43,6 +43,10 @@ public class PlayerInRegionCondition extends Action implements BlocklyAction {
     private List<Action> ifActions;
     private List<Action> elseActions;
 
+    // Cached region bounds (invalidated when pos1 or pos2 changes)
+    private transient double cachedMinX, cachedMaxX, cachedMinY, cachedMaxY, cachedMinZ, cachedMaxZ;
+    private transient volatile boolean boundsValid = false;
+
     public PlayerInRegionCondition() {
         super("PlayerInRegion", "player_in_region_condition");
         this.pos1 = new LocationBlock(0, 64, 0);
@@ -50,6 +54,16 @@ public class PlayerInRegionCondition extends Action implements BlocklyAction {
         this.comparison = "inside";
         this.ifActions = new ArrayList<>();
         this.elseActions = new ArrayList<>();
+    }
+
+    public void setPos1(LocationBlock pos1) {
+        this.pos1 = pos1;
+        this.boundsValid = false;
+    }
+
+    public void setPos2(LocationBlock pos2) {
+        this.pos2 = pos2;
+        this.boundsValid = false;
     }
 
     @Override
@@ -89,16 +103,19 @@ public class PlayerInRegionCondition extends Action implements BlocklyAction {
             return false;
         }
 
-        double minX = Math.min(pos1.getX(), pos2.getX());
-        double maxX = Math.max(pos1.getX(), pos2.getX());
-        double minY = Math.min(pos1.getY(), pos2.getY());
-        double maxY = Math.max(pos1.getY(), pos2.getY());
-        double minZ = Math.min(pos1.getZ(), pos2.getZ());
-        double maxZ = Math.max(pos1.getZ(), pos2.getZ());
+        if (!boundsValid) {
+            cachedMinX = Math.min(pos1.getX(), pos2.getX());
+            cachedMaxX = Math.max(pos1.getX(), pos2.getX());
+            cachedMinY = Math.min(pos1.getY(), pos2.getY());
+            cachedMaxY = Math.max(pos1.getY(), pos2.getY());
+            cachedMinZ = Math.min(pos1.getZ(), pos2.getZ());
+            cachedMaxZ = Math.max(pos1.getZ(), pos2.getZ());
+            boundsValid = true;
+        }
 
-        boolean inside = playerLoc.getX() >= minX && playerLoc.getX() <= maxX
-                && playerLoc.getY() >= minY && playerLoc.getY() <= maxY
-                && playerLoc.getZ() >= minZ && playerLoc.getZ() <= maxZ;
+        boolean inside = playerLoc.getX() >= cachedMinX && playerLoc.getX() <= cachedMaxX
+                && playerLoc.getY() >= cachedMinY && playerLoc.getY() <= cachedMaxY
+                && playerLoc.getZ() >= cachedMinZ && playerLoc.getZ() <= cachedMaxZ;
 
         // If comparison is "outside", invert the result
         if ("outside".equals(comparison)) {

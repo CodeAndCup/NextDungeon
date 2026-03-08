@@ -18,6 +18,7 @@ public class LoggerUtil {
 
     private LoggerUtil() {
         debugEnabled = false;
+        logBroadcastType = LogBroadcastType.CONSOLE;
     }
 
     public static LoggerUtil getInstance() {

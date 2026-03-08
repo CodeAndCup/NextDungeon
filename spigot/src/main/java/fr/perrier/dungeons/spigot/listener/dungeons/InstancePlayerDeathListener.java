@@ -77,6 +77,31 @@ public class InstancePlayerDeathListener implements Listener {
     }
 
     /**
+     * Cleans up ghost state when a player disconnects to prevent memory leaks.
+     *
+     * @param event the player quit event
+     */
+    @EventHandler
+    public void onPlayerQuit(org.bukkit.event.player.PlayerQuitEvent event) {
+        Player player = event.getPlayer();
+        GhostData data = GHOST_DATA.remove(player.getUniqueId());
+        if (data != null) {
+            // Cancel the ghost timer task
+            if (data.getTaskId() != -1) {
+                Bukkit.getScheduler().cancelTask(data.getTaskId());
+            }
+            // Remove the health bar display entity
+            if (data.getHealthBarDisplay() != null && !data.getHealthBarDisplay().isDead()) {
+                data.getHealthBarDisplay().remove();
+            }
+            // Unlink the corpse NPC
+            if (data.getCorpseNpc() != null) {
+                data.getCorpseNpc().unlink();
+            }
+        }
+    }
+
+    /**
      * Handles the player death event.
      * Turns the player into a ghost, creates a corpse NPC, and starts the ghost timer.
      *
