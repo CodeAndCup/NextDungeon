@@ -3,6 +3,7 @@ package fr.perrier.dungeons.spigot.commands;
 import fr.perrier.cupcodeapi.commands.annotations.Command;
 import fr.perrier.cupcodeapi.commands.annotations.Param;
 import fr.perrier.cupcodeapi.utils.ChatUtil;
+import fr.perrier.dungeons.common.model.dungeon.FloorData;
 import fr.perrier.dungeons.common.module.NextDungeonModule;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.instance.InstanceInfo;
@@ -50,8 +51,13 @@ public class AdminCommands {
     @Command(
             names = {"dungeon admin edit start", "dungeons admin edit start", "nextdungeon admin edit start", "nextdungeons admin edit start", "nd admin edit start"},
             permission = "nextdungeons.admin")
-    public static void adminDungeonEditCommand(Player player, @Param(name = "Dungeon ID") String dungeonId, @Param(name = "Floor ID") String floorId) {
-        Floor floor = Floor.getFloor(dungeonId + "_" + floorId);
+    public static void adminDungeonEditCommand(Player player, @Param(name = "Floor ID", tabCompleteFlags = {"floors"}) FloorData floorData) {
+        if(floorData == null) {
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000FloorData not found."));
+            return;
+        }
+
+        Floor floor = Floor.getFloor(floorData.getId());
         if (floor == null) {
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Floor not found."));
             return;
@@ -273,26 +279,36 @@ public class AdminCommands {
     }
 
     @Command(names = {"dungeon admin queue clear", "dungeons admin queue clear", "nd admin queue clear"}, permission = "nextdungeons.admin")
-    public static void adminQueueClearCommand(Player player, @Param(name = "Floor ID") String floorId) {
+    public static void adminQueueClearCommand(Player player, @Param(name = "Floor ID", tabCompleteFlags = {"floors"}) FloorData floorData) {
+        if(floorData == null) {
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000FloorData not found."));
+            return;
+        }
+
         if (Main.getInstance().getDungeonQueueService() == null) {
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Queue service not available"));
             return;
         }
 
-        Main.getInstance().getDungeonQueueService().clearQueue(floorId);
-        player.sendMessage(ChatUtil.translate(Main.getPrefix() + "Queue cleared for floor: " + floorId));
+        Main.getInstance().getDungeonQueueService().clearQueue(floorData.getId());
+        player.sendMessage(ChatUtil.translate(Main.getPrefix() + "Queue cleared for floor: " + floorData.getId()));
     }
 
     @Command(names = {"dungeon admin queue list", "dungeons admin queue list", "nd admin queue list"}, permission = "nextdungeons.admin")
-    public static void adminQueueListCommand(Player player, @Param(name = "Floor ID") String floorId) {
+    public static void adminQueueListCommand(Player player, @Param(name = "Floor ID", tabCompleteFlags = {"floors"}) FloorData floorData) {
+        if(floorData == null) {
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000FloorData not found."));
+            return;
+        }
+
         if (Main.getInstance().getDungeonQueueService() == null) {
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Queue service not available"));
             return;
         }
 
-        Floor floor = Floor.getFloor(floorId);
+        Floor floor = Floor.getFloor(floorData.getId());
         if (floor == null) {
-            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Floor not found: " + floorId));
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Floor not found: " + floorData.getId()));
             return;
         }
 
@@ -300,7 +316,7 @@ public class AdminCommands {
         player.sendMessage(ChatUtil.translate("<gradient:#8B0000:bold>NextDungeon</gradient:#D10000> &8| &fQueue for " + floor.getName()));
         player.sendMessage("");
 
-        var entries = Main.getInstance().getDungeonQueueService().getQueueEntries(floorId);
+        var entries = Main.getInstance().getDungeonQueueService().getQueueEntries(floorData.getId());
         if (entries.isEmpty()) {
             player.sendMessage(ChatUtil.translate("&7No players in queue"));
         } else {
@@ -374,13 +390,17 @@ public class AdminCommands {
     }
 
     @Command(names = {"dungeon admin module unload", "dungeons admin module unload", "nd admin module unload"}, permission = "nextdungeons.admin")
-    public static void adminModuleUnloadCommand(Player player, @Param(name = "Module ID") String moduleId) {
+    public static void adminModuleUnloadCommand(Player player,  @Param(name = "Module ID", tabCompleteFlags = {"modules"}) NextDungeonModule module) {
+        if(module == null) {
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Module not found."));
+            return;
+        }
+
         ModuleLoader loader = Main.getInstance().getModuleLoader();
         try {
-            String name = getModuleName(player, loader, moduleId);
-            boolean success = loader.unloadModule(moduleId);
+            boolean success = loader.unloadModule(module.getId());
             if (success) {
-                player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#00FF00✓ &fModule &e" + name + " &f(&7" + moduleId + "&f) déchargé avec succès."));
+                player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#00FF00✓ &fModule &e" + module.getName() + " &f(&7" + module.getId() + "&f) déchargé avec succès."));
             } else {
                 player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Échec du déchargement. Vérifiez la console pour les détails."));
             }
@@ -389,42 +409,20 @@ public class AdminCommands {
     }
 
     @Command(names = {"dungeon admin module reload", "dungeons admin module reload", "nd admin module reload"}, permission = "nextdungeons.admin")
-    public static void adminModuleReloadCommand(Player player, @Param(name = "Module ID") String moduleId) {
+    public static void adminModuleReloadCommand(Player player, @Param(name = "Module ID", tabCompleteFlags = {"modules"}) NextDungeonModule module) {
+        if(module == null) {
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Module not found."));
+            return;
+        }
+
         ModuleLoader loader = Main.getInstance().getModuleLoader();
-        try {
-            String name = getModuleName(player, loader, moduleId);
-            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&7Rechargement du module &e" + name + "&7..."));
-            boolean success = loader.reloadModule(moduleId);
-            if (success) {
-                player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#00FF00✓ &fModule &e" + name + " &f(&7" + moduleId + "&f) rechargé avec succès."));
-            } else {
-                player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Échec du rechargement. Vérifiez la console pour les détails."));
-            }
-        } catch (NullPointerException ignored) {
-        }
-    }
+        player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&7Rechargement du module &e" + module.getName() + "&7..."));
+        boolean success = loader.reloadModule(module.getId());
 
-    /**
-     * Helper method to get module name by ID with error handling.
-     *
-     * @param player   The player to send error messages to.
-     * @param loader   The module loader instance.
-     * @param moduleId The ID of the module.
-     * @return The name of the module if found.
-     * @throws NullPointerException if the loader is null or module not found.
-     */
-    private static String getModuleName(Player player, ModuleLoader loader, String moduleId) throws NullPointerException {
-        if (loader == null) {
-            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Module system not available."));
-            throw new NullPointerException("Module loader is null");
+        if (success) {
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#00FF00✓ &fModule &e" + module.getName() + " &f(&7" + module.getId() + "&f) rechargé avec succès."));
+        } else {
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Échec du rechargement. Vérifiez la console pour les détails."));
         }
-
-        NextDungeonModule module = loader.getLoadedModules().get(moduleId);
-        if (module == null) {
-            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Aucun module chargé avec l'ID : &e" + moduleId));
-            throw new NullPointerException("Module loader is null");
-        }
-
-        return module.getName();
     }
 }

@@ -3,6 +3,7 @@ package fr.perrier.dungeons.spigot.commands;
 import fr.perrier.cupcodeapi.commands.annotations.Command;
 import fr.perrier.cupcodeapi.commands.annotations.Param;
 import fr.perrier.cupcodeapi.utils.ChatUtil;
+import fr.perrier.dungeons.common.model.dungeon.FloorData;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.model.Dungeon;
 import fr.perrier.dungeons.spigot.model.Floor;
@@ -33,9 +34,7 @@ public class PlayerCommands {
     }
 
     @Command(names = {"dungeon join", "dungeons join", "nd join"})
-    public static void onDungeonJoinCommand(CommandSender sender, @Param(name = "Dungeon ID")String dungeonId, @Param(name = "Floor ID")String floorId) {
-        String completeId = dungeonId + "_" + floorId;
-
+    public static void onDungeonJoinCommand(CommandSender sender, @Param(name = "Floor ID", tabCompleteFlags = {"floors"}) FloorData floorData) {
         if(isSenderNotAPlayer(sender)) return;
         Player player = (Player) sender;
 
@@ -44,22 +43,22 @@ public class PlayerCommands {
             return;
         }
 
-        if (dungeonId == null || dungeonId.isEmpty() || floorId == null || floorId.isEmpty()) {
-            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Please specify a floor ID"));
+        if (floorData == null) {
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000FloorData not found."));
             return;
         }
 
-        Floor floor = Floor.getFloor(completeId);
+        Floor floor = Floor.getFloor(floorData.getId());
         if (floor == null) {
-            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Floor not found: " + floorId));
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Floor not found: " + floorData.getId()));
             return;
         }
 
         // Create a temporary party for the player if they don't have one, so they can join the queue as a solo player.
         if(DungeonPartyImpl.getDungeonPartyOf(player) == null) {
             new DungeonPartyImpl.Builder()
-                    .setDungeonId(dungeonId)
-                    .setFloorId(floorId)
+                    .setDungeonId(floorData.getDungeonId())
+                    .setFloorId(floorData.getId())
                     .setMinLevel(0)
                     .setDescription("")
                     .setLeader(player)
@@ -70,7 +69,7 @@ public class PlayerCommands {
     }
 
     @Command(names = {"dungeon leave", "dungeons leave", "nd leave"})
-    public static void onDungeonLeaveCommand(CommandSender sender, @Param(name = "Floor ID", wildcard = true) String floorId) {
+    public static void onDungeonLeaveCommand(CommandSender sender, @Param(name = "Floor ID", tabCompleteFlags = {"floors"}) FloorData floorData) {
         if(isSenderNotAPlayer(sender)) return;
         Player player = (Player) sender;
 
@@ -79,13 +78,13 @@ public class PlayerCommands {
             return;
         }
 
-        if (floorId == null || floorId.isEmpty()) {
-            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Please specify a floor ID"));
+        if (floorData == null) {
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000FloorData not found."));
             return;
         }
 
-        if (Main.getInstance().getQueueManager().removePlayerFromQueue(player, floorId)) {
-            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "Removed from queue for floor: " + floorId));
+        if (Main.getInstance().getQueueManager().removePlayerFromQueue(player, floorData.getId())) {
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "Removed from queue for floor: " + floorData.getId()));
         } else {
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000You are not in the queue for this floor"));
         }

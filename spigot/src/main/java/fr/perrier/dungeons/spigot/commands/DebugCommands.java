@@ -107,10 +107,10 @@ public class DebugCommands {
     }
 
     @Command(names = "dungeon debug floor")
-    public static void debugDungeonFloorCommand(Player player, @Param(name = "dungeonId")String dungeonId, @Param(name = "floorId") String floorId) {
-        Floor floor = Floor.getFloor(dungeonId + "_" + floorId);
+    public static void debugDungeonFloorCommand(Player player,  @Param(name = "Floor ID", tabCompleteFlags = {"floors"}) FloorData floorData) {
+        Floor floor = Floor.getFloor(floorData.getId());
         if (floor == null) {
-            player.sendMessage(ChatUtil.translate("&#FF0000Floor with ID '" + floorId + "' not found."));
+            player.sendMessage(ChatUtil.translate("&#FF0000Floor with ID '" + floorData.getId() + "' not found."));
             return;
         }
         player.sendMessage(ChatUtil.getBar());
@@ -124,10 +124,10 @@ public class DebugCommands {
     }
 
     @Command(names = "dungeon debug trigger")
-    public static void debugDungeonTriggerCommand(Player player, @Param(name = "dungeonId")String dungeonId, @Param(name = "floorId") String floorId) {
-        Floor floor = Floor.getFloor(dungeonId + "_" + floorId);
+    public static void debugDungeonTriggerCommand(Player player, @Param(name = "Floor ID", tabCompleteFlags = {"floors"}) FloorData floorData) {
+        Floor floor = Floor.getFloor(floorData.getId());
         if (floor == null) {
-            player.sendMessage(ChatUtil.translate("&#FF0000Floor with ID '" + floorId + "' not found."));
+            player.sendMessage(ChatUtil.translate("&#FF0000Floor with ID '" + floorData.getId() + "' not found."));
             return;
         }
         player.sendMessage(ChatUtil.getBar());

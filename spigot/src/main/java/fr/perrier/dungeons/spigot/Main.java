@@ -10,10 +10,14 @@ import com.github.juliarn.npclib.bukkit.protocol.BukkitProtocolAdapter;
 import fr.perrier.cupcodeapi.CupCodeAPI;
 import fr.perrier.cupcodeapi.commands.CommandHandler;
 import fr.perrier.cupcodeapi.menuapi.MenuAPI;
+import fr.perrier.dungeons.common.model.dungeon.FloorData;
 import fr.perrier.dungeons.spigot.commands.AdminCommands;
 import fr.perrier.dungeons.spigot.commands.ConsoleCommands;
 import fr.perrier.dungeons.spigot.commands.DebugCommands;
 import fr.perrier.dungeons.spigot.commands.PlayerCommands;
+import fr.perrier.dungeons.spigot.commands.params.DungeonParameterType;
+import fr.perrier.dungeons.spigot.commands.params.FloorParameterType;
+import fr.perrier.dungeons.spigot.commands.params.ModuleParameterType;
 import fr.perrier.dungeons.spigot.configuration.RedisConfigLoader;
 import fr.perrier.dungeons.spigot.database.DatabaseFactory;
 import fr.perrier.dungeons.spigot.database.DatabaseManager;
@@ -337,6 +341,10 @@ public final class Main extends JavaPlugin {
      * from {@link AdminCommands}, {@link DebugCommands} and {@link PlayerCommands}.
      */
     private void loadCommands() {
+        CommandHandler.registerParameterType(Dungeon.class, new DungeonParameterType());
+        CommandHandler.registerParameterType(FloorData.class, new FloorParameterType());
+        CommandHandler.registerParameterType(ModuleParameterType.class, new ModuleParameterType());
+
         commandHandler.registerCommands(AdminCommands.class);
         commandHandler.registerCommands(DebugCommands.class);
         commandHandler.registerCommands(PlayerCommands.class);
