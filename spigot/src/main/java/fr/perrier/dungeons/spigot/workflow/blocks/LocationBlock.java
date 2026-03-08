@@ -76,10 +76,12 @@ public class LocationBlock implements Serializable {
     public Location toLocation(World defaultWorld) {
         World world;
         if (hasWorld && worldName != null && !worldName.isEmpty()) {
-            if (cachedWorld == null || !cachedWorld.getName().equals(worldName)) {
-                cachedWorld = Bukkit.getWorld(worldName);
+            World cached = cachedWorld;
+            if (cached == null || !worldName.equals(cached.getName())) {
+                cached = Bukkit.getWorld(worldName);
+                cachedWorld = cached;
             }
-            world = cachedWorld;
+            world = cached;
         } else {
             world = defaultWorld;
         }
