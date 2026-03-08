@@ -98,14 +98,14 @@ public class WebEditorRequestSubscriber implements PacketListener {
         switch (packet.getRequestType()) {
             case LOAD_TRIGGERS -> {
                 WebEditorRequestPacket.LoadTriggersData data = gson.fromJson(
-                    gson.toJson(packet.getData()), 
+                    gson.toJsonTree(packet.getData()),
                     WebEditorRequestPacket.LoadTriggersData.class
                 );
                 return messageHandler.handleLoadTriggersRequest(data.getDungeonName(), data.getFloorId());
             }
             case SAVE_TRIGGERS -> {
                 WebEditorRequestPacket.SaveTriggersData data = gson.fromJson(
-                    gson.toJson(packet.getData()), 
+                    gson.toJsonTree(packet.getData()),
                     WebEditorRequestPacket.SaveTriggersData.class
                 );
                 return messageHandler.handleSaveTriggersRequest(
@@ -120,14 +120,14 @@ public class WebEditorRequestSubscriber implements PacketListener {
             }
             case GENERATE_BLOCKLY_JS -> {
                 WebEditorRequestPacket.GenerateBlocklyJsData data = gson.fromJson(
-                    gson.toJson(packet.getData()), 
+                    gson.toJsonTree(packet.getData()),
                     WebEditorRequestPacket.GenerateBlocklyJsData.class
                 );
                 return messageHandler.handleGenerateBlocklyJsRequest(data.getEditorUuid());
             }
             case GET_FLOOR_INFO -> {
                 WebEditorRequestPacket.FloorInfoData data = gson.fromJson(
-                    gson.toJson(packet.getData()), 
+                    gson.toJsonTree(packet.getData()),
                     WebEditorRequestPacket.FloorInfoData.class
                 );
                 return messageHandler.handleGetFloorInfoRequest(

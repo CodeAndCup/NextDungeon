@@ -33,6 +33,14 @@ public class PlaySoundAction extends Action implements BlocklyAction {
             defaultValue = "ENTITY_PLAYER_LEVELUP", order = 1)
     private String sound;
 
+    // Transient cached enum to avoid Sound.valueOf() parse on every execute
+    private transient Sound cachedSoundEnum;
+
+    public void setSound(String sound) {
+        this.sound = sound;
+        this.cachedSoundEnum = null;
+    }
+
     @BlocklyField(type = BlocklyField.FieldType.NUMBER_INPUT, label = "Volume:",
             defaultValue = "1.0", order = 2)
     private float volume;
@@ -69,7 +77,10 @@ public class PlaySoundAction extends Action implements BlocklyAction {
         }
 
         try {
-            Sound soundEnum = Sound.valueOf(sound.toUpperCase());
+            if (cachedSoundEnum == null) {
+                cachedSoundEnum = Sound.valueOf(sound.toUpperCase());
+            }
+            Sound soundEnum = cachedSoundEnum;
             Location soundLocation = location != null ? location : triggerPlayer.getLocation();
 
             if ("@all".equals(target)) {

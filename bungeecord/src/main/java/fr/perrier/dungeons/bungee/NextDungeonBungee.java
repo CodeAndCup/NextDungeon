@@ -22,6 +22,11 @@ public class NextDungeonBungee extends Plugin {
     private Pidgin messaging;
     
     private int webEditorPort = 7734; // Port par défaut
+    private String redisHost = "localhost";
+    private int redisPort = 6379;
+    private String redisUsername = null;
+    private String redisPassword = null;
+    private String redisTopic = "dungeons:packets";
 
     @Override
     public void onEnable() {
@@ -33,13 +38,12 @@ public class NextDungeonBungee extends Plugin {
         
         // Initialize messaging system
         try {
-            // TODO: Read from config file
             this.messaging = new Pidgin(
-                "dungeons:packets",  // topic name
-                "localhost",  // redis host
-                6379,  // redis port
-                null,  // redis username
-                null,   // redis password
+                redisTopic,
+                redisHost,
+                redisPort,
+                redisUsername,
+                redisPassword,
                 0
             );
             this.messaging.registerAdapter(WebEditorResponsePacket.class, new WebEditorResponseSubscriber());
@@ -91,6 +95,13 @@ public class NextDungeonBungee extends Plugin {
                 ).load(configFile);
                 
                 webEditorPort = config.getInt("webeditor.port", 7734);
+                redisHost = config.getString("redis.host", "localhost");
+                redisPort = config.getInt("redis.port", 6379);
+                String rawUsername = config.getString("redis.username", "");
+                String rawPassword = config.getString("redis.password", "");
+                redisUsername = (rawUsername == null || rawUsername.isEmpty() || "default".equals(rawUsername)) ? null : rawUsername;
+                redisPassword = (rawPassword == null || rawPassword.isEmpty()) ? null : rawPassword;
+                redisTopic = config.getString("redis.topic", "nextdungeon") + ":packets";
                 getLogger().info("Port web éditeur configuré: " + webEditorPort);
             }
         } catch (Exception e) {

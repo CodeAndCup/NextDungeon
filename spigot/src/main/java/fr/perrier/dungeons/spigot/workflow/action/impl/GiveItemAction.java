@@ -34,6 +34,14 @@ public class GiveItemAction extends Action implements BlocklyAction {
             defaultValue = "DIAMOND", order = 1)
     private String itemMaterial;
 
+    // Transient cached enum to avoid Material.valueOf() parse on every execute
+    private transient org.bukkit.Material cachedMaterialEnum;
+
+    public void setItemMaterial(String itemMaterial) {
+        this.itemMaterial = itemMaterial;
+        this.cachedMaterialEnum = null;
+    }
+
     @BlocklyField(type = BlocklyField.FieldType.NUMBER_INPUT, label = "Quantité:",
             defaultValue = "1", order = 2)
     private int amount;
@@ -70,7 +78,10 @@ public class GiveItemAction extends Action implements BlocklyAction {
         }
 
         try {
-            Material material = Material.valueOf(itemMaterial.toUpperCase());
+            if (cachedMaterialEnum == null) {
+                cachedMaterialEnum = Material.valueOf(itemMaterial.toUpperCase());
+            }
+            Material material = cachedMaterialEnum;
             ItemStack item = new ItemStack(material, Math.max(1, amount));
 
             // Appliquer un nom personnalisé si fourni

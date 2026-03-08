@@ -7,6 +7,7 @@ import fr.perrier.dungeons.spigot.parties.PartyService;
 import org.bukkit.entity.Player;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Default implementation of IDungeonParty.
@@ -14,7 +15,7 @@ import java.util.*;
  */
 public class DungeonPartyImpl implements IDungeonParty {
 
-    private static final Map<UUID, DungeonPartyImpl> dungeonParties = new HashMap<>();
+    private static final Map<UUID, DungeonPartyImpl> dungeonParties = new ConcurrentHashMap<>();
 
     private final IParty party;
     private String dungeonId;

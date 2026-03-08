@@ -33,6 +33,14 @@ public class SpawnParticleAction extends Action implements BlocklyAction {
             defaultValue = "FLAME", order = 1)
     private String particleType;
 
+    // Transient cached enum to avoid Particle.valueOf() parse on every execute
+    private transient Particle cachedParticleEnum;
+
+    public void setParticleType(String particleType) {
+        this.particleType = particleType;
+        this.cachedParticleEnum = null;
+    }
+
     @BlocklyField(type = BlocklyField.FieldType.NUMBER_INPUT, label = "Quantité:",
             defaultValue = "10", order = 2)
     private int count;
@@ -87,7 +95,10 @@ public class SpawnParticleAction extends Action implements BlocklyAction {
         }
 
         try {
-            Particle particle = Particle.valueOf(particleType.toUpperCase());
+            if (cachedParticleEnum == null) {
+                cachedParticleEnum = Particle.valueOf(particleType.toUpperCase());
+            }
+            Particle particle = cachedParticleEnum;
 
             // Déterminer la position
             Location spawnLocation;

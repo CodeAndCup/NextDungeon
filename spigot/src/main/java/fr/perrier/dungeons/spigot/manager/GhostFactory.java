@@ -54,7 +54,9 @@ public class GhostFactory {
 
     private void createTask() {
         task = Bukkit.getScheduler().runTaskTimer(Main.getInstance(), () -> {
-            for (OfflinePlayer member : getMembers()) {
+            OfflinePlayer[] members = getMembers();
+            if (members.length == 0) return;
+            for (OfflinePlayer member : members) {
                 Player player = member.getPlayer();
 
                 if (player != null) {

@@ -31,12 +31,17 @@ public class MongoManager implements DatabaseManager {
      */
     @Override
     public void connect() {
-        MongoShared mongoShard = new MongoShared("localhost", 27017);
+        String host = Main.getInstance().getConfig().getString("DatabaseConfiguration.mongodb.host", "localhost");
+        int port = Main.getInstance().getConfig().getInt("DatabaseConfiguration.mongodb.port", 27017);
+        MongoShared mongoShard = new MongoShared(host, port);
         this.mongoClient = new MongoClient(new MongoClientURI(mongoShard.getURI()));
         this.database = mongoClient.getDatabase("dungeons");
-        
+
         this.playersCollection = database.getCollection("profiles");
         this.triggersCollection = database.getCollection("floor_triggers");
+
+        // Create index on floor_id for efficient queries
+        triggersCollection.createIndex(new Document("floor_id", 1));
     }
 
     /**

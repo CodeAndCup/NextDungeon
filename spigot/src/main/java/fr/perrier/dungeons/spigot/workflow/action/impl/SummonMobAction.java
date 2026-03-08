@@ -33,6 +33,16 @@ public class SummonMobAction extends Action implements BlocklyAction {
             defaultValue = "ZOMBIE", order = 1)
     private String mobType;
 
+    // Transient cached enum to avoid EntityType.valueOf() parse on every execute
+    private transient EntityType cachedEntityType;
+    private transient String cachedEntityTypeName; // track which name was cached
+
+    public void setMobType(String mobType) {
+        this.mobType = mobType;
+        this.cachedEntityType = null;
+        this.cachedEntityTypeName = null;
+    }
+
     @BlocklyField(type = BlocklyField.FieldType.LOCATION_INPUT, label = "Position:",
             defaultValue = "", order = 2)
     private LocationBlock location;
@@ -53,7 +63,12 @@ public class SummonMobAction extends Action implements BlocklyAction {
 
         EntityType entityType = null;
         try {
-            entityType = EntityType.valueOf(mobType.toUpperCase(Locale.ROOT));
+            String upperMobType = mobType.toUpperCase(Locale.ROOT);
+            if (!upperMobType.equals(cachedEntityTypeName)) {
+                cachedEntityTypeName = upperMobType;
+                cachedEntityType = EntityType.valueOf(upperMobType);
+            }
+            entityType = cachedEntityType;
         } catch (IllegalArgumentException ignored) {}
 
         if(entityType == null) {

@@ -131,15 +131,11 @@ public class Pidgin {
         public void onMessage(CharSequence charSequence, String s) {
             executorService.submit(() -> {
                 try {
-                    String id = s.split(";")[0];
-                    Packet packet = gson.fromJson(s.split(";")[1], cTypes.get(id));
+                    String[] parts = s.split(";", 2);
+                    String id = parts[0];
+                    Packet packet = gson.fromJson(parts[1], cTypes.get(id));
 
-                    Class<? extends Packet> clazz = null;
-                    for (Map.Entry<Class<? extends Packet>, String> entry : types.entrySet()) {
-                        Class<? extends Packet> aClass = entry.getKey();
-                        String s1 = entry.getValue();
-                        if (s1.equalsIgnoreCase(id)) clazz = aClass;
-                    }
+                    Class<? extends Packet> clazz = cTypes.get(id);
 
                     PacketListener listener = adapters.get(clazz);
 

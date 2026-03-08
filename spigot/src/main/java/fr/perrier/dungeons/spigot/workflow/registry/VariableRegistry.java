@@ -22,6 +22,9 @@ public class VariableRegistry {
     // Player-specific variables
     private final Map<UUID, Map<String, Object>> playerVariables = new ConcurrentHashMap<>();
 
+    // Compiled pattern for variable placeholder replacement
+    private static final Pattern VARIABLE_PATTERN = Pattern.compile("\\{(global|player)\\.([a-zA-Z0-9_]+)\\}");
+
 
     public VariableRegistry() {
         Main.getLoggerUtil().info("Variable Manager initialized");
@@ -225,9 +228,7 @@ public class VariableRegistry {
      * @return the formatted message with variables replaced
      */
     public String formatVariable(String message, Player triggerPlayer) {
-        String regex = "\\{(global|player)\\.([a-zA-Z0-9_]+)\\}";
-        Pattern pattern = Pattern.compile(regex);
-        Matcher matcher = pattern.matcher(message);
+        Matcher matcher = VARIABLE_PATTERN.matcher(message);
         StringBuilder sb = new StringBuilder();
         while (matcher.find()) {
             String scope = matcher.group(1);

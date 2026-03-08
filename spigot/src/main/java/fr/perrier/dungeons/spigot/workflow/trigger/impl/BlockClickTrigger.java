@@ -42,6 +42,14 @@ public class BlockClickTrigger extends Trigger implements BlocklyTrigger {
             defaultValue = "STONE", order = 3)
     private String blockMaterial;
 
+    // Transient cached enum to avoid Material.valueOf() parse on every trigger check
+    private transient org.bukkit.Material cachedMaterialEnum;
+
+    public void setBlockMaterial(String blockMaterial) {
+        this.blockMaterial = blockMaterial;
+        this.cachedMaterialEnum = null;
+    }
+
     @BlocklyField(type = BlocklyField.FieldType.LOCATION_INPUT, label = "Position du bloc :", defaultValue = "", order = 4)
     private LocationBlock locationBlock;
 
@@ -153,8 +161,10 @@ public class BlockClickTrigger extends Trigger implements BlocklyTrigger {
         // Vérifier le matériau
         if (blockMaterial != null && !blockMaterial.isEmpty() && !blockMaterial.equals("ANY")) {
             try {
-                Material expectedMaterial = Material.valueOf(blockMaterial.toUpperCase());
-                if (clickedBlock.getType() != expectedMaterial) {
+                if (cachedMaterialEnum == null) {
+                    cachedMaterialEnum = Material.valueOf(blockMaterial.toUpperCase());
+                }
+                if (clickedBlock.getType() != cachedMaterialEnum) {
                     return false;
                 }
             } catch (IllegalArgumentException e) {
@@ -227,8 +237,10 @@ public class BlockClickTrigger extends Trigger implements BlocklyTrigger {
         // Vérifier le matériau
         if (blockMaterial != null && !blockMaterial.isEmpty() && !blockMaterial.equals("ANY")) {
             try {
-                Material expectedMaterial = Material.valueOf(blockMaterial.toUpperCase());
-                boolean matches = block.getType() == expectedMaterial;
+                if (cachedMaterialEnum == null) {
+                    cachedMaterialEnum = Material.valueOf(blockMaterial.toUpperCase());
+                }
+                boolean matches = block.getType() == cachedMaterialEnum;
                 if(fr.perrier.dungeons.spigot.Main.getLoggerUtil().isDebugEnabled()) {
                     fr.perrier.dungeons.spigot.Main.getLoggerUtil().info("  Material check: " + (matches ? "✅ MATCH" : "❌ NO MATCH"));
                 }

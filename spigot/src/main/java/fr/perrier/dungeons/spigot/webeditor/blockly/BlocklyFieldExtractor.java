@@ -6,10 +6,18 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class BlocklyFieldExtractor {
 
+    private static final Map<Class<?>, List<BlocklyFieldInfo>> FIELD_CACHE = new ConcurrentHashMap<>();
+
     public static List<BlocklyFieldInfo> extractFields(Class<?> clazz) {
+        return FIELD_CACHE.computeIfAbsent(clazz, BlocklyFieldExtractor::computeFields);
+    }
+
+    private static List<BlocklyFieldInfo> computeFields(Class<?> clazz) {
         List<BlocklyFieldInfo> fields = new ArrayList<>();
 
         for (Field field : clazz.getDeclaredFields()) {

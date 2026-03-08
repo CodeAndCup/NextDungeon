@@ -38,6 +38,21 @@ public class TriggerFactory {
                 .excludeFieldsWithModifiers(Modifier.TRANSIENT, Modifier.STATIC)
                 .create();
 
+        // Cached reflection fields to avoid repeated getDeclaredField() calls
+        private static final java.lang.reflect.Field TRIGGER_ID_FIELD;
+        private static final java.lang.reflect.Field ENABLED_FIELD;
+
+        static {
+            try {
+                TRIGGER_ID_FIELD = TriggerData.class.getDeclaredField("triggerId");
+                TRIGGER_ID_FIELD.setAccessible(true);
+                ENABLED_FIELD = TriggerData.class.getDeclaredField("enabled");
+                ENABLED_FIELD.setAccessible(true);
+            } catch (NoSuchFieldException e) {
+                throw new ExceptionInInitializerError(e);
+            }
+        }
+
         public TriggerDeserializer(Class<T> triggerClass) {
             this.triggerClass = triggerClass;
         }
@@ -53,10 +68,8 @@ public class TriggerFactory {
 
                 // Check if triggerId is null (not in JSON or Gson bypassed constructor)
                 if (trigger.getTriggerId() == null) {
-                    // Use reflection to set the triggerId field
-                    java.lang.reflect.Field triggerIdField = TriggerData.class.getDeclaredField("triggerId");
-                    triggerIdField.setAccessible(true);
-                    triggerIdField.set(trigger, UUID.randomUUID());
+                    // Use cached reflection field to set the triggerId
+                    TRIGGER_ID_FIELD.set(trigger, UUID.randomUUID());
 
                     if (Main.getLoggerUtil().isDebugEnabled()) {
                         Main.getLoggerUtil().info("Generated new UUID for trigger: " + trigger.getTriggerId());
@@ -65,9 +78,7 @@ public class TriggerFactory {
 
                 // Check if enabled is not in JSON, set it to true (default value from constructor)
                 if (!jsonObject.has("enabled")) {
-                    java.lang.reflect.Field enabledField = TriggerData.class.getDeclaredField("enabled");
-                    enabledField.setAccessible(true);
-                    enabledField.set(trigger, true);
+                    ENABLED_FIELD.set(trigger, true);
 
                     if (Main.getLoggerUtil().isDebugEnabled()) {
                         Main.getLoggerUtil().info("Set enabled=true by default for trigger: " + trigger.getName());

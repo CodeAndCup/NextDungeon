@@ -16,6 +16,7 @@ import org.redisson.api.RedissonClient;
 
 import java.io.*;
 import java.net.InetSocketAddress;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import java.util.concurrent.Executors;
@@ -511,7 +512,7 @@ public class ProxyWebEditorServer {
 
             // Handle POST requests for queue clear
             if ("POST".equals(method) && path.startsWith("/dashboard/api/queue/clear/")) {
-                String floorId = path.substring("/dashboard/api/queue/clear/".length());
+                String floorId = URLDecoder.decode(path.substring("/dashboard/api/queue/clear/".length()), StandardCharsets.UTF_8);
                 if (floorId.isEmpty() || floorId.contains("..") || floorId.contains("/") || floorId.contains("\\")) {
                     sendJsonResponse(exchange, "{\"success\": false, \"error\": \"Invalid floor ID\"}");
                     return;
@@ -536,7 +537,7 @@ public class ProxyWebEditorServer {
                     default -> {
                         // Handle /dashboard/api/floor/{floorId}
                         if (path.startsWith("/dashboard/api/floor/")) {
-                            String floorId = path.substring("/dashboard/api/floor/".length());
+                            String floorId = URLDecoder.decode(path.substring("/dashboard/api/floor/".length()), StandardCharsets.UTF_8);
                             // Validate floorId to prevent path traversal
                             if (floorId.isEmpty() || floorId.contains("..") || floorId.contains("/") || floorId.contains("\\")) {
                                 yield "{\"success\": false, \"error\": \"Invalid floor ID\"}";
