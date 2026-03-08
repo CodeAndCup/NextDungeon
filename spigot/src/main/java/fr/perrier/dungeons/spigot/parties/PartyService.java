@@ -4,6 +4,7 @@ import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.parties.impl.alessio.AlessioDPPartyProvider;
 import fr.perrier.dungeons.spigot.parties.impl.internal.InternalPartyProvider;
 import fr.perrier.dungeons.spigot.utils.LoggerUtil;
+import lombok.Getter;
 import org.bukkit.entity.Player;
 
 import java.util.*;
@@ -16,7 +17,20 @@ import java.util.logging.Logger;
  */
 public class PartyService {
 
+    /**
+     * -- GETTER --
+     *  Gets the singleton instance.
+     *
+     */
+    @Getter
     private static PartyService instance;
+    /**
+     * -- GETTER --
+     *  Gets the active party provider.
+     *
+     * @return the active provider
+     */
+    @Getter
     private final IPartyProvider activeProvider;
     private final List<IPartyProvider> providers;
     private final LoggerUtil logger;
@@ -34,15 +48,6 @@ public class PartyService {
 
         logger.info("Party system initialized with provider: " + activeProvider.getName());
         instance = this;
-    }
-
-    /**
-     * Gets the singleton instance.
-     *
-     * @return the PartyService instance
-     */
-    public static PartyService getInstance() {
-        return instance;
     }
 
     /**
@@ -101,15 +106,6 @@ public class PartyService {
                 .filter(p -> p.getName().equals("Internal"))
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("No party provider available"));
-    }
-
-    /**
-     * Gets the active party provider.
-     *
-     * @return the active provider
-     */
-    public IPartyProvider getActiveProvider() {
-        return activeProvider;
     }
 
     /**

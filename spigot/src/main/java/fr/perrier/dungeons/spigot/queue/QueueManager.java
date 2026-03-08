@@ -7,6 +7,7 @@ import fr.perrier.dungeons.spigot.model.Floor;
 import fr.perrier.dungeons.spigot.model.FloorInstance;
 import fr.perrier.dungeons.spigot.parties.impl.DungeonPartyImpl;
 import lombok.RequiredArgsConstructor;
+import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
@@ -55,14 +56,13 @@ public class QueueManager {
      * Adds a player to the queue for a specific floor.
      *
      * @param player the player to add
-     * @param floor the floor to queue for
-     * @return true if added successfully
+     * @param floor  the floor to queue for
      */
-    public boolean addPlayerToQueue(Player player, Floor floor) {
+    public void addPlayerToQueue(Player player, Floor floor) {
         // Check if player is already in queue
         if (queueService.isPlayerInQueue(player.getUniqueId(), floor.getId())) {
             notifyPlayer(player, "You are already in the queue for " + floor.getName());
-            return false;
+            return;
         }
 
         QueueEntry entry = new QueueEntry(
@@ -82,10 +82,8 @@ public class QueueManager {
                     position.getTotalInQueue()
                 ));
             }
-            return true;
         }
 
-        return false;
     }
 
     /**
@@ -296,7 +294,7 @@ public class QueueManager {
         String formattedMessage = ChatUtil.translate(Main.getPrefix() + message);
 
         switch (type) {
-            case ACTION_BAR -> player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(formattedMessage));
+            case ACTION_BAR -> player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(formattedMessage, ChatColor.WHITE));
             case CHAT -> player.sendMessage(formattedMessage);
             case TITLE -> player.sendTitle("", formattedMessage, 10, 70, 20);
         }

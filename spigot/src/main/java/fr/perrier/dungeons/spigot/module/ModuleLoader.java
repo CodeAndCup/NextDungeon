@@ -5,6 +5,7 @@ import fr.perrier.dungeons.common.module.ModuleBlockDescriptor;
 import fr.perrier.dungeons.common.module.ModuleBlockRegistry;
 import fr.perrier.dungeons.common.module.NextDungeonModule;
 import fr.perrier.dungeons.spigot.Main;
+import lombok.Getter;
 
 import java.io.File;
 import java.net.URL;
@@ -25,6 +26,12 @@ public class ModuleLoader {
 
     private final Logger logger;
     private final File modulesDirectory;
+    /**
+     * -- GETTER --
+     *
+     * @return the shared block registry
+     */
+    @Getter
     private final DefaultModuleBlockRegistry blockRegistry;
     private final Map<String, NextDungeonModule> loadedModules = new ConcurrentHashMap<>();
     private final Map<String, URLClassLoader> moduleClassLoaders = new ConcurrentHashMap<>();
@@ -41,8 +48,11 @@ public class ModuleLoader {
      */
     public void loadAll() {
         if (!modulesDirectory.exists()) {
-            modulesDirectory.mkdirs();
-            logger.info("[ModuleLoader] Created modules directory: " + modulesDirectory.getAbsolutePath());
+            if(modulesDirectory.mkdirs()) {
+                logger.info("[ModuleLoader] Created modules directory: " + modulesDirectory.getAbsolutePath());
+            } else {
+                logger.severe("[ModuleLoader] Failed to create modules directory: " + modulesDirectory.getAbsolutePath());
+            }
             return;
         }
 
@@ -272,13 +282,6 @@ public class ModuleLoader {
         moduleClassLoaders.clear();
         actionHandlers.clear();
         logger.info("[ModuleLoader] All modules unloaded");
-    }
-
-    /**
-     * @return the shared block registry
-     */
-    public DefaultModuleBlockRegistry getBlockRegistry() {
-        return blockRegistry;
     }
 
     /**

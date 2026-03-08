@@ -30,4 +30,13 @@ public class ConsoleCommands {
         }
         new DungeonGateMenu(dungeon).openMenu(player);
     }
+
+    @Command(names = {"dungeon console end"}, permission = "dungeons.admin")
+    public static void endDungeon(CommandSender sender, @Param(name = "completed") boolean completed) {
+        if(!(sender instanceof ConsoleCommandSender)) {
+            sender.sendMessage("This command can only be executed by the console.");
+            return;
+        }
+        Main.getInstance().getDungeonService().getCurrentInstance().complete(completed);
+    }
 }

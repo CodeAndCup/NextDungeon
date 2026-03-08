@@ -36,10 +36,8 @@ public class PlayerCommands {
     public static void onDungeonJoinCommand(CommandSender sender, @Param(name = "Dungeon ID")String dungeonId, @Param(name = "Floor ID")String floorId) {
         String completeId = dungeonId + "_" + floorId;
 
-        if (!(sender instanceof Player player)) {
-            sender.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000This command can only be used by players"));
-            return;
-        }
+        if(isSenderNotAPlayer(sender)) return;
+        Player player = (Player) sender;
 
         if (Main.getInstance().getQueueManager() == null) {
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Queue system is not available on this server"));
@@ -73,10 +71,8 @@ public class PlayerCommands {
 
     @Command(names = {"dungeon leave", "dungeons leave", "nd leave"})
     public static void onDungeonLeaveCommand(CommandSender sender, @Param(name = "Floor ID", wildcard = true) String floorId) {
-        if (!(sender instanceof Player player)) {
-            sender.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000This command can only be used by players"));
-            return;
-        }
+        if(isSenderNotAPlayer(sender)) return;
+        Player player = (Player) sender;
 
         if (Main.getInstance().getQueueManager() == null) {
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Queue system is not available on this server"));
@@ -97,10 +93,8 @@ public class PlayerCommands {
 
     @Command(names = {"dungeon status", "dungeons status", "nd status"})
     public static void onDungeonStatusCommand(CommandSender sender) {
-        if (!(sender instanceof Player player)) {
-            sender.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000This command can only be used by players"));
-            return;
-        }
+        if(isSenderNotAPlayer(sender)) return;
+        Player player = (Player) sender;
 
         if (Main.getInstance().getQueueManager() == null) {
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Queue system is not available on this server"));
@@ -163,5 +157,13 @@ public class PlayerCommands {
 
         sender.sendMessage("");
         sender.sendMessage(ChatUtil.getBar());
+    }
+
+    private static boolean isSenderNotAPlayer(CommandSender sender) {
+        if (!(sender instanceof Player)) {
+            sender.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000This command can only be used by players"));
+            return true;
+        }
+        return false;
     }
 }

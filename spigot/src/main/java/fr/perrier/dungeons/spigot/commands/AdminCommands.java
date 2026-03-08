@@ -14,6 +14,7 @@ import fr.perrier.dungeons.spigot.utils.ServerUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
+import java.io.IOException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -31,12 +32,8 @@ public class AdminCommands {
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin edit stop &#D63333[--confirm]"));
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin webeditor start"));
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin webeditor stop"));
-        // Test commands
-        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin test &#D63333<dungeon> <floor>"));
         // Queue commands
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin queue &8- &fQueue management"));
-        // Other commands
-        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin import &#D63333<world> <dungeon> <floor>"));
         // Status commands
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin status &#D63333<dungeon> [floor]"));
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin goto &#D63333<server>"));
@@ -47,6 +44,8 @@ public class AdminCommands {
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin module reload &#D63333<moduleId>"));
         player.sendMessage(ChatUtil.getBar());
     }
+
+    // ======================= Edit Commands =======================
 
     @Command(
             names = {"dungeon admin edit start", "dungeons admin edit start", "nextdungeon admin edit start", "nextdungeons admin edit start", "nd admin edit start"},
@@ -92,17 +91,17 @@ public class AdminCommands {
 
         // Vérifier si des triggers existent dans la base de données
         Main.getInstance().getDatabaseManager().triggersExist(currentFloor.getId()).thenAccept(triggersExist -> {
-            if(!triggersExist) {
-                player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&eWarning: no saved triggers found for this floor in database."));
-                player.sendMessage(ChatUtil.translate("&eIf you have trigger changes they will be lost on the next dungeon start / edit."));
-                player.sendMessage(ChatUtil.translate("&eIf you want to discard without saving use &#FF0000/dungeon admin edit stop --confirm"));
-            } else{
-                if(!confirm.equalsIgnoreCase("--confirm")) {
+            if(!confirm.equalsIgnoreCase("--confirm")) {
+                if(!triggersExist) {
+                    player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&eWarning: no saved triggers found for this floor in database."));
+                    player.sendMessage(ChatUtil.translate("&eIf you have trigger changes they will be lost on the next dungeon start / edit."));
+                    player.sendMessage(ChatUtil.translate("&eIf you want to discard without saving use &#FF0000/dungeon admin edit stop --confirm"));
+                } else {
                     player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&fAre you sure you want to end your edit mode?"));
                     player.sendMessage(ChatUtil.translate("&fUse &b/dungeon admin edit stop --confirm &fif &#00FF00yes"));
-                } else {
-                    saveAndShutdown(player, currentFloor);
                 }
+            } else {
+                saveAndShutdown(player, currentFloor);
             }
         }).exceptionally(ex -> {
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Error checking triggers: " + ex.getMessage()));
@@ -175,10 +174,7 @@ public class AdminCommands {
         Main.getInstance().getWebEditorManager().stopWebEditor(player);
     }
 
-    @Command(names = "dungeon admin goto")
-    public static void adminDungeonGotoCommand(Player player, @Param(name = "Dungeon Server Name") String server) {
-        ServerUtil.sendToServer(player,server);
-    }
+    // ======================= Utils Commands =======================
 
     @Command(
             names = {"dungeon admin status", "dungeons admin status", "nextdungeon admin status", "nextdungeons admin status", "nd admin status"},
@@ -221,6 +217,13 @@ public class AdminCommands {
         }
         player.sendMessage(ChatUtil.getBar());
     }
+
+    @Command(names = "dungeon admin goto")
+    public static void adminDungeonGotoCommand(Player player, @Param(name = "Dungeon Server Name") String server) {
+        ServerUtil.sendToServer(player,server);
+    }
+
+    // ======================= Queue Commands =======================
 
     @Command(names = {"dungeon admin queue", "dungeons admin queue", "nd admin queue"}, permission = "nextdungeons.admin")
     public static void adminQueueCommand(Player player) {
@@ -373,47 +376,55 @@ public class AdminCommands {
     @Command(names = {"dungeon admin module unload", "dungeons admin module unload", "nd admin module unload"}, permission = "nextdungeons.admin")
     public static void adminModuleUnloadCommand(Player player, @Param(name = "Module ID") String moduleId) {
         ModuleLoader loader = Main.getInstance().getModuleLoader();
-        if (loader == null) {
-            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Module system not available."));
-            return;
-        }
-
-        NextDungeonModule module = loader.getLoadedModules().get(moduleId);
-        if (module == null) {
-            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Aucun module chargé avec l'ID : &e" + moduleId));
-            return;
-        }
-
-        String name = module.getName();
-        boolean success = loader.unloadModule(moduleId);
-        if (success) {
-            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#00FF00✓ &fModule &e" + name + " &f(&7" + moduleId + "&f) déchargé avec succès."));
-        } else {
-            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Échec du déchargement. Vérifiez la console pour les détails."));
+        try {
+            String name = getModuleName(player, loader, moduleId);
+            boolean success = loader.unloadModule(moduleId);
+            if (success) {
+                player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#00FF00✓ &fModule &e" + name + " &f(&7" + moduleId + "&f) déchargé avec succès."));
+            } else {
+                player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Échec du déchargement. Vérifiez la console pour les détails."));
+            }
+        } catch (NullPointerException ignored) {
         }
     }
 
     @Command(names = {"dungeon admin module reload", "dungeons admin module reload", "nd admin module reload"}, permission = "nextdungeons.admin")
     public static void adminModuleReloadCommand(Player player, @Param(name = "Module ID") String moduleId) {
         ModuleLoader loader = Main.getInstance().getModuleLoader();
+        try {
+            String name = getModuleName(player, loader, moduleId);
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&7Rechargement du module &e" + name + "&7..."));
+            boolean success = loader.reloadModule(moduleId);
+            if (success) {
+                player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#00FF00✓ &fModule &e" + name + " &f(&7" + moduleId + "&f) rechargé avec succès."));
+            } else {
+                player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Échec du rechargement. Vérifiez la console pour les détails."));
+            }
+        } catch (NullPointerException ignored) {
+        }
+    }
+
+    /**
+     * Helper method to get module name by ID with error handling.
+     *
+     * @param player   The player to send error messages to.
+     * @param loader   The module loader instance.
+     * @param moduleId The ID of the module.
+     * @return The name of the module if found.
+     * @throws NullPointerException if the loader is null or module not found.
+     */
+    private static String getModuleName(Player player, ModuleLoader loader, String moduleId) throws NullPointerException {
         if (loader == null) {
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Module system not available."));
-            return;
+            throw new NullPointerException("Module loader is null");
         }
 
         NextDungeonModule module = loader.getLoadedModules().get(moduleId);
         if (module == null) {
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Aucun module chargé avec l'ID : &e" + moduleId));
-            return;
+            throw new NullPointerException("Module loader is null");
         }
 
-        String name = module.getName();
-        player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&7Rechargement du module &e" + name + "&7..."));
-        boolean success = loader.reloadModule(moduleId);
-        if (success) {
-            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#00FF00✓ &fModule &e" + name + " &f(&7" + moduleId + "&f) rechargé avec succès."));
-        } else {
-            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Échec du rechargement. Vérifiez la console pour les détails."));
-        }
+        return module.getName();
     }
 }
