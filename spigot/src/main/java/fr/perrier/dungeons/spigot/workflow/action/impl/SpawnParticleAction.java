@@ -11,6 +11,7 @@ import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.entity.Player;
 
+import java.io.Serial;
 import java.util.Map;
 
 /**
@@ -26,6 +27,7 @@ import java.util.Map;
         category = "Actions"
 )
 public class SpawnParticleAction extends Action implements BlocklyAction {
+    @Serial
     private static final long serialVersionUID = 1L;
 
     @BlocklyField(type = BlocklyField.FieldType.DROPDOWN, label = "Particule:",

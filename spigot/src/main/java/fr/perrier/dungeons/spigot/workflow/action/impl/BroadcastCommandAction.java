@@ -11,6 +11,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
+import java.io.Serial;
 import java.util.Map;
 
 @Setter
@@ -23,6 +24,7 @@ import java.util.Map;
         category = "Actions"
 )
 public class BroadcastCommandAction extends Action implements BlocklyAction {
+    @Serial
     private static final long serialVersionUID = 1L;
 
     @BlocklyField(type = BlocklyField.FieldType.TEXT_INPUT, label = "Commande:", defaultValue = "say Hello World!", order = 1)

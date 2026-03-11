@@ -13,6 +13,7 @@ import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.Serial;
 import java.util.Map;
 
 /**
@@ -28,6 +29,7 @@ import java.util.Map;
         category = "Actions"
 )
 public class PlaySoundAction extends Action implements BlocklyAction {
+    @Serial
     private static final long serialVersionUID = 1L;
 
     @BlocklyField(type = BlocklyField.FieldType.DROPDOWN, label = "Son:",

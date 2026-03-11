@@ -13,6 +13,7 @@ import org.bukkit.Location;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 
+import java.io.Serial;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -27,6 +28,7 @@ import java.util.Objects;
         category = "Actions"
 )
 public class SummonMobAction extends Action implements BlocklyAction {
+    @Serial
     private static final long serialVersionUID = 1L;
 
     @BlocklyField(type = BlocklyField.FieldType.TEXT_INPUT, label = "Mob Type:",

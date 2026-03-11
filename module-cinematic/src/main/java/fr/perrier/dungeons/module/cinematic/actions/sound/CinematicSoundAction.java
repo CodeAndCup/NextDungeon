@@ -12,7 +12,7 @@ import java.util.List;
  */
 public class CinematicSoundAction extends SimpleCinematicAction<SoundSegment> {
 
-    private List<SoundSegment> segments = new ArrayList<>();
+    private final List<SoundSegment> segments = new ArrayList<>();
 
     @Override
     protected void onSegmentStart(Player player, SoundSegment segment) throws Exception {

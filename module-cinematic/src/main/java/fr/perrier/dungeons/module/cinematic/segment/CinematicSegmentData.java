@@ -9,7 +9,6 @@ import java.io.Serializable;
  * Classe de base pour les données de segment cinématique.
  * Sérialisable via Gson pour la persistance.
  */
-@Getter
 @Setter
 public class CinematicSegmentData implements CinematicSegment, Serializable {
 
@@ -24,5 +23,15 @@ public class CinematicSegmentData implements CinematicSegment, Serializable {
     public CinematicSegmentData(int startFrame, int endFrame) {
         this.startFrame = startFrame;
         this.endFrame = endFrame;
+    }
+
+    @Override
+    public int getStartFrame() {
+        return startFrame;
+    }
+
+    @Override
+    public int getEndFrame() {
+        return endFrame;
     }
 }

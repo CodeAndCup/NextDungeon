@@ -163,7 +163,7 @@ public class ProxyWebEditorServer {
     private void handleEditorRequest(HttpExchange exchange, String[] pathParts) throws IOException {
         String filePath = pathParts.length > 3 ? pathParts[3] : "index.html";
         
-        if ("".equals(filePath) || "/".equals(filePath)) {
+        if (filePath.isEmpty() || "/".equals(filePath)) {
             filePath = "index.html";
         }
 

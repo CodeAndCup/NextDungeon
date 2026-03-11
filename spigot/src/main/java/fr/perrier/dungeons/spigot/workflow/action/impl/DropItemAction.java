@@ -12,6 +12,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import java.io.Serial;
 import java.util.Map;
 import java.util.Objects;
 
@@ -25,6 +26,7 @@ import java.util.Objects;
         category = "Actions"
 )
 public class DropItemAction extends Action implements BlocklyAction {
+    @Serial
     private static final long serialVersionUID = 1L;
 
     @BlocklyField(type = BlocklyField.FieldType.TEXT_INPUT, label = "Item:",

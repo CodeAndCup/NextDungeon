@@ -472,16 +472,20 @@ public class DungeonManagementService {
         return floorData;
     }
 
-    private Position readPosition(JsonObject p) {
-        if (p == null) return new Position(0, 0, 0);
-        return new Position(p.has("x") ? p.get("x").getAsDouble() : 0, p.has("y") ? p.get("y").getAsDouble() : 0, p.has("z") ? p.get("z").getAsDouble() : 0);
+    private Position readPosition(JsonObject posObject) {
+        if (posObject == null) return new Position(0, 0, 0);
+        return new Position(
+                posObject.has("x") ? posObject.get("x").getAsDouble() : 0,
+                posObject.has("y") ? posObject.get("y").getAsDouble() : 0,
+                posObject.has("z") ? posObject.get("z").getAsDouble() : 0
+        );
     }
 
-    private ValidationResult validateFloor(FloorData fd) {
+    private ValidationResult validateFloor(FloorData floorData) {
         List<String> errors = new ArrayList<>();
-        if (fd.getId() == null || fd.getId().isBlank()) errors.add("Floor ID is required");
-        if (fd.getName() == null || fd.getName().isBlank()) errors.add("Floor name is required");
-        if (fd.getWorldConfig() == null) errors.add("World config is required");
+        if (floorData.getId() == null || floorData.getId().isBlank()) errors.add("Floor ID is required");
+        if (floorData.getName() == null || floorData.getName().isBlank()) errors.add("Floor name is required");
+        if (floorData.getWorldConfig() == null) errors.add("World config is required");
         return new ValidationResult(errors.isEmpty(), errors);
     }
 
@@ -498,15 +502,17 @@ public class DungeonManagementService {
         }
     }
 
-    private JsonObject entryToJson(DungeonEntry d) {
-        JsonObject o = new JsonObject();
-        o.addProperty("id", d.getId());
-        o.addProperty("name", d.getName() != null ? d.getName() : d.getId());
-        o.addProperty("description", d.getDescription() != null ? d.getDescription() : "");
+    private JsonObject entryToJson(DungeonEntry dungeonEntry) {
+        JsonObject jsonObject = new JsonObject();
+        jsonObject.addProperty("id", dungeonEntry.getId());
+        jsonObject.addProperty("name", dungeonEntry.getName() != null ? dungeonEntry.getName() : dungeonEntry.getId());
+        jsonObject.addProperty("description", dungeonEntry.getDescription() != null ? dungeonEntry.getDescription() : "");
         JsonArray fids = new JsonArray();
-        if (d.getFloorIds() != null) d.getFloorIds().forEach(fids::add);
-        o.add("floorIds", fids);
-        return o;
+        if (dungeonEntry.getFloorIds() != null) {
+            dungeonEntry.getFloorIds().forEach(fids::add);
+        }
+        jsonObject.add("floorIds", fids);
+        return jsonObject;
     }
 
     public JsonObject floorDataToJson(FloorData floorData) {
@@ -525,18 +531,21 @@ public class DungeonManagementService {
             requirementsObject.addProperty("retryCooldown", requirements.getRetryCooldown());
 
             JsonArray requirementsFloorsIdArray = new JsonArray();
-            if (requirements.getRequiredFloorsId() != null)
+            if (requirements.getRequiredFloorsId() != null) {
                 requirements.getRequiredFloorsId().forEach(requirementsFloorsIdArray::add);
+            }
             requirementsObject.add("requiredFloorsId", requirementsFloorsIdArray);
 
             JsonArray requirementsItemsArray = new JsonArray();
-            if (requirements.getRequiredItems() != null)
+            if (requirements.getRequiredItems() != null) {
                 requirements.getRequiredItems().forEach(requirementsItemsArray::add);
+            }
             requirementsObject.add("requiredItems", requirementsItemsArray);
 
             JsonArray forbiddenItemsArray = new JsonArray();
-            if (requirements.getForbiddenItems() != null)
+            if (requirements.getForbiddenItems() != null) {
                 requirements.getForbiddenItems().forEach(forbiddenItemsArray::add);
+            }
             requirementsObject.add("forbiddenItems", forbiddenItemsArray);
 
             if (requirements.getPartyRequirements() != null) {

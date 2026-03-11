@@ -12,6 +12,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
+import java.io.Serial;
 import java.util.Map;
 
 /**
@@ -27,6 +28,7 @@ import java.util.Map;
         category = "Actions"
 )
 public class ApplyPotionEffectAction extends Action implements BlocklyAction {
+    @Serial
     private static final long serialVersionUID = 1L;
 
     @BlocklyField(type = BlocklyField.FieldType.DROPDOWN, label = "Effet:",

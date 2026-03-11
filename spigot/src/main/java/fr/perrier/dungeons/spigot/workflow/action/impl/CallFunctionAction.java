@@ -11,6 +11,7 @@ import lombok.Setter;
 import org.bukkit.entity.Player;
 import org.bukkit.Location;
 
+import java.io.Serial;
 import java.util.Map;
 
 @Setter
@@ -23,6 +24,7 @@ import java.util.Map;
         category = "Actions"
 )
 public class CallFunctionAction extends Action implements BlocklyAction {
+    @Serial
     private static final long serialVersionUID = 1L;
 
     @BlocklyField(type = BlocklyField.FieldType.TEXT_INPUT, label = "Nom fonction:",
@@ -81,8 +83,4 @@ public class CallFunctionAction extends Action implements BlocklyAction {
         }
     }
 
-    @Override
-    public boolean isChainable() {
-        return true;
-    }
 }
