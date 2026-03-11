@@ -75,7 +75,9 @@ public class NextDungeonBungee extends Plugin {
             
             // Créer le dossier si nécessaire
             if (!getDataFolder().exists()) {
-                getDataFolder().mkdir();
+                if(!getDataFolder().mkdir()) {
+                    getLogger().warning("Impossible de créer le dossier de données: " + getDataFolder().getPath());
+                }
             }
             
             // Créer le fichier de config par défaut s'il n'existe pas

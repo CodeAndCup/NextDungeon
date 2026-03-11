@@ -69,20 +69,23 @@ public class DungeonQueueService {
             return false;
         }
 
-        queue.offer(entry);
-        // Update caches
-        activeQueueFloorsCache.add(entry.getFloorId());
-        playerQueueMembership.computeIfAbsent(entry.getPlayerId(), k -> ConcurrentHashMap.newKeySet()).add(entry.getFloorId());
+        boolean added = queue.offer(entry);
 
-        if(Main.getLoggerUtil().isDebugEnabled())
-            Main.getLoggerUtil().info(String.format(
-                "Added player %s to queue for floor %s (Position: %d/%d)",
-                entry.getPlayerName(),
-                entry.getFloorId(),
-                queue.size(),
-                queue.size()
-            ));
-        return true;
+        if(added) {
+            // Update caches
+            activeQueueFloorsCache.add(entry.getFloorId());
+            playerQueueMembership.computeIfAbsent(entry.getPlayerId(), k -> ConcurrentHashMap.newKeySet()).add(entry.getFloorId());
+
+            if (Main.getLoggerUtil().isDebugEnabled())
+                Main.getLoggerUtil().info(String.format(
+                        "Added player %s to queue for floor %s (Position: %d/%d)",
+                        entry.getPlayerName(),
+                        entry.getFloorId(),
+                        queue.size(),
+                        queue.size()
+                ));
+        }
+        return added;
     }
 
     /**
