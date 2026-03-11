@@ -61,16 +61,14 @@ public class BlockClickTriggerHandler implements TriggerEventHandler<PlayerInter
         }
 
         for (Trigger trigger : triggers) {
-            if (trigger instanceof BlockClickTrigger blockClickTrigger) {
-                if (blockClickTrigger.matchesBlock(event.getClickedBlock(), clickType, detectionType)) {
-                    Map<String, Object> data = extractEventData(event);
-                    data.put("click_type", clickType);
-                    data.put("detection_type", detectionType);
-                    data.put("clicked_block", event.getClickedBlock());
+            if (trigger instanceof BlockClickTrigger blockClickTrigger && blockClickTrigger.matchesBlock(event.getClickedBlock(), clickType, detectionType)) {
+                Map<String, Object> data = extractEventData(event);
+                data.put("click_type", clickType);
+                data.put("detection_type", detectionType);
+                data.put("clicked_block", event.getClickedBlock());
 
-                    if (blockClickTrigger.checkConditions(player, data)) {
-                        blockClickTrigger.execute(player, event.getClickedBlock().getLocation(), data);
-                    }
+                if (blockClickTrigger.checkConditions(player, data)) {
+                    blockClickTrigger.execute(player, event.getClickedBlock().getLocation(), data);
                 }
             }
         }
@@ -93,9 +91,8 @@ public class BlockClickTriggerHandler implements TriggerEventHandler<PlayerInter
             data.put("item_type", event.getItem().getType().name());
         }
 
-        if (event.getBlockFace() != null) {
-            data.put("block_face", event.getBlockFace().name());
-        }
+
+        data.put("block_face", event.getBlockFace().name());
 
         return data;
     }

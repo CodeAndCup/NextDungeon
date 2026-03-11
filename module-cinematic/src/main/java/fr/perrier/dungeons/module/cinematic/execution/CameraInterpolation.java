@@ -7,6 +7,8 @@ import fr.perrier.dungeons.module.cinematic.model.CameraWaypoint;
  */
 public class CameraInterpolation {
 
+    private CameraInterpolation() {}
+
     /**
      * Interpolate between two waypoints at the given progress (0.0 to 1.0).
      *

@@ -103,7 +103,9 @@ public class ApplyPotionEffectAction extends Action implements BlocklyAction {
             int durationTicks = duration * 20;
 
             // S'assurer que l'amplificateur est dans les limites (0-254, car on affiche 1-255)
-            int amp = Math.max(0, Math.min(254, amplifier - 1));
+            // Utiliser Math.clamp pour remplacer la combinaison Math.max/Math.min (conseil SonarQube)
+            // Promouvoir un opérande en long avant la soustraction pour éviter l'avertissement de débordement
+            int amp = (int) Math.clamp(amplifier - 1L, 0L, 254L);
 
             PotionEffect effect = new PotionEffect(potionType, durationTicks, amp, ambient, particles);
 

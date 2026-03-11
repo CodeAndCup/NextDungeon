@@ -2,11 +2,9 @@ package fr.perrier.dungeons.spigot.workflow.action;
 
 import fr.perrier.dungeons.common.workflow.action.ActionData;
 import lombok.Getter;
-import lombok.Setter;
 import org.bukkit.entity.Player;
 import org.bukkit.Location;
 
-import java.io.Serializable;
 import java.util.Map;
 
 /**
@@ -15,7 +13,7 @@ import java.util.Map;
 @Getter
 public abstract class Action extends ActionData {
 
-    public Action(String name, String type) {
+    protected Action(String name, String type) {
         super(name, type);
     }
 

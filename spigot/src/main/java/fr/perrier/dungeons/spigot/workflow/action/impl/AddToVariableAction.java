@@ -100,9 +100,9 @@ public class AddToVariableAction extends Action implements BlocklyAction {
      */
     private Object addValues(Object current, Object toAdd) {
         // Both are numbers
-        if (current instanceof Number && toAdd instanceof Number) {
-            double currentNum = ((Number) current).doubleValue();
-            double addNum = ((Number) toAdd).doubleValue();
+        if ((current instanceof Number curentNumber) && (toAdd instanceof Number newNumber)) {
+            double currentNum = curentNumber.doubleValue();
+            double addNum = newNumber.doubleValue();
             double result = currentNum + addNum;
 
             // Return as integer if both were integers and result has no decimal part

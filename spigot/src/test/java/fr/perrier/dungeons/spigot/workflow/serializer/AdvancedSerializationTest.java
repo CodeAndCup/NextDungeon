@@ -41,11 +41,7 @@ class AdvancedSerializationTest {
             String json = InstanceSerializer.serializeTriggers(triggers);
 
             // Then
-            assertThat(json).contains("100");
-            assertThat(json).contains("64");
-            assertThat(json).contains("200");
-            assertThat(json).contains("world");
-            assertThat(json).contains("nether");
+            assertThat(json).contains("100", "64", "200", "world", "nether");
         }
 
         @Test
@@ -140,8 +136,7 @@ class AdvancedSerializationTest {
             String json = InstanceSerializer.serializeTriggers(triggers);
 
             // Then
-            assertThat(json).contains("BlockClickTrigger");
-            assertThat(json).contains("RegionTrigger");
+            assertThat(json).contains("BlockClickTrigger", "RegionTrigger");
             JsonArray array = JsonParser.parseString(json).getAsJsonArray();
             assertThat(array).hasSize(3);
         }
@@ -186,8 +181,7 @@ class AdvancedSerializationTest {
             String json = InstanceSerializer.serializeTriggers(triggers);
 
             // Then
-            assertThat(json).contains("\"enabled\": true");
-            assertThat(json).contains("\"exactPositionOnly\": true");
+            assertThat(json).contains("\"enabled\": true", "\"exactPositionOnly\": true");
         }
 
         @Test

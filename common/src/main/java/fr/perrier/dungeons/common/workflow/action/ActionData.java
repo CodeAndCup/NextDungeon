@@ -15,7 +15,7 @@ public class ActionData implements Serializable {
     protected String name;
     protected String type;
 
-    public ActionData(String name, String type) {
+    protected ActionData(String name, String type) {
         this.name = name;
         this.type = type;
     }

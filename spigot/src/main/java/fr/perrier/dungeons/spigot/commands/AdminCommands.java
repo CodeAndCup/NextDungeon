@@ -15,12 +15,13 @@ import fr.perrier.dungeons.spigot.utils.ServerUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
-import java.io.IOException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
 public class AdminCommands {
+
+    private AdminCommands() {}
 
     @Command(names = {"dungeon admin help", "dungeons admin help", "nextdungeon admin help", "nextdungeons admin help", "nd admin help"}, permission = "nextdungeons.admin")
     public static void adminDungeonCommand(Player player) {
@@ -98,7 +99,7 @@ public class AdminCommands {
         // Vérifier si des triggers existent dans la base de données
         Main.getInstance().getDatabaseManager().triggersExist(currentFloor.getId()).thenAccept(triggersExist -> {
             if(!confirm.equalsIgnoreCase("--confirm")) {
-                if(!triggersExist) {
+                if (!Boolean.TRUE.equals(triggersExist)) {
                     player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&eWarning: no saved triggers found for this floor in database."));
                     player.sendMessage(ChatUtil.translate("&eIf you have trigger changes they will be lost on the next dungeon start / edit."));
                     player.sendMessage(ChatUtil.translate("&eIf you want to discard without saving use &#FF0000/dungeon admin edit stop --confirm"));
@@ -124,8 +125,8 @@ public class AdminCommands {
     private static void saveAndShutdown(Player player, Floor currentFloor) {
         player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#00FF00✓ &fEdit mode ended."));
 
-        Main.getInstance().getInstanceProvider().saveEditWorldToTemplate(currentFloor).thenAccept(success -> {
-            if (success) {
+            Main.getInstance().getInstanceProvider().saveEditWorldToTemplate(currentFloor).thenAccept(success -> {
+            if (Boolean.TRUE.equals(success)) {
                 player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#00FF00✓ &fWorld changes saved to template."));
                 player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&7Provider: &e" + Main.getInstance().getInstanceProvider().getType()));
                 player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&7Triggers saved in database: &e" + Objects.requireNonNull(Main.getInstance().getConfig().getString("DatabaseConfiguration.type"))));
@@ -404,7 +405,8 @@ public class AdminCommands {
             } else {
                 player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Échec du déchargement. Vérifiez la console pour les détails."));
             }
-        } catch (NullPointerException ignored) {
+        } catch (NullPointerException exception) {
+            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Module not found."));
         }
     }
 

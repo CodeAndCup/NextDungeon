@@ -20,6 +20,8 @@ import java.util.List;
  */
 public class ActionFactory {
 
+    private ActionFactory() {}
+
     public static Action createActionFromJson(JsonObject actionData) {
         try {
             String type = actionData.get("type").getAsString();
@@ -460,10 +462,8 @@ public class ActionFactory {
                             actionData.get("duration").getAsInt() : 10;
                     int amplifier = actionData.has("amplifier") ?
                             actionData.get("amplifier").getAsInt() : 1;
-                    boolean ambient = actionData.has("ambient") ?
-                            actionData.get("ambient").getAsBoolean() : false;
-                    boolean particles = actionData.has("particles") ?
-                            actionData.get("particles").getAsBoolean() : true;
+                    boolean ambient = actionData.has("ambient") && actionData.get("ambient").getAsBoolean();
+                    boolean particles = !actionData.has("particles") || actionData.get("particles").getAsBoolean();
                     String target = actionData.has("target") ?
                             actionData.get("target").getAsString() : "player";
                     yield new ApplyPotionEffectAction(effectType, duration, amplifier, ambient, particles, target);

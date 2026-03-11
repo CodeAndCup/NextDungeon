@@ -55,14 +55,14 @@ public class AlessioDPPartyProvider implements IPartyProvider {
 
     @Override
     public Optional<IParty> createParty(Player leader, String name) {
-        PartiesAPI api = getApi();
-        if (api == null) return Optional.empty();
+        PartiesAPI partiesAPI = getApi();
+        if (partiesAPI == null) return Optional.empty();
 
-        PartyPlayer pp = api.getPartyPlayer(leader.getUniqueId());
+        PartyPlayer pp = partiesAPI.getPartyPlayer(leader.getUniqueId());
         if (pp == null) return Optional.empty();
 
         // AlessioDPParties createParty returns boolean, so we create and then get
-        boolean created = api.createParty(name, pp);
+        boolean created = partiesAPI.createParty(name, pp);
         if (!created) return Optional.empty();
 
         // Get the party that was just created for this player
@@ -71,10 +71,10 @@ public class AlessioDPPartyProvider implements IPartyProvider {
 
     @Override
     public Optional<IParty> getParty(UUID partyId) {
-        PartiesAPI api = getApi();
-        if (api == null) return Optional.empty();
+        PartiesAPI partiesAPI = getApi();
+        if (partiesAPI == null) return Optional.empty();
 
-        Party party = api.getParty(partyId);
+        Party party = partiesAPI.getParty(partyId);
         return party != null ? Optional.of(new AlessioDPParty(party)) : Optional.empty();
     }
 
@@ -85,10 +85,10 @@ public class AlessioDPPartyProvider implements IPartyProvider {
 
     @Override
     public Optional<IParty> getPartyByLeader(UUID leaderId) {
-        PartiesAPI api = getApi();
-        if (api == null) return Optional.empty();
+        PartiesAPI partiesAPI = getApi();
+        if (partiesAPI == null) return Optional.empty();
 
-        return api.getOnlineParties().stream()
+        return partiesAPI.getOnlineParties().stream()
                 .filter(party -> Objects.equals(party.getLeader(), leaderId))
                 .findFirst()
                 .map(AlessioDPParty::new);
@@ -101,35 +101,35 @@ public class AlessioDPPartyProvider implements IPartyProvider {
 
     @Override
     public Optional<IParty> getPartyOf(UUID memberId) {
-        PartiesAPI api = getApi();
-        if (api == null) return Optional.empty();
+        PartiesAPI partiesAPI = getApi();
+        if (partiesAPI == null) return Optional.empty();
 
-        PartyPlayer pp = api.getPartyPlayer(memberId);
+        PartyPlayer pp = partiesAPI.getPartyPlayer(memberId);
         if (pp == null || !pp.isInParty()) return Optional.empty();
 
         UUID partyId = pp.getPartyId();
         if (partyId == null) return Optional.empty();
 
-        Party party = api.getParty(partyId);
+        Party party = partiesAPI.getParty(partyId);
         return party != null ? Optional.of(new AlessioDPParty(party)) : Optional.empty();
     }
 
     @Override
     public Collection<IParty> getOnlineParties() {
-        PartiesAPI api = getApi();
-        if (api == null) return Collections.emptyList();
+        PartiesAPI partiesAPI = getApi();
+        if (partiesAPI == null) return Collections.emptyList();
 
-        return api.getOnlineParties().stream()
+        return partiesAPI.getOnlineParties().stream()
                 .map(AlessioDPParty::new)
                 .collect(Collectors.toList());
     }
 
     @Override
     public Collection<IParty> findPartiesByDescription(String partOfDesc) {
-        PartiesAPI api = getApi();
-        if (api == null) return Collections.emptyList();
+        PartiesAPI partiesAPI = getApi();
+        if (partiesAPI == null) return Collections.emptyList();
 
-        return api.getOnlineParties().stream()
+        return partiesAPI.getOnlineParties().stream()
                 .filter(party -> party.getDescription() != null)
                 .filter(party -> party.getDescription().toLowerCase().contains(partOfDesc.toLowerCase()))
                 .map(AlessioDPParty::new)
@@ -143,34 +143,34 @@ public class AlessioDPPartyProvider implements IPartyProvider {
 
     @Override
     public Optional<IPartyMember> getPartyMember(UUID memberId) {
-        PartiesAPI api = getApi();
-        if (api == null) return Optional.empty();
+        PartiesAPI partiesAPI = getApi();
+        if (partiesAPI == null) return Optional.empty();
 
-        PartyPlayer pp = api.getPartyPlayer(memberId);
+        PartyPlayer pp = partiesAPI.getPartyPlayer(memberId);
         return pp != null ? Optional.of(new AlessioDPPartyMember(pp)) : Optional.empty();
     }
 
     @Override
     public boolean isInParty(Player player) {
-        PartiesAPI api = getApi();
-        if (api == null) return false;
+        PartiesAPI partiesAPI = getApi();
+        if (partiesAPI == null) return false;
 
-        PartyPlayer pp = api.getPartyPlayer(player.getUniqueId());
+        PartyPlayer pp = partiesAPI.getPartyPlayer(player.getUniqueId());
         return pp != null && pp.isInParty();
     }
 
     @Override
     public boolean isPartyLeader(Player player) {
-        PartiesAPI api = getApi();
-        if (api == null) return false;
+        PartiesAPI partiesAPI = getApi();
+        if (partiesAPI == null) return false;
 
-        PartyPlayer pp = api.getPartyPlayer(player.getUniqueId());
+        PartyPlayer pp = partiesAPI.getPartyPlayer(player.getUniqueId());
         if (pp == null || !pp.isInParty()) return false;
 
         UUID partyId = pp.getPartyId();
         if (partyId == null) return false;
 
-        Party party = api.getParty(partyId);
+        Party party = partiesAPI.getParty(partyId);
         return party != null && Objects.equals(party.getLeader(), player.getUniqueId());
     }
 }
