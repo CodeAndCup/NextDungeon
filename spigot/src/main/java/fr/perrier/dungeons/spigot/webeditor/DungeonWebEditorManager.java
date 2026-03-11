@@ -88,7 +88,7 @@ public class DungeonWebEditorManager {
                 return null;
             });
         } catch (Exception e) {
-            Main.getLoggerUtil().severe("&#00FF00n error occurred while starting the web editor: " + e.getMessage());
+            Main.getLoggerUtil().severe("&#00FF00An error occurred while starting the web editor: " + e.getMessage());
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000An error occurred while starting the web editor. Check the server console for details."));
         }
     }

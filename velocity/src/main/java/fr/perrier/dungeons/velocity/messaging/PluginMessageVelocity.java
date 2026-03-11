@@ -15,17 +15,22 @@ import java.net.InetSocketAddress;
 
 public class PluginMessageVelocity {
 
-    // C'est pas du redis mais nsm on prend le même topic pour pas se prendre la tête à faire un truc différent pour velocity et spigot
-    private static final MinecraftChannelIdentifier DUNGEONS_CHANNEL = MinecraftChannelIdentifier.create(NextDungeonVelocity.getInstance().getConfigManager().getTable("redis").getString("topic"), "main");
+    //  This is not Redis, but we use the same topic to avoid making different implementations for Velocity and Spigot
+    private MinecraftChannelIdentifier dungeonsChannel;
 
     public void initialize() {
+        this.dungeonsChannel = MinecraftChannelIdentifier.create(
+                NextDungeonVelocity.getInstance().getConfigManager().getTable("redis").getString("topic"),
+                "main"
+        );
+
         // Initialization logic for Velocity plugin messaging
-        NextDungeonVelocity.getInstance().getServer().getChannelRegistrar().register(DUNGEONS_CHANNEL);
+        NextDungeonVelocity.getInstance().getServer().getChannelRegistrar().register(dungeonsChannel);
     }
 
     @Subscribe
     public void onPluginMessage(PluginMessageEvent event) {
-        if (!event.getIdentifier().equals(DUNGEONS_CHANNEL)) {
+        if (!event.getIdentifier().equals(dungeonsChannel)) {
             return;
         }
 
@@ -45,22 +50,16 @@ public class PluginMessageVelocity {
                 String serverName = getServerNameByAddress(ip, port);
 
                 // Send response back to the server
-                if (event.getSource() instanceof ServerConnection) {
-                    ServerConnection serverConnection = (ServerConnection) event.getSource();
+                if (event.getSource() instanceof ServerConnection serverConnection) {
                     sendServerNameResponse(serverConnection, serverName);
-                } else if (event.getSource() instanceof Player) {
-                    Player player = (Player) event.getSource();
+                } else if (event.getSource() instanceof Player player) {
                     player.getCurrentServer().ifPresent(conn -> sendServerNameResponse(conn, serverName));
                 }
 
-                NextDungeonVelocity.getInstance().getLogger().info(
-                    "Requête GetServerName reçue - IP: " + ip + ":" + port + " -> Serveur: " + serverName
-                );
+                NextDungeonVelocity.getInstance().getLogger().info("Requête GetServerName reçue - IP: {}:{} -> Serveur: {}", ip, port, serverName);
             }
         } catch (Exception e) {
-            NextDungeonVelocity.getInstance().getLogger().error(
-                "Erreur lors du traitement du message plugin: " + e.getMessage()
-            );
+            NextDungeonVelocity.getInstance().getLogger().error("Erreur lors du traitement du message plugin: {}", e.getMessage());
         }
     }
 
@@ -95,7 +94,7 @@ public class PluginMessageVelocity {
     }
 
     /**
-     * Normalise les adresses localhost (127.0.0.1 et localhost) en une forme commune
+     * Normalizes localhost addresses (127.0.0.1 and localhost) to a common form
      */
     private String normalizeLocalhost(String host) {
         if (host.equals("localhost") || host.equals("127.0.0.1")) {
@@ -105,10 +104,10 @@ public class PluginMessageVelocity {
     }
 
     /**
-     * Envoie le nom du serveur en réponse
+     * Send the server name as a response to the requester via plugin message
      *
-     * @param serverConnection La connexion serveur pour envoyer la réponse
-     * @param serverName       Le nom du serveur trouvé
+     * @param serverConnection The server connection to send the response to
+     * @param serverName       The found server name
      */
     private void sendServerNameResponse(ServerConnection serverConnection, String serverName) {
         ByteArrayDataOutput out = ByteStreams.newDataOutput();
@@ -117,6 +116,6 @@ public class PluginMessageVelocity {
         out.writeInt(serverConnection.getServerInfo().getAddress().getPort());
         out.writeUTF(serverName);
 
-        serverConnection.sendPluginMessage(DUNGEONS_CHANNEL, out.toByteArray());
+        serverConnection.sendPluginMessage(dungeonsChannel, out.toByteArray());
     }
 }
