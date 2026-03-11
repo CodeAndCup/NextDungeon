@@ -10,6 +10,7 @@ import fr.perrier.dungeons.common.model.dungeon.FloorData;
 import fr.perrier.dungeons.common.model.dungeon.FloorMetadata;
 import fr.perrier.dungeons.common.model.dungeon.config.FloorInstanceData;
 import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.NonNull;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
 
@@ -98,15 +99,7 @@ public class DashboardService {
         
         JsonArray sessionsArray = new JsonArray();
         for (Map.Entry<String, EditorSessionManager.EditorSession> entry : sessions.entrySet()) {
-            EditorSessionManager.EditorSession session = entry.getValue();
-            JsonObject sessionJson = new JsonObject();
-            sessionJson.addProperty("sessionId", session.getSessionId());
-            sessionJson.addProperty("floorId", session.getFloorId());
-            sessionJson.addProperty("dungeonName", session.getDungeonName());
-            sessionJson.addProperty("editorName", session.getEditorName());
-            sessionJson.addProperty("spigotServer", session.getSpigotServer());
-            sessionJson.addProperty("createdAt", session.getCreatedAt().toString());
-            
+            JsonObject sessionJson = getSessionJson(entry);
             sessionsArray.add(sessionJson);
         }
         
@@ -117,7 +110,19 @@ public class DashboardService {
         
         return gson.toJson(response);
     }
-    
+
+    private static @NonNull JsonObject getSessionJson(Map.Entry<String, EditorSessionManager.EditorSession> entry) {
+        EditorSessionManager.EditorSession session = entry.getValue();
+        JsonObject sessionJson = new JsonObject();
+        sessionJson.addProperty("sessionId", session.getSessionId());
+        sessionJson.addProperty("floorId", session.getFloorId());
+        sessionJson.addProperty("dungeonName", session.getDungeonName());
+        sessionJson.addProperty("editorName", session.getEditorName());
+        sessionJson.addProperty("spigotServer", session.getSpigotServer());
+        sessionJson.addProperty("createdAt", session.getCreatedAt().toString());
+        return sessionJson;
+    }
+
     /**
      * Génère les statistiques pour les graphiques
      */
@@ -153,7 +158,7 @@ public class DashboardService {
         List<Map.Entry<String, Long>> sortedSessions = sessionDistribution.entrySet().stream()
             .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
             .limit(10)  // Top 10
-            .collect(Collectors.toList());
+            .toList();
         
         for (Map.Entry<String, Long> entry : sortedSessions) {
             String floorId = entry.getKey();
@@ -294,7 +299,6 @@ public class DashboardService {
                         position++;
                     } catch (Exception e) {
                         // Skip invalid entries
-                        continue;
                     }
                 }
                 
