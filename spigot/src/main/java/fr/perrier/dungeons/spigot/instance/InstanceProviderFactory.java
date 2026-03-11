@@ -2,7 +2,6 @@ package fr.perrier.dungeons.spigot.instance;
 
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.instance.impl.CloudNetProvider;
-import org.bukkit.Bukkit;
 
 import java.util.Objects;
 
@@ -11,6 +10,10 @@ import java.util.Objects;
  * This class checks for available providers and initializes the appropriate one.
  */
 public class InstanceProviderFactory {
+
+    private InstanceProviderFactory() {
+        // Private constructor to prevent instantiation
+    }
 
     /**
      * Creates an instance provider based on the configuration.

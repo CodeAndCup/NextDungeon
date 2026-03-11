@@ -85,8 +85,8 @@ public class EntityTypeIsCondition extends Action implements BlocklyAction {
         Object entityTypeObj = data.get("entity_type");
         String actualEntityType;
 
-        if (entityTypeObj instanceof EntityType) {
-            actualEntityType = ((EntityType) entityTypeObj).name();
+        if (entityTypeObj instanceof EntityType entityTypeEnum) {
+            actualEntityType = entityTypeEnum.name();
         } else {
             actualEntityType = entityTypeObj.toString();
         }

@@ -21,6 +21,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
+import java.util.function.IntConsumer;
 import java.util.stream.Collectors;
 
 /**
@@ -44,9 +45,9 @@ public class CinematicExecutor {
     /** Private clock per executor, always starts at frame 0 */
     private final CinematicClockImpl privateClock;
     private PlayerCinematicState stateSnapshot;
-    private Consumer<Integer> frameListener;
+    private IntConsumer frameListener;
     /** Listener on the masterClock that relays ticks to the privateClock */
-    private Consumer<Integer> masterTickRelay;
+    private IntConsumer masterTickRelay;
     private Listener damageListener;
     private boolean isRunning = false;
 
@@ -142,7 +143,7 @@ public class CinematicExecutor {
                             System.err.println("[Cinematic] Tick action error: " + e.getMessage());
                         }
                     }))
-                    .collect(Collectors.toList());
+                    .toList();
 
             CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
         } catch (Exception e) {

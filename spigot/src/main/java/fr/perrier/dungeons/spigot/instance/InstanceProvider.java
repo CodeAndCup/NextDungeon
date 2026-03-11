@@ -1,7 +1,6 @@
 package fr.perrier.dungeons.spigot.instance;
 
 import fr.perrier.dungeons.spigot.model.Floor;
-import fr.perrier.dungeons.spigot.model.FloorInstance;
 import org.bukkit.entity.Player;
 
 import java.util.UUID;

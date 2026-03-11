@@ -13,6 +13,10 @@ import java.util.concurrent.CompletableFuture;
  */
 public class DatabaseTriggersManager {
 
+    private DatabaseTriggersManager() {
+        // Private constructor to prevent from instantiation
+    }
+
     /**
      * Saves the triggers for a floor in the database.
      *

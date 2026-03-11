@@ -2,6 +2,7 @@ package fr.perrier.dungeons.module.cinematic.clock;
 
 import java.time.Duration;
 import java.util.function.Consumer;
+import java.util.function.IntConsumer;
 
 /**
  * Horloge centralisée pour le système cinématique.
@@ -41,13 +42,13 @@ public interface CinematicClock {
      * Ajoute un listener appelé à chaque changement de frame
      * @param listener le consumer recevant le numéro de frame
      */
-    void addFrameChangeListener(Consumer<Integer> listener);
+    void addFrameChangeListener(IntConsumer listener);
 
     /**
      * Retire un listener de changement de frame
      * @param listener le consumer à retirer
      */
-    void removeFrameChangeListener(Consumer<Integer> listener);
+    void removeFrameChangeListener(IntConsumer listener);
 
     /**
      * @return true si l'horloge tourne (non pausée)

@@ -2,7 +2,6 @@ package fr.perrier.dungeons.spigot.commands;
 
 import fr.perrier.cupcodeapi.commands.annotations.Command;
 import fr.perrier.cupcodeapi.commands.annotations.Param;
-import fr.perrier.dungeons.common.model.dungeon.FloorData;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.menu.dungeon.DungeonGateMenu;
 import fr.perrier.dungeons.spigot.model.Dungeon;
@@ -12,6 +11,10 @@ import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
 
 public class ConsoleCommands {
+
+    private ConsoleCommands() {
+        // Private constructor to prevent instantiation
+    }
 
     @Command(names = {"dungeon console openmenu"}, permission = "dungeons.admin")
     public static void openMenu(CommandSender sender, @Param(name = "Dungeon ID", tabCompleteFlags = {"dungeons"}) Dungeon dungeon, @Param(name = "Player")String playerName) {

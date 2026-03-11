@@ -66,9 +66,7 @@ public class DungeonService {
         this.syncTopic = redissonClient.getTopic(SYNC_CHANNEL);
 
         // Subscribe to sync messages
-        syncTopic.addListener(RedisMessage.class, (channel, msg) -> {
-            handleSyncMessage(msg);
-        });
+        syncTopic.addListener(RedisMessage.class, (channel, msg) -> handleSyncMessage(msg));
     }
 
     /**

@@ -35,14 +35,14 @@ public class DefaultModuleBlockRegistry implements ModuleBlockRegistry {
     public List<ModuleBlockDescriptor> getBlocksByModule(String moduleId) {
         return blocks.values().stream()
                 .filter(b -> moduleId.equals(b.getModuleId()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
     public List<ModuleBlockDescriptor> getBlocksByType(ModuleBlockDescriptor.BlockType type) {
         return blocks.values().stream()
                 .filter(b -> type.equals(b.getType()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override

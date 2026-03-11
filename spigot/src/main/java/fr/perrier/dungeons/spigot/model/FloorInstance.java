@@ -181,7 +181,7 @@ public class FloorInstance extends FloorInstanceData {
 
         new BukkitRunnable() {
             private final long startTime = System.currentTimeMillis();
-            private final long TIMEOUT = Main.getInstance().getConfig().getInt("InstanceSettings.loadingTimeout",120) * 1000L;
+            private final long timeout = Main.getInstance().getConfig().getInt("InstanceSettings.loadingTimeout",120) * 1000L;
 
             @Override
             public void run() {
@@ -209,7 +209,7 @@ public class FloorInstance extends FloorInstanceData {
                         ServerUtil.sendToServer(player, instanceId);
                         this.cancel();
                     } else {
-                        if (System.currentTimeMillis() - startTime > TIMEOUT) {
+                        if (System.currentTimeMillis() - startTime > timeout) {
                             Main.getLoggerUtil().warning("Timed out waiting for instance " + instanceId + " to be ready. (Now try cancelling instance..)");
                             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Timed out waiting for dungeon instance to be ready!"));
                             instance.cancelInstance();

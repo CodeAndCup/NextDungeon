@@ -181,9 +181,9 @@ public class InstancePlayerDeathListener implements Listener {
                     if(data != null && !data.isRevived()) {
                         data.setTimeLeftAsGhost(data.getTimeLeftAsGhost() - 1);
                         if(data.getTimeLeftAsGhost() == 1)
-                            Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
-                                player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 40, 1, false, false,false));
-                            });
+                            Bukkit.getScheduler().runTask(Main.getInstance(), () ->
+                                    player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 40, 1, false, false,false))
+                            );
                         if(data.getTimeLeftAsGhost() <= 0) {
                             Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
                                 if(!data.isRevived()) {
@@ -205,9 +205,9 @@ public class InstancePlayerDeathListener implements Listener {
                             });
                             this.cancel();
                         } else {
-                            Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
-                                updateHealthBar(player, data);
-                            });
+                            Bukkit.getScheduler().runTask(Main.getInstance(), () ->
+                                updateHealthBar(player, data)
+                            );
                         }
                     }
                 }

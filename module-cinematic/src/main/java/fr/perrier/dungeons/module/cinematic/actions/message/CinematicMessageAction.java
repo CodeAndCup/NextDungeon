@@ -1,6 +1,7 @@
 package fr.perrier.dungeons.module.cinematic.actions.message;
 
 import fr.perrier.dungeons.module.cinematic.action.SimpleCinematicAction;
+import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.entity.Player;
@@ -20,7 +21,7 @@ public class CinematicMessageAction extends SimpleCinematicAction<MessageSegment
         if ("ACTION_BAR".equals(segment.getDisplayType())) {
             player.spigot().sendMessage(
                     ChatMessageType.ACTION_BAR,
-                    TextComponent.fromLegacyText(segment.getMessage())
+                    TextComponent.fromLegacy(segment.getMessage(), ChatColor.WHITE)
             );
         } else {
             player.sendMessage(segment.getMessage());

@@ -6,7 +6,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import fr.perrier.dungeons.velocity.NextDungeonVelocity;
 import fr.perrier.dungeons.velocity.webeditor.EditorSessionManager;
-import fr.perrier.dungeons.common.model.dungeon.FloorData;
 import fr.perrier.dungeons.common.model.dungeon.FloorMetadata;
 import fr.perrier.dungeons.common.model.dungeon.config.FloorInstanceData;
 import lombok.RequiredArgsConstructor;

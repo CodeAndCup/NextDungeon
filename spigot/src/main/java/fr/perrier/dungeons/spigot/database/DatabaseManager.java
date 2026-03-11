@@ -2,7 +2,6 @@ package fr.perrier.dungeons.spigot.database;
 
 import fr.perrier.dungeons.common.workflow.trigger.TriggerData;
 import fr.perrier.dungeons.spigot.model.ProfileData;
-import fr.perrier.dungeons.spigot.workflow.trigger.Trigger;
 
 import java.util.List;
 import java.util.UUID;

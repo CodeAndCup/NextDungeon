@@ -22,6 +22,10 @@ import java.util.Map;
 
 public class DebugCommands {
 
+    private DebugCommands() {
+        // Private constructor to prevent from instantiation
+    }
+
     @Command(names = {"dungeon debug help", "dungeons debug help", "nextdungeon debug help", "nextdungeons debug help", "nd debug help"})
     public static void debugDungeonCommand(Player player) {
         player.sendMessage(ChatUtil.getBar());
@@ -135,9 +139,7 @@ public class DebugCommands {
         if (floor.getTriggers() == null || floor.getTriggers().isEmpty()) {
             player.sendMessage(ChatUtil.translate("  &cNo triggers found for this floor."));
         } else {
-            floor.getTriggers().forEach(trigger -> {
-                player.sendMessage(ChatUtil.translate("  &b" + trigger.toString()));
-            });
+            floor.getTriggers().forEach(trigger -> player.sendMessage(ChatUtil.translate("  &b" + trigger.toString())));
         }
         player.sendMessage(ChatUtil.getBar());
     }

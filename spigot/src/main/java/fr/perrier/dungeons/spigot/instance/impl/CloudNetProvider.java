@@ -228,7 +228,7 @@ public class CloudNetProvider implements InstanceProvider {
 
         copyTemplateFiles(sourceTemplate, targetTemplate)
                 .thenAccept(success -> {
-                    if (success) {
+                    if (Boolean.TRUE.equals(success)) {
                         Main.getLoggerUtil().info("Template for " + floor.getId() + " copied successfully.");
 
                         ServiceTaskProvider serviceTaskProvider = InjectionLayer.boot().instance(ServiceTaskProvider.class);
