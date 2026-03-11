@@ -1,5 +1,6 @@
 package fr.perrier.dungeons.spigot.workflow.action.impl;
 
+import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.webeditor.blockly.BlocklyAction;
 import fr.perrier.dungeons.spigot.webeditor.blockly.annotations.BlocklyField;
 import fr.perrier.dungeons.spigot.webeditor.blockly.annotations.BlocklyInfo;
@@ -10,6 +11,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 
@@ -36,8 +38,8 @@ public class SummonMobAction extends Action implements BlocklyAction {
     private String mobType;
 
     // Transient cached enum to avoid EntityType.valueOf() parse on every execute
-    private transient EntityType cachedEntityType;
-    private transient String cachedEntityTypeName; // track which name was cached
+    private transient volatile EntityType cachedEntityType;
+    private transient volatile String cachedEntityTypeName; // track which name was cached
 
     public void setMobType(String mobType) {
         this.mobType = mobType;
@@ -58,20 +60,32 @@ public class SummonMobAction extends Action implements BlocklyAction {
     @Override
     public boolean execute(Player triggerPlayer, Location location, Map<String, Object> data) {
 
+        World world = Bukkit.getWorld(this.location.getWorldName());
+        if (world == null) {
+            Main.getLoggerUtil().severe("World not found for SummonMobAction: " + this.location.getWorldName());
+            return false;
+        }
+
         Location spawnLocation = new Location(
-                Bukkit.getWorld(this.location.getWorldName()),
+                world,
                 this.location.getX(), this.location.getY(), this.location.getZ()
         );
 
         EntityType entityType = null;
         try {
-            String upperMobType = mobType.toUpperCase(Locale.ROOT);
-            if (!upperMobType.equals(cachedEntityTypeName)) {
-                cachedEntityTypeName = upperMobType;
-                cachedEntityType = EntityType.valueOf(upperMobType);
+            String upperMobType = mobType == null ? null : mobType.toUpperCase(Locale.ROOT);
+            if (upperMobType != null) {
+                synchronized (this) {
+                    if (!upperMobType.equals(cachedEntityTypeName)) {
+                        cachedEntityTypeName = upperMobType;
+                        cachedEntityType = EntityType.valueOf(upperMobType);
+                    }
+                    entityType = cachedEntityType;
+                }
             }
-            entityType = cachedEntityType;
-        } catch (IllegalArgumentException ignored) {}
+        } catch (IllegalArgumentException e) {
+            Main.getLoggerUtil().warning("Invalid mob type in SummonMobAction: " + mobType);
+        }
 
         if(entityType == null) {
             MythicBukkit.inst().getMobManager().spawnMob(mobType, spawnLocation);
