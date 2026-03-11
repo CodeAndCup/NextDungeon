@@ -298,7 +298,10 @@ public final class Main extends JavaPlugin {
             InstanceInfo info = ServerUtil.getInstanceInfo();
             if (info != null) {
                 // Remove instance from Redis
-                dungeonService.removeInstance(info.getInstanceId());
+                if(dungeonService != null)
+                    dungeonService.removeInstance(info.getInstanceId());
+                else
+                    getLogger().warning("Dungeon service is null while trying to remove instance " + info.getInstanceId());
                 
                 // Unregister from queue system
                 if (dungeonQueueService != null) {

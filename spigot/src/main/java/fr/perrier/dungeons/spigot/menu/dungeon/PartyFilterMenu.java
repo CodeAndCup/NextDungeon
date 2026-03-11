@@ -126,14 +126,18 @@ public class PartyFilterMenu extends GlassMenu {
                 (target, result) -> {
                     String minLevel = result.getRight();
                     if(StringUtils.isNumeric(minLevel)) {
-                        int minLevelInt = Integer.parseInt(minLevel);
-                        if(minLevelInt < 0) {
-                            player.sendRawMessage(ChatUtil.translate("&#FF0000You can not have a negative minimum player level."));
-                            return;
+                        try {
+                            int minLevelInt = Integer.parseInt(minLevel);
+                            if (minLevelInt < 0) {
+                                player.sendRawMessage(ChatUtil.translate("&#FF0000You can not have a negative minimum player level."));
+                                return;
+                            }
+                            config.setMinimumLevelFilter(minLevelInt);
+                            player.sendRawMessage(ChatUtil.translate("&#00FF00Minimum player level updated to: &f" + minLevel));
+                            this.openMenu(player);
+                        }catch (NumberFormatException e) {
+                            player.sendRawMessage(ChatUtil.translate("&#FF0000You must enter a valid number."));
                         }
-                        config.setMinimumLevelFilter(minLevelInt);
-                        player.sendRawMessage(ChatUtil.translate("&#00FF00Minimum player level updated to: &f" + minLevel));
-                        this.openMenu(player);
                     } else {
                         player.sendRawMessage(ChatUtil.translate("&#FF0000You must enter a number."));
                     }

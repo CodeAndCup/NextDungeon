@@ -9,6 +9,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.entity.Player;
 import org.bukkit.Location;
+import org.checkerframework.checker.units.qual.N;
 
 import java.util.Map;
 
@@ -235,7 +236,11 @@ public class MathOperationAction extends Action implements BlocklyAction {
             return number.doubleValue();
         }
         if (value instanceof String str) {
-            return Double.parseDouble(str);
+            try {
+                return Double.parseDouble(str);
+            } catch (NumberFormatException e) {
+                return 0;
+            }
         }
         return 0;
     }
