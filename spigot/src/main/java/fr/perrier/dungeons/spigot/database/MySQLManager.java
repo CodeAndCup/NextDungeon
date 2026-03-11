@@ -46,12 +46,19 @@ public class MySQLManager implements DatabaseManager {
         this.username = username;
         this.password = password;
 
-        // Create a thread pool for database operations
-        this.executorService = Executors.newCachedThreadPool(r -> {
-            Thread thread = new Thread(r, "MySQL-Worker-" + ThreadLocalRandom.current().nextInt(1000));
-            thread.setDaemon(true);
-            return thread;
-        });
+        // Create a bounded thread pool for database operations
+        this.executorService = new ThreadPoolExecutor(
+                5,   // core pool size
+                20,  // maximum pool size
+                60L, TimeUnit.SECONDS,  // keep-alive time for idle threads
+                new java.util.concurrent.LinkedBlockingQueue<>(200),  // bounded work queue
+                r -> {
+                    Thread thread = new Thread(r, "MySQL-Worker-" + ThreadLocalRandom.current().nextInt(1000));
+                    thread.setDaemon(true);
+                    return thread;
+                },
+                new ThreadPoolExecutor.CallerRunsPolicy()  // back-pressure when queue is full
+        );
     }
 
     /**
@@ -60,9 +67,15 @@ public class MySQLManager implements DatabaseManager {
     @Override
     public void connect() {
         HikariConfig config = new HikariConfig();
-        config.setJdbcUrl("jdbc:mysql://" + host + ":" + port + "/" + database + "?useSSL=false&#00FF00llowPublicKeyRetrieval=true&serverTimezone=UTC");
+        config.setJdbcUrl("jdbc:mysql://" + host + ":" + port + "/" + database + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC");
         config.setUsername(username);
         config.setPassword(password);
+        config.setConnectionTimeout(30000);
+        config.setIdleTimeout(600000);
+        config.setMaxLifetime(1800000);
+        config.setMaximumPoolSize(20);
+        config.setMinimumIdle(5);
+        config.setLeakDetectionThreshold(60000);
 
         this.dataSource = new HikariDataSource(config);
         createTables();
@@ -119,6 +132,25 @@ public class MySQLManager implements DatabaseManager {
                     "floor_id VARCHAR(255) PRIMARY KEY, " +
                     "triggers_data MEDIUMTEXT NOT NULL, " +
                     "last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" +
+                    ")");
+
+            // Create cinematics table
+            stmt.execute("CREATE TABLE IF NOT EXISTS cinematics (" +
+                    "id VARCHAR(36) PRIMARY KEY, " +
+                    "name VARCHAR(64) NOT NULL, " +
+                    "creator VARCHAR(32), " +
+                    "payload_json MEDIUMTEXT NOT NULL, " +
+                    "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
+                    "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" +
+                    ")");
+
+            // Create workflows table
+            stmt.execute("CREATE TABLE IF NOT EXISTS workflows (" +
+                    "id VARCHAR(36) PRIMARY KEY, " +
+                    "name VARCHAR(128) NOT NULL, " +
+                    "graph_json MEDIUMTEXT NOT NULL, " +
+                    "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
+                    "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" +
                     ")");
 
         } catch (SQLException e) {
@@ -403,5 +435,129 @@ public class MySQLManager implements DatabaseManager {
                 return null;
             }
         }, "Delete triggers for " + floorId);
+    }
+
+    // ===== Cinematic CRUD =====
+
+    @Override
+    public CompletableFuture<String> loadCinematic(String cinematicId) {
+        return executeAsync(() -> {
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement("SELECT payload_json FROM cinematics WHERE id = ?")) {
+
+                stmt.setString(1, cinematicId);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getString("payload_json");
+                    }
+                }
+                return null;
+            }
+        }, "Load cinematic " + cinematicId);
+    }
+
+    @Override
+    public CompletableFuture<Void> saveCinematic(String cinematicId, String name, String creator, String payloadJson) {
+        return executeAsync(() -> {
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(
+                         "INSERT INTO cinematics (id, name, creator, payload_json) VALUES (?, ?, ?, ?) " +
+                         "ON DUPLICATE KEY UPDATE name = VALUES(name), creator = VALUES(creator), payload_json = VALUES(payload_json)")) {
+
+                stmt.setString(1, cinematicId);
+                stmt.setString(2, name);
+                stmt.setString(3, creator);
+                stmt.setString(4, payloadJson);
+                stmt.executeUpdate();
+
+                Main.getLoggerUtil().info("Cinematic saved: " + cinematicId);
+                return null;
+            }
+        }, "Save cinematic " + cinematicId);
+    }
+
+    @Override
+    public CompletableFuture<Void> deleteCinematic(String cinematicId) {
+        return executeAsync(() -> {
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement("DELETE FROM cinematics WHERE id = ?")) {
+
+                stmt.setString(1, cinematicId);
+                stmt.executeUpdate();
+
+                Main.getLoggerUtil().info("Cinematic deleted: " + cinematicId);
+                return null;
+            }
+        }, "Delete cinematic " + cinematicId);
+    }
+
+    @Override
+    public CompletableFuture<List<String[]>> listCinematics() {
+        return executeAsync(() -> {
+            List<String[]> result = new java.util.ArrayList<>();
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement("SELECT id, name, creator FROM cinematics ORDER BY updated_at DESC")) {
+
+                try (ResultSet rs = stmt.executeQuery()) {
+                    while (rs.next()) {
+                        result.add(new String[]{rs.getString("id"), rs.getString("name"), rs.getString("creator")});
+                    }
+                }
+            }
+            return result;
+        }, "List cinematics");
+    }
+
+    // ===== Workflow CRUD =====
+
+    @Override
+    public CompletableFuture<String> loadWorkflow(String workflowId) {
+        return executeAsync(() -> {
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement("SELECT graph_json FROM workflows WHERE id = ?")) {
+
+                stmt.setString(1, workflowId);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getString("graph_json");
+                    }
+                }
+                return null;
+            }
+        }, "Load workflow " + workflowId);
+    }
+
+    @Override
+    public CompletableFuture<Void> saveWorkflow(String workflowId, String name, String graphJson) {
+        return executeAsync(() -> {
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(
+                         "INSERT INTO workflows (id, name, graph_json) VALUES (?, ?, ?) " +
+                         "ON DUPLICATE KEY UPDATE name = VALUES(name), graph_json = VALUES(graph_json)")) {
+
+                stmt.setString(1, workflowId);
+                stmt.setString(2, name);
+                stmt.setString(3, graphJson);
+                stmt.executeUpdate();
+
+                Main.getLoggerUtil().info("Workflow saved: " + workflowId);
+                return null;
+            }
+        }, "Save workflow " + workflowId);
+    }
+
+    @Override
+    public CompletableFuture<Void> deleteWorkflow(String workflowId) {
+        return executeAsync(() -> {
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement("DELETE FROM workflows WHERE id = ?")) {
+
+                stmt.setString(1, workflowId);
+                stmt.executeUpdate();
+
+                Main.getLoggerUtil().info("Workflow deleted: " + workflowId);
+                return null;
+            }
+        }, "Delete workflow " + workflowId);
     }
 }

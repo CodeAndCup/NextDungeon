@@ -4,6 +4,8 @@ import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.instance.impl.CloudNetProvider;
 import org.bukkit.Bukkit;
 
+import java.util.Objects;
+
 /**
  * Factory for creating instance providers based on configuration.
  * This class checks for available providers and initializes the appropriate one.
@@ -15,7 +17,7 @@ public class InstanceProviderFactory {
      * @return the created InstanceProvider
      */
     public static InstanceProvider createProvider() {
-        String providerType = Main.getInstance().getConfig().getString("InstanceProvider.type", "CLOUDNET");
+        String providerType = Objects.requireNonNull(Main.getInstance().getConfig().getString("InstanceProvider.type"));
 
         Main.getLoggerUtil().info("Provider initialization: " + providerType);
 

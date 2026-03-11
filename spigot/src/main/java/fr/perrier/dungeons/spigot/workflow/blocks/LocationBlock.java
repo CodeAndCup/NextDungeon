@@ -26,6 +26,9 @@ public class LocationBlock implements Serializable {
     private boolean hasWorld;
     private boolean hasRotation;
 
+    // Transient cached world reference to avoid repeated Bukkit.getWorld() lookups
+    private transient World cachedWorld;
+
     public LocationBlock() {
         this.x = 0;
         this.y = 64;
@@ -58,14 +61,30 @@ public class LocationBlock implements Serializable {
     }
 
     /**
+     * Invalidates the cached world reference when worldName changes.
+     */
+    public void setWorldName(String worldName) {
+        this.worldName = worldName;
+        this.cachedWorld = null;
+    }
+
+    /**
      * Convertit ce LocationBlock en Location Bukkit
      * @param defaultWorld Le monde par défaut si aucun monde n'est spécifié
      * @return La Location Bukkit correspondante
      */
     public Location toLocation(World defaultWorld) {
-        World world = hasWorld && worldName != null && !worldName.isEmpty()
-            ? Bukkit.getWorld(worldName)
-            : defaultWorld;
+        World world;
+        if (hasWorld && worldName != null && !worldName.isEmpty()) {
+            World cached = cachedWorld;
+            if (cached == null || !worldName.equals(cached.getName())) {
+                cached = Bukkit.getWorld(worldName);
+                cachedWorld = cached;
+            }
+            world = cached;
+        } else {
+            world = defaultWorld;
+        }
 
         if (world == null) {
             world = Bukkit.getWorlds().get(0); // Fallback au premier monde

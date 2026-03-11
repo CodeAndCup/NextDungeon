@@ -88,7 +88,16 @@ public class DungeonGateMenu extends GlassMenu {
 
         @Override
         public void clicked(Player player, int slot, ClickType clickType, int hotbarButton) {
-            //TODO: Make that can't be click if dungeon already loading
+            // Prevent clicking if any player of that party is already in an instance or being prepared
+            if (DungeonPartyImpl.hasLeadParty(player)) {
+                UUID leaderId = DungeonPartyImpl.getDungeonPartyOf(player).getLeaderId();
+                if (Main.getInstance().getDungeonService().isPlayerInAnyInstance(leaderId)) {
+                    player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000An instance for your party is already being prepared or active. Please wait..."));
+                    return;
+                }
+            }
+
+            // Original requirement checks
             if(Objects.requireNonNull(Objects.requireNonNull(getButtonItem(player).getItemMeta()).getLore()).stream().anyMatch(s -> s.contains("✘"))) {
                 player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000You do not meet the requirements to enter this floor."));
                 return;
@@ -102,6 +111,7 @@ public class DungeonGateMenu extends GlassMenu {
                     player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Your party is too small to enter this floor."));
                     return;
                 }
+
                 FloorInstance.generateNewInstanceAsync(floor.getId(), DungeonPartyImpl.getDungeonPartyOf(player).getMemberIds(),false, floorInstance -> {
                     if(floorInstance.getPlayers().stream().anyMatch(uuid -> !floorInstance.getFloor().isRequirementsValid(Bukkit.getPlayer(uuid)))) {
                         floorInstance.getPlayers().forEach(uuid -> {
@@ -205,10 +215,11 @@ public class DungeonGateMenu extends GlassMenu {
         if(floor.getRequirements().getRequiredFloorsId() != null && !floor.getRequirements().getRequiredFloorsId().isEmpty()) {
             for(String requiredFloorId : floor.getRequirements().getRequiredFloorsId()) {
                 Floor requiredFloor = Floor.getFloor(requiredFloorId);
+                String requiredFloorName = requiredFloor != null ? requiredFloor.getName() : requiredFloorId;
                 if(profileData.getCompletedFloors().contains(requiredFloorId)) {
-                    lore.add("&#00FF00✔ " + requiredFloor.getName() + " Completion.");
+                    lore.add("&#00FF00✔ " + requiredFloorName + " Completion.");
                 } else {
-                    lore.add("&#FF0000✘ " + requiredFloor.getName() + " Completion.");
+                    lore.add("&#FF0000✘ " + requiredFloorName + " Completion.");
                 }
             }
         }

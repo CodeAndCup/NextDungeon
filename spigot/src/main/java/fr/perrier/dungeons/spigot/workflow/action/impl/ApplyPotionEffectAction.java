@@ -34,6 +34,14 @@ public class ApplyPotionEffectAction extends Action implements BlocklyAction {
             defaultValue = "SPEED", order = 1)
     private String effectType;
 
+    // Transient cached enum to avoid PotionEffectType.getByName() on every execute
+    private transient PotionEffectType cachedPotionType;
+
+    public void setEffectType(String effectType) {
+        this.effectType = effectType;
+        this.cachedPotionType = null;
+    }
+
     @BlocklyField(type = BlocklyField.FieldType.NUMBER_INPUT, label = "Durée (secondes):",
             defaultValue = "10", order = 2)
     private int duration;
@@ -82,7 +90,10 @@ public class ApplyPotionEffectAction extends Action implements BlocklyAction {
         }
 
         try {
-            PotionEffectType potionType = PotionEffectType.getByName(effectType.toUpperCase());
+            if (cachedPotionType == null) {
+                cachedPotionType = PotionEffectType.getByName(effectType.toUpperCase());
+            }
+            PotionEffectType potionType = cachedPotionType;
             if (potionType == null) {
                 Main.getLoggerUtil().warning("Invalid potion effect type: " + effectType);
                 return false;

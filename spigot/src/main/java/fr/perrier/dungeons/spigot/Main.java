@@ -10,13 +10,18 @@ import com.github.juliarn.npclib.bukkit.protocol.BukkitProtocolAdapter;
 import fr.perrier.cupcodeapi.CupCodeAPI;
 import fr.perrier.cupcodeapi.commands.CommandHandler;
 import fr.perrier.cupcodeapi.menuapi.MenuAPI;
+import fr.perrier.dungeons.common.model.dungeon.FloorData;
 import fr.perrier.dungeons.spigot.commands.AdminCommands;
 import fr.perrier.dungeons.spigot.commands.ConsoleCommands;
 import fr.perrier.dungeons.spigot.commands.DebugCommands;
 import fr.perrier.dungeons.spigot.commands.PlayerCommands;
-import fr.perrier.dungeons.spigot.configuration.ConfigLoader;
+import fr.perrier.dungeons.spigot.commands.params.DungeonParameterType;
+import fr.perrier.dungeons.spigot.commands.params.FloorParameterType;
+import fr.perrier.dungeons.spigot.commands.params.ModuleParameterType;
+import fr.perrier.dungeons.spigot.configuration.RedisConfigLoader;
 import fr.perrier.dungeons.spigot.database.DatabaseFactory;
 import fr.perrier.dungeons.spigot.database.DatabaseManager;
+import fr.perrier.dungeons.spigot.model.Dungeon;
 import fr.perrier.dungeons.spigot.instance.InstanceInfo;
 import fr.perrier.dungeons.spigot.listener.dungeons.InstanceJoinListener;
 import fr.perrier.dungeons.spigot.listener.dungeons.InstanceMobKillListener;
@@ -46,6 +51,7 @@ import fr.perrier.dungeons.spigot.storage.DungeonService;
 import fr.perrier.dungeons.spigot.queue.DungeonQueueService;
 import fr.perrier.dungeons.spigot.queue.QueueManager;
 import fr.perrier.dungeons.spigot.utils.ServerUtil;
+import fr.perrier.dungeons.spigot.module.ModuleLoader;
 import fr.perrier.dungeons.spigot.webeditor.DungeonWebEditorManager;
 import lombok.Getter;
 import lombok.Setter;
@@ -94,6 +100,9 @@ public final class Main extends JavaPlugin {
     // Web editor manager
     private DungeonWebEditorManager webEditorManager;
 
+    // Dynamic module loader
+    private ModuleLoader moduleLoader;
+
 
     // Global trigger manager
     private TriggersRegistry triggersRegistry;
@@ -123,15 +132,20 @@ public final class Main extends JavaPlugin {
 
         // Save default config
         saveDefaultConfig();
+        if(getConfig().getString("config-version") == null) {
+            getLogger().severe("Invalid configuration file (missing config-version), please check your config.yml");
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
 
         // Initialize Redis Configuration
         Config config = new Config();
         config.useSingleServer().setAddress("redis://"
-                        + Main.getInstance().getConfig().getString("RedisConfiguration.host")
+                        + Objects.requireNonNull(Main.getInstance().getConfig().getString("RedisConfiguration.host"))
                         + ":"
                         + Main.getInstance().getConfig().getInt("RedisConfiguration.port"))
-                .setUsername(Main.getInstance().getConfig().getString("RedisConfiguration.username"))
-                .setPassword(Main.getInstance().getConfig().getString("RedisConfiguration.password"))
+                .setUsername(Objects.requireNonNull(Main.getInstance().getConfig().getString("RedisConfiguration.username")))
+                .setPassword(Objects.requireNonNull(Main.getInstance().getConfig().getString("RedisConfiguration.password")))
                 .setDatabase(Main.getInstance().getConfig().getInt("RedisConfiguration.database"));
 
         // Create Redis client
@@ -190,6 +204,9 @@ public final class Main extends JavaPlugin {
 
         databaseManager = DatabaseFactory.createDatabase();
 
+        // Load dynamic modules from /modules/ directory
+        moduleLoader = new ModuleLoader(new java.io.File(getDataFolder(), "modules"));
+        moduleLoader.loadAll();
 
         // Enabling other plugins API
         CupCodeAPI.enable(this);
@@ -223,7 +240,7 @@ public final class Main extends JavaPlugin {
         }
 
         // Enabling messaging system
-        this.messaging = new Pidgin(getConfig().getString("RedisConfiguration.topic"),config);
+        this.messaging = new Pidgin(Objects.requireNonNull(getConfig().getString("RedisConfiguration.topic")),config);
         this.messaging.registerAdapter(PlayerSwitchServerPacket.class, new PlayerSwitchServerSubscriber());
         this.messaging.registerAdapter(WebEditorRequestPacket.class, new WebEditorRequestSubscriber());
         this.messaging.registerAdapter(WebEditorResponsePacket.class, null);
@@ -281,7 +298,10 @@ public final class Main extends JavaPlugin {
             InstanceInfo info = ServerUtil.getInstanceInfo();
             if (info != null) {
                 // Remove instance from Redis
-                dungeonService.removeInstance(info.getInstanceId());
+                if(dungeonService != null)
+                    dungeonService.removeInstance(info.getInstanceId());
+                else
+                    getLogger().warning("Dungeon service is null while trying to remove instance " + info.getInstanceId());
                 
                 // Unregister from queue system
                 if (dungeonQueueService != null) {
@@ -298,6 +318,11 @@ public final class Main extends JavaPlugin {
         // Clear local Redis data
         if (dungeonService != null) {
             dungeonService.clearLocal();
+        }
+
+        // Unload dynamic modules
+        if (moduleLoader != null) {
+            moduleLoader.unloadAll();
         }
 
         CupCodeAPI.disable();
@@ -319,6 +344,10 @@ public final class Main extends JavaPlugin {
      * from {@link AdminCommands}, {@link DebugCommands} and {@link PlayerCommands}.
      */
     private void loadCommands() {
+        CommandHandler.registerParameterType(Dungeon.class, new DungeonParameterType());
+        CommandHandler.registerParameterType(FloorData.class, new FloorParameterType());
+        CommandHandler.registerParameterType(ModuleParameterType.class, new ModuleParameterType());
+
         commandHandler.registerCommands(AdminCommands.class);
         commandHandler.registerCommands(DebugCommands.class);
         commandHandler.registerCommands(PlayerCommands.class);
@@ -446,11 +475,81 @@ public final class Main extends JavaPlugin {
     private void initializeLobbyServer() {
         getLogger().info("Initializing lobby server");
 
-        // Load all dungeons only on lobby server
-        // Instance servers only need to retrieve their specific floor from Redis
-        ConfigLoader.loadAllDungeons();
+        // Charger tous les donjons depuis Redis (dashboard web)
+        // Plus de chargement YAML — tout passe par Redis désormais
+        // Pour migrer d'anciens donjons YAML: /dungeon admin migrate-all
+        RedisConfigLoader.loadAllDungeonsFromRedis();
 
-        // Lobby specific initialization if needed
+        // Subscribe au canal de synchronisation dashboard pour recharger les floors en live
+        subscribeDashboardSyncChannel();
+    }
+
+    /**
+     * S'abonne au canal Redis du dashboard pour recharger automatiquement
+     * les floors quand ils sont créés/modifiés depuis l'interface web.
+     */
+    private void subscribeDashboardSyncChannel() {
+        try {
+            String topic = Objects.requireNonNull(getConfig().getString("RedisConfiguration.topic"));
+            // Subscribe au canal string (messages JSON du dashboard proxy)
+            dungeonService.getRedissonClient()
+                    .getTopic(topic + ":sync")
+                    .addListener(String.class, (channel, msg) -> {
+                try {
+                    com.google.gson.JsonObject json =
+                            new com.google.gson.JsonParser().parse(msg).getAsJsonObject();
+                    String type = json.has("type") ? json.get("type").getAsString() : "";
+                    String id   = json.has("id")   ? json.get("id").getAsString()   : "";
+                    if (id.isEmpty()) return;
+                    switch (type) {
+                        case "FLOOR_UPDATE" -> {
+                            getLogger().info("[DashboardSync] Rechargement floor : " + id);
+                            Bukkit.getScheduler().runTaskAsynchronously(this,
+                                    () -> RedisConfigLoader.reloadFloorFromRedis(id));
+                        }
+                        case "FLOOR_DELETE" -> {
+                            getLogger().info("[DashboardSync] Floor supprimé : " + id + " — suppression du template...");
+                            ServerUtil.deleteFloorTemplate(id).thenAccept(success -> {
+                                if (success) {
+                                    getLogger().info("[DashboardSync] Template supprimé pour le floor : " + id);
+                                } else {
+                                    getLogger().warning("[DashboardSync] Echec suppression template pour le floor : " + id);
+                                }
+                            });
+                        }
+                        case "DUNGEON_UPDATE" -> {
+                            getLogger().info("[DashboardSync] Donjon DUNGEON_UPDATE : " + id);
+                            Dungeon existing = dungeonService.getDungeon(id);
+                            if (existing == null) {
+                                // Lire le nom depuis la clé dd:{id} (StringCodec, JSON)
+                                String ddKey = Objects.requireNonNull(getConfig().getString("RedisConfiguration.topic")) + ":dd:" + id;
+                                String entryJson = (String) dungeonService.getRedissonClient()
+                                        .getBucket(ddKey, org.redisson.client.codec.StringCodec.INSTANCE).get();
+                                String name = id; // fallback
+                                if (entryJson != null) {
+                                    try {
+                                        com.google.gson.JsonObject e = new com.google.gson.JsonParser().parse(entryJson).getAsJsonObject();
+                                        if (e.has("name")) name = e.get("name").getAsString();
+                                    } catch (Exception ignored) {}
+                                }
+                                Dungeon newDungeon = new Dungeon(id, name);
+                                dungeonService.syncDungeon(newDungeon);
+                                getLogger().info("[DashboardSync] Donjon créé en mémoire : " + id + " (name=" + name + ")");
+                            }
+                        }
+                        case "DUNGEON_DELETE" -> {
+                            getLogger().info("[DashboardSync] Donjon DUNGEON_DELETE : " + id);
+                            dungeonService.removeDungeon(id);
+                        }
+                    }
+                } catch (Exception ignored) {
+                    // Message non-JSON (RedisMessage Kryo natif) — ignorer silencieusement
+                }
+            });
+            getLogger().info("✅ Abonnement dashboard sync channel actif (" + topic + ":sync)");
+        } catch (Exception e) {
+            getLogger().warning("⚠️ Impossible de s'abonner au dashboard sync channel : " + e.getMessage());
+        }
     }
 
 

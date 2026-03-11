@@ -5,15 +5,20 @@ import fr.perrier.cupcodeapi.commands.annotations.Param;
 import fr.perrier.cupcodeapi.utils.ChatUtil;
 import fr.perrier.dungeons.common.model.dungeon.FloorData;
 import fr.perrier.dungeons.common.model.dungeon.config.FloorInstanceData;
+import fr.perrier.dungeons.common.module.ModuleActionHandler;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.menu.dungeon.DungeonGateMenu;
 import fr.perrier.dungeons.spigot.model.Dungeon;
 import fr.perrier.dungeons.spigot.model.Floor;
+import fr.perrier.dungeons.spigot.parties.impl.DungeonPartyImpl;
 import fr.perrier.dungeons.spigot.utils.LoggerUtil;
 import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.entity.Player;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class DebugCommands {
 
@@ -102,10 +107,10 @@ public class DebugCommands {
     }
 
     @Command(names = "dungeon debug floor")
-    public static void debugDungeonFloorCommand(Player player, @Param(name = "dungeonId")String dungeonId, @Param(name = "floorId") String floorId) {
-        Floor floor = Floor.getFloor(dungeonId + "_" + floorId);
+    public static void debugDungeonFloorCommand(Player player,  @Param(name = "Floor ID", tabCompleteFlags = {"floors"}) FloorData floorData) {
+        Floor floor = Floor.getFloor(floorData.getId());
         if (floor == null) {
-            player.sendMessage(ChatUtil.translate("&#FF0000Floor with ID '" + floorId + "' not found."));
+            player.sendMessage(ChatUtil.translate("&#FF0000Floor with ID '" + floorData.getId() + "' not found."));
             return;
         }
         player.sendMessage(ChatUtil.getBar());
@@ -113,23 +118,91 @@ public class DebugCommands {
         player.sendMessage(ChatUtil.translate("  &8- &eID: &f" + floor.getId()));
         player.sendMessage(ChatUtil.translate("  &8- &eName: &f" + floor.getName()));
         player.sendMessage(ChatUtil.translate("  &8- &eDescription: &f" + floor.getDescription()));
-        player.sendMessage(ChatUtil.translate("  &8- &eNumber of Steps: &f" + floor.getSteps().size()));
-        player.sendMessage(ChatUtil.translate("  &8- &eNumber of Triggers: &f" + floor.getTriggers().size()));
+        player.sendMessage(ChatUtil.translate("  &8- &eNumber of Steps: &f" + (floor.getSteps() != null ? floor.getSteps().size() : 0)));
+        player.sendMessage(ChatUtil.translate("  &8- &eNumber of Triggers: &f" + (floor.getTriggers() != null ? floor.getTriggers().size() : 0)));
         player.sendMessage(ChatUtil.getBar());
     }
 
     @Command(names = "dungeon debug trigger")
-    public static void debugDungeonTriggerCommand(Player player, @Param(name = "dungeonId")String dungeonId, @Param(name = "floorId") String floorId) {
-        Floor floor = Floor.getFloor(dungeonId + "_" + floorId);
+    public static void debugDungeonTriggerCommand(Player player, @Param(name = "Floor ID", tabCompleteFlags = {"floors"}) FloorData floorData) {
+        Floor floor = Floor.getFloor(floorData.getId());
         if (floor == null) {
-            player.sendMessage(ChatUtil.translate("&#FF0000Floor with ID '" + floorId + "' not found."));
+            player.sendMessage(ChatUtil.translate("&#FF0000Floor with ID '" + floorData.getId() + "' not found."));
             return;
         }
         player.sendMessage(ChatUtil.getBar());
         player.sendMessage(ChatUtil.translate("&6Triggers for Floor: &e" + floor.getName()));
-        floor.getTriggers().forEach(trigger -> {
-            player.sendMessage(ChatUtil.translate("  &b" + trigger.toString()));
+        if (floor.getTriggers() == null || floor.getTriggers().isEmpty()) {
+            player.sendMessage(ChatUtil.translate("  &cNo triggers found for this floor."));
+        } else {
+            floor.getTriggers().forEach(trigger -> {
+                player.sendMessage(ChatUtil.translate("  &b" + trigger.toString()));
+            });
+        }
+        player.sendMessage(ChatUtil.getBar());
+    }
+
+    @Command(names = "dungeon debug cinematic test")
+    public static void debugCinematicTestCommand(Player player, @Param(name = "cinematicId") String cinematicId, @Param(name ="interpolation") String interpolation) {
+        player.sendMessage(ChatUtil.translate("&#D10000Testing cinematic: &f" + cinematicId));
+
+        // Add waypoints
+        player.sendMessage(ChatUtil.translate("&#D100001. Adding waypoints..."));
+        int[] ticks = {0, 50, 100, 125, 190};
+        double[][] positions = {
+            {-189, 122, -80}, {-171, 116, -82}, {-150, 107, -75}, {-108, 103, -79}, {-75, 100, -77}
+        };
+        float[][] rotations = {
+            {0, 0}, {-65, 0}, {-85, 0}, {-90, 0}, {-90, -35}
+        };
+
+        for (int i = 0; i < ticks.length; i++) {
+            Map<String, Object> params = new HashMap<>();
+            params.put("cinematicId", cinematicId);
+            params.put("tick", ticks[i]);
+            params.put("x", positions[i][0]);
+            params.put("y", positions[i][1]);
+            params.put("z", positions[i][2]);
+            params.put("yaw", rotations[i][0]);
+            params.put("pitch", rotations[i][1]);
+            params.put("interpolation", interpolation);
+
+            ModuleActionHandler handler = Main.getInstance().getModuleLoader().getActionHandler("cinematic_add_camera_waypoint");
+            if (handler != null) {
+                boolean result = handler.execute(params);
+                player.sendMessage(ChatUtil.translate("   &8- Waypoint " + (i+1) + " added: " + (result ? "&aOK" : "&cFAILED")));
+            }
+        }
+
+        // Start cinematic
+        player.sendMessage(ChatUtil.translate("&#D100002. Starting cinematic..."));
+        Map<String, Object> startParams = new HashMap<>();
+        startParams.put("cinematicId", cinematicId);
+        startParams.put("player", player);
+
+        ModuleActionHandler handler = Main.getInstance().getModuleLoader().getActionHandler("cinematic_start");
+        if (handler != null) {
+            boolean result = handler.execute(startParams);
+            player.sendMessage(ChatUtil.translate("   &8- Start result: " + (result ? "&aOK" : "&cFAILED")));
+        }
+    }
+
+    @Command(names = "dungeon debug party list")
+    public static void debugPartyListCommand(Player player) {
+        player.sendMessage(ChatUtil.getBar());
+        player.sendMessage(ChatUtil.translate("&6Parties:"));
+        DungeonPartyImpl.getDungeonParties().values().forEach(party -> {
+            TextComponent partyComponent = new TextComponent(ChatUtil.translate("  &8- &e" + party.getParty().getPartyId() + " &8(&7&o" + party.getDungeonId() + "&8)"));
+            HoverEvent hoverEvent = new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ComponentBuilder(party.toString()).create());
+            partyComponent.setHoverEvent(hoverEvent);
+            player.spigot().sendMessage(partyComponent);
         });
         player.sendMessage(ChatUtil.getBar());
+    }
+
+    @Command(names = "dungeon debug party clean")
+    public static void debugPartyCleanCommand(Player player) {
+        DungeonPartyImpl.getDungeonParties().values().forEach(DungeonPartyImpl::disband);
+        player.sendMessage(ChatUtil.translate("&#D10000All parties have been disbanded."));
     }
 }

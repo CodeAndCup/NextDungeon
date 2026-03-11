@@ -286,6 +286,49 @@ public class CloudNetProvider implements InstanceProvider {
     }
 
     @Override
+    public CompletableFuture<Boolean> deleteTemplate(String floorId) {
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+
+        Bukkit.getScheduler().runTaskAsynchronously(Main.getInstance(), () -> {
+            try {
+                ServiceTaskProvider serviceTaskProvider = InjectionLayer.boot().instance(ServiceTaskProvider.class);
+                ServiceTask existingTask = serviceTaskProvider.serviceTask(floorId);
+                if (existingTask != null) {
+                    serviceTaskProvider.removeServiceTask(existingTask);
+                    Main.getLoggerUtil().info("ServiceTask supprimée pour : " + floorId);
+                } else {
+                    Main.getLoggerUtil().warning("Aucune ServiceTask trouvée pour : " + floorId + " (déjà supprimée ?)");
+                }
+
+                ServiceTemplate template = new ServiceTemplate.Builder()
+                        .prefix(floorId.split("_")[0])
+                        .name(floorId.split("_")[1])
+                        .storage("local")
+                        .priority(0)
+                        .alwaysCopyToStaticServices(false)
+                        .build();
+
+                try (TemplateStorage storage = template.storage()) {
+                    if (storage.contains(template)) {
+                        storage.delete(template);
+                        Main.getLoggerUtil().info("Template CloudNet supprimé pour : " + floorId);
+                    } else {
+                        Main.getLoggerUtil().warning("Aucun template CloudNet trouvé pour : " + floorId + " (déjà supprimé ?)");
+                    }
+                }
+
+                future.complete(true);
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Erreur lors de la suppression du template pour " + floorId + " : " + e.getMessage());
+                e.printStackTrace(System.err);
+                future.complete(false);
+            }
+        });
+
+        return future;
+    }
+
+    @Override
     public CompletableFuture<Boolean> sendPlayerToInstance(Player player, UUID instanceId) {
         CompletableFuture<Boolean> future = new CompletableFuture<>();
 
@@ -430,7 +473,7 @@ public class CloudNetProvider implements InstanceProvider {
                 }
 
                 Main.getLoggerUtil().info("Creating the template " + targetTemplate.name() +
-                        " has been finished in " + (System.currentTimeMillis() - startTime) + " ms");
+                                          " has been finished in " + (System.currentTimeMillis() - startTime) + " ms");
                 zipInputStream.close();
                 future.complete(true);
             } catch (IOException e) {

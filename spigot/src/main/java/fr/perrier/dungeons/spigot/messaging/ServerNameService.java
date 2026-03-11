@@ -7,7 +7,9 @@ import fr.perrier.dungeons.spigot.Main;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.messaging.PluginMessageListener;
+import org.jspecify.annotations.NonNull;
 
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -18,7 +20,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class ServerNameService implements PluginMessageListener {
 
-    private static final String DUNGEONS_CHANNEL = Main.getInstance().getConfig().getString("RedisConfiguration.topic") + ":main";
+    private static final String DUNGEONS_CHANNEL = Objects.requireNonNull(Main.getInstance().getConfig().getString("RedisConfiguration.topic")) + ":main";
 
     private final AtomicReference<String> cachedServerName = new AtomicReference<>(null);
     private final AtomicReference<CompletableFuture<String>> pendingRequest = new AtomicReference<>(null);
@@ -104,7 +106,7 @@ public class ServerNameService implements PluginMessageListener {
         try {
             // Récupérer l'IP et le port du serveur
             String serverIp = Bukkit.getServer().getIp();
-            if (serverIp == null || serverIp.isEmpty()) {
+            if (serverIp.isEmpty()) {
                 serverIp = "127.0.0.1"; // Fallback pour localhost
             }
             int serverPort = Bukkit.getServer().getPort();
@@ -126,7 +128,7 @@ public class ServerNameService implements PluginMessageListener {
     }
 
     @Override
-    public void onPluginMessageReceived(String channel, Player player, byte[] message) {
+    public void onPluginMessageReceived(String channel, @NonNull Player player, byte[] message) {
         if (!channel.equals(DUNGEONS_CHANNEL)) {
             return;
         }

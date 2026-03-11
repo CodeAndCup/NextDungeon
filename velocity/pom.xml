@@ -8,7 +8,7 @@
     <parent>
         <groupId>fr.perrier</groupId>
         <artifactId>NextDungeon</artifactId>
-        <version>1.0.3-SNAPSHOT</version>
+        <version>1.0.4-SNAPSHOT</version>
     </parent>
     <artifactId>NextDungeon-Velocity</artifactId>
     <packaging>jar</packaging>
@@ -35,7 +35,7 @@
         <dependency>
             <groupId>com.velocitypowered</groupId>
             <artifactId>velocity-api</artifactId>
-            <version>3.4.0-SNAPSHOT</version>
+            <version>3.5.0-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
 
@@ -63,7 +63,7 @@
         <dependency>
             <groupId>fr.perrier</groupId>
             <artifactId>NextDungeon-Common</artifactId>
-            <version>1.0.3-SNAPSHOT</version>
+            <version>1.0.4-SNAPSHOT</version>
         </dependency>
     </dependencies>
 
@@ -90,28 +90,44 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
-                            <finalName>NextDungeon</finalName>
+                            <!--suppress UnresolvedMavenProperty -->
+                            <finalName>${project.artifactId}-${project.version}-${git.commit.id.abbrev}</finalName>
                         </configuration>
                     </execution>
                 </executions>
             </plugin>
             <plugin>
-                <groupId>pl.project13.maven</groupId>
-                <artifactId>git-commit-id-plugin</artifactId>
-                <version>4.0.4</version>
+                <groupId>io.github.git-commit-id</groupId>
+                <artifactId>git-commit-id-maven-plugin</artifactId>
+                <version>9.0.2</version>
                 <executions>
                     <execution>
+                        <id>get-the-git-infos</id>
                         <goals>
                             <goal>revision</goal>
                         </goals>
+                        <phase>validate</phase>
                     </execution>
                 </executions>
+                <configuration>
+                    <dotGitDirectory>${project.basedir}/.git</dotGitDirectory>
+                </configuration>
             </plugin>
         </plugins>
         <resources>
             <resource>
                 <directory>src/main/resources</directory>
                 <filtering>true</filtering>
+                <excludes>
+                    <exclude>webserver/**</exclude>
+                </excludes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <includes>
+                    <include>webserver/**</include>
+                </includes>
             </resource>
         </resources>
     </build>

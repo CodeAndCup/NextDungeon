@@ -29,7 +29,12 @@ public class GlobalPartyListener implements Listener {
             if (member != null)
                 member.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Your party has been removed from the party finder!"));
         });
-        DungeonPartyImpl.getDungeonParties().remove(party.getLeader());
+
+        // Get the registered DungeonPartyImpl (if any) and unregister it so it removes the real entry
+        DungeonPartyImpl dp = DungeonPartyImpl.getDungeonPartyOf(party.getLeader());
+        if (dp != null) {
+            dp.disband();
+        }
     }
 
     /**
@@ -43,13 +48,14 @@ public class GlobalPartyListener implements Listener {
     public void onPartyLeaderLeave(BukkitPartiesPlayerPreLeaveEvent event) {
         Party party = event.getParty();
         if(Objects.equals(party.getLeader(), event.getPartyPlayer().getPlayerUUID())) {
-            if(DungeonPartyImpl.getDungeonParties().containsKey(party.getLeader())) {
-                DungeonPartyImpl.getDungeonParties().remove(party.getLeader());
+            DungeonPartyImpl dp = DungeonPartyImpl.getDungeonPartyOf(party.getLeader());
+            if(dp != null) {
                 party.getMembers().forEach(uuid -> {
                     Player member = Bukkit.getPlayer(uuid);
                     if (member != null)
                         member.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Your party has been removed from the party finder!"));
                 });
+                dp.disband();
             }
         }
     }

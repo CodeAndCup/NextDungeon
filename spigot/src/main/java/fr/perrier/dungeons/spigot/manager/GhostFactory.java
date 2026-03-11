@@ -54,7 +54,9 @@ public class GhostFactory {
 
     private void createTask() {
         task = Bukkit.getScheduler().runTaskTimer(Main.getInstance(), () -> {
-            for (OfflinePlayer member : getMembers()) {
+            OfflinePlayer[] members = getMembers();
+            if (members.length == 0) return;
+            for (OfflinePlayer member : members) {
                 Player player = member.getPlayer();
 
                 if (player != null) {
@@ -154,12 +156,14 @@ public class GhostFactory {
         if (!closed) {
             closed = true;
 
-            // Remove every player
-            Set<OfflinePlayer> members = new HashSet<>(ghostTeam.getPlayers());
-            for (OfflinePlayer member : members) {
-                Player player = member.getPlayer();
-                if (player != null) {
-                    removePlayer(player);
+            // Remove every players
+            if(ghostTeam != null) {
+                Set<OfflinePlayer> members = new HashSet<>(ghostTeam.getPlayers());
+                for (OfflinePlayer member : members) {
+                    Player player = member.getPlayer();
+                    if (player != null) {
+                        removePlayer(player);
+                    }
                 }
             }
 

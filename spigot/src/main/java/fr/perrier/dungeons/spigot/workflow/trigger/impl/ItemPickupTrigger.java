@@ -32,6 +32,14 @@ public class ItemPickupTrigger extends Trigger implements BlocklyTrigger {
             defaultValue = "DIAMOND", order = 1)
     private String itemMaterial;
 
+    // Transient cached enum to avoid Material.valueOf() parse on every trigger check
+    private transient Material cachedMaterialEnum;
+
+    public void setItemMaterial(String itemMaterial) {
+        this.itemMaterial = itemMaterial;
+        this.cachedMaterialEnum = null;
+    }
+
     @BlocklyField(type = BlocklyField.FieldType.NUMBER_INPUT, label = "Quantité minimum:",
             defaultValue = "1", order = 2)
     private int minAmount;
@@ -85,8 +93,10 @@ public class ItemPickupTrigger extends Trigger implements BlocklyTrigger {
         // Vérifier le type d'item (ANY = tous les items)
         if (itemMaterial != null && !itemMaterial.isEmpty() && !itemMaterial.equals("ANY")) {
             try {
-                Material expectedMaterial = Material.valueOf(itemMaterial.toUpperCase());
-                if (item.getType() != expectedMaterial) {
+                if (cachedMaterialEnum == null) {
+                    cachedMaterialEnum = Material.valueOf(itemMaterial.toUpperCase());
+                }
+                if (item.getType() != cachedMaterialEnum) {
                     return false;
                 }
             } catch (IllegalArgumentException e) {

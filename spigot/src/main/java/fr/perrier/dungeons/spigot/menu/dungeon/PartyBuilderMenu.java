@@ -133,18 +133,22 @@ public class PartyBuilderMenu extends GlassMenu {
                 (target, result) -> {
                     String minLevel = result.getRight();
                     if(StringUtils.isNumeric(minLevel)) {
-                        int minLevelInt = Integer.parseInt(minLevel);
-                        if(minLevelInt < 0) {
-                            player.sendRawMessage(ChatUtil.translate("&#FF0000You can not have a negative minimum player level."));
-                            return;
+                        try {
+                            int minLevelInt = Integer.parseInt(minLevel);
+                            if (minLevelInt < 0) {
+                                player.sendRawMessage(ChatUtil.translate("&#FF0000You can not have a negative minimum player level."));
+                                return;
+                            }
+                            if (minLevelInt < Floor.getFloor(floorId).getRequirements().getMinLevel()) {
+                                player.sendRawMessage(ChatUtil.translate("&#FF0000You can not have a minimum player level lower than the floor minimum level: &f" + Floor.getFloor(floorId).getRequirements().getMinLevel()));
+                                return;
+                            }
+                            this.minLevel = Integer.parseInt(minLevel);
+                            player.sendRawMessage(ChatUtil.translate("&#00FF00Minimum player level updated to: &f" + minLevel));
+                            this.openMenu(player);
+                        }catch (NumberFormatException e) {
+                            player.sendRawMessage(ChatUtil.translate("&#FF0000You must enter a valid number."));
                         }
-                        if(minLevelInt < Floor.getFloor(floorId).getRequirements().getMinLevel()) {
-                            player.sendRawMessage(ChatUtil.translate("&#FF0000You can not have a minimum player level lower than the floor minimum level: &f" + Floor.getFloor(floorId).getRequirements().getMinLevel()));
-                            return;
-                        }
-                        this.minLevel = Integer.parseInt(minLevel);
-                        player.sendRawMessage(ChatUtil.translate("&#00FF00Minimum player level updated to: &f" + minLevel));
-                        this.openMenu(player);
                     } else {
                         player.sendRawMessage(ChatUtil.translate("&#FF0000You must enter a number."));
                     }

@@ -7,9 +7,11 @@ import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.workflow.action.Action;
 import fr.perrier.dungeons.spigot.workflow.action.factory.ActionFactory;
 import fr.perrier.dungeons.spigot.workflow.trigger.Trigger;
+import fr.perrier.dungeons.spigot.workflow.trigger.factory.TriggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Serializer/Deserializer to convert triggers to and from JSON.
@@ -91,21 +93,29 @@ public class InstanceSerializer {
                 try {
                     TriggerData trigger = deserializeTrigger(element);
                     if (trigger != null) {
-                        if(Main.getLoggerUtil().isDebugEnabled()) {
+                        if (Main.getLoggerUtil() != null && Main.getLoggerUtil().isDebugEnabled()) {
                             Main.getLoggerUtil().info("Deserialized trigger: " + trigger.getName() + " of type: " + trigger.getClass().getName());
                             Main.getLoggerUtil().info("Trigger data: " + baseGson.toJson(trigger));
                         }
                         triggers.add(trigger);
                     }
                 } catch (Exception e) {
-                    Main.getLoggerUtil().severe("Error deserializing a trigger: " + e.getMessage());
+                    if (Main.getLoggerUtil() != null) {
+                        Main.getLoggerUtil().severe("Error deserializing a trigger: " + e.getMessage());
+                    } else {
+                        System.err.println("Error deserializing a trigger: " + e.getMessage());
+                    }
                     e.printStackTrace(System.err);
                 }
             }
 
             return triggers;
         } catch (JsonSyntaxException e) {
-            Main.getLoggerUtil().severe("Error deserializing triggers: " + e.getMessage());
+            if (Main.getLoggerUtil() != null) {
+                Main.getLoggerUtil().severe("Error deserializing triggers: " + e.getMessage());
+            } else {
+                System.err.println("Error deserializing triggers: " + e.getMessage());
+            }
             return new ArrayList<>();
         }
     }
@@ -126,16 +136,57 @@ public class InstanceSerializer {
         JsonElement dataElement = jsonObject.get("data");
 
         if (classNameElement == null || classNameElement.isJsonNull()) {
-            Main.getLoggerUtil().warning("Invalid JSON trigger: 'className' field missing or null:\n" + jsonObject);
+            if(Main.getLoggerUtil() != null) {
+                Main.getLoggerUtil().warning("Trigger JSON missing 'className' field, attempting legacy deserialization:\n" + jsonObject);
+            } else {
+                System.err.println("Trigger JSON missing 'className' field, attempting legacy deserialization:\n" + jsonObject);
+            }
             return null;
         }
 
         if (dataElement == null || dataElement.isJsonNull()) {
-            Main.getLoggerUtil().warning("Invalid JSON trigger: 'data' field missing or null:\n" + jsonObject);
+            if(Main.getLoggerUtil() != null) {
+                Main.getLoggerUtil().warning("Trigger JSON missing 'data' field, cannot deserialize:\n" + jsonObject);
+            } else {
+                System.err.println("Trigger JSON missing 'data' field, cannot deserialize:\n" + jsonObject);
+            }
             return null;
         }
 
         String className = classNameElement.getAsString();
+
+        // Special handling for ModuleTrigger: reconstruct via TriggerFactory
+        // so module block descriptor lookups work properly
+        if (className.equals("fr.perrier.dungeons.spigot.workflow.trigger.impl.ModuleTrigger")) {
+            JsonObject data = dataElement.getAsJsonObject();
+            if (data.has("type")) {
+                try {
+                    // Build a flat trigger JSON for TriggerFactory
+                    JsonObject flatTrigger = new JsonObject();
+                    flatTrigger.addProperty("type", data.get("type").getAsString());
+                    if (data.has("name")) flatTrigger.addProperty("name", data.get("name").getAsString());
+                    if (data.has("enabled")) flatTrigger.add("enabled", data.get("enabled"));
+                    // Copy parameters from the nested "parameters" map
+                    if (data.has("parameters") && data.get("parameters").isJsonObject()) {
+                        for (Map.Entry<String, JsonElement> entry : data.getAsJsonObject("parameters").entrySet()) {
+                            flatTrigger.add(entry.getKey(), entry.getValue());
+                        }
+                    }
+                    // Copy actions
+                    if (data.has("actions")) {
+                        flatTrigger.add("actions", data.get("actions"));
+                    }
+                    return TriggerFactory.createTriggerFromJson(flatTrigger);
+                } catch (Exception e) {
+                    if(Main.getLoggerUtil() != null) {
+                        Main.getLoggerUtil().warning("Error recreating ModuleTrigger: " + e.getMessage());
+                    } else {
+                        System.err.println("Error recreating ModuleTrigger: " + e.getMessage());
+                    }
+                    return null;
+                }
+            }
+        }
 
         try {
             Class<?> clazz = Class.forName(className);
@@ -148,7 +199,11 @@ public class InstanceSerializer {
             Trigger trigger = (Trigger) baseGson.fromJson(dataObject, clazz);
 
             if (trigger == null) {
-                Main.getLoggerUtil().warning("Failed to deserialize trigger: " + className);
+                if(Main.getLoggerUtil() != null) {
+                    Main.getLoggerUtil().warning("Failed to deserialize trigger (null result): " + className);
+                } else {
+                    System.err.println("Failed to deserialize trigger (null result): " + className);
+                }
                 return null;
             }
 
@@ -156,7 +211,7 @@ public class InstanceSerializer {
             if (actionsElement != null && actionsElement.isJsonArray()) {
                 List<ActionData> actions = deserializeActions(actionsElement.getAsJsonArray());
                 trigger.setActions(actions);
-                if(Main.getLoggerUtil().isDebugEnabled()) {
+                if(Main.getLoggerUtil() != null && Main.getLoggerUtil().isDebugEnabled()) {
                     Main.getLoggerUtil().info("Deserialized " + actions.size() + " actions for trigger: " + trigger.getName());
                     Main.getLoggerUtil().info("Trigger: " + baseGson.toJson(trigger));
                 }
@@ -167,10 +222,18 @@ public class InstanceSerializer {
             return trigger;
 
         } catch (ClassNotFoundException e) {
-            Main.getLoggerUtil().warning("Unknown trigger class: " + className);
+            if(Main.getLoggerUtil() != null) {
+                Main.getLoggerUtil().warning("Unknown trigger class: " + className);
+            } else {
+                System.err.println("Unknown trigger class: " + className);
+            }
             return null;
         } catch (Exception e) {
-            Main.getLoggerUtil().severe("Error deserializing trigger: " + e.getMessage());
+            if(Main.getLoggerUtil() != null) {
+                Main.getLoggerUtil().severe("Error deserializing trigger: " + e.getMessage());
+            } else {
+                System.err.println("Error deserializing trigger: " + e.getMessage());
+            }
             e.printStackTrace(System.err);
             return null;
         }
@@ -193,7 +256,7 @@ public class InstanceSerializer {
 
             if (action != null) {
                 actions.add(action);
-                if(Main.getLoggerUtil().isDebugEnabled()) {
+                if(Main.getLoggerUtil() != null && Main.getLoggerUtil().isDebugEnabled()) {
                     Main.getLoggerUtil().info("Deserialized action: " + action.getClass().getName());
                     Main.getLoggerUtil().info("Action data: " + baseGson.toJson(action));
                 }
@@ -216,14 +279,51 @@ public class InstanceSerializer {
             && dataElement != null && !dataElement.isJsonNull()) {
             // New format with className/data
             String className = classNameElement.getAsString();
+
+            // Special handling for ModuleAction: use ActionFactory to properly recreate
+            // (Gson alone can't reconstruct the transient handler field)
+            if (className.equals("fr.perrier.dungeons.spigot.workflow.action.impl.ModuleAction")) {
+                JsonObject data = dataElement.getAsJsonObject();
+                if (data.has("type")) {
+                    try {
+                        // Reconstruct the action JSON in flat format for ActionFactory
+                        JsonObject flatAction = new JsonObject();
+                        flatAction.addProperty("type", data.get("type").getAsString());
+                        if (data.has("name")) flatAction.addProperty("name", data.get("name").getAsString());
+                        // Copy parameters from the nested "parameters" map
+                        if (data.has("parameters") && data.get("parameters").isJsonObject()) {
+                            for (java.util.Map.Entry<String, JsonElement> entry : data.getAsJsonObject("parameters").entrySet()) {
+                                flatAction.add(entry.getKey(), entry.getValue());
+                            }
+                        }
+                        return ActionFactory.createActionFromJson(flatAction);
+                    } catch (Exception e) {
+                        if(Main.getLoggerUtil() != null) {
+                            Main.getLoggerUtil().warning("Error recreating ModuleAction: " + e.getMessage());
+                        } else {
+                            System.err.println("Error recreating ModuleAction: " + e.getMessage());
+                        }
+                        return null;
+                    }
+                }
+            }
+
             try {
                 Class<?> clazz = Class.forName(className);
                 return (Action) baseGson.fromJson(dataElement, clazz);
             } catch (ClassNotFoundException e) {
-                Main.getLoggerUtil().warning("Unknown action class: " + className);
+                if(Main.getLoggerUtil() != null) {
+                    Main.getLoggerUtil().warning("Unknown action class: " + className);
+                } else {
+                    System.err.println("Unknown action class: " + className);
+                }
                 return null;
             } catch (Exception e) {
-                Main.getLoggerUtil().severe("Error deserializing action: " + e.getMessage());
+                if(Main.getLoggerUtil() != null) {
+                    Main.getLoggerUtil().severe("Error deserializing action: " + e.getMessage());
+                } else {
+                    System.err.println("Error deserializing action: " + e.getMessage());
+                }
                 return null;
             }
         }
@@ -234,12 +334,20 @@ public class InstanceSerializer {
             try {
                 return ActionFactory.createActionFromJson(actionObj);
             } catch (Exception e) {
-                Main.getLoggerUtil().warning("Error creating action from legacy format: " + e.getMessage());
+                if(Main.getLoggerUtil() != null) {
+                    Main.getLoggerUtil().warning("Error creating action from legacy format: " + e.getMessage());
+                } else {
+                    System.err.println("Error creating action from legacy format: " + e.getMessage());
+                }
                 return null;
             }
         }
 
-        Main.getLoggerUtil().warning("Invalid JSON action: neither 'className' nor 'type' field found:\n" + actionObj);
+        if(Main.getLoggerUtil() != null) {
+            Main.getLoggerUtil().warning("Invalid JSON action: neither 'className' nor 'type' field found:\n" + actionObj);
+        } else {
+            System.err.println("Invalid JSON action: neither 'className' nor 'type' field found:\n" + actionObj);
+        }
         return null;
     }
 

@@ -26,14 +26,18 @@ public class InstanceMobKillListener implements Listener {
         Player killer = event.getEntity().getKiller();
         Entity entity = event.getEntity();
 
-        if(entity instanceof Player) return;
+        if (entity instanceof Player) return;
 
-        if(killer != null) {
+        if (killer != null) {
+            // getCurrentInstance() now reads from local cache — no Redis call on server thread
             FloorInstance instance = Main.getInstance().getDungeonService().getCurrentInstance();
             PlayerStats stats = instance.getPlayerStats().get(killer.getUniqueId());
-            if(stats != null)
+            if (stats != null) {
                 stats.incrementEnemiesKilled();
-            instance.syncInstance();
+            }
+            // syncInstance() pushes to Redis — must run async to avoid blocking the server thread
+            org.bukkit.Bukkit.getScheduler().runTaskAsynchronously(
+                    Main.getInstance(), instance::syncInstance);
         }
     }
 }

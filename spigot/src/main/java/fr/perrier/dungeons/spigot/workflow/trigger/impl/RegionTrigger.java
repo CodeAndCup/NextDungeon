@@ -48,15 +48,41 @@ public class RegionTrigger extends Trigger implements BlocklyTrigger {
     @BlocklyField(type = BlocklyField.FieldType.NUMBER_INPUT, label = "Cooldown (sec):", defaultValue = "0", order = 5)
     private int cooldownSeconds = 0;
 
-    private final Map<String, Long> playerTriggerHistory = new HashMap<>();
+    private transient Map<String, Long> playerTriggerHistory;
+
+    // Cached region bounds (invalidated when pos1 or pos2 changes)
+    private transient double cachedMinX, cachedMaxX, cachedMinY, cachedMaxY, cachedMinZ, cachedMaxZ;
+    private transient volatile boolean boundsValid = false;
 
     public RegionTrigger(String name) {
         super(name);
         this.worldName = "world";
+        this.playerTriggerHistory = new HashMap<>();
+    }
+
+    public void setPos1(LocationBlock pos1) {
+        this.pos1 = pos1;
+        this.boundsValid = false;
+    }
+
+    public void setPos2(LocationBlock pos2) {
+        this.pos2 = pos2;
+        this.boundsValid = false;
+    }
+
+    /**
+     * Initialise playerTriggerHistory s'il est null (peut arriver après désérialisation)
+     */
+    private void ensurePlayerTriggerHistoryInitialized() {
+        if (this.playerTriggerHistory == null) {
+            this.playerTriggerHistory = new HashMap<>();
+        }
     }
 
     @Override
     public boolean execute(Player player, Location location, Map<String, Object> data) {
+        ensurePlayerTriggerHistoryInitialized();
+
         if(ServerUtil.isInEditMode()) return false;
 
         if (!checkConditions(player, data)) {
@@ -110,7 +136,7 @@ public class RegionTrigger extends Trigger implements BlocklyTrigger {
      * (utilisée par le RegionTriggerHandler)
      */
     public boolean isPlayerInRegion(Player player) {
-        if (player == null) return false;
+        if (player == null || pos1 == null || pos2 == null) return false;
 
         Location playerLoc = player.getLocation();
 
@@ -118,20 +144,27 @@ public class RegionTrigger extends Trigger implements BlocklyTrigger {
             return false;
         }
 
-        double minX = Math.min(pos1.getX(), pos2.getX());
-        double maxX = Math.max(pos1.getX(), pos2.getX());
-        double minY = Math.min(pos1.getY(), pos2.getY());
-        double maxY = Math.max(pos1.getY(), pos2.getY());
-        double minZ = Math.min(pos1.getZ(), pos2.getZ());
-        double maxZ = Math.max(pos1.getZ(), pos2.getZ());
+        ensureBoundsValid();
 
         double px = playerLoc.getX();
         double py = playerLoc.getY();
         double pz = playerLoc.getZ();
 
-        return px >= minX && px <= maxX &&
-               py >= minY && py <= maxY &&
-               pz >= minZ && pz <= maxZ;
+        return px >= cachedMinX && px <= cachedMaxX &&
+               py >= cachedMinY && py <= cachedMaxY &&
+               pz >= cachedMinZ && pz <= cachedMaxZ;
+    }
+
+    private void ensureBoundsValid() {
+        if (!boundsValid) {
+            cachedMinX = Math.min(pos1.getX(), pos2.getX());
+            cachedMaxX = Math.max(pos1.getX(), pos2.getX());
+            cachedMinY = Math.min(pos1.getY(), pos2.getY());
+            cachedMaxY = Math.max(pos1.getY(), pos2.getY());
+            cachedMinZ = Math.min(pos1.getZ(), pos2.getZ());
+            cachedMaxZ = Math.max(pos1.getZ(), pos2.getZ());
+            boundsValid = true;
+        }
     }
 
     @Override

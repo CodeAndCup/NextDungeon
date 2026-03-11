@@ -7,12 +7,14 @@ import fr.perrier.dungeons.spigot.model.Floor;
 import fr.perrier.dungeons.spigot.model.FloorInstance;
 import fr.perrier.dungeons.spigot.parties.impl.DungeonPartyImpl;
 import lombok.RequiredArgsConstructor;
+import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -54,14 +56,13 @@ public class QueueManager {
      * Adds a player to the queue for a specific floor.
      *
      * @param player the player to add
-     * @param floor the floor to queue for
-     * @return true if added successfully
+     * @param floor  the floor to queue for
      */
-    public boolean addPlayerToQueue(Player player, Floor floor) {
+    public void addPlayerToQueue(Player player, Floor floor) {
         // Check if player is already in queue
         if (queueService.isPlayerInQueue(player.getUniqueId(), floor.getId())) {
             notifyPlayer(player, "You are already in the queue for " + floor.getName());
-            return false;
+            return;
         }
 
         QueueEntry entry = new QueueEntry(
@@ -81,10 +82,8 @@ public class QueueManager {
                     position.getTotalInQueue()
                 ));
             }
-            return true;
         }
 
-        return false;
     }
 
     /**
@@ -170,6 +169,12 @@ public class QueueManager {
         if (canCreateInstance(floor)) {
 
             // Create instance - it will register itself when it starts
+            UUID leaderId = DungeonPartyImpl.getDungeonPartyOf(player).getLeaderId();
+            if (Main.getInstance().getDungeonService().isPlayerInAnyInstance(leaderId)) {
+                notifyPlayer(player, "An instance for your party is already being prepared or active. Please wait...");
+                return;
+            }
+
             FloorInstance.generateNewInstanceAsync(floor.getId(), DungeonPartyImpl.getDungeonPartyOf(player).getMemberIds(),false, floorInstance -> {
                 if(isNotMatchingRequirements(floorInstance.getPlayers(), floorInstance.getFloor())) {
                     floorInstance.getPlayers().forEach(uuid -> {
@@ -183,10 +188,10 @@ public class QueueManager {
                 }
                 floorInstance.sendToServer(DungeonPartyImpl.getDungeonPartyOf(player));
             });
-        } else {
-            // Add to queue
-            addPlayerToQueue(player, floor);
-        }
+         } else {
+             // Add to queue
+             addPlayerToQueue(player, floor);
+         }
     }
 
     /**
@@ -234,6 +239,12 @@ public class QueueManager {
             }
 
             // Create instance for player - it will register itself when it starts
+            UUID leaderId = DungeonPartyImpl.getDungeonPartyOf(player).getLeaderId();
+            if (Main.getInstance().getDungeonService().isPlayerInAnyInstance(leaderId)) {
+                notifyPlayer(player, "An instance for your party is already being prepared or active. Please wait...");
+                return;
+            }
+
             FloorInstance.generateNewInstanceAsync(floor.getId(), DungeonPartyImpl.getDungeonPartyOf(player).getMemberIds(),false, floorInstance -> {
                 if(isNotMatchingRequirements(floorInstance.getPlayers(), floorInstance.getFloor())) {
                     floorInstance.getPlayers().forEach(uuid -> {
@@ -271,7 +282,7 @@ public class QueueManager {
      * @param message the message to send
      */
     public void notifyPlayer(Player player, String message) {
-        String configType = Main.getInstance().getConfig().getString("NotificationConfiguration.type", "CHAT");
+        String configType = Objects.requireNonNull(Main.getInstance().getConfig().getString("NotificationConfiguration.type"));
         NotificationType type;
         
         try {
@@ -283,7 +294,7 @@ public class QueueManager {
         String formattedMessage = ChatUtil.translate(Main.getPrefix() + message);
 
         switch (type) {
-            case ACTION_BAR -> player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(formattedMessage));
+            case ACTION_BAR -> player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacy(formattedMessage, ChatColor.WHITE));
             case CHAT -> player.sendMessage(formattedMessage);
             case TITLE -> player.sendTitle("", formattedMessage, 10, 70, 20);
         }

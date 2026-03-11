@@ -8,7 +8,6 @@ import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.workflow.serializer.InstanceSerializer;
 import fr.perrier.dungeons.spigot.model.ProfileData;
 import lombok.Getter;
-import org.apache.commons.lang.NotImplementedException;
 import org.bson.Document;
 import org.bukkit.Bukkit;
 
@@ -32,12 +31,17 @@ public class MongoManager implements DatabaseManager {
      */
     @Override
     public void connect() {
-        MongoShared mongoShard = new MongoShared("localhost", 27017);
+        String host = Main.getInstance().getConfig().getString("DatabaseConfiguration.mongodb.host", "localhost");
+        int port = Main.getInstance().getConfig().getInt("DatabaseConfiguration.mongodb.port", 27017);
+        MongoShared mongoShard = new MongoShared(host, port);
         this.mongoClient = new MongoClient(new MongoClientURI(mongoShard.getURI()));
         this.database = mongoClient.getDatabase("dungeons");
-        
+
         this.playersCollection = database.getCollection("profiles");
         this.triggersCollection = database.getCollection("floor_triggers");
+
+        // Create index on floor_id for efficient queries
+        triggersCollection.createIndex(new Document("floor_id", 1));
     }
 
     /**
@@ -55,7 +59,7 @@ public class MongoManager implements DatabaseManager {
      */
     @Override
     public void loadData() {
-        throw new NotImplementedException("Not implemented yet");
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
     /**
@@ -80,7 +84,7 @@ public class MongoManager implements DatabaseManager {
      */
     @Override
     public ProfileData loadProfileData(java.util.UUID playerId) {
-        throw new NotImplementedException("Not implemented yet");
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
     /**
@@ -90,7 +94,7 @@ public class MongoManager implements DatabaseManager {
      */
     @Override
     public void saveProfileData(java.util.UUID playerId, ProfileData profileData) {
-        throw new NotImplementedException("Not implemented yet");
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
     // ==================== TRIGGER OPERATIONS ====================
@@ -188,6 +192,125 @@ public class MongoManager implements DatabaseManager {
             } catch (Exception e) {
                 Main.getLoggerUtil().severe("An error occurred during the deletion of triggers for " + floorId + ": " + e.getMessage());
                 e.printStackTrace(System.err);
+            }
+        });
+    }
+
+    // ===== Cinematic CRUD (MongoDB) =====
+
+    @Override
+    public CompletableFuture<String> loadCinematic(String cinematicId) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                MongoCollection<Document> col = database.getCollection("cinematics");
+                Document result = col.find(new Document("_id", cinematicId)).first();
+                if (result != null && result.containsKey("payload_json")) {
+                    return result.getString("payload_json");
+                }
+                return null;
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Error loading cinematic " + cinematicId + ": " + e.getMessage());
+                return null;
+            }
+        });
+    }
+
+    @Override
+    public CompletableFuture<Void> saveCinematic(String cinematicId, String name, String creator, String payloadJson) {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                MongoCollection<Document> col = database.getCollection("cinematics");
+                Document doc = new Document("$set", new Document()
+                        .append("_id", cinematicId)
+                        .append("name", name)
+                        .append("creator", creator)
+                        .append("payload_json", payloadJson)
+                        .append("updated_at", System.currentTimeMillis()));
+                col.updateOne(new Document("_id", cinematicId), doc,
+                        new com.mongodb.client.model.UpdateOptions().upsert(true));
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Error saving cinematic " + cinematicId + ": " + e.getMessage());
+            }
+        });
+    }
+
+    @Override
+    public CompletableFuture<Void> deleteCinematic(String cinematicId) {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                MongoCollection<Document> col = database.getCollection("cinematics");
+                col.deleteOne(new Document("_id", cinematicId));
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Error deleting cinematic " + cinematicId + ": " + e.getMessage());
+            }
+        });
+    }
+
+    @Override
+    public CompletableFuture<List<String[]>> listCinematics() {
+        return CompletableFuture.supplyAsync(() -> {
+            List<String[]> result = new ArrayList<>();
+            try {
+                MongoCollection<Document> col = database.getCollection("cinematics");
+                for (Document doc : col.find()) {
+                    result.add(new String[]{
+                            doc.getString("_id"),
+                            doc.getString("name"),
+                            doc.getString("creator")
+                    });
+                }
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Error listing cinematics: " + e.getMessage());
+            }
+            return result;
+        });
+    }
+
+    // ===== Workflow CRUD (MongoDB) =====
+
+    @Override
+    public CompletableFuture<String> loadWorkflow(String workflowId) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                MongoCollection<Document> col = database.getCollection("workflows");
+                Document result = col.find(new Document("_id", workflowId)).first();
+                if (result != null && result.containsKey("graph_json")) {
+                    return result.getString("graph_json");
+                }
+                return null;
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Error loading workflow " + workflowId + ": " + e.getMessage());
+                return null;
+            }
+        });
+    }
+
+    @Override
+    public CompletableFuture<Void> saveWorkflow(String workflowId, String name, String graphJson) {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                MongoCollection<Document> col = database.getCollection("workflows");
+                Document doc = new Document("$set", new Document()
+                        .append("_id", workflowId)
+                        .append("name", name)
+                        .append("graph_json", graphJson)
+                        .append("updated_at", System.currentTimeMillis()));
+                col.updateOne(new Document("_id", workflowId), doc,
+                        new com.mongodb.client.model.UpdateOptions().upsert(true));
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Error saving workflow " + workflowId + ": " + e.getMessage());
+            }
+        });
+    }
+
+    @Override
+    public CompletableFuture<Void> deleteWorkflow(String workflowId) {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                MongoCollection<Document> col = database.getCollection("workflows");
+                col.deleteOne(new Document("_id", workflowId));
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Error deleting workflow " + workflowId + ": " + e.getMessage());
             }
         });
     }

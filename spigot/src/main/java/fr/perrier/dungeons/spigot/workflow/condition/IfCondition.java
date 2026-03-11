@@ -148,11 +148,11 @@ public class IfCondition extends Action implements BlocklyAction {
 
                             actions.push({
                                 type: 'if_action',
-                                leftvalue: leftValue,
+                                leftValue: leftValue,
                                 operator: actionBlock.getFieldValue('OPERATOR'),
-                                rightvalue: rightValue,
-                                ifactions: ifActions,
-                                elseactions: elseActions
+                                rightValue: rightValue,
+                                ifActions: ifActions,
+                                elseActions: elseActions
                             });
                         }
         """);
@@ -163,17 +163,17 @@ public class IfCondition extends Action implements BlocklyAction {
         js.append("""
                             if (action.type === 'if_action') {
                                  actionBlock = workspace.newBlock('if_action');
-                                     if (action.leftvalue) {
+                                     if (action.leftValue) {
                                          const leftBlock = workspace.newBlock('text');
-                                         leftBlock.setFieldValue(action.leftvalue, 'TEXT');
+                                         leftBlock.setFieldValue(action.leftValue, 'TEXT');
                                          leftBlock.initSvg();
                                          leftBlock.render();
                                          actionBlock.getInput('LEFTVALUE').connection.connect(leftBlock.outputConnection);
                                      }
 
-                                     if (action.rightvalue) {
+                                     if (action.rightValue) {
                                          const rightBlock = workspace.newBlock('text');
-                                         rightBlock.setFieldValue(action.rightvalue, 'TEXT');
+                                         rightBlock.setFieldValue(action.rightValue, 'TEXT');
                                          rightBlock.initSvg();
                                          rightBlock.render();
                                          actionBlock.getInput('RIGHTVALUE').connection.connect(rightBlock.outputConnection);
@@ -181,12 +181,12 @@ public class IfCondition extends Action implements BlocklyAction {
 
                                      actionBlock.setFieldValue(action.operator || '==', 'OPERATOR');
 
-                                     if (action.ifactions && action.ifactions.length > 0) {
-                                         loadActionsIntoStatement(actionBlock, action.ifactions, 'IFACTIONS');
+                                     if (action.ifActions && action.ifActions.length > 0) {
+                                         loadActionsIntoStatement(actionBlock, action.ifActions, 'IFACTIONS');
                                      }
 
-                                     if (action.elseactions && action.elseactions.length > 0) {
-                                         loadActionsIntoStatement(actionBlock, action.elseactions, 'ELSEACTIONS');
+                                     if (action.elseActions && action.elseActions.length > 0) {
+                                         loadActionsIntoStatement(actionBlock, action.elseActions, 'ELSEACTIONS');
                                      }
                                  }
         """);

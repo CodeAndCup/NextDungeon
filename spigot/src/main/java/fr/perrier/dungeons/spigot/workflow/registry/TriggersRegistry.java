@@ -38,6 +38,9 @@ public class TriggersRegistry implements Listener {
 
     private final Map<String, FunctionTrigger> registeredFunctions = new HashMap<>();
 
+    // Reference to RegionTriggerHandler for player cleanup
+    private RegionTriggerHandler regionTriggerHandler;
+
 
     // Instance singleton
     private static TriggersRegistry instance;
@@ -74,7 +77,8 @@ public class TriggersRegistry implements Listener {
      * Registers the default trigger handlers.
      */
     private void registerDefaultHandlers() {
-        registerHandler(new RegionTriggerHandler());
+        regionTriggerHandler = new RegionTriggerHandler();
+        registerHandler(regionTriggerHandler);
         registerHandler(new EntityDeathTriggerHandler());
         registerHandler(new BlockClickTriggerHandler());
         registerHandler(new PlayerDamageTriggerHandler());
@@ -103,6 +107,7 @@ public class TriggersRegistry implements Listener {
     public void refreshTriggerCache() {
         triggersByType.clear();
         triggersByEventType.clear();
+        clearFunctions(); // Clear old functions before re-registering
 
         try {
             List<TriggerData> allTriggers = Main.getInstance().getDungeonService().getCurrentFloor().getTriggers();
@@ -114,6 +119,11 @@ public class TriggersRegistry implements Listener {
                 }
 
                 if (!trigger.isEnabled()) continue;
+
+                // Register FunctionTriggers to the registry
+                if (trigger instanceof FunctionTrigger functionTrigger) {
+                    registerFunction(functionTrigger);
+                }
 
                 // Cache par type de trigger
                 triggersByType.computeIfAbsent(trigger.getType(), k -> new ArrayList<>()).add(trigger);
@@ -258,5 +268,16 @@ public class TriggersRegistry implements Listener {
         stats.put("event_types", triggersByEventType.size());
         stats.put("handlers", handlers.size());
         return stats;
+    }
+
+    /**
+     * Cleans up all handler state associated with a player (called on PlayerQuitEvent).
+     *
+     * @param playerId the UUID of the player to clean up
+     */
+    public void cleanupPlayer(java.util.UUID playerId) {
+        if (regionTriggerHandler != null) {
+            regionTriggerHandler.cleanupPlayer(playerId);
+        }
     }
 }

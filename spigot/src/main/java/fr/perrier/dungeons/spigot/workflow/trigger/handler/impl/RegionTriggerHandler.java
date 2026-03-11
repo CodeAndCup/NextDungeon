@@ -103,4 +103,13 @@ public class RegionTriggerHandler implements TriggerEventHandler<PlayerMoveEvent
             }
         }
     }
+
+    /**
+     * Removes all region cache entries for a player (called on PlayerQuitEvent).
+     *
+     * @param playerId the UUID of the player to clean up
+     */
+    public void cleanupPlayer(UUID playerId) {
+        playersInRegions.remove(playerId);
+    }
 }

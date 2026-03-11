@@ -25,7 +25,7 @@ public class ConfigManager {
 
             File configFile = dataDirectory.resolve("config.toml").toFile();
 
-            // Copier le fichier par défaut si absent
+            // Copy the default config from resources if it doesn't exist
             if (!configFile.exists()) {
                 try (InputStream in = getClass().getResourceAsStream("/config.toml")) {
                     if (in != null) {
@@ -34,7 +34,7 @@ public class ConfigManager {
                 }
             }
 
-            // Charger le fichier TOML
+            // Load the config TOML file
             config = new Toml().read(configFile);
 
         } catch (IOException e) {
@@ -42,20 +42,32 @@ public class ConfigManager {
         }
     }
 
-    // Méthodes pour récupérer les valeurs
+    // Utility methods to get values from the config
     public String getString(String key) {
+        if(config == null) {
+            throw new IllegalStateException("Configuration not initialized; cannot get String for key: " + key);
+        }
         return config.getString(key);
     }
 
     public Long getLong(String key) {
+        if(config == null) {
+            throw new IllegalStateException("Configuration not initialized; cannot get Long for key: " + key);
+        }
         return config.getLong(key);
     }
 
     public Boolean getBoolean(String key) {
+        if(config == null) {
+            throw new IllegalStateException("Configuration not initialized; cannot get Boolean for key: " + key);
+        }
         return config.getBoolean(key);
     }
 
     public Toml getTable(String key) {
+        if(config == null) {
+            throw new IllegalStateException("Configuration not initialized; cannot get Table for key: " + key);
+        }
         return config.getTable(key);
     }
 }

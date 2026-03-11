@@ -7,9 +7,11 @@ import fr.perrier.dungeons.spigot.webeditor.blockly.annotations.BlocklyField;
 import fr.perrier.dungeons.spigot.webeditor.blockly.annotations.BlocklyInfo;
 import lombok.Getter;
 import lombok.Setter;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Map;
 
@@ -32,6 +34,14 @@ public class PlaySoundAction extends Action implements BlocklyAction {
             options = "ENTITY_PLAYER_LEVELUP,BLOCK_NOTE_BLOCK_PLING,ENTITY_EXPERIENCE_ORB_PICKUP,BLOCK_ANVIL_LAND,ENTITY_ENDERMAN_TELEPORT,ENTITY_VILLAGER_YES,ENTITY_VILLAGER_NO,UI_TOAST_CHALLENGE_COMPLETE,ENTITY_ENDER_DRAGON_GROWL,ENTITY_WITHER_SPAWN",
             defaultValue = "ENTITY_PLAYER_LEVELUP", order = 1)
     private String sound;
+
+    // Transient cached enum to avoid Sound.valueOf() parse on every execute
+    private transient Sound cachedSoundEnum;
+
+    public void setSound(String sound) {
+        this.sound = sound;
+        this.cachedSoundEnum = null;
+    }
 
     @BlocklyField(type = BlocklyField.FieldType.NUMBER_INPUT, label = "Volume:",
             defaultValue = "1.0", order = 2)
@@ -69,8 +79,13 @@ public class PlaySoundAction extends Action implements BlocklyAction {
         }
 
         try {
-            Sound soundEnum = Sound.valueOf(sound.toUpperCase());
-            Location soundLocation = location != null ? location : triggerPlayer.getLocation();
+            if (cachedSoundEnum == null) {
+                cachedSoundEnum = Sound.valueOf(sound.toUpperCase());
+            }
+            Sound soundEnum = cachedSoundEnum;
+            Location soundLocation = location != null ? location : (
+                    triggerPlayer != null ? triggerPlayer.getLocation() : new Location(Bukkit.getWorlds().getFirst(), 0, 0, 0)
+            );
 
             if ("@all".equals(target)) {
                 // Jouer le son pour tous les joueurs en ligne

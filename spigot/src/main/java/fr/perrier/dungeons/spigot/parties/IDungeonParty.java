@@ -139,5 +139,10 @@ public interface IDungeonParty {
      * @return the number of members
      */
     int getSize();
+
+    /**
+     * Disbands the party, removing all members and clearing the party data.
+     */
+    void disband();
 }
 

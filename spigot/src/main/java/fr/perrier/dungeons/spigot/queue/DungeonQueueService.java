@@ -19,11 +19,14 @@ import java.util.function.Consumer;
 public class DungeonQueueService {
     private final RedissonClient redissonClient;
 
-    private static final String QUEUE_PREFIX = Main.getInstance().getConfig().getString("RedisConfiguration.topic") + ":queue:";
-    private static final String INSTANCE_COUNT_PREFIX = Main.getInstance().getConfig().getString("RedisConfiguration.topic") + ":instance_count:";
+    private static final String QUEUE_PREFIX = Objects.requireNonNull(Main.getInstance().getConfig().getString("RedisConfiguration.topic")) + ":queue:";
+    private static final String INSTANCE_COUNT_PREFIX = Objects.requireNonNull(Main.getInstance().getConfig().getString("RedisConfiguration.topic")) + ":instance_count:";
 
     // Cache of active queue floors to avoid expensive Redis pattern matching
     private final Set<String> activeQueueFloorsCache = ConcurrentHashMap.newKeySet();
+
+    // Reverse map: player UUID → set of floor IDs they are queued in (O(1) cleanup on quit)
+    private final Map<UUID, Set<String>> playerQueueMembership = new ConcurrentHashMap<>();
 
     /**
      * Initializes the queue service.
@@ -66,19 +69,23 @@ public class DungeonQueueService {
             return false;
         }
 
-        queue.offer(entry);
-        // Update cache to include this floor
-        activeQueueFloorsCache.add(entry.getFloorId());
+        boolean added = queue.offer(entry);
 
-        if(Main.getLoggerUtil().isDebugEnabled())
-            Main.getLoggerUtil().info(String.format(
-                "Added player %s to queue for floor %s (Position: %d/%d)",
-                entry.getPlayerName(),
-                entry.getFloorId(),
-                queue.size(),
-                queue.size()
-            ));
-        return true;
+        if(added) {
+            // Update caches
+            activeQueueFloorsCache.add(entry.getFloorId());
+            playerQueueMembership.computeIfAbsent(entry.getPlayerId(), k -> ConcurrentHashMap.newKeySet()).add(entry.getFloorId());
+
+            if (Main.getLoggerUtil().isDebugEnabled())
+                Main.getLoggerUtil().info(String.format(
+                        "Added player %s to queue for floor %s (Position: %d/%d)",
+                        entry.getPlayerName(),
+                        entry.getFloorId(),
+                        queue.size(),
+                        queue.size()
+                ));
+        }
+        return added;
     }
 
     /**
@@ -91,8 +98,17 @@ public class DungeonQueueService {
     public boolean removeFromQueue(UUID playerId, String floorId) {
         RDeque<QueueEntry> queue = getQueue(floorId);
         boolean removed = queue.removeIf(entry -> entry.getPlayerId().equals(playerId));
-        
-        // Update cache if queue is now empty
+
+        // Update caches
+        if (removed) {
+            Set<String> floors = playerQueueMembership.get(playerId);
+            if (floors != null) {
+                floors.remove(floorId);
+                if (floors.isEmpty()) {
+                    playerQueueMembership.remove(playerId);
+                }
+            }
+        }
         if (removed && queue.isEmpty()) {
             activeQueueFloorsCache.remove(floorId);
         }
@@ -243,6 +259,18 @@ public class DungeonQueueService {
     public List<QueueEntry> getQueueEntries(String floorId) {
         RDeque<QueueEntry> queue = getQueue(floorId);
         return new ArrayList<>(queue);
+    }
+
+    /**
+     * Gets all floors that a specific player is currently queued in.
+     * This uses a local membership map for O(1) lookup instead of scanning all queues.
+     *
+     * @param playerId the player's UUID
+     * @return set of floor IDs the player is queued in (may be empty, never null)
+     */
+    public Set<String> getPlayerQueueFloors(UUID playerId) {
+        Set<String> floors = playerQueueMembership.get(playerId);
+        return floors != null ? new HashSet<>(floors) : Collections.emptySet();
     }
 
     /**

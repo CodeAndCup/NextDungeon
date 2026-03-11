@@ -41,7 +41,7 @@ public class PartyFinderMenu extends PaginatedMenu {
 
             if(!dungeonParty.getFloorId().contains(config.getFloorFilter())) continue;
             if(!config.getDescriptionFilter().isEmpty() && !dungeonParty.getDescription().contains(config.getDescriptionFilter())) continue;
-            if(dungeonParty.getMinLevel() > config.getMinimumLevelFilter()) continue;
+            if(dungeonParty.getMinLevel() < config.getMinimumLevelFilter()) continue;
 
             buttons.put(buttons.size(), new PartyButton(dungeonParty));
         }

@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏰 Dungeon Editor - NextDungeon</title>
+    <style>
+        :root {
+            --bg-primary: #1a1d29;
+            --bg-secondary: #242837;
+            --bg-tertiary: #2d3348;
+            --bg-card: #1e2230;
+            --accent-primary: #5e72e4;
+            --accent-secondary: #11cdef;
+            --accent-success: #2dce89;
+            --accent-warning: #fb6340;
+            --accent-danger: #f5365c;
+            --text-primary: #e9ecef;
+            --text-secondary: #adb5bd;
+            --text-muted: #6c757d;
+            --border-color: #3a3f5c;
+            --shadow: 0 0 20px rgba(0,0,0,0.3);
+            --sidebar-width: 240px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; display: flex; }
+
+        /* Sidebar */
+        .sidebar { width: var(--sidebar-width); background: var(--bg-secondary); border-right: 1px solid var(--border-color); padding: 24px 0; position: fixed; height: 100vh; overflow-y: auto; z-index: 100; }
+        .sidebar-header { padding: 0 24px 24px; border-bottom: 1px solid var(--border-color); margin-bottom: 24px; }
+        .sidebar-header h1 { font-size: 1.5rem; color: var(--text-primary); font-weight: 600; }
+        .nav-menu { list-style: none; }
+        .nav-item { margin: 4px 12px; }
+        .nav-link { display: flex; align-items: center; gap: 12px; padding: 12px 16px; color: var(--text-secondary); text-decoration: none; border-radius: 6px; transition: all 0.2s; cursor: pointer; }
+        .nav-link:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+        .nav-link.active { background: var(--accent-primary); color: white; }
+
+        /* Main */
+        .main-content { margin-left: var(--sidebar-width); flex: 1; padding: 24px; min-height: 100vh; }
+        .header { background: var(--bg-secondary); padding: 32px; border-radius: 8px; box-shadow: var(--shadow); margin-bottom: 24px; border: 1px solid var(--border-color); }
+        .header h2 { font-size: 2rem; color: var(--text-primary); margin-bottom: 8px; font-weight: 600; }
+        .header p { color: var(--text-secondary); font-size: 0.95rem; }
+
+        /* Cards & sections */
+        .card { background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color); box-shadow: var(--shadow); padding: 24px; margin-bottom: 24px; }
+        .card h3 { font-size: 1.3rem; font-weight: 600; margin-bottom: 16px; border-bottom: 2px solid var(--accent-primary); padding-bottom: 10px; }
+
+        /* Table */
+        table { width: 100%; border-collapse: separate; border-spacing: 0; }
+        th, td { padding: 12px 16px; text-align: left; }
+        th { background: var(--bg-tertiary); color: var(--text-primary); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid var(--border-color); }
+        tbody tr { background: var(--bg-card); transition: all 0.2s; }
+        tbody tr:hover { background: var(--bg-tertiary); }
+        td { border-bottom: 1px solid var(--border-color); color: var(--text-secondary); }
+
+        /* Buttons */
+        .btn { padding: 8px 16px; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; transition: all 0.2s; font-size: 0.875rem; }
+        .btn-primary { background: var(--accent-primary); color: white; }
+        .btn-primary:hover { background: #5260d6; transform: translateY(-1px); }
+        .btn-success { background: var(--accent-success); color: white; }
+        .btn-success:hover { background: #25b576; }
+        .btn-warning { background: var(--accent-warning); color: white; }
+        .btn-warning:hover { background: #e85528; }
+        .btn-danger { background: var(--accent-danger); color: white; }
+        .btn-danger:hover { background: #e02f4c; }
+        .btn-secondary { background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); }
+        .btn-secondary:hover { background: var(--bg-card); }
+
+        /* Confirm modal */
+        .modal-confirm { max-width: 440px; text-align: center; }
+        .modal-confirm .confirm-icon { font-size: 3rem; margin-bottom: 12px; }
+        .modal-confirm .confirm-title { font-size: 1.25rem; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; }
+        .modal-confirm .confirm-message { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.5; margin-bottom: 24px; }
+        .modal-confirm .confirm-target { font-weight: 700; color: var(--accent-danger); word-break: break-all; }
+        .modal-confirm .confirm-footer { display: flex; gap: 12px; justify-content: center; }
+        .modal-confirm .confirm-footer .btn { min-width: 120px; }
+        .btn-sm { padding: 5px 10px; font-size: 0.8rem; }
+        .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        /* Forms */
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.875rem; color: var(--text-primary); }
+        .form-control { width: 100%; padding: 10px 14px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); font-size: 0.9rem; transition: border-color 0.2s; }
+        .form-control:focus { outline: none; border-color: var(--accent-primary); }
+        .form-control::placeholder { color: var(--text-muted); }
+        select.form-control { cursor: pointer; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+        .form-row { display: flex; gap: 12px; align-items: flex-end; }
+        .form-row .form-group { flex: 1; margin-bottom: 0; }
+        .form-hint { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
+
+        /* Tabs */
+        .tab-header { display: flex; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; gap: 4px; overflow-x: auto; }
+        .tab-btn { padding: 10px 20px; background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 0.9rem; font-weight: 600; border-bottom: 2px solid transparent; margin-bottom: -2px; white-space: nowrap; transition: all 0.2s; }
+        .tab-btn:hover { color: var(--text-primary); }
+        .tab-btn.active { color: var(--accent-primary); border-bottom-color: var(--accent-primary); }
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+
+        /* Modal */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; overflow-y: auto; padding: 24px; }
+        .modal-overlay.active { display: flex; justify-content: center; align-items: flex-start; padding-top: 40px; }
+        .modal { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; padding: 28px; width: 100%; max-width: 750px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); position: relative; }
+        .modal h3 { font-size: 1.4rem; font-weight: 700; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid var(--accent-primary); }
+        .modal-close { position: absolute; top: 16px; right: 16px; background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer; }
+        .modal-close:hover { color: var(--text-primary); }
+        .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border-color); }
+
+        /* Lists */
+        .list-item { display: flex; align-items: center; justify-content: space-between; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px 14px; margin-bottom: 8px; }
+        .list-item-info { font-size: 0.9rem; }
+        .list-item-id { font-size: 0.75rem; color: var(--text-muted); font-family: monospace; }
+        .empty-state { text-align: center; padding: 32px; color: var(--text-muted); }
+
+        /* Toast */
+        #toast-container { position: fixed; bottom: 24px; right: 24px; display: flex; flex-direction: column; gap: 8px; z-index: 2000; }
+        .toast { padding: 12px 20px; border-radius: 6px; font-weight: 600; font-size: 0.875rem; animation: slideIn 0.3s ease; box-shadow: var(--shadow); }
+        .toast.success { background: var(--accent-success); color: white; }
+        .toast.error { background: var(--accent-danger); color: white; }
+        .toast.info { background: var(--accent-primary); color: white; }
+        @keyframes slideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        /* Misc */
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
+        .badge-primary { background: rgba(94,114,228,0.2); color: var(--accent-primary); }
+        .badge-success { background: rgba(45,206,137,0.2); color: var(--accent-success); }
+        .error-msg { background: rgba(245,54,92,0.1); color: var(--accent-danger); padding: 12px 16px; border-radius: 6px; margin-bottom: 16px; border: 1px solid rgba(245,54,92,0.3); }
+        code { font-family: monospace; background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; font-size: 0.85em; }
+        .section-title { font-size: 1rem; font-weight: 700; color: var(--accent-secondary); margin: 20px 0 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .divider { border: none; border-top: 1px solid var(--border-color); margin: 16px 0; }
+        .loading { text-align: center; padding: 40px; color: var(--text-secondary); }
+        .search-bar { display: flex; gap: 10px; margin-bottom: 16px; }
+        .search-bar input { flex: 1; }
+
+        /* State indicator */
+        .state-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 0.75rem; padding: 4px 10px; border-radius: 20px; font-weight: 600; }
+        .state-modified { background: rgba(251,99,64,0.2); color: var(--accent-warning); }
+        .state-saved { background: rgba(45,206,137,0.2); color: var(--accent-success); }
+    </style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<nav class="sidebar">
+    <div class="sidebar-header"><h1>📊 NextDungeon</h1></div>
+    <ul class="nav-menu">
+        <li class="nav-item"><a class="nav-link" href="/dashboard"><span>🏠</span><span>Dashboard</span></a></li>
+        <li class="nav-item"><a class="nav-link" href="/dashboard?page=queue"><span>⏳</span><span>Queue</span></a></li>
+        <li class="nav-item"><a class="nav-link active"><span>🏰</span><span>Dungeon Editor</span></a></li>
+    </ul>
+</nav>
+
+<!-- Main Content -->
+<div class="main-content">
+    <div id="view-list">
+        <div class="header">
+            <h2>🏰 Gestion des Donjons</h2>
+            <p>Créer, modifier et supprimer des donjons directement depuis le dashboard.</p>
+        </div>
+        <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <h3 style="margin:0;border:none;padding:0;">Liste des Donjons</h3>
+                <button class="btn btn-primary" onclick="openCreateDungeonModal()">+ Nouveau Donjon</button>
+            </div>
+            <div class="search-bar">
+                <input type="text" id="searchInput" class="form-control" placeholder="🔍 Rechercher un donjon..." oninput="filterDungeons()">
+            </div>
+            <div id="dungeons-list"><div class="loading">Chargement...</div></div>
+        </div>
+    </div>
+
+    <!-- Dungeon Editor View -->
+    <div id="view-editor" style="display:none;">
+        <div class="header" style="display:flex;justify-content:space-between;align-items:center;">
+            <div>
+                <h2 id="editor-title">Éditeur de Donjon</h2>
+                <p id="editor-subtitle">Configurez les paramètres du donjon et ses floors.</p>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;">
+                <span id="save-indicator" class="state-badge state-saved">✓ Sauvegardé</span>
+                <button class="btn btn-secondary" onclick="goToList()">← Retour</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="tab-header">
+                <button class="tab-btn active" onclick="switchTab('tab-info')">📋 Informations</button>
+                <button class="tab-btn" onclick="switchTab('tab-floors')">🏗️ Floors</button>
+            </div>
+
+            <!-- Tab Info -->
+            <div id="tab-info" class="tab-pane active">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>ID du Donjon *</label>
+                        <input type="text" id="dungeon-id" class="form-control" placeholder="ex: forest_dungeon">
+                        <div class="form-hint">Identifiant unique (lettres, chiffres, underscore)</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Nom du Donjon *</label>
+                        <input type="text" id="dungeon-name" class="form-control" placeholder="ex: Forêt Maudite">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="dungeon-desc" class="form-control" rows="3" placeholder="Description du donjon..."></textarea>
+                </div>
+                <div style="display:flex;gap:10px;">
+                    <button class="btn btn-success" onclick="saveDungeon()">💾 Sauvegarder</button>
+                    <button class="btn btn-danger" id="delete-dungeon-btn" onclick="deleteDungeon()" style="display:none;">🗑️ Supprimer</button>
+                </div>
+            </div>
+
+            <!-- Tab Floors -->
+            <div id="tab-floors" class="tab-pane">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                    <span id="floors-count-label" style="color:var(--text-secondary);">0 floor(s)</span>
+                    <button class="btn btn-primary" onclick="openAddFloorModal()">+ Ajouter Floor</button>
+                </div>
+                <div id="floors-list"><div class="empty-state">Aucun floor configuré. Créez-en un !</div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     MODAL: Créer / Éditer Donjon
+============================================================ -->
+<div id="modal-dungeon" class="modal-overlay">
+    <div class="modal">
+        <button class="modal-close" onclick="closeModal('modal-dungeon')">×</button>
+        <h3>Nouveau Donjon</h3>
+        <div class="form-grid">
+            <div class="form-group">
+                <label>ID *</label>
+                <input type="text" id="new-dungeon-id" class="form-control" placeholder="ex: my_dungeon">
+                <div class="form-hint">Laissez vide pour auto-générer</div>
+            </div>
+            <div class="form-group">
+                <label>Nom *</label>
+                <input type="text" id="new-dungeon-name" class="form-control" placeholder="Nom du donjon">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Description</label>
+            <textarea id="new-dungeon-desc" class="form-control" rows="3" placeholder="Description..."></textarea>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('modal-dungeon')">Annuler</button>
+            <button class="btn btn-success" onclick="createDungeon()">✓ Créer</button>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     MODAL: Ajouter / Éditer Floor
+============================================================ -->
+<div id="modal-floor" class="modal-overlay">
+    <div class="modal" style="max-width:850px;">
+        <button class="modal-close" onclick="closeModal('modal-floor')">×</button>
+        <h3 id="modal-floor-title">Nouveau Floor</h3>
+        <input type="hidden" id="edit-floor-id">
+
+        <div class="tab-header">
+            <button class="tab-btn active" onclick="switchModalTab('ftab-basic')">Basique</button>
+            <button class="tab-btn" onclick="switchModalTab('ftab-world')">🌍 Monde</button>
+            <button class="tab-btn" onclick="switchModalTab('ftab-requirements')">📋 Prérequis</button>
+            <button class="tab-btn" onclick="switchModalTab('ftab-rules')">⚖️ Règles</button>
+            <button class="tab-btn" onclick="switchModalTab('ftab-steps')">🎯 Étapes</button>
+        </div>
+
+        <!-- Basic -->
+        <div id="ftab-basic" class="tab-pane active">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>ID du Floor *</label>
+                    <input type="text" id="floor-id" class="form-control" placeholder="ex: floor1">
+                    <div class="form-hint">Sera préfixé par l'ID du donjon : dungeonId_floorId</div>
+                </div>
+                <div class="form-group">
+                    <label>Nom *</label>
+                    <input type="text" id="floor-name" class="form-control" placeholder="ex: Niveau 1">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="floor-desc" class="form-control" rows="2" placeholder="Description du floor..."></textarea>
+            </div>
+        </div>
+
+        <!-- World -->
+        <div id="ftab-world" class="tab-pane">
+            <div class="form-group">
+                <label>Difficulté</label>
+                <select id="floor-difficulty" class="form-control">
+                    <option value="PEACEFUL">PEACEFUL</option>
+                    <option value="EASY">EASY</option>
+                    <option value="NORMAL" selected>NORMAL</option>
+                    <option value="HARD">HARD</option>
+                </select>
+            </div>
+            <div class="section-title">Position de Spawn</div>
+            <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr;">
+                <div class="form-group"><label>X</label><input type="number" id="spawn-x" class="form-control" value="0" step="0.5"></div>
+                <div class="form-group"><label>Y</label><input type="number" id="spawn-y" class="form-control" value="64" step="0.5"></div>
+                <div class="form-group"><label>Z</label><input type="number" id="spawn-z" class="form-control" value="0" step="0.5"></div>
+            </div>
+        </div>
+
+        <!-- Requirements -->
+        <div id="ftab-requirements" class="tab-pane">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Niveau minimum</label>
+                    <input type="number" id="req-minlevel" class="form-control" value="0" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Cooldown avant retry (ms)</label>
+                    <input type="number" id="req-cooldown" class="form-control" value="0" min="0">
+                    <div class="form-hint">Durée en millisecondes (900000 = 15min)</div>
+                </div>
+            </div>
+            <div class="section-title">Groupe (Party)</div>
+            <div class="form-grid">
+                <div class="form-group"><label>Taille min</label><input type="number" id="req-party-min" class="form-control" value="1" min="1"></div>
+                <div class="form-group"><label>Taille max</label><input type="number" id="req-party-max" class="form-control" value="10" min="1"></div>
+            </div>
+            <div class="section-title">Floors requis</div>
+            <div id="req-floors-list"></div>
+            <div class="form-row" style="margin-top:8px;">
+                <div class="form-group"><input type="text" id="req-floor-input" class="form-control" placeholder="ID du floor requis"></div>
+                <button class="btn btn-secondary" onclick="addListItem('req-floors-list','req-floor-input')">+ Ajouter</button>
+            </div>
+            <div class="section-title">Items requis</div>
+            <div id="req-items-list"></div>
+            <div class="form-row" style="margin-top:8px;">
+                <div class="form-group"><input type="text" id="req-item-input" class="form-control" placeholder="Nom d'item requis"></div>
+                <button class="btn btn-secondary" onclick="addListItem('req-items-list','req-item-input')">+ Ajouter</button>
+            </div>
+            <div class="section-title">Items interdits</div>
+            <div id="req-forbidden-list"></div>
+            <div class="form-row" style="margin-top:8px;">
+                <div class="form-group"><input type="text" id="req-forbidden-input" class="form-control" placeholder="Nom d'item interdit"></div>
+                <button class="btn btn-secondary" onclick="addListItem('req-forbidden-list','req-forbidden-input')">+ Ajouter</button>
+            </div>
+        </div>
+
+        <!-- Rules -->
+        <div id="ftab-rules" class="tab-pane">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Vies maximum</label>
+                    <input type="number" id="rules-maxlives" class="form-control" value="3" min="1">
+                </div>
+                <div class="form-group">
+                    <label>Durée ban mort</label>
+                    <input type="text" id="rules-deathban" class="form-control" value="15m" placeholder="ex: 15m, 1h">
+                    <div class="form-hint">Formats: 30s, 15m, 1h, 1d</div>
+                </div>
+                <div class="form-group">
+                    <label>Mode de jeu</label>
+                    <select id="rules-gamemode" class="form-control">
+                        <option value="SURVIVAL">SURVIVAL</option>
+                        <option value="CREATIVE">CREATIVE</option>
+                        <option value="ADVENTURE" selected>ADVENTURE</option>
+                        <option value="SPECTATOR">SPECTATOR</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Instances max (0 = illimité)</label>
+                    <input type="number" id="rules-maxinstance" class="form-control" value="10" min="0">
+                </div>
+            </div>
+            <div class="form-group">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                    <input type="checkbox" id="rules-flight" style="width:16px;height:16px;cursor:pointer;">
+                    Autoriser le vol
+                </label>
+            </div>
+        </div>
+
+        <!-- Steps -->
+        <div id="ftab-steps" class="tab-pane">
+            <div id="steps-list"></div>
+            <hr class="divider">
+            <div class="section-title">Ajouter une étape</div>
+            <div class="form-grid">
+                <div class="form-group"><label>ID</label><input type="text" id="step-id" class="form-control" placeholder="ex: step1"></div>
+                <div class="form-group"><label>Nom</label><input type="text" id="step-name" class="form-control" placeholder="ex: Zone d'entrée"></div>
+            </div>
+            <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+                <div>
+                    <div class="section-title">Position 1</div>
+                    <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr;">
+                        <div class="form-group"><label>X</label><input type="number" id="step-p1x" class="form-control" value="0"></div>
+                        <div class="form-group"><label>Y</label><input type="number" id="step-p1y" class="form-control" value="0"></div>
+                        <div class="form-group"><label>Z</label><input type="number" id="step-p1z" class="form-control" value="0"></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="section-title">Position 2</div>
+                    <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr;">
+                        <div class="form-group"><label>X</label><input type="number" id="step-p2x" class="form-control" value="0"></div>
+                        <div class="form-group"><label>Y</label><input type="number" id="step-p2y" class="form-control" value="0"></div>
+                        <div class="form-group"><label>Z</label><input type="number" id="step-p2z" class="form-control" value="0"></div>
+                    </div>
+                </div>
+            </div>
+            <button class="btn btn-secondary" onclick="addStep()">+ Ajouter l'étape</button>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn btn-danger btn-sm" id="delete-floor-btn" onclick="deleteCurrentFloor()" style="display:none;">🗑️ Supprimer</button>
+            <button class="btn btn-secondary" onclick="closeModal('modal-floor')">Annuler</button>
+            <button class="btn btn-success" onclick="saveFloor()">💾 Sauvegarder Floor</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<!-- ============================================================
+     MODAL: Confirmation suppression
+============================================================ -->
+<div id="modal-confirm-delete" class="modal-overlay">
+    <div class="modal modal-confirm">
+        <div class="confirm-icon">⚠️</div>
+        <div class="confirm-title" id="confirm-delete-title">Confirmer la suppression</div>
+        <div class="confirm-message">
+            Vous êtes sur le point de supprimer :<br>
+            <span class="confirm-target" id="confirm-delete-target"></span><br><br>
+            <span id="confirm-delete-warning"></span>
+            Cette action est <strong>irréversible</strong>.
+        </div>
+        <div class="confirm-footer">
+            <button class="btn btn-secondary" onclick="closeModal('modal-confirm-delete')">Annuler</button>
+            <button class="btn btn-danger" id="confirm-delete-btn">🗑️ Supprimer</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ============================================================
+//  State
+// ============================================================
+let dungeons = [];
+let currentDungeon = null; // { id, name, description, floors }
+let isEditMode = false;
+let stepsData = []; // for modal
+let modalListData = { 'req-floors-list': [], 'req-items-list': [], 'req-forbidden-list': [] };
+
+// ============================================================
+//  API
+// ============================================================
+const API = {
+    async getDungeons() { return (await fetch('/dashboard/api/dungeons')).json(); },
+    async getDungeon(id) { return (await fetch(`/dashboard/api/dungeons/${id}`)).json(); },
+    async createDungeon(body) { return (await fetch('/dashboard/api/dungeons', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) })).json(); },
+    async updateDungeon(id, body) { return (await fetch(`/dashboard/api/dungeons/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) })).json(); },
+    async deleteDungeon(id) { return (await fetch(`/dashboard/api/dungeons/${id}`, { method:'DELETE' })).json(); },
+    async addFloor(dungeonId, body) { return (await fetch(`/dashboard/api/dungeons/${dungeonId}/floors`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) })).json(); },
+    async updateFloor(floorId, body) { return (await fetch(`/dashboard/api/floors/${floorId}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) })).json(); },
+    async deleteFloor(dungeonId, floorId) { return (await fetch(`/dashboard/api/dungeons/${dungeonId}/floors/${floorId}`, { method:'DELETE' })).json(); },
+};
+
+// ============================================================
+//  Navigation
+// ============================================================
+function goToList() {
+    document.getElementById('view-list').style.display = '';
+    document.getElementById('view-editor').style.display = 'none';
+    currentDungeon = null;
+    loadDungeons();
+}
+
+function goToEditor(dungeon) {
+    currentDungeon = dungeon;
+    isEditMode = true;
+    document.getElementById('view-list').style.display = 'none';
+    document.getElementById('view-editor').style.display = '';
+    document.getElementById('editor-title').textContent = '✏️ ' + dungeon.name;
+    document.getElementById('editor-subtitle').textContent = 'ID: ' + dungeon.id;
+    document.getElementById('dungeon-id').value = dungeon.id;
+    document.getElementById('dungeon-id').disabled = true;
+    document.getElementById('dungeon-name').value = dungeon.name;
+    document.getElementById('dungeon-desc').value = dungeon.description || '';
+    document.getElementById('delete-dungeon-btn').style.display = '';
+    setSaveIndicator(true);
+    renderFloorsList();
+}
+
+// ============================================================
+//  Tabs
+// ============================================================
+function switchTab(tabId) {
+    document.querySelectorAll('#view-editor .tab-pane').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('#view-editor .tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    event.target.classList.add('active');
+}
+
+function switchModalTab(tabId) {
+    document.querySelectorAll('#modal-floor .tab-pane').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('#modal-floor .tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    event.target.classList.add('active');
+}
+
+// ============================================================
+//  Load & Render dungeons
+// ============================================================
+async function loadDungeons() {
+    const el = document.getElementById('dungeons-list');
+    el.innerHTML = '<div class="loading">Chargement...</div>';
+    try {
+        const data = await API.getDungeons();
+        if (!data.success) { el.innerHTML = `<div class="error-msg">Erreur: ${data.error}</div>`; return; }
+        dungeons = data.dungeons || [];
+        renderDungeonsList(dungeons);
+    } catch(e) { el.innerHTML = `<div class="error-msg">Erreur de connexion: ${e.message}</div>`; }
+}
+
+function renderDungeonsList(list) {
+    const el = document.getElementById('dungeons-list');
+    if (!list.length) { el.innerHTML = '<div class="empty-state">Aucun donjon. Créez-en un !</div>'; return; }
+    let html = '<table><thead><tr><th>ID</th><th>Nom</th><th>Description</th><th>Floors</th><th>Actions</th></tr></thead><tbody>';
+    for (const d of list) {
+        const safeId   = encodeURIComponent(d.id);
+        const safeName = encodeURIComponent(d.name || d.id);
+        html += `<tr>
+            <td><code>${escapeHtml(d.id)}</code></td>
+            <td><strong>${escapeHtml(d.name)}</strong></td>
+            <td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.description ? escapeHtml(d.description) : '<em style="color:var(--text-muted)">Aucune</em>'}</td>
+            <td><span class="badge badge-primary">${d.floorCount} floor(s)</span></td>
+            <td><div class="btn-group">
+                <button class="btn btn-warning btn-sm" data-action="edit"   data-id="${safeId}">✏️ Éditer</button>
+                <button class="btn btn-danger  btn-sm" data-action="delete" data-id="${safeId}" data-name="${safeName}">🗑️</button>
+            </div></td>
+        </tr>`;
+    }
+    html += '</tbody></table>';
+    el.innerHTML = html;
+    el.querySelectorAll('button[data-action]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const id   = decodeURIComponent(btn.dataset.id);
+            const name = decodeURIComponent(btn.dataset.name || id);
+            if (btn.dataset.action === 'edit')   editDungeon(id);
+            if (btn.dataset.action === 'delete') confirmDeleteDungeon(id, name);
+        });
+    });
+}
+
+function filterDungeons() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    const filtered = dungeons.filter(d => d.id.toLowerCase().includes(q) || d.name.toLowerCase().includes(q));
+    renderDungeonsList(filtered);
+}
+
+// ============================================================
+//  Create Dungeon Modal
+// ============================================================
+function openCreateDungeonModal() {
+    document.getElementById('new-dungeon-id').value = '';
+    document.getElementById('new-dungeon-name').value = '';
+    document.getElementById('new-dungeon-desc').value = '';
+    openModal('modal-dungeon');
+}
+
+async function createDungeon() {
+    const id = document.getElementById('new-dungeon-id').value.trim();
+    const name = document.getElementById('new-dungeon-name').value.trim();
+    const description = document.getElementById('new-dungeon-desc').value;
+    if (!name) { toast('Le nom est requis', 'error'); return; }
+    try {
+        const data = await API.createDungeon({ id, name, description });
+        if (!data.success) { toast(data.error, 'error'); return; }
+        closeModal('modal-dungeon');
+        toast('Donjon créé !', 'success');
+        loadDungeons();
+    } catch(e) { toast('Erreur: ' + e.message, 'error'); }
+}
+
+// ============================================================
+//  Edit Dungeon
+// ============================================================
+async function editDungeon(id) {
+    try {
+        const data = await API.getDungeon(id);
+        if (!data.success) { toast(data.error, 'error'); return; }
+        goToEditor(data.dungeon);
+    } catch(e) { toast('Erreur: ' + e.message, 'error'); }
+}
+
+async function saveDungeon() {
+    const name = document.getElementById('dungeon-name').value.trim();
+    const description = document.getElementById('dungeon-desc').value;
+    if (!name) { toast('Le nom est requis', 'error'); return; }
+    try {
+        const data = await API.updateDungeon(currentDungeon.id, { id: currentDungeon.id, name, description });
+        if (!data.success) { toast(data.error, 'error'); return; }
+        currentDungeon.name = name;
+        currentDungeon.description = description;
+        document.getElementById('editor-title').textContent = '✏️ ' + name;
+        setSaveIndicator(true);
+        toast('Donjon sauvegardé !', 'success');
+    } catch(e) { toast('Erreur: ' + e.message, 'error'); }
+}
+
+// ============================================================
+//  Floors
+// ============================================================
+function renderFloorsList() {
+    const el = document.getElementById('floors-list');
+    const floors = currentDungeon.floors || [];
+    document.getElementById('floors-count-label').textContent = floors.length + ' floor(s)';
+    if (!floors.length) { el.innerHTML = '<div class="empty-state">Aucun floor configuré. Créez-en un !</div>'; return; }
+    let html = '';
+    for (const f of floors) {
+        const diff = f.world ? f.world.difficulty : 'N/A';
+        const lives = f.rules ? f.rules.maxLives : 'N/A';
+        html += `<div class="list-item">
+            <div>
+                <div style="font-weight:600;">${f.name}</div>
+                <div class="list-item-id">${f.id} &nbsp;·&nbsp; ${diff} &nbsp;·&nbsp; ${lives} vies</div>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-warning btn-sm" onclick="editFloor('${f.id}')">✏️ Éditer</button>
+                <button class="btn btn-danger btn-sm" onclick="confirmDeleteFloor('${f.id}')">🗑️</button>
+            </div>
+        </div>`;
+    }
+    el.innerHTML = html;
+}
+
+// ============================================================
+//  Add/Edit Floor Modal
+// ============================================================
+function resetFloorModal() {
+    stepsData = [];
+    for (const k in modalListData) modalListData[k] = [];
+    ['req-floors-list','req-items-list','req-forbidden-list','steps-list'].forEach(id => { const el=document.getElementById(id); if(el) el.innerHTML=''; });
+    document.getElementById('floor-id').value = '';
+    document.getElementById('floor-id').disabled = false;
+    document.getElementById('floor-name').value = '';
+    document.getElementById('floor-desc').value = '';
+    document.getElementById('floor-difficulty').value = 'NORMAL';
+    document.getElementById('spawn-x').value = 0;
+    document.getElementById('spawn-y').value = 64;
+    document.getElementById('spawn-z').value = 0;
+    document.getElementById('req-minlevel').value = 0;
+    document.getElementById('req-cooldown').value = 0;
+    document.getElementById('req-party-min').value = 1;
+    document.getElementById('req-party-max').value = 10;
+    document.getElementById('rules-maxlives').value = 3;
+    document.getElementById('rules-deathban').value = '15m';
+    document.getElementById('rules-gamemode').value = 'ADVENTURE';
+    document.getElementById('rules-maxinstance').value = 10;
+    document.getElementById('rules-flight').checked = false;
+    document.getElementById('edit-floor-id').value = '';
+    document.getElementById('delete-floor-btn').style.display = 'none';
+    // Reset tabs
+    document.querySelectorAll('#modal-floor .tab-pane').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('#modal-floor .tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('ftab-basic').classList.add('active');
+    document.querySelector('#modal-floor .tab-btn').classList.add('active');
+}
+
+function openAddFloorModal() {
+    if (!currentDungeon) { toast('Sauvegardez d\'abord le donjon', 'error'); return; }
+    resetFloorModal();
+    document.getElementById('modal-floor-title').textContent = 'Nouveau Floor';
+    openModal('modal-floor');
+}
+
+function editFloor(fullFloorId) {
+    const floor = (currentDungeon.floors || []).find(f => f.id === fullFloorId);
+    if (!floor) { toast('Floor introuvable', 'error'); return; }
+    resetFloorModal();
+    document.getElementById('modal-floor-title').textContent = 'Éditer Floor: ' + floor.name;
+    document.getElementById('edit-floor-id').value = fullFloorId;
+    document.getElementById('delete-floor-btn').style.display = '';
+
+    // Extract raw id (remove dungeonId_ prefix)
+    const rawId = fullFloorId.startsWith(currentDungeon.id + '_') ? fullFloorId.substring(currentDungeon.id.length + 1) : fullFloorId;
+    document.getElementById('floor-id').value = rawId;
+    document.getElementById('floor-id').disabled = true;
+    document.getElementById('floor-name').value = floor.name || '';
+    document.getElementById('floor-desc').value = floor.description || '';
+
+    if (floor.world) {
+        document.getElementById('floor-difficulty').value = floor.world.difficulty || 'NORMAL';
+        if (floor.world.spawn) {
+            document.getElementById('spawn-x').value = floor.world.spawn.x || 0;
+            document.getElementById('spawn-y').value = floor.world.spawn.y || 64;
+            document.getElementById('spawn-z').value = floor.world.spawn.z || 0;
+        }
+    }
+    if (floor.requirements) {
+        document.getElementById('req-minlevel').value = floor.requirements.minLevel || 0;
+        document.getElementById('req-cooldown').value = floor.requirements.retryCooldown || 0;
+        if (floor.requirements.party) {
+            document.getElementById('req-party-min').value = floor.requirements.party.minSize || 1;
+            document.getElementById('req-party-max').value = floor.requirements.party.maxSize || 10;
+        }
+        (floor.requirements.requiredFloorsId || []).forEach(v => addToList('req-floors-list', v));
+        (floor.requirements.requiredItems || []).forEach(v => addToList('req-items-list', v));
+        (floor.requirements.forbiddenItems || []).forEach(v => addToList('req-forbidden-list', v));
+    }
+    if (floor.rules) {
+        document.getElementById('rules-maxlives').value = floor.rules.maxLives || 3;
+        document.getElementById('rules-deathban').value = floor.rules.deathBanDuration || '15m';
+        document.getElementById('rules-gamemode').value = floor.rules.gamemode || 'ADVENTURE';
+        document.getElementById('rules-maxinstance').value = floor.rules.maxInstance || 10;
+        document.getElementById('rules-flight').checked = floor.rules.allowFlight || false;
+    }
+    if (floor.steps) {
+        floor.steps.forEach(s => { stepsData.push({...s}); });
+        renderSteps();
+    }
+    openModal('modal-floor');
+}
+
+async function saveFloor() {
+    const editingId = document.getElementById('edit-floor-id').value;
+    const isEdit = !!editingId;
+    const rawId = document.getElementById('floor-id').value.trim();
+    const name = document.getElementById('floor-name').value.trim();
+    if (!rawId) { toast('L\'ID du floor est requis', 'error'); return; }
+    if (!name) { toast('Le nom est requis', 'error'); return; }
+
+    const body = {
+        id: rawId,
+        name,
+        description: document.getElementById('floor-desc').value,
+        world: {
+            difficulty: document.getElementById('floor-difficulty').value,
+            spawn: {
+                x: parseFloat(document.getElementById('spawn-x').value),
+                y: parseFloat(document.getElementById('spawn-y').value),
+                z: parseFloat(document.getElementById('spawn-z').value)
+            }
+        },
+        requirements: {
+            minLevel: parseInt(document.getElementById('req-minlevel').value),
+            retryCooldown: parseInt(document.getElementById('req-cooldown').value),
+            party: {
+                minSize: parseInt(document.getElementById('req-party-min').value),
+                maxSize: parseInt(document.getElementById('req-party-max').value)
+            },
+            requiredFloorsId: getListData('req-floors-list'),
+            requiredItems: getListData('req-items-list'),
+            forbiddenItems: getListData('req-forbidden-list')
+        },
+        rules: {
+            maxLives: parseInt(document.getElementById('rules-maxlives').value),
+            deathBanDuration: document.getElementById('rules-deathban').value,
+            gamemode: document.getElementById('rules-gamemode').value,
+            maxInstance: parseInt(document.getElementById('rules-maxinstance').value),
+            allowFlight: document.getElementById('rules-flight').checked
+        },
+        steps: stepsData
+    };
+
+    try {
+        let data;
+        if (isEdit) {
+            data = await API.updateFloor(editingId, body);
+        } else {
+            data = await API.addFloor(currentDungeon.id, body);
+        }
+        if (!data.success) { toast(data.error, 'error'); return; }
+        toast(isEdit ? 'Floor mis à jour !' : 'Floor créé !', 'success');
+        closeModal('modal-floor');
+        // Reload dungeon to refresh floors
+        const freshData = await API.getDungeon(currentDungeon.id);
+        if (freshData.success) { currentDungeon = freshData.dungeon; }
+        renderFloorsList();
+    } catch(e) { toast('Erreur: ' + e.message, 'error'); }
+}
+
+async function deleteCurrentFloor() {
+    const floorId = document.getElementById('edit-floor-id').value;
+    if (!floorId) return;
+    showConfirmDelete(
+        `Floor : ${floorId}`,
+        'Tous les triggers et données associés seront supprimés.',
+        async () => {
+            try {
+                const data = await API.deleteFloor(currentDungeon.id, floorId);
+                if (!data.success) { toast(data.error, 'error'); return; }
+                toast('Floor supprimé', 'success');
+                closeModal('modal-floor');
+                const freshData = await API.getDungeon(currentDungeon.id);
+                if (freshData.success) { currentDungeon = freshData.dungeon; }
+                renderFloorsList();
+            } catch(e) { toast('Erreur: ' + e.message, 'error'); }
+        }
+    );
+}
+
+async function confirmDeleteFloor(floorId) {
+    showConfirmDelete(
+        `Floor : ${floorId}`,
+        'Tous les triggers et données associés seront supprimés.',
+        async () => {
+            try {
+                const data = await API.deleteFloor(currentDungeon.id, floorId);
+                if (!data.success) { toast(data.error, 'error'); return; }
+                toast('Floor supprimé', 'success');
+                const freshData = await API.getDungeon(currentDungeon.id);
+                if (freshData.success) { currentDungeon = freshData.dungeon; }
+                renderFloorsList();
+            } catch(e) { toast('Erreur: ' + e.message, 'error'); }
+        }
+    );
+}
+
+async function deleteDungeon() {
+    showConfirmDelete(
+        `Donjon : ${currentDungeon.name}`,
+        'Tous les floors, triggers et données associés seront supprimés.',
+        async () => {
+            try {
+                const data = await API.deleteDungeon(currentDungeon.id);
+                if (!data.success) { toast(data.error, 'error'); return; }
+                toast('Donjon supprimé', 'success');
+                goToList();
+            } catch(e) { toast('Erreur: ' + e.message, 'error'); }
+        }
+    );
+}
+
+async function confirmDeleteDungeon(id, name) {
+    showConfirmDelete(
+        `Donjon : ${name}`,
+        'Tous les floors, triggers et données associés seront supprimés.',
+        async () => {
+            try {
+                const data = await API.deleteDungeon(id);
+                if (!data.success) { toast(data.error, 'error'); return; }
+                toast('Donjon supprimé', 'success');
+                loadDungeons();
+            } catch(e) { toast('Erreur: ' + e.message, 'error'); }
+        }
+    );
+}
+
+// ============================================================
+//  Confirm delete modal helper
+// ============================================================
+function showConfirmDelete(targetLabel, warningMsg, onConfirm) {
+    document.getElementById('confirm-delete-target').textContent = targetLabel;
+    document.getElementById('confirm-delete-warning').textContent = warningMsg ? warningMsg + ' ' : '';
+    const btn = document.getElementById('confirm-delete-btn');
+    const newBtn = btn.cloneNode(true);
+    btn.parentNode.replaceChild(newBtn, btn);
+    newBtn.addEventListener('click', async () => {
+        closeModal('modal-confirm-delete');
+        await onConfirm();
+    });
+    openModal('modal-confirm-delete');
+}
+
+// ============================================================
+//  Steps management
+// ============================================================
+function addStep() {
+    const sid = document.getElementById('step-id').value.trim();
+    const sname = document.getElementById('step-name').value.trim();
+    if (!sid || !sname) { toast('ID et nom de l\'étape requis', 'error'); return; }
+    stepsData.push({
+        id: sid, name: sname,
+        pos1: { x: parseFloat(document.getElementById('step-p1x').value), y: parseFloat(document.getElementById('step-p1y').value), z: parseFloat(document.getElementById('step-p1z').value) },
+        pos2: { x: parseFloat(document.getElementById('step-p2x').value), y: parseFloat(document.getElementById('step-p2y').value), z: parseFloat(document.getElementById('step-p2z').value) }
+    });
+    ['step-id','step-name'].forEach(id => document.getElementById(id).value = '');
+    ['step-p1x','step-p1y','step-p1z','step-p2x','step-p2y','step-p2z'].forEach(id => document.getElementById(id).value = 0);
+    renderSteps();
+    toast('Étape ajoutée', 'info');
+}
+
+function renderSteps() {
+    const el = document.getElementById('steps-list');
+    if (!stepsData.length) { el.innerHTML = '<div class="empty-state" style="padding:16px;">Aucune étape définie.</div>'; return; }
+    let html = '';
+    stepsData.forEach((s, i) => {
+        html += `<div class="list-item">
+            <div>
+                <div style="font-weight:600;">${s.name} <code>${s.id}</code></div>
+                <div class="list-item-id">P1: (${s.pos1.x},${s.pos1.y},${s.pos1.z}) → P2: (${s.pos2.x},${s.pos2.y},${s.pos2.z})</div>
+            </div>
+            <button class="btn btn-danger btn-sm" onclick="removeStep(${i})">🗑️</button>
+        </div>`;
+    });
+    el.innerHTML = html;
+}
+
+function removeStep(index) {
+    stepsData.splice(index, 1);
+    renderSteps();
+}
+
+// ============================================================
+//  Dynamic list helpers
+// ============================================================
+function addListItem(listId, inputId) {
+    const val = document.getElementById(inputId).value.trim();
+    if (!val) return;
+    addToList(listId, val);
+    document.getElementById(inputId).value = '';
+}
+
+function addToList(listId, value) {
+    if (!modalListData[listId]) modalListData[listId] = [];
+    if (modalListData[listId].includes(value)) return;
+    modalListData[listId].push(value);
+    renderList(listId);
+}
+
+function removeFromList(listId, value) {
+    if (!modalListData[listId]) return;
+    modalListData[listId] = modalListData[listId].filter(v => v !== value);
+    renderList(listId);
+}
+
+function renderList(listId) {
+    const el = document.getElementById(listId);
+    if (!el) return;
+    const items = modalListData[listId] || [];
+    el.innerHTML = items.map(v => `<div class="list-item" style="padding:8px 12px;">
+        <span>${v}</span>
+        <button class="btn btn-danger btn-sm" onclick="removeFromList('${listId}','${escapeHtml(v)}')">×</button>
+    </div>`).join('');
+}
+
+function getListData(listId) {
+    return modalListData[listId] || [];
+}
+
+// ============================================================
+//  Modal helpers
+// ============================================================
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+// ============================================================
+//  Save indicator
+// ============================================================
+function setSaveIndicator(saved) {
+    const el = document.getElementById('save-indicator');
+    if (saved) { el.textContent = '✓ Sauvegardé'; el.className = 'state-badge state-saved'; }
+    else { el.textContent = '● Modifié'; el.className = 'state-badge state-modified'; }
+}
+
+// Mark as modified on input change
+['dungeon-name','dungeon-desc'].forEach(id => {
+    document.addEventListener('DOMContentLoaded', () => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', () => { if (isEditMode) setSaveIndicator(false); });
+    });
+});
+
+// ============================================================
+//  Toast
+// ============================================================
+function toast(msg, type = 'info') {
+    const container = document.getElementById('toast-container');
+    const el = document.createElement('div');
+    el.className = `toast ${type}`;
+    el.textContent = msg;
+    container.appendChild(el);
+    setTimeout(() => { el.remove(); }, 3500);
+}
+
+// ============================================================
+//  Utils
+// ============================================================
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// Close modal on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('active'); });
+});
+
+// ============================================================
+//  Init
+// ============================================================
+document.addEventListener('DOMContentLoaded', loadDungeons);
+</script>
+</body>
+</html>
+

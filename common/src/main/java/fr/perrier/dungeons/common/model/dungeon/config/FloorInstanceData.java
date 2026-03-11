@@ -13,20 +13,25 @@ public class FloorInstanceData {
     @Setter
     protected boolean ready;
 
-    protected final Set<UUID> players = new HashSet<>();
-    protected final Map<UUID, PlayerStats> playerStats = new HashMap<>();
-    protected final Map<UUID, Integer> playerCurrentLives = new HashMap<>();
+    protected final Set<UUID> players;
+    protected final Map<UUID, PlayerStats> playerStats;
+    protected final Map<UUID, Integer> playerCurrentLives;
 
     public FloorInstanceData(String floorId, Set<UUID> players) {
         this.floorId = floorId;
         this.ready = false;
-        this.players.addAll(players);
+        this.players = new HashSet<>(players);
+        this.playerStats = new HashMap<>();
+        this.playerCurrentLives = new HashMap<>();
     }
 
     public FloorInstanceData(UUID instanceId, String floorId) {
         this.instanceId = instanceId;
         this.floorId = floorId;
         this.ready = false;
+        this.players = new HashSet<>();
+        this.playerStats = new HashMap<>();
+        this.playerCurrentLives = new HashMap<>();
     }
 
     /**

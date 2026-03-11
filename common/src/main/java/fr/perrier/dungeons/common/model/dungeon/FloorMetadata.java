@@ -20,6 +20,7 @@ public class FloorMetadata implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String id;
+    private String dungeonId;
     private String name;
     private String description;
 
@@ -29,6 +30,7 @@ public class FloorMetadata implements Serializable {
     public static FloorMetadata from(FloorData floorData) {
         return new FloorMetadata(
             floorData.getId(),
+            floorData.getDungeonId(),
             floorData.getName(),
             floorData.getDescription()
         );

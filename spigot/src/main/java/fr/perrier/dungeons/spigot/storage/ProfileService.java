@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
 
+import java.util.Objects;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -14,7 +15,7 @@ public class ProfileService {
     private final RedissonClient redissonClient;
 
     // Redis Maps and Topics
-    private static final String PROFILE_MAP = Main.getInstance().getConfig().getString("RedisConfiguration.topic") + ":profiles";
+    private static final String PROFILE_MAP = Objects.requireNonNull(Main.getInstance().getConfig().getString("RedisConfiguration.topic")) + ":profiles";
 
     // Redis Maps
     @Getter
@@ -62,12 +63,12 @@ public class ProfileService {
      * @return the ProfileData object for the given player ID, or null if not found
      */
     public ProfileData getProfileData(UUID playerId) {
-        if(!profilesMap.containsKey(playerId)) {
-            ProfileData profileData = Main.getInstance().getDatabaseManager().loadProfileData(playerId);
-            profilesMap.fastPut(playerId, profileData);
-            return profileData;
+        ProfileData data = profilesMap.get(playerId);
+        if (data == null) {
+            data = Main.getInstance().getDatabaseManager().loadProfileData(playerId);
+            profilesMap.fastPut(playerId, data);
         }
-        return profilesMap.get(playerId);
+        return data;
     }
 
     /**
