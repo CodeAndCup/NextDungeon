@@ -31,15 +31,17 @@ public class WebEditorResponseSubscriber implements PacketListener {
     }
 
     /**
-     * Enregistre une requête en attente de réponse
+     * Register a request that wait a response.
+     *
+     * @param requestId The request ID
+     * @param timeoutSeconds Wait timeout in seconds
+     * @return ResponsePacket in async
      */
     public static CompletableFuture<WebEditorResponsePacket> registerPendingRequest(String requestId, int timeoutSeconds) {
         CompletableFuture<WebEditorResponsePacket> future = new CompletableFuture<>();
-        
-        // Ajouter un timeout automatique
+
         future.orTimeout(timeoutSeconds, TimeUnit.SECONDS);
         
-        // Nettoyer automatiquement si timeout
         future.exceptionally(throwable -> {
             pendingRequests.remove(requestId);
             return null;

@@ -10,6 +10,7 @@ import lombok.Setter;
 import org.bukkit.entity.Player;
 import org.bukkit.Location;
 
+import java.io.Serial;
 import java.util.Map;
 
 /**
@@ -25,6 +26,7 @@ import java.util.Map;
         category = "Actions"
 )
 public class SetVariableAction extends Action implements BlocklyAction {
+    @Serial
     private static final long serialVersionUID = 1L;
 
     @BlocklyField(type = BlocklyField.FieldType.TEXT_INPUT, label = "Nom variable:",
@@ -117,8 +119,4 @@ public class SetVariableAction extends Action implements BlocklyAction {
         return trimmed;
     }
 
-    @Override
-    public boolean isChainable() {
-        return true;
-    }
 }

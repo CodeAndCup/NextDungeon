@@ -7,10 +7,13 @@ import fr.perrier.dungeons.spigot.webeditor.blockly.annotations.BlocklyField;
 import fr.perrier.dungeons.spigot.webeditor.blockly.annotations.BlocklyInfo;
 import lombok.Getter;
 import lombok.Setter;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 
+import java.io.Serial;
 import java.util.Map;
 
 /**
@@ -26,6 +29,7 @@ import java.util.Map;
         category = "Actions"
 )
 public class PlaySoundAction extends Action implements BlocklyAction {
+    @Serial
     private static final long serialVersionUID = 1L;
 
     @BlocklyField(type = BlocklyField.FieldType.DROPDOWN, label = "Son:",
@@ -81,7 +85,9 @@ public class PlaySoundAction extends Action implements BlocklyAction {
                 cachedSoundEnum = Sound.valueOf(sound.toUpperCase());
             }
             Sound soundEnum = cachedSoundEnum;
-            Location soundLocation = location != null ? location : triggerPlayer.getLocation();
+            Location soundLocation = location != null ? location : (
+                    triggerPlayer != null ? triggerPlayer.getLocation() : new Location(Bukkit.getWorlds().getFirst(), 0, 0, 0)
+            );
 
             if ("@all".equals(target)) {
                 // Jouer le son pour tous les joueurs en ligne

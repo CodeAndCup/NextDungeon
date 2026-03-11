@@ -9,7 +9,9 @@ import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.entity.Player;
 import org.bukkit.Location;
+import org.checkerframework.checker.units.qual.N;
 
+import java.io.Serial;
 import java.util.Map;
 
 /**
@@ -25,6 +27,7 @@ import java.util.Map;
         category = "Actions"
 )
 public class MathOperationAction extends Action implements BlocklyAction {
+    @Serial
     private static final long serialVersionUID = 1L;
 
     @BlocklyField(type = BlocklyField.FieldType.TEXT_INPUT, label = "Première valeur:",
@@ -109,10 +112,12 @@ public class MathOperationAction extends Action implements BlocklyAction {
 
         String trimmed = value.trim();
 
+        String scopeToUse = resultScope != null ? resultScope : "player";
+
         // Vérifier si c'est une variable (commence par $)
         if (trimmed.startsWith("$")) {
             String variableName = trimmed.substring(1);
-            Object variableValue = Main.getInstance().getVariableRegistry().getVariable(player, variableName);
+            Object variableValue = Main.getInstance().getVariableRegistry().getVariable(player, variableName, scopeToUse);
             if (variableValue == null) {
                 // Essayer dans les données locales
                 variableValue = data.get(variableName);
@@ -235,7 +240,11 @@ public class MathOperationAction extends Action implements BlocklyAction {
             return number.doubleValue();
         }
         if (value instanceof String str) {
-            return Double.parseDouble(str);
+            try {
+                return Double.parseDouble(str);
+            } catch (NumberFormatException e) {
+                return 0;
+            }
         }
         return 0;
     }

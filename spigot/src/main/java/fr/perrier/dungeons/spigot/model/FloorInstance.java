@@ -129,6 +129,7 @@ public class FloorInstance extends FloorInstanceData {
      *
      * @param ready the new readiness state to set for this instance
      */
+    @Override
     public void setReady(boolean ready) {
         this.ready = ready;
         syncInstance();

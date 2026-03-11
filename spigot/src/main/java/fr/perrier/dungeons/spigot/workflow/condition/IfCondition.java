@@ -10,6 +10,7 @@ import lombok.Setter;
 import org.bukkit.entity.Player;
 import org.bukkit.Location;
 
+import java.io.Serial;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +28,7 @@ import java.util.Map;
         category = "Logic"
 )
 public class IfCondition extends Action implements BlocklyAction {
+    @Serial
     private static final long serialVersionUID = 1L;
 
     @BlocklyField(type = BlocklyField.FieldType.TEXT_INPUT, label = "Valeur #1:",
@@ -200,14 +202,14 @@ public class IfCondition extends Action implements BlocklyAction {
             return null;
         }
 
-        if (value instanceof String) {
-            String stringValue = (String) value;
+        if (value instanceof String stringValue) {
 
             stringValue = Main.getInstance().getVariableRegistry().formatVariable(stringValue, player);
 
-            // Handle variable references: {VAR:variable_name}
-            if (stringValue.startsWith("{VAR:") && stringValue.endsWith("}")) {
-                String varName = stringValue.substring(5, stringValue.length() - 1);
+            // Handle variable references: {player.variable_name} or {global.variable_name}
+            if ((stringValue.startsWith("{player.") || stringValue.startsWith("{global.")) && stringValue.endsWith("}")) {
+                String scopePrefix = stringValue.startsWith("{player.") ? "{player." : "{global.";
+                String varName = stringValue.substring(8, stringValue.length() - 1);
 
                 // Try data context first
                 if (data.containsKey(varName)) {
@@ -216,7 +218,7 @@ public class IfCondition extends Action implements BlocklyAction {
 
                 // Try variable manager
                 if (Main.getInstance().getVariableRegistry() != null) {
-                    Object varValue = Main.getInstance().getVariableRegistry().getVariable(player, varName);
+                    Object varValue = Main.getInstance().getVariableRegistry().getVariable(player, varName,scopePrefix);
                     if (varValue != null) {
                         return varValue;
                     }
@@ -245,29 +247,21 @@ public class IfCondition extends Action implements BlocklyAction {
         }
 
         try {
-            switch (op) {
-                case "==":
-                    return compareEqual(left, right);
-                case "!=":
-                    return !compareEqual(left, right);
-                case "<":
-                    return compareNumeric(left, right) < 0;
-                case "<=":
-                    return compareNumeric(left, right) <= 0;
-                case ">":
-                    return compareNumeric(left, right) > 0;
-                case ">=":
-                    return compareNumeric(left, right) >= 0;
-                case "contains":
-                    return left.toString().toLowerCase().contains(right.toString().toLowerCase());
-                case "startsWith":
-                    return left.toString().toLowerCase().startsWith(right.toString().toLowerCase());
-                case "endsWith":
-                    return left.toString().toLowerCase().endsWith(right.toString().toLowerCase());
-                default:
+            return switch (op) {
+                case "==" -> compareEqual(left, right);
+                case "!=" -> !compareEqual(left, right);
+                case "<" -> compareNumeric(left, right) < 0;
+                case "<=" -> compareNumeric(left, right) <= 0;
+                case ">" -> compareNumeric(left, right) > 0;
+                case ">=" -> compareNumeric(left, right) >= 0;
+                case "contains" -> left.toString().toLowerCase().contains(right.toString().toLowerCase());
+                case "startsWith" -> left.toString().toLowerCase().startsWith(right.toString().toLowerCase());
+                case "endsWith" -> left.toString().toLowerCase().endsWith(right.toString().toLowerCase());
+                default -> {
                     Main.getLoggerUtil().warning("Unknown operator: " + op);
-                    return false;
-            }
+                    yield false;
+                }
+            };
         } catch (Exception e) {
             Main.getLoggerUtil().warning("Error evaluating condition: " + e.getMessage());
             return false;
@@ -326,8 +320,4 @@ public class IfCondition extends Action implements BlocklyAction {
         this.elseActions.add(action);
     }
 
-    @Override
-    public boolean isChainable() {
-        return true;
-    }
 }
