@@ -120,6 +120,31 @@ public class ActionFactory {
 
                     yield ifCondition;
                 }
+                case "for_loop_action" -> {
+                    String variableName = actionData.has("variableName") ?
+                            actionData.get("variableName").getAsString() : "i";
+                    int startValue = actionData.has("startValue") ?
+                            actionData.get("startValue").getAsInt() : 0;
+                    int endValue = actionData.has("endValue") ?
+                            actionData.get("endValue").getAsInt() : 10;
+                    int step = actionData.has("step") ?
+                            actionData.get("step").getAsInt() : 1;
+
+                    ForLoopAction forLoop = new ForLoopAction(variableName, startValue, endValue, step);
+
+                    // Load loop actions
+                    if (actionData.has("loopActions")) {
+                        JsonArray loopActionsArray = actionData.getAsJsonArray("loopActions");
+                        for (JsonElement actionElement : loopActionsArray) {
+                            Action action = createActionFromJson(actionElement.getAsJsonObject());
+                            if (action != null) {
+                                forLoop.addLoopAction(action);
+                            }
+                        }
+                    }
+
+                    yield forLoop;
+                }
                 case "player_has_item_condition" -> {
                     PlayerHasItemCondition condition = new PlayerHasItemCondition();
 
@@ -507,6 +532,87 @@ public class ActionFactory {
                             actionData.get("quantity").getAsInt() : 1;
                     LocationBlock location = LocationBlockParser.parseFromJson(actionData, "location");
                     yield new DropItemAction(item, quantity, location);
+                }
+                case "summon_block_display_action" -> {
+                    String blockType = actionData.has("blockType") ?
+                            actionData.get("blockType").getAsString() : "DIAMOND_BLOCK";
+                    LocationBlock location = LocationBlockParser.parseFromJson(actionData, "location");
+                    float scaleX = actionData.has("scaleX") ?
+                            actionData.get("scaleX").getAsFloat() : 1.0f;
+                    float scaleY = actionData.has("scaleY") ?
+                            actionData.get("scaleY").getAsFloat() : 1.0f;
+                    float scaleZ = actionData.has("scaleZ") ?
+                            actionData.get("scaleZ").getAsFloat() : 1.0f;
+                    float translationX = actionData.has("translationX") ?
+                            actionData.get("translationX").getAsFloat() : 0;
+                    float translationY = actionData.has("translationY") ?
+                            actionData.get("translationY").getAsFloat() : 0;
+                    float translationZ = actionData.has("translationZ") ?
+                            actionData.get("translationZ").getAsFloat() : 0;
+                    float leftRotationX = actionData.has("leftRotationX") ?
+                            actionData.get("leftRotationX").getAsFloat() : 0;
+                    float leftRotationY = actionData.has("leftRotationY") ?
+                            actionData.get("leftRotationY").getAsFloat() : 0;
+                    float leftRotationZ = actionData.has("leftRotationZ") ?
+                            actionData.get("leftRotationZ").getAsFloat() : 0;
+                    float leftRotationW = actionData.has("leftRotationW") ?
+                            actionData.get("leftRotationW").getAsFloat() : 1;
+                    float rightRotationX = actionData.has("rightRotationX") ?
+                            actionData.get("rightRotationX").getAsFloat() : 0;
+                    float rightRotationY = actionData.has("rightRotationY") ?
+                            actionData.get("rightRotationY").getAsFloat() : 0;
+                    float rightRotationZ = actionData.has("rightRotationZ") ?
+                            actionData.get("rightRotationZ").getAsFloat() : 0;
+                    float rightRotationW = actionData.has("rightRotationW") ?
+                            actionData.get("rightRotationW").getAsFloat() : 1;
+                    String displayId = actionData.has("displayId") ?
+                            actionData.get("displayId").getAsString() : "";
+                    yield new SummonBlockDisplayAction(blockType, location, scaleX, scaleY, scaleZ,
+                            translationX, translationY, translationZ,
+                            leftRotationX, leftRotationY, leftRotationZ, leftRotationW,
+                            rightRotationX, rightRotationY, rightRotationZ, rightRotationW,
+                            displayId);
+                }
+                case "modify_block_display_action" -> {
+                    String displayId = actionData.has("displayId") ?
+                            actionData.get("displayId").getAsString() : "";
+                    String propertyToModify = actionData.has("propertyToModify") ?
+                            actionData.get("propertyToModify").getAsString() : "ALL";
+                    String blockType = actionData.has("blockType") ?
+                            actionData.get("blockType").getAsString() : "";
+                    float scaleX = actionData.has("scaleX") ?
+                            actionData.get("scaleX").getAsFloat() : 1.0f;
+                    float scaleY = actionData.has("scaleY") ?
+                            actionData.get("scaleY").getAsFloat() : 1.0f;
+                    float scaleZ = actionData.has("scaleZ") ?
+                            actionData.get("scaleZ").getAsFloat() : 1.0f;
+                    float translationX = actionData.has("translationX") ?
+                            actionData.get("translationX").getAsFloat() : 0;
+                    float translationY = actionData.has("translationY") ?
+                            actionData.get("translationY").getAsFloat() : 0;
+                    float translationZ = actionData.has("translationZ") ?
+                            actionData.get("translationZ").getAsFloat() : 0;
+                    float leftRotationX = actionData.has("leftRotationX") ?
+                            actionData.get("leftRotationX").getAsFloat() : 0;
+                    float leftRotationY = actionData.has("leftRotationY") ?
+                            actionData.get("leftRotationY").getAsFloat() : 0;
+                    float leftRotationZ = actionData.has("leftRotationZ") ?
+                            actionData.get("leftRotationZ").getAsFloat() : 0;
+                    float leftRotationW = actionData.has("leftRotationW") ?
+                            actionData.get("leftRotationW").getAsFloat() : 1;
+                    float rightRotationX = actionData.has("rightRotationX") ?
+                            actionData.get("rightRotationX").getAsFloat() : 0;
+                    float rightRotationY = actionData.has("rightRotationY") ?
+                            actionData.get("rightRotationY").getAsFloat() : 0;
+                    float rightRotationZ = actionData.has("rightRotationZ") ?
+                            actionData.get("rightRotationZ").getAsFloat() : 0;
+                    float rightRotationW = actionData.has("rightRotationW") ?
+                            actionData.get("rightRotationW").getAsFloat() : 1;
+                    yield new ModifyBlockDisplayAction(displayId, propertyToModify, blockType,
+                            scaleX, scaleY, scaleZ,
+                            translationX, translationY, translationZ,
+                            leftRotationX, leftRotationY, leftRotationZ, leftRotationW,
+                            rightRotationX, rightRotationY, rightRotationZ, rightRotationW);
                 }
                 default -> {
                     // Check if a dynamic module provides a handler or block descriptor for this action type
