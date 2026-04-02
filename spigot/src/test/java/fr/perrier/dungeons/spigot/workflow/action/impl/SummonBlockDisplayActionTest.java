@@ -39,9 +39,9 @@ class SummonBlockDisplayActionTest {
             assertThat(result.getScaleX()).isEqualTo(1.0f);
             assertThat(result.getScaleY()).isEqualTo(1.0f);
             assertThat(result.getScaleZ()).isEqualTo(1.0f);
-            assertThat(result.getTranslationX()).isEqualTo(0);
-            assertThat(result.getTranslationY()).isEqualTo(0);
-            assertThat(result.getTranslationZ()).isEqualTo(0);
+            assertThat(result.getTranslationX()).isZero();
+            assertThat(result.getTranslationY()).isZero();
+            assertThat(result.getTranslationZ()).isZero();
             assertThat(result.getDisplayId()).isEmpty();
         }
 

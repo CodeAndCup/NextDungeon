@@ -3,7 +3,6 @@ package fr.perrier.dungeons.module.cinematic.clock;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
 /**

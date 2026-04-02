@@ -242,6 +242,7 @@ public class DungeonService {
                         Main.getLoggerUtil().info(String.format("Removed local instanceData: %s", instanceData.getInstanceId()));
                     }
                 }
+                default -> Main.getLoggerUtil().warning(String.format("Received unknown RedisMessage type: %s", message.getType()));
             }
         }
     }

@@ -157,7 +157,7 @@ class ActionFactoryIntegrationTest {
             assertThat(action).isInstanceOf(ForLoopAction.class);
             ForLoopAction loopAction = (ForLoopAction) action;
             assertThat(loopAction.getVariableName()).isEqualTo("i");
-            assertThat(loopAction.getStartValue()).isEqualTo(0);
+            assertThat(loopAction.getStartValue()).isZero();
             assertThat(loopAction.getEndValue()).isEqualTo(10);
             assertThat(loopAction.getStep()).isEqualTo(1);
         }

@@ -102,10 +102,10 @@ public class SubtractFromVariableAction extends Action implements BlocklyAction 
      */
     private Object subtractValues(Object current, Object toSubtract) {
         // Both are numbers
-        if (current instanceof Number && toSubtract instanceof Number) {
-            double currentNum = ((Number) current).doubleValue();
-            double subtractNum = ((Number) toSubtract).doubleValue();
-            double result = currentNum - subtractNum;
+        if (current instanceof Number currentNumber && toSubtract instanceof Number subtractNumber) {
+            double currentDouble = currentNumber.doubleValue();
+            double subtractDouble = subtractNumber.doubleValue();
+            double result = currentDouble - subtractDouble;
 
             // Return as integer if both were integers and result has no decimal part
             if (current instanceof Integer && toSubtract instanceof Integer && result == Math.floor(result)) {

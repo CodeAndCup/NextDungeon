@@ -104,12 +104,7 @@ public class ItemPickupTrigger extends Trigger implements BlocklyTrigger {
             }
         }
 
-        // Vérifier la quantité minimum
-        if (item.getAmount() < minAmount) {
-            return false;
-        }
-
-        return true;
+        return item.getAmount() >= minAmount;
     }
 
     public boolean shouldCancelPickup() {

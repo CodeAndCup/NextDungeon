@@ -162,7 +162,7 @@ public class MySQLManager implements DatabaseManager {
     /**
      * Deprecated method. Use specific load methods instead.
      */
-    @Deprecated
+    @Deprecated(since = "1.0.1-SNAPSHOT")
     @Override
     public void loadData() {
         throw new UnsupportedOperationException("Use specific load methods");

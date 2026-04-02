@@ -7,7 +7,6 @@ import fr.perrier.dungeons.module.cinematic.model.TimelineEvent;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.function.Consumer;
 
 /**
  * Manages the playback of a single cinematic for one viewer.

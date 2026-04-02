@@ -5,7 +5,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import fr.perrier.dungeons.spigot.workflow.action.Action;
-import org.mockito.Mock;
 
 import java.util.List;
 
@@ -37,7 +36,7 @@ class ForLoopActionTest {
 
             // Then
             assertThat(result.getVariableName()).isEqualTo("i");
-            assertThat(result.getStartValue()).isEqualTo(0);
+            assertThat(result.getStartValue()).isZero();
             assertThat(result.getEndValue()).isEqualTo(10);
             assertThat(result.getStep()).isEqualTo(1);
             assertThat(result.getLoopActions()).isNotNull().isEmpty();
@@ -358,7 +357,7 @@ class ForLoopActionTest {
             loopAction.setStartValue(0);
 
             // Then
-            assertThat(loopAction.getStartValue()).isEqualTo(0);
+            assertThat(loopAction.getStartValue()).isZero();
         }
 
         @Test

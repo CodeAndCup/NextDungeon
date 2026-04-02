@@ -8,7 +8,6 @@ import lombok.Getter;
 import org.bukkit.entity.Player;
 
 import java.util.*;
-import java.util.logging.Logger;
 
 /**
  * Central service for managing parties.

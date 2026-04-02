@@ -89,9 +89,9 @@ public class FloorInstance extends FloorInstanceData {
     public static void generateNewInstanceAsync(String floorId, Set<UUID> players, boolean editMode, Consumer<FloorInstance> callback) {
         Bukkit.getScheduler().runTaskAsynchronously(Main.getInstance(), () -> {
             FloorInstance floorInstance = new FloorInstance(floorId, players, editMode);
-            Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
-                callback.accept(floorInstance);
-            });
+            Bukkit.getScheduler().runTask(Main.getInstance(), () ->
+                callback.accept(floorInstance)
+            );
         });
     }
 
@@ -290,9 +290,9 @@ public class FloorInstance extends FloorInstanceData {
 
         Bukkit.broadcastMessage(ChatUtil.translate(Main.getPrefix() + "&fThe dungeon instance &e" + getInstanceName() + " &fwill shut down in &#FF000030 &fseconds."));
 
-        Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
-            Bukkit.getOnlinePlayers().forEach(player -> player.kickPlayer(ChatUtil.translate("&#FF0000The dungeon instance is shutting down! Thanks for playing!")));
-        }, 20L * 20);
+        Bukkit.getScheduler().runTaskLater(Main.getInstance(), () ->
+            Bukkit.getOnlinePlayers().forEach(player -> player.kickPlayer(ChatUtil.translate("&#FF0000The dungeon instance is shutting down! Thanks for playing!")))
+        , 20L * 20);
 
         Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
             Main.getInstance().getDungeonService().removeInstance(this.instanceId);

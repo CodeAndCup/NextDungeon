@@ -18,10 +18,13 @@ public class CameraWaypoint implements Serializable {
     private int tick;
 
     /** World position */
-    private double x, y, z;
+    private double x;
+    private double y;
+    private double z;
 
     /** Camera rotation (degrees) */
-    private float yaw, pitch;
+    private float yaw;
+    private float pitch;
 
     /** Interpolation mode to reach the NEXT waypoint */
     private InterpolationMode interpolation = InterpolationMode.CATMULL_ROM;

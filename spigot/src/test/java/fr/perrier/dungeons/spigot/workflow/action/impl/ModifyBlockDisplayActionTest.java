@@ -282,7 +282,7 @@ class ModifyBlockDisplayActionTest {
             action.setScaleX(0);
 
             // Then
-            assertThat(action.getScaleX()).isEqualTo(0);
+            assertThat(action.getScaleX()).isZero();
         }
     }
 

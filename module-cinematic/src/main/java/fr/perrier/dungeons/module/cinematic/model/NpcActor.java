@@ -48,10 +48,13 @@ public class NpcActor implements Serializable {
         private int tick;
 
         /** World position */
-        private double x, y, z;
+        private double x;
+        private double y;
+        private double z;
 
         /** NPC facing direction */
-        private float yaw, pitch;
+        private float yaw;
+        private float pitch;
 
         /** Animation to play at this waypoint (IDLE, WALK, SWING_ARM, etc.) */
         private String animation;

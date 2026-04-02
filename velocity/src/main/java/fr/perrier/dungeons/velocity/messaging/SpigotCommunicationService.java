@@ -7,7 +7,6 @@ import fr.perrier.dungeons.velocity.messaging.packets.webeditor.WebEditorRespons
 import fr.perrier.dungeons.velocity.messaging.subscribers.WebEditorResponseSubscriber;
 import jodd.util.Base64;
 
-import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
