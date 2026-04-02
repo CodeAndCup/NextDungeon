@@ -653,7 +653,8 @@ public class ActionFactory {
             };
 
         } catch (Exception e) {
-            Main.getLoggerUtil().severe("Erreur lors de la creation de l'action: " + e.getMessage());
+            if(Main.getLoggerUtil() != null)
+                Main.getLoggerUtil().severe("Erreur lors de la creation de l'action: " + e.getMessage());
             e.printStackTrace(System.err);
             return null;
         }
