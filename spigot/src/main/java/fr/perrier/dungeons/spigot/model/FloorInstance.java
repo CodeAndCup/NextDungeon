@@ -247,8 +247,17 @@ public class FloorInstance extends FloorInstanceData {
             }
 
             ProfileData profileData = Main.getInstance().getProfileService().getProfileData(player.getUniqueId());
-            if(success)
+            if(success) {
                 profileData.addCompletedFloor(floorId);
+                
+                // Remove floors from completion if specified in requirements
+                if (getFloor().getRequirements() != null && getFloor().getRequirements().getRemoveCompletion() != null) {
+                    for (String floorToRemove : getFloor().getRequirements().getRemoveCompletion()) {
+                        profileData.getCompletedFloors().remove(floorToRemove);
+                        Main.getLoggerUtil().info("Removed completed floor: " + floorToRemove + " from player: " + player.getName());
+                    }
+                }
+            }
             profileData.addFloorStat(
                     new ProfileData.FloorStats(
                             floorId,
