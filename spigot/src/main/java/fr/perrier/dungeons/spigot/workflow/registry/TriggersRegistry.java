@@ -106,6 +106,10 @@ public class TriggersRegistry implements Listener {
 
         try {
             List<TriggerData> allTriggers = Main.getInstance().getDungeonService().getCurrentFloor().getTriggers();
+            if (allTriggers == null) {
+                Main.getLoggerUtil().info("Triggers cache refresh: current floor has no triggers");
+                return;
+            }
 
             for (TriggerData triggerData : allTriggers) {
                 if( !(triggerData instanceof Trigger trigger)) {

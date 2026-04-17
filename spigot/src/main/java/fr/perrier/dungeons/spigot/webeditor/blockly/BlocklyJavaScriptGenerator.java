@@ -290,7 +290,7 @@ public class BlocklyJavaScriptGenerator {
     private void buildTextFieldDefinition(StringBuilder js, BlocklyFieldExtractor.BlocklyFieldInfo field) {
         js.append("            .appendField(new Blockly.FieldTextInput(\"")
                 .append(escapeJavaScript(field.defaultValue()))
-                .append("\"), \"").append(field.fieldName().toUpperCase()).append("\");\n");
+                .append("\"), \"").append(field.fieldName()).append("\");\n");
     }
 
     /**
@@ -305,7 +305,7 @@ public class BlocklyJavaScriptGenerator {
         if (field.max() != Double.MAX_VALUE) {
             js.append(", ").append(field.max());
         }
-        js.append("), \"").append(field.fieldName().toUpperCase()).append("\");\n");
+        js.append("), \"").append(field.fieldName()).append("\");\n");
     }
 
     /**
@@ -318,7 +318,7 @@ public class BlocklyJavaScriptGenerator {
             if (i > 0) js.append(", ");
             js.append("[\"").append(options[i].trim()).append("\", \"").append(options[i].trim()).append("\"]");
         }
-        js.append("]), \"").append(field.fieldName().toUpperCase()).append("\");\n");
+        js.append("]), \"").append(field.fieldName()).append("\");\n");
     }
 
     /**
@@ -329,7 +329,7 @@ public class BlocklyJavaScriptGenerator {
             js.append("        this.appendDummyInput()\n");
             js.append("            .appendField(\"").append(escapeJavaScript(field.label())).append("\");\n");
         }
-        js.append("        this.appendValueInput(\"").append(field.fieldName().toUpperCase()).append("\")\n");
+        js.append("        this.appendValueInput(\"").append(field.fieldName()).append("\")\n");
         js.append("            .setCheck(\"Boolean\");\n");
     }
 
@@ -339,7 +339,7 @@ public class BlocklyJavaScriptGenerator {
     private void buildColorFieldDefinition(StringBuilder js, BlocklyFieldExtractor.BlocklyFieldInfo field) {
         js.append("            .appendField(new Blockly.FieldColour(\"")
                 .append(field.defaultValue().isEmpty() ? "#ff0000" : field.defaultValue())
-                .append("\"), \"").append(field.fieldName().toUpperCase()).append("\");\n");
+                .append("\"), \"").append(field.fieldName()).append("\");\n");
     }
 
     /**
@@ -348,7 +348,7 @@ public class BlocklyJavaScriptGenerator {
     private void buildCheckboxFieldDefinition(StringBuilder js, BlocklyFieldExtractor.BlocklyFieldInfo field) {
         js.append("            .appendField(new Blockly.FieldCheckbox(")
                 .append(field.defaultValue().equalsIgnoreCase("true") ? "true" : "false")
-                .append("), \"").append(field.fieldName().toUpperCase()).append("\");\n");
+                .append("), \"").append(field.fieldName()).append("\");\n");
     }
 
     /**
@@ -359,7 +359,7 @@ public class BlocklyJavaScriptGenerator {
             js.append("        this.appendDummyInput()\n");
             js.append("            .appendField(\"").append(escapeJavaScript(field.label())).append("\");\n");
         }
-        js.append("        this.appendValueInput(\"").append(field.fieldName().toUpperCase()).append("\")\n");
+        js.append("        this.appendValueInput(\"").append(field.fieldName()).append("\")\n");
         js.append("            .setCheck(\"Location\");\n");
     }
 
@@ -1306,7 +1306,7 @@ public class BlocklyJavaScriptGenerator {
         js.append("                    const triggerBlock = workspace.newBlock('").append(triggerType).append("');\n");
 
         for (BlocklyFieldExtractor.BlocklyFieldInfo field : fields) {
-            buildFieldValueLoading(js, field, "trigger");
+            buildFieldValueLoading(js, field, "triggerBlock", "trigger");
         }
 
         js.append("                    triggerBlock.initSvg();\n");
@@ -1331,7 +1331,7 @@ public class BlocklyJavaScriptGenerator {
         js.append("                    actionBlock = workspace.newBlock('").append(actionType).append("');\n");
 
         for (BlocklyFieldExtractor.BlocklyFieldInfo field : fields) {
-            buildFieldValueLoading(js, field, "action");
+            buildFieldValueLoading(js, field, "actionBlock", "action");
         }
 
         js.append("                }\n");
@@ -1357,21 +1357,29 @@ public class BlocklyJavaScriptGenerator {
     }
 
     /**
-     * Builds the JavaScript code for loading a field value into a trigger or action block.
+     * Generates the JavaScript that pushes a single field value onto a Blockly block.
      *
      * @param js the StringBuilder to accumulate the generated JavaScript code
      * @param field the field information
-     * @param target the target object (e.g., "trigger" or "action")
+     * @param targetBlock JS identifier of the Blockly block receiving the value
+     *                    (e.g. {@code "triggerBlock"} or {@code "actionBlock"}) —
+     *                    only this object exposes {@code setFieldValue}
+     * @param sourceData  JS identifier of the plain data object holding the value
+     *                    (e.g. {@code "trigger"} or {@code "action"})
      */
-    private void buildFieldValueLoading(StringBuilder js, BlocklyFieldExtractor.BlocklyFieldInfo field, String target) {
+    private void buildFieldValueLoading(StringBuilder js, BlocklyFieldExtractor.BlocklyFieldInfo field,
+                                        String targetBlock, String sourceData) {
+        String name = field.fieldName();
+        String prefix = "                    " + targetBlock + ".setFieldValue(";
+        String suffix = ", '" + name + "');\n";
         switch (field.type()) {
-            case TEXT_INPUT -> js.append("                    ").append(target).append(".setFieldValue(trigger.").append(field.fieldName()).append(", '").append(field.fieldName()).append("');\n");
-            case NUMBER_INPUT -> js.append("                    ").append(target).append(".setFieldValue(Number(trigger.").append(field.fieldName()).append("), '").append(field.fieldName()).append("');\n");
-            case DROPDOWN -> js.append("                    ").append(target).append(".setFieldValue(trigger.").append(field.fieldName()).append(", '").append(field.fieldName()).append("');\n");
-            case BOOLEAN_INPUT -> js.append("                    ").append(target).append(".setFieldValue(trigger.").append(field.fieldName()).append(" ? 'TRUE' : 'FALSE', '").append(field.fieldName()).append("');\n");
-            case COLOR_INPUT -> js.append("                    ").append(target).append(".setFieldValue(trigger.").append(field.fieldName()).append(", '").append(field.fieldName()).append("');\n");
-            case CHECKBOX -> js.append("                    ").append(target).append(".setFieldValue(trigger.").append(field.fieldName()).append(" ? 'TRUE' : 'FALSE', '").append(field.fieldName()).append("');\n");
-            case LOCATION_INPUT -> js.append("                    ").append(target).append(".setFieldValue(trigger.").append(field.fieldName()).append(", '").append(field.fieldName()).append("');\n");
+            case TEXT_INPUT, DROPDOWN, COLOR_INPUT, LOCATION_INPUT ->
+                    js.append(prefix).append(sourceData).append('.').append(name).append(suffix);
+            case NUMBER_INPUT ->
+                    js.append(prefix).append("Number(").append(sourceData).append('.').append(name).append(")").append(suffix);
+            case BOOLEAN_INPUT, CHECKBOX ->
+                    js.append(prefix).append(sourceData).append('.').append(name)
+                      .append(" ? 'TRUE' : 'FALSE'").append(suffix);
         }
     }
 }

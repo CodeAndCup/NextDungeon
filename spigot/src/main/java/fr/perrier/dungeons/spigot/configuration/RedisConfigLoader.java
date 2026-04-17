@@ -42,11 +42,34 @@ public class RedisConfigLoader {
             byDungeon = fromDb;
         } else {
             byDungeon = new LinkedHashMap<>();
+            int healed = 0;
             for (Map.Entry<String, FloorData> entry : floorsMap.entrySet()) {
                 String floorId   = entry.getKey();
                 FloorData fd     = entry.getValue();
                 String dungeonId = fd.getDungeonId() != null ? fd.getDungeonId() : extractDungeonId(floorId);
+                // Heal legacy floors that have been sitting in Redis since before the versioning migration.
+                // Without this, subsequent boots skip the DB-fallback heal path and the monitor warns forever.
+                if (fd.getChecksum() == null || fd.getChecksum().isEmpty()) {
+                    if (fd.getDungeonId() == null) fd.setDungeonId(dungeonId);
+                    if (fd.getUpdatedAt() <= 0L) fd.setUpdatedAt(System.currentTimeMillis());
+                    if (fd.getUpdatedBy() == null) fd.setUpdatedBy("legacy-heal");
+                    fd.setChecksum(fd.calculateChecksum());
+                    floorsMap.fastPut(floorId, fd);
+                    if (dbManager != null) {
+                        try {
+                            dbManager.saveFloor(floorId, dungeonId, fd).get();
+                        } catch (Exception persistError) {
+                            Main.getLoggerUtil().warning("[RedisConfigLoader] Could not persist healed checksum for "
+                                    + floorId + ": " + persistError.getMessage());
+                        }
+                    }
+                    healed++;
+                }
                 byDungeon.computeIfAbsent(dungeonId, k -> new ArrayList<>()).add(fd);
+            }
+            if (healed > 0) {
+                Main.getLoggerUtil().info("[RedisConfigLoader] " + healed
+                        + " floor(s) legacy réparé(s) (checksum recalculé + persisté).");
             }
         }
 

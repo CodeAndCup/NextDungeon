@@ -2,7 +2,6 @@ package fr.perrier.dungeons.spigot.database;
 
 import fr.perrier.dungeons.common.workflow.trigger.TriggerData;
 import fr.perrier.dungeons.spigot.Main;
-import fr.perrier.dungeons.spigot.utils.ServerUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,21 +38,16 @@ public class DatabaseTriggersManager {
     }
 
     /**
-     * Loads the triggers for a floor from the database.
-     * This method only loads triggers on lobby servers.
-     * On instance servers, triggers are retrieved from Redis via FloorData.
+     * Loads the triggers for a floor from the database. Called from BOTH lobby and
+     * instance servers — the old short-circuit assumed triggers would be piggybacked
+     * on the FloorData in Redis, but they are now stripped from that map because
+     * they contain Spigot-only classes that break the proxy. The DB is therefore
+     * the single source of truth for triggers on every server type.
      *
      * @param floorId the floor ID
-     * @return the list of triggers, or an empty list if none found or on instance servers
+     * @return the list of triggers, or an empty list if none found / on error
      */
     public static List<TriggerData> loadTriggers(String floorId) {
-        // Sur une instance, ne pas charger depuis la BDD - les triggers viennent de Redis
-        if (ServerUtil.isInstanceServer()) {
-            Main.getLoggerUtil().info("Instance server: skipping DB trigger load for " + floorId + " (using Redis data)");
-            return new ArrayList<>();
-        }
-
-        // Sur le lobby, charger les triggers depuis la base de données
         try {
             CompletableFuture<List<TriggerData>> future = Main.getInstance().getDatabaseManager().loadTriggers(floorId);
             List<TriggerData> triggers = future.join();
