@@ -219,8 +219,8 @@ public class CloudNetProvider implements InstanceProvider {
                 .build();
 
         ServiceTemplate targetTemplate = new ServiceTemplate.Builder()
-                .prefix(floor.getId())
-                .name("default")
+                .prefix(floor.getId().split("_")[0])
+                .name(floor.getId().split("_")[1])
                 .storage("local")
                 .priority(0)
                 .alwaysCopyToStaticServices(false)
@@ -257,8 +257,8 @@ public class CloudNetProvider implements InstanceProvider {
                                 .templates(
                                         Collections.singletonList(
                                                 new ServiceTemplate.Builder()
-                                                        .prefix(floor.getId())
-                                                        .name("default")
+                                                        .prefix(floor.getId().split("_")[0])
+                                                        .name(floor.getId().split("_")[1])
                                                         .storage("local")
                                                         .priority(0)
                                                         .alwaysCopyToStaticServices(false)
@@ -375,7 +375,7 @@ public class CloudNetProvider implements InstanceProvider {
 
                 // Chemins spécifiques à CloudNet
                 File worldSource = new File(Main.getInstance().getDataFolder() + "/../../world");
-                File templateDest = new File(Main.getInstance().getDataFolder() + "/../../../../../local/templates/" + floor.getId() + "/default/world");
+                File templateDest = new File(Main.getInstance().getDataFolder() + "/../../../../../local/templates/" + floor.getId().split("_")[0] + "/" + floor.getId().split("_")[1] +  "/world");
 
                 // Copier les fichiers du monde vers le template CloudNet
                 jodd.io.FileUtil.copyDir(new File(worldSource, "data"), new File(templateDest, "data"));

@@ -88,11 +88,13 @@ public class DungeonGateMenu extends GlassMenu {
 
         @Override
         public void clicked(Player player, int slot, ClickType clickType, int hotbarButton) {
+            //TODO: Warning player that don't have create a party can't play solo, they need to create a party builder first, need to be fixed
+
             // Prevent clicking if any player of that party is already in an instance or being prepared
             if (DungeonPartyImpl.hasLeadParty(player)) {
                 UUID leaderId = DungeonPartyImpl.getDungeonPartyOf(player).getLeaderId();
                 if (Main.getInstance().getDungeonService().isPlayerInAnyInstance(leaderId)) {
-                    player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000An instance for your party is already being prepared or active. Please wait..."));
+                    player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000An instance for your party is already being prepared or active. Please wait..."));
                     return;
                 }
             }
@@ -117,7 +119,7 @@ public class DungeonGateMenu extends GlassMenu {
                         floorInstance.getPlayers().forEach(uuid -> {
                             Player p = Bukkit.getPlayer(uuid);
                             if(p != null) {
-                                p.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000One or more players in your party break the requirements during the loading phase to enter this floor. The instance has been cancelled."));
+                                p.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000One or more players in your party break the requirements during the loading phase to enter this floor. The instance has been cancelled."));
                             }
                         });
                         floorInstance.cancelInstance();
@@ -125,7 +127,7 @@ public class DungeonGateMenu extends GlassMenu {
                     }
                     floorInstance.sendToServer(DungeonPartyImpl.getDungeonPartyOf(player));
                 });
-                player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&fPlease wait while the instance is being prepared..."));
+                player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&fPlease wait while the instance is being prepared..."));
             }
         }
     }

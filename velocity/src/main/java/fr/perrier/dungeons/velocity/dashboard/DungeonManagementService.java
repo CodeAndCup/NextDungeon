@@ -236,7 +236,11 @@ public class DungeonManagementService {
 
             writeEntry(entry);
             logger.info("{} dungeon: {}", isUpdate ? "Updated" : "Created", id);
-            notifySyncChannel("DUNGEON_UPDATE", id);
+            JsonObject dungeonDataJson = new JsonObject();
+            dungeonDataJson.addProperty("id", entry.getId());
+            dungeonDataJson.addProperty("name", entry.getName() != null ? entry.getName() : id);
+            dungeonDataJson.addProperty("description", entry.getDescription() != null ? entry.getDescription() : "");
+            notifySyncChannel("DUNGEON_UPDATE", id, name, desc, dungeonDataJson.toString());
 
             JsonObject response = new JsonObject();
             response.addProperty("success", true);
@@ -301,6 +305,11 @@ public class DungeonManagementService {
             if (!validationResult.isValid())
                 return error("Validation failed: " + String.join(", ", validationResult.getErrors()));
 
+            // Fresh floor: version starts at 1. Checksum locks in the payload before it leaves the dashboard.
+            fd.setUpdatedBy("dashboard-velocity");
+            fd.setUpdatedAt(System.currentTimeMillis());
+            fd.setChecksum(fd.calculateChecksum());
+
             floorsMap.fastPut(fullFloorId, fd);
             metaMap.fastPut(fullFloorId, FloorMetadata.from(fd));
 
@@ -314,7 +323,8 @@ public class DungeonManagementService {
             }
 
             logger.info("Added floor {} to dungeon {}", fullFloorId, dungeonId);
-            notifySyncChannel("FLOOR_UPDATE", fullFloorId);
+            String floorDataJson = gson.toJson(fd);
+            notifySyncChannel("FLOOR_UPDATE", fullFloorId, fd.getName(), dungeonId, floorDataJson);
 
             JsonObject response = new JsonObject();
             response.addProperty("success", true);
@@ -344,10 +354,17 @@ public class DungeonManagementService {
             if (!vr.isValid())
                 return error("Validation failed: " + String.join(", ", vr.getErrors()));
 
+            // Carry the previous version forward so the listener on the spigot side can compare monotonically.
+            fd.setVersion(existing.getVersion());
+            fd.incrementVersion("dashboard-velocity");
+            fd.setChecksum(fd.calculateChecksum());
+
             floorsMap.fastPut(floorId, fd);
             metaMap.fastPut(floorId, FloorMetadata.from(fd));
-            logger.info("Updated floor: {}", floorId);
-            notifySyncChannel("FLOOR_UPDATE", floorId);
+            logger.info("Updated floor: {} v{}", floorId, fd.getVersion());
+            String dungeonIdForFloor = fd.getDungeonId() != null ? fd.getDungeonId() : extractDungeonId(floorId);
+            String floorDataJson = gson.toJson(fd);
+            notifySyncChannel("FLOOR_UPDATE", floorId, fd.getName(), dungeonIdForFloor, floorDataJson);
 
             JsonObject response = new JsonObject();
             response.addProperty("success", true);
@@ -429,6 +446,11 @@ public class DungeonManagementService {
                 requirementsObject.getAsJsonArray("requiredFloorsId").forEach(e -> floorIdList.add(e.getAsString()));
                 req.setRequiredFloorsId(floorIdList);
             }
+            if (requirementsObject.has("removeCompletion") && requirementsObject.get("removeCompletion").isJsonArray()) {
+                List<String> removeCompletionList = new ArrayList<>();
+                requirementsObject.getAsJsonArray("removeCompletion").forEach(e -> removeCompletionList.add(e.getAsString()));
+                req.setRemoveCompletion(removeCompletionList);
+            }
             if (requirementsObject.has("requiredItems") && requirementsObject.get("requiredItems").isJsonArray()) {
                 List<String> requiredItemsList = new ArrayList<>();
                 requirementsObject.getAsJsonArray("requiredItems").forEach(e -> requiredItemsList.add(e.getAsString()));
@@ -490,12 +512,19 @@ public class DungeonManagementService {
     }
 
     private void notifySyncChannel(String type, String id) {
+        notifySyncChannel(type, id, null, null, null);
+    }
+
+    private void notifySyncChannel(String type, String id, String name, String description, String data) {
         try {
             RTopic t = redissonClient.getTopic(syncChannel);
             JsonObject msg = new JsonObject();
             msg.addProperty("type", type);
             msg.addProperty("id", id);
             msg.addProperty("sender", "dashboard-velocity");
+            if (name != null) msg.addProperty("name", name);
+            if (description != null) msg.addProperty("description", description);
+            if (data != null) msg.addProperty("data", data);
             t.publish(msg.toString());
         } catch (Exception e) {
             logger.warn("Failed to publish sync: {}", e.getMessage());
@@ -535,6 +564,12 @@ public class DungeonManagementService {
                 requirements.getRequiredFloorsId().forEach(requirementsFloorsIdArray::add);
             }
             requirementsObject.add("requiredFloorsId", requirementsFloorsIdArray);
+
+            JsonArray removeCompletionArray = new JsonArray();
+            if (requirements.getRemoveCompletion() != null) {
+                requirements.getRemoveCompletion().forEach(removeCompletionArray::add);
+            }
+            requirementsObject.add("removeCompletion", removeCompletionArray);
 
             JsonArray requirementsItemsArray = new JsonArray();
             if (requirements.getRequiredItems() != null) {
@@ -636,6 +671,8 @@ public class DungeonManagementService {
         private List<String> errors;
     }
 }
+
+
 
 
 

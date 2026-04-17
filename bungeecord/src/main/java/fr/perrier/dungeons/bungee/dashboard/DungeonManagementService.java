@@ -209,7 +209,11 @@ public class DungeonManagementService {
 
             writeEntry(entry);
             logger.info((isUpdate ? "Updated" : "Created") + " dungeon: " + id);
-            notifySyncChannel("DUNGEON_UPDATE", id);
+            JsonObject dungeonDataJson = new JsonObject();
+            dungeonDataJson.addProperty("id", entry.getId());
+            dungeonDataJson.addProperty("name", entry.getName() != null ? entry.getName() : id);
+            dungeonDataJson.addProperty("description", entry.getDescription() != null ? entry.getDescription() : "");
+            notifySyncChannel("DUNGEON_UPDATE", id, name, desc, dungeonDataJson.toString());
 
             JsonObject resp = new JsonObject();
             resp.addProperty("success", true);
@@ -270,6 +274,10 @@ public class DungeonManagementService {
             ValidationResult vr = validateFloor(fd);
             if (!vr.isValid()) return error("Validation failed: " + String.join(", ", vr.getErrors()));
 
+            fd.setUpdatedBy("dashboard-bungee");
+            fd.setUpdatedAt(System.currentTimeMillis());
+            fd.setChecksum(fd.calculateChecksum());
+
             floorsMap.fastPut(fullFloorId, fd);
             metaMap.fastPut(fullFloorId, FloorMetadata.from(fd));
 
@@ -281,7 +289,8 @@ public class DungeonManagementService {
             }
 
             logger.info("Added floor " + fullFloorId + " to dungeon " + dungeonId);
-            notifySyncChannel("FLOOR_UPDATE", fullFloorId);
+            String floorDataJson = gson.toJson(fd);
+            notifySyncChannel("FLOOR_UPDATE", fullFloorId, fd.getName(), dungeonId, floorDataJson);
 
             JsonObject resp = new JsonObject();
             resp.addProperty("success", true);
@@ -308,10 +317,16 @@ public class DungeonManagementService {
             ValidationResult vr = validateFloor(fd);
             if (!vr.isValid()) return error("Validation failed: " + String.join(", ", vr.getErrors()));
 
+            fd.setVersion(existing.getVersion());
+            fd.incrementVersion("dashboard-bungee");
+            fd.setChecksum(fd.calculateChecksum());
+
             floorsMap.fastPut(floorId, fd);
             metaMap.fastPut(floorId, FloorMetadata.from(fd));
-            logger.info("Updated floor: " + floorId);
-            notifySyncChannel("FLOOR_UPDATE", floorId);
+            logger.info("Updated floor: " + floorId + " v" + fd.getVersion());
+            String dungeonId_upd = fd.getDungeonId() != null ? fd.getDungeonId() : extractDungeonId(floorId);
+            String floorDataJson_upd = gson.toJson(fd);
+            notifySyncChannel("FLOOR_UPDATE", floorId, fd.getName(), dungeonId_upd, floorDataJson_upd);
 
             JsonObject resp = new JsonObject();
             resp.addProperty("success", true);
@@ -385,6 +400,7 @@ public class DungeonManagementService {
             req.setMinLevel(r.has("minLevel") ? r.get("minLevel").getAsInt() : 0);
             req.setRetryCooldown(r.has("retryCooldown") ? r.get("retryCooldown").getAsLong() : 0L);
             if (r.has("requiredFloorsId") && r.get("requiredFloorsId").isJsonArray()) { List<String> l=new ArrayList<>(); r.getAsJsonArray("requiredFloorsId").forEach(e->l.add(e.getAsString())); req.setRequiredFloorsId(l); }
+            if (r.has("removeCompletion") && r.get("removeCompletion").isJsonArray()) { List<String> l=new ArrayList<>(); r.getAsJsonArray("removeCompletion").forEach(e->l.add(e.getAsString())); req.setRemoveCompletion(l); }
             if (r.has("requiredItems")    && r.get("requiredItems").isJsonArray())    { List<String> l=new ArrayList<>(); r.getAsJsonArray("requiredItems").forEach(e->l.add(e.getAsString())); req.setRequiredItems(l); }
             if (r.has("forbiddenItems")   && r.get("forbiddenItems").isJsonArray())   { List<String> l=new ArrayList<>(); r.getAsJsonArray("forbiddenItems").forEach(e->l.add(e.getAsString())); req.setForbiddenItems(l); }
             if (r.has("party") && !r.get("party").isJsonNull()) {
@@ -434,12 +450,19 @@ public class DungeonManagementService {
     }
 
     private void notifySyncChannel(String type, String id) {
+        notifySyncChannel(type, id, null, null, null);
+    }
+
+    private void notifySyncChannel(String type, String id, String name, String description, String data) {
         try {
             RTopic t = redissonClient.getTopic(syncChannel);
             JsonObject msg = new JsonObject();
             msg.addProperty("type", type);
             msg.addProperty("id", id);
             msg.addProperty("sender", "dashboard-bungee");
+            if (name != null) msg.addProperty("name", name);
+            if (description != null) msg.addProperty("description", description);
+            if (data != null) msg.addProperty("data", data);
             t.publish(msg.toString());
         } catch (Exception e) {
             logger.warning("Failed to publish sync: " + e.getMessage());
@@ -481,6 +504,7 @@ public class DungeonManagementService {
             rj.addProperty("minLevel", r.getMinLevel());
             rj.addProperty("retryCooldown", r.getRetryCooldown());
             JsonArray rfi=new JsonArray(); if(r.getRequiredFloorsId()!=null) r.getRequiredFloorsId().forEach(rfi::add); rj.add("requiredFloorsId",rfi);
+            JsonArray rmc=new JsonArray(); if(r.getRemoveCompletion()!=null) r.getRemoveCompletion().forEach(rmc::add); rj.add("removeCompletion",rmc);
             JsonArray ri=new JsonArray();  if(r.getRequiredItems()!=null) r.getRequiredItems().forEach(ri::add); rj.add("requiredItems",ri);
             JsonArray fi=new JsonArray();  if(r.getForbiddenItems()!=null) r.getForbiddenItems().forEach(fi::add); rj.add("forbiddenItems",fi);
             if (r.getPartyRequirements()!=null) { JsonObject p=new JsonObject(); p.addProperty("minSize",r.getPartyRequirements().getMinSize()); p.addProperty("maxSize",r.getPartyRequirements().getMaxSize()); rj.add("party",p); }
@@ -539,5 +563,4 @@ public class DungeonManagementService {
         private List<String> errors;
     }
 }
-
 

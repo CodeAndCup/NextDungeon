@@ -2,8 +2,10 @@ package fr.perrier.dungeons.spigot.database;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import fr.perrier.dungeons.common.model.dungeon.FloorData;
 import fr.perrier.dungeons.common.workflow.trigger.TriggerData;
 import fr.perrier.dungeons.spigot.Main;
+import fr.perrier.dungeons.spigot.utils.GsonProvider;
 import fr.perrier.dungeons.spigot.workflow.serializer.InstanceSerializer;
 import fr.perrier.dungeons.spigot.model.ProfileData;
 
@@ -153,9 +155,76 @@ public class MySQLManager implements DatabaseManager {
                     "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" +
                     ")");
 
+            // Create dungeons table (for dashboard-created dungeons)
+            stmt.execute("CREATE TABLE IF NOT EXISTS dungeons (" +
+                    "id VARCHAR(255) PRIMARY KEY, " +
+                    "name VARCHAR(255) NOT NULL, " +
+                    "description TEXT, " +
+                    "data MEDIUMTEXT NOT NULL, " +
+                    "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
+                    "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" +
+                    ")");
+
+            // Create floors table (for dashboard-created floors)
+            stmt.execute("CREATE TABLE IF NOT EXISTS floors (" +
+                    "id VARCHAR(255) PRIMARY KEY, " +
+                    "dungeon_id VARCHAR(255) NOT NULL, " +
+                    "name VARCHAR(255) NOT NULL, " +
+                    "data MEDIUMTEXT NOT NULL, " +
+                    "version BIGINT NOT NULL DEFAULT 1, " +
+                    "schema_version INT NOT NULL DEFAULT 2, " +
+                    "updated_by VARCHAR(255), " +
+                    "checksum VARCHAR(64), " +
+                    "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
+                    "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, " +
+                    "FOREIGN KEY (dungeon_id) REFERENCES dungeons(id) ON DELETE CASCADE" +
+                    ")");
+
+            // Idempotent migration for existing installations (MySQL 8+ supports IF NOT EXISTS for ADD COLUMN)
+            addColumnIfMissing(conn, "floors", "version", "BIGINT NOT NULL DEFAULT 1");
+            addColumnIfMissing(conn, "floors", "schema_version", "INT NOT NULL DEFAULT 2");
+            addColumnIfMissing(conn, "floors", "updated_by", "VARCHAR(255)");
+            addColumnIfMissing(conn, "floors", "checksum", "VARCHAR(64)");
+            createIndexIfMissing(conn, "floors", "idx_version", "version");
+            createIndexIfMissing(conn, "floors", "idx_updated_at", "updated_at");
+
         } catch (SQLException e) {
             Main.getLoggerUtil().severe("Failed to create database tables: " + e.getMessage());
             e.printStackTrace(System.err);
+        }
+    }
+
+    /**
+     * Adds a column if it is missing. Works on any MySQL 5.7+ without relying on
+     * the MySQL-8-only {@code ADD COLUMN IF NOT EXISTS} syntax.
+     */
+    private void addColumnIfMissing(Connection conn, String table, String column, String definition) throws SQLException {
+        try (PreparedStatement check = conn.prepareStatement(
+                "SELECT COUNT(*) FROM information_schema.COLUMNS " +
+                        "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?")) {
+            check.setString(1, table);
+            check.setString(2, column);
+            try (ResultSet rs = check.executeQuery()) {
+                if (rs.next() && rs.getInt(1) > 0) return;
+            }
+        }
+        try (Statement alter = conn.createStatement()) {
+            alter.execute("ALTER TABLE " + table + " ADD COLUMN " + column + " " + definition);
+        }
+    }
+
+    private void createIndexIfMissing(Connection conn, String table, String indexName, String columns) throws SQLException {
+        try (PreparedStatement check = conn.prepareStatement(
+                "SELECT COUNT(*) FROM information_schema.STATISTICS " +
+                        "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND INDEX_NAME = ?")) {
+            check.setString(1, table);
+            check.setString(2, indexName);
+            try (ResultSet rs = check.executeQuery()) {
+                if (rs.next() && rs.getInt(1) > 0) return;
+            }
+        }
+        try (Statement alter = conn.createStatement()) {
+            alter.execute("CREATE INDEX " + indexName + " ON " + table + "(" + columns + ")");
         }
     }
 
@@ -559,5 +628,246 @@ public class MySQLManager implements DatabaseManager {
                 return null;
             }
         }, "Delete workflow " + workflowId);
+    }
+
+    // ===== Dungeon CRUD =====
+
+    @Override
+    public CompletableFuture<String> loadDungeon(String dungeonId) {
+        return executeAsync(() -> {
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement("SELECT data FROM dungeons WHERE id = ?")) {
+
+                stmt.setString(1, dungeonId);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getString("data");
+                    }
+                }
+                return null;
+            }
+        }, "Load dungeon " + dungeonId);
+    }
+
+    @Override
+    public CompletableFuture<Void> saveDungeon(String dungeonId, String name, String description, String dataJson) {
+        return executeAsync(() -> {
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(
+                         "INSERT INTO dungeons (id, name, description, data) VALUES (?, ?, ?, ?) " +
+                         "ON DUPLICATE KEY UPDATE name = VALUES(name), description = VALUES(description), data = VALUES(data)")) {
+
+                stmt.setString(1, dungeonId);
+                stmt.setString(2, name);
+                stmt.setString(3, description);
+                stmt.setString(4, dataJson);
+                stmt.executeUpdate();
+
+                Main.getLoggerUtil().info("Dungeon saved to DB: " + dungeonId);
+                return null;
+            }
+        }, "Save dungeon " + dungeonId);
+    }
+
+    @Override
+    public CompletableFuture<Void> deleteDungeon(String dungeonId) {
+        return executeAsync(() -> {
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement("DELETE FROM dungeons WHERE id = ?")) {
+
+                stmt.setString(1, dungeonId);
+                stmt.executeUpdate();
+
+                Main.getLoggerUtil().info("Dungeon deleted from DB: " + dungeonId);
+                return null;
+            }
+        }, "Delete dungeon " + dungeonId);
+    }
+
+    // ===== Floor CRUD =====
+
+    @Override
+    public CompletableFuture<String> loadFloor(String floorId) {
+        return executeAsync(() -> {
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement("SELECT data FROM floors WHERE id = ?")) {
+
+                stmt.setString(1, floorId);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getString("data");
+                    }
+                }
+                return null;
+            }
+        }, "Load floor " + floorId);
+    }
+
+    @Override
+    public CompletableFuture<Void> saveFloor(String floorId, String dungeonId, String name, String dataJson) {
+        return executeAsync(() -> {
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(
+                         "INSERT INTO floors (id, dungeon_id, name, data) VALUES (?, ?, ?, ?) " +
+                         "ON DUPLICATE KEY UPDATE dungeon_id = VALUES(dungeon_id), name = VALUES(name), data = VALUES(data)")) {
+
+                stmt.setString(1, floorId);
+                stmt.setString(2, dungeonId);
+                stmt.setString(3, name);
+                stmt.setString(4, dataJson);
+                stmt.executeUpdate();
+
+                Main.getLoggerUtil().info("Floor saved to DB: " + floorId);
+                return null;
+            }
+        }, "Save floor " + floorId);
+    }
+
+    @Override
+    public CompletableFuture<Void> deleteFloor(String floorId) {
+        return executeAsync(() -> {
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement("DELETE FROM floors WHERE id = ?")) {
+
+                stmt.setString(1, floorId);
+                stmt.executeUpdate();
+
+                Main.getLoggerUtil().info("Floor deleted from DB: " + floorId);
+                return null;
+            }
+        }, "Delete floor " + floorId);
+    }
+
+    // ===== Versioned Floor operations =====
+
+    private static final int SAVE_FLOOR_RETRIES = 3;
+    private static final long[] SAVE_FLOOR_BACKOFF_MS = {500L, 1000L, 2000L};
+
+    @Override
+    public CompletableFuture<Void> saveFloor(String floorId, String dungeonId, FloorData floorData) {
+        if (floorId == null || floorId.isEmpty()) {
+            return CompletableFuture.failedFuture(new IllegalArgumentException("floorId must not be empty"));
+        }
+        if (dungeonId == null || dungeonId.isEmpty()) {
+            return CompletableFuture.failedFuture(new IllegalArgumentException("dungeonId must not be empty"));
+        }
+        if (floorData == null) {
+            return CompletableFuture.failedFuture(new IllegalArgumentException("floorData must not be null"));
+        }
+
+        // Recompute checksum BEFORE saving so the persisted checksum always matches the persisted bytes.
+        floorData.setDungeonId(dungeonId);
+        floorData.setChecksum(floorData.calculateChecksum());
+        String dataJson = GsonProvider.GSON.toJson(floorData);
+
+        return executeAsync(() -> {
+            SQLException lastError = null;
+            for (int attempt = 0; attempt < SAVE_FLOOR_RETRIES; attempt++) {
+                try (Connection conn = dataSource.getConnection()) {
+                    conn.setAutoCommit(false);
+                    try (PreparedStatement stmt = conn.prepareStatement(
+                            "INSERT INTO floors (id, dungeon_id, name, data, version, schema_version, updated_by, checksum) " +
+                                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?) " +
+                                    "ON DUPLICATE KEY UPDATE dungeon_id = VALUES(dungeon_id), name = VALUES(name), " +
+                                    "data = VALUES(data), version = VALUES(version), schema_version = VALUES(schema_version), " +
+                                    "updated_by = VALUES(updated_by), checksum = VALUES(checksum)")) {
+                        stmt.setString(1, floorId);
+                        stmt.setString(2, dungeonId);
+                        stmt.setString(3, floorData.getName());
+                        stmt.setString(4, dataJson);
+                        stmt.setLong(5, floorData.getVersion());
+                        stmt.setInt(6, floorData.getSchemaVersion());
+                        stmt.setString(7, floorData.getUpdatedBy());
+                        stmt.setString(8, floorData.getChecksum());
+                        stmt.executeUpdate();
+                        conn.commit();
+                        Main.getLoggerUtil().info("[MySQLManager] Floor saved: " + floorId + " v" + floorData.getVersion());
+                        return null;
+                    } catch (SQLException inner) {
+                        conn.rollback();
+                        throw inner;
+                    }
+                } catch (SQLException e) {
+                    lastError = e;
+                    long backoff = SAVE_FLOOR_BACKOFF_MS[attempt];
+                    Main.getLoggerUtil().warning("[MySQLManager] saveFloor attempt " + (attempt + 1)
+                            + " failed for " + floorId + ": " + e.getMessage() + " (retry in " + backoff + "ms)");
+                    try {
+                        Thread.sleep(backoff);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw e;
+                    }
+                }
+            }
+            throw new SQLException("[MySQLManager] saveFloor gave up after " + SAVE_FLOOR_RETRIES
+                    + " attempts for " + floorId, lastError);
+        }, "saveFloor(versioned) " + floorId);
+    }
+
+    @Override
+    public CompletableFuture<FloorData> getFloor(String floorId) {
+        if (floorId == null || floorId.isEmpty()) {
+            return CompletableFuture.completedFuture(null);
+        }
+        return executeAsync(() -> {
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(
+                         "SELECT data, checksum FROM floors WHERE id = ?")) {
+                stmt.setString(1, floorId);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (!rs.next()) return null;
+                    String json = rs.getString("data");
+                    String persistedChecksum = rs.getString("checksum");
+                    FloorData floor = GsonProvider.GSON.fromJson(json, FloorData.class);
+                    if (floor == null) {
+                        Main.getLoggerUtil().severe("[MySQLManager] Null floor payload for " + floorId);
+                        return null;
+                    }
+                    if (persistedChecksum != null && !persistedChecksum.isEmpty()
+                            && !persistedChecksum.equals(floor.calculateChecksum())) {
+                        Main.getLoggerUtil().severe("[MySQLManager] Checksum MISMATCH for floor " + floorId
+                                + " — refusing to return corrupted data");
+                        return null;
+                    }
+                    return floor;
+                }
+            }
+        }, "getFloor " + floorId);
+    }
+
+    @Override
+    public CompletableFuture<List<FloorData>> getAllFloors(int limit) {
+        return executeAsync(() -> {
+            List<FloorData> result = new ArrayList<>();
+            String sql = "SELECT id, data, checksum FROM floors";
+            if (limit > 0) sql += " LIMIT " + limit;
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
+                stmt.setFetchSize(100);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    while (rs.next()) {
+                        String id = rs.getString("id");
+                        String json = rs.getString("data");
+                        String persistedChecksum = rs.getString("checksum");
+                        FloorData floor;
+                        try {
+                            floor = GsonProvider.GSON.fromJson(json, FloorData.class);
+                        } catch (Exception e) {
+                            Main.getLoggerUtil().severe("[MySQLManager] Skipping unparseable floor " + id + ": " + e.getMessage());
+                            continue;
+                        }
+                        if (floor == null) continue;
+                        if (persistedChecksum != null && !persistedChecksum.isEmpty()
+                                && !persistedChecksum.equals(floor.calculateChecksum())) {
+                            Main.getLoggerUtil().severe("[MySQLManager] Skipping floor " + id + " (checksum mismatch)");
+                            continue;
+                        }
+                        result.add(floor);
+                    }
+                }
+            }
+            return result;
+        }, "getAllFloors(limit=" + limit + ")");
     }
 }

@@ -1,5 +1,6 @@
 package fr.perrier.dungeons.spigot.database;
 
+import fr.perrier.dungeons.common.model.dungeon.FloorData;
 import fr.perrier.dungeons.common.workflow.trigger.TriggerData;
 import fr.perrier.dungeons.spigot.model.ProfileData;
 
@@ -38,6 +39,40 @@ public interface DatabaseManager {
     CompletableFuture<String> loadWorkflow(String workflowId);
     CompletableFuture<Void> saveWorkflow(String workflowId, String name, String graphJson);
     CompletableFuture<Void> deleteWorkflow(String workflowId);
+
+    // Dungeon CRUD operations (for dashboard)
+    CompletableFuture<String> loadDungeon(String dungeonId);
+    CompletableFuture<Void> saveDungeon(String dungeonId, String name, String description, String dataJson);
+    CompletableFuture<Void> deleteDungeon(String dungeonId);
+
+    // Floor CRUD operations (for dashboard)
+    CompletableFuture<String> loadFloor(String floorId);
+    CompletableFuture<Void> saveFloor(String floorId, String dungeonId, String name, String dataJson);
+    CompletableFuture<Void> deleteFloor(String floorId);
+
+    /**
+     * Persists a versioned {@link FloorData} with retry + transaction semantics.
+     * <p>
+     * The implementation must: validate input, recompute checksum BEFORE saving,
+     * retry up to 3x with exponential backoff (500/1000/2000 ms), wrap in a
+     * transaction and rollback on error.
+     */
+    CompletableFuture<Void> saveFloor(String floorId, String dungeonId, FloorData floorData);
+
+    /**
+     * Loads a single {@link FloorData} with checksum verification.
+     * Returns {@code null} if the row is missing OR its checksum does not match.
+     */
+    CompletableFuture<FloorData> getFloor(String floorId);
+
+    /**
+     * Returns every floor from the database using an iterator (never
+     * {@code readAllMap()}/{@code findAll().toList()}) to avoid OOM.
+     * Rows whose checksum does not match are skipped with a severe log.
+     *
+     * @param limit maximum number of rows to return; pass a non-positive value to disable the cap.
+     */
+    CompletableFuture<List<FloorData>> getAllFloors(int limit);
 
     <T> CompletableFuture<T> handleAsyncOperation(CompletableFuture<T> future, String operationName);
 }
