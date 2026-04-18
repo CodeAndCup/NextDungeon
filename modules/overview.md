@@ -127,7 +127,7 @@ public void onEnable(ModuleContext ctx) {
 
 ### 4. Packaging
 
-Package your module as a standard JAR. The JAR must contain the `NextDungeonModule` implementation class on the classpath. No `plugin.yml` or other descriptor is needed — `ModuleLoader` discovers the implementation by scanning all classes in the JAR for the `NextDungeonModule` interface.
+Package your module as a standard JAR. The JAR must contain the `NextDungeonModule` implementation class on the classpath. No `plugin.yml` or other descriptor is needed — `ModuleLoader` discovers the implementation by iterating all entries in the JAR file and attempting to load each `.class` file. Any **public** class that implements `NextDungeonModule` is instantiated and registered. Keep your implementation class public and in the top-level classpath to ensure reliable detection.
 
 ### 5. Accessing Spigot APIs
 

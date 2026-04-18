@@ -100,6 +100,6 @@ EntityDeathTrigger (type: ZOMBIE, count: 10)
 ## Notes
 
 * All WorldEdit operations run **synchronously** on the main server thread. For large regions (> 50,000 blocks), consider using **FastAsyncWorldEdit (FAWE)**, which processes operations asynchronously and avoids tick-lag.
-* Schematic files must be accessible from the instance server's `plugins/WorldEdit/schematics/` folder (or FAWE equivalent). Make sure schematic files are included in your CloudNet task template.
+* Schematic files must be accessible from the instance server's `plugins/WorldEdit/schematics/` folder (or FAWE equivalent). When using CloudNet for instance management, make sure schematic files are included in your CloudNet task template; for other deployment setups, ensure the files are present on each instance server directly.
 * Regions are defined as plain coordinate pairs — the module internally constructs a `CuboidRegion` to perform the operation.
 * If WorldEdit is not installed on the instance server, action handlers will log an error and return `false` without crashing the workflow.

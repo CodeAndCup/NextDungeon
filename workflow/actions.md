@@ -230,7 +230,7 @@ Modifies an existing `BlockDisplay` entity that was previously spawned via `Summ
 
 ## WorldEdit Actions
 
-These actions require the **WorldEdit module** (`module-worldedit`) to be installed in the `plugins/NextDungeon/modules/` folder. They are provided by the `WorldEditModule` class and not built into the core plugin.
+These actions require the **WorldEdit Module** (`module-worldedit`) to be installed in the `plugins/NextDungeon/modules/` folder. They are provided by the `WorldEditModule` class and not built into the core plugin.
 
 See the [WorldEdit Module](../modules/worldedit.md) documentation for setup instructions.
 
