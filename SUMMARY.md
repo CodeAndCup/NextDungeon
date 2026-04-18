@@ -24,6 +24,7 @@
 
 ## Workflow System
 
+* [Web Editor](workflow-system/web-editor.md)
 * [Triggers](workflow/triggers.md)
 * [Actions](workflow/actions.md)
 * [Conditions & Variables](workflow/conditions-and-variables.md)

@@ -87,7 +87,7 @@ Run the following checks:
 Test that an existing dungeon floor can be entered by running:
 
 ```
-/dungeon admin test <dungeonId> <floorId>
+/dungeon admin run <floorId>
 ```
 
 ***

@@ -41,7 +41,7 @@ Changes are pushed to Redis automatically and all lobby servers reload them in r
 To place your dungeon world into the CloudNet template and configure triggers:
 
 ```
-/dungeon admin edit start my_dungeon floor1
+/dungeon admin edit start dungeon_floor1
 ```
 
 This creates a new CloudNet instance in edit mode and teleports you to it. You can then:
@@ -51,22 +51,18 @@ This creates a new CloudNet instance in edit mode and teleports you to it. You c
 * When finished, save and stop edit mode:
 
 ```
-/dungeon admin edit stop --confirm
+/dungeon admin edit stop
 ```
 
 This saves the world template back to CloudNet and shuts down the edit server.
 
-## Step 6: Play the Dungeon
+## Step 6: Test the Dungeon (as admin)
 
-Players can now queue for your floor:
+You can now test the dungeon.
 
 ```
-/dungeon join my_dungeon floor1
+/dungeon admin run dungeon_floor1
 ```
-
-They will be placed in the queue and transferred to the dungeon once an instance is ready.
-
-Use `/dungeon admin queue status` to monitor the queue in real time.
 
 ***
 
