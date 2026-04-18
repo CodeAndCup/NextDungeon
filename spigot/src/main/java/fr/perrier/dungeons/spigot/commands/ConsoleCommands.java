@@ -16,7 +16,7 @@ public class ConsoleCommands {
         // Private constructor to prevent instantiation
     }
 
-    @Command(names = {"dungeon console openmenu"}, permission = "dungeons.admin")
+    @Command(names = {"dungeon console openmenu", "dungeons console openmenu", "nextdungeon console openmenu", "nextdungeons console openmenu", "nd console openmenu"}, permission = "nextdungeon.console")
     public static void openMenu(CommandSender sender, @Param(name = "Dungeon ID", tabCompleteFlags = {"dungeons"}) Dungeon dungeon, @Param(name = "Player")String playerName) {
         if(!(sender instanceof ConsoleCommandSender)) {
             sender.sendMessage("This command can only be executed by the console.");
@@ -37,7 +37,7 @@ public class ConsoleCommands {
         new DungeonGateMenu(dungeon).openMenu(player);
     }
 
-    @Command(names = {"dungeon console end"}, permission = "dungeons.admin")
+    @Command(names = {"dungeon console end", "dungeons console end", "nextdungeon console end", "nextdungeons console end", "nd console end"}, permission = "nextdungeon.console")
     public static void endDungeon(CommandSender sender, @Param(name = "completed") boolean completed) {
         if(!(sender instanceof ConsoleCommandSender)) {
             sender.sendMessage("This command can only be executed by the console.");

@@ -26,7 +26,7 @@ public class DebugCommands {
         // Private constructor to prevent from instantiation
     }
 
-    @Command(names = {"dungeon debug help", "dungeons debug help", "nextdungeon debug help", "nextdungeons debug help", "nd debug help"})
+    @Command(names = {"dungeon debug help", "dungeons debug help", "nextdungeon debug help", "nextdungeons debug help", "nd debug help"}, permission = "nextdungeon.debug")
     public static void debugDungeonCommand(Player player) {
         player.sendMessage(ChatUtil.getBar());
         player.sendMessage(ChatUtil.translate("<gradient:#8B0000:bold>NextDungeon</gradient:#D10000> &8| &fDebug Commands"));
@@ -47,7 +47,7 @@ public class DebugCommands {
         player.sendMessage(ChatUtil.translate("&#D10000Debug mode is now " + (newState ? "enabled" : "disabled") + "."));
     }
 
-    @Command(names = {"dungeon debug setlogbroadcast", "dungeons debug setlogbroadcast", "nextdungeon debug setlogbroadcast", "nextdungeons debug setlogbroadcast", "nd debug setlogbroadcast"})
+    @Command(names = {"dungeon debug setlogbroadcast", "dungeons debug setlogbroadcast", "nextdungeon debug setlogbroadcast", "nextdungeons debug setlogbroadcast", "nd debug setlogbroadcast"}, permission = "nextdungeon.debug")
     public static void debugDungeonSetLogBroadcastCommand(Player player, @Param(name = "type") String type) {
         LoggerUtil.LogBroadcastType logBroadcastType;
         try {
@@ -60,7 +60,7 @@ public class DebugCommands {
         player.sendMessage(ChatUtil.translate("&#D10000Log broadcast type set to " + logBroadcastType.name() + "."));
     }
 
-    @Command(names = {"dungeon debug list instances", "dungeons debug list instances", "nextdungeon debug list instances", "nextdungeons debug list instances", "nd debug list instances"})
+    @Command(names = {"dungeon debug list instances", "dungeons debug list instances", "nextdungeon debug list instances", "nextdungeons debug list instances", "nd debug list instances"}, permission = "nextdungeon.debug")
     public static void debugDungeonListInstancesCommand(Player player) {
         player.sendMessage(ChatUtil.getBar());
         player.sendMessage(ChatUtil.translate("&6Instances:"));
@@ -73,7 +73,7 @@ public class DebugCommands {
         player.sendMessage(ChatUtil.getBar());
     }
 
-    @Command(names = {"dungeon debug list floors", "dungeons debug list floors", "nextdungeon debug list floors", "nextdungeons debug list floors", "nd debug list floors"})
+    @Command(names = {"dungeon debug list floors", "dungeons debug list floors", "nextdungeon debug list floors", "nextdungeons debug list floors", "nd debug list floors"}, permission = "nextdungeon.debug")
     public static void debugDungeonListFloorsCommand(Player player) {
         player.sendMessage(ChatUtil.getBar());
         player.sendMessage(ChatUtil.translate("&6Floors:"));
@@ -86,7 +86,7 @@ public class DebugCommands {
         player.sendMessage(ChatUtil.getBar());
     }
 
-    @Command(names = {"dungeon debug list dungeons", "dungeons debug list dungeons", "nextdungeon debug list dungeons", "nextdungeons debug list dungeons", "nd debug list dungeons"})
+    @Command(names = {"dungeon debug list dungeons", "dungeons debug list dungeons", "nextdungeon debug list dungeons", "nextdungeons debug list dungeons", "nd debug list dungeons"}, permission = "nextdungeon.debug")
     public static void debugDungeonListDungeonsCommand(Player player) {
         player.sendMessage(ChatUtil.getBar());
         player.sendMessage(ChatUtil.translate("&6Dungeons:"));
@@ -99,7 +99,7 @@ public class DebugCommands {
         player.sendMessage(ChatUtil.getBar());
     }
 
-    @Command(names = {"dungeon debug openmenu", "dungeons debug openmenu", "nextdungeon debug openmenu", "nextdungeons debug openmenu", "nd debug openmenu"})
+    @Command(names = {"dungeon debug openmenu", "dungeons debug openmenu", "nextdungeon debug openmenu", "nextdungeons debug openmenu", "nd debug openmenu"}, permission = "nextdungeon.debug")
     public static void debugDungeonOpenMenuCommand(Player player) {
 
         Dungeon dungeon = Dungeon.getDungeon("example");
@@ -110,7 +110,7 @@ public class DebugCommands {
         new DungeonGateMenu(dungeon).openMenu(player);
     }
 
-    @Command(names = "dungeon debug floor")
+    @Command(names = {"dungeon debug floor", "dungeons debug floor", "nextdungeon debug floor", "nextdungeons debug floor", "nd debug floor"}, permission = "nextdungeon.debug")
     public static void debugDungeonFloorCommand(Player player,  @Param(name = "Floor ID", tabCompleteFlags = {"floors"}) FloorData floorData) {
         Floor floor = Floor.getFloor(floorData.getId());
         if (floor == null) {
@@ -127,7 +127,7 @@ public class DebugCommands {
         player.sendMessage(ChatUtil.getBar());
     }
 
-    @Command(names = "dungeon debug trigger")
+    @Command(names = {"dungeon debug trigger", "dungeons debug trigger", "nextdungeon debug trigger", "nextdungeons debug trigger", "nd debug trigger"}, permission = "nextdungeon.debug")
     public static void debugDungeonTriggerCommand(Player player, @Param(name = "Floor ID", tabCompleteFlags = {"floors"}) FloorData floorData) {
         Floor floor = Floor.getFloor(floorData.getId());
         if (floor == null) {
@@ -144,52 +144,7 @@ public class DebugCommands {
         player.sendMessage(ChatUtil.getBar());
     }
 
-    @Command(names = "dungeon debug cinematic test")
-    public static void debugCinematicTestCommand(Player player, @Param(name = "cinematicId") String cinematicId, @Param(name ="interpolation") String interpolation) {
-        player.sendMessage(ChatUtil.translate("&#D10000Testing cinematic: &f" + cinematicId));
-
-        // Add waypoints
-        player.sendMessage(ChatUtil.translate("&#D100001. Adding waypoints..."));
-        int[] ticks = {0, 50, 100, 125, 190};
-        double[][] positions = {
-            {-189, 122, -80}, {-171, 116, -82}, {-150, 107, -75}, {-108, 103, -79}, {-75, 100, -77}
-        };
-        float[][] rotations = {
-            {0, 0}, {-65, 0}, {-85, 0}, {-90, 0}, {-90, -35}
-        };
-
-        for (int i = 0; i < ticks.length; i++) {
-            Map<String, Object> params = new HashMap<>();
-            params.put("cinematicId", cinematicId);
-            params.put("tick", ticks[i]);
-            params.put("x", positions[i][0]);
-            params.put("y", positions[i][1]);
-            params.put("z", positions[i][2]);
-            params.put("yaw", rotations[i][0]);
-            params.put("pitch", rotations[i][1]);
-            params.put("interpolation", interpolation);
-
-            ModuleActionHandler handler = Main.getInstance().getModuleLoader().getActionHandler("cinematic_add_camera_waypoint");
-            if (handler != null) {
-                boolean result = handler.execute(params);
-                player.sendMessage(ChatUtil.translate("   &8- Waypoint " + (i+1) + " added: " + (result ? "&aOK" : "&cFAILED")));
-            }
-        }
-
-        // Start cinematic
-        player.sendMessage(ChatUtil.translate("&#D100002. Starting cinematic..."));
-        Map<String, Object> startParams = new HashMap<>();
-        startParams.put("cinematicId", cinematicId);
-        startParams.put("player", player);
-
-        ModuleActionHandler handler = Main.getInstance().getModuleLoader().getActionHandler("cinematic_start");
-        if (handler != null) {
-            boolean result = handler.execute(startParams);
-            player.sendMessage(ChatUtil.translate("   &8- Start result: " + (result ? "&aOK" : "&cFAILED")));
-        }
-    }
-
-    @Command(names = "dungeon debug party list")
+    @Command(names = {"dungeon debug party list", "dungeons debug party list", "nextdungeon debug party list", "nextdungeons debug party list", "nd debug party list"}, permission = "nextdungeon.debug")
     public static void debugPartyListCommand(Player player) {
         player.sendMessage(ChatUtil.getBar());
         player.sendMessage(ChatUtil.translate("&6Parties:"));
@@ -202,7 +157,7 @@ public class DebugCommands {
         player.sendMessage(ChatUtil.getBar());
     }
 
-    @Command(names = "dungeon debug party clean")
+    @Command(names = {"dungeon debug party clean", "dungeons debug party clean", "nextdungeon debug party clean", "nextdungeons debug party clean", "nd debug party clean"}, permission = "nextdungeon.debug")
     public static void debugPartyCleanCommand(Player player) {
         DungeonPartyImpl.getDungeonParties().values().stream()
                 .filter(DungeonPartyImpl.class::isInstance)

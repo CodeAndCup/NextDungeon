@@ -81,7 +81,7 @@ public class PlayerCommands {
         Main.getInstance().getQueueManager().requestInstance(player, floor);
     }*/
 
-    @Command(names = {"dungeon leave", "dungeons leave", "nd leave"})
+    @Command(names = {"dungeon leave", "dungeons leave", "nextdungeon leave", "nextdungeons leave", "nd leave"})
     public static void onDungeonLeaveCommand(CommandSender sender, @Param(name = "Floor ID", tabCompleteFlags = {"floors"}) FloorData floorData) {
         if(isSenderNotAPlayer(sender)) return;
         Player player = (Player) sender;
@@ -103,7 +103,7 @@ public class PlayerCommands {
         }
     }
 
-    @Command(names = {"dungeon status", "dungeons status", "nd status"})
+    @Command(names = {"dungeon status", "dungeons status", "nextdungeon status", "nextdungeons status", "nd status"})
     public static void onDungeonStatusCommand(CommandSender sender) {
         if(isSenderNotAPlayer(sender)) return;
         Player player = (Player) sender;
@@ -141,7 +141,7 @@ public class PlayerCommands {
         sender.sendMessage(ChatUtil.getBar());
     }
 
-    @Command(names = {"dungeon list", "dungeons list", "nd list"})
+    @Command(names = {"dungeon list", "dungeons list", "nextdungeon list", "nextdungeons list", "nd list"})
     public static void onDungeonListCommand(CommandSender sender) {
         sender.sendMessage(ChatUtil.getBar());
         sender.sendMessage(ChatUtil.translate("<gradient:#8B0000:bold>NextDungeon</gradient:#D10000> &8| &fAvailable Dungeons"));
