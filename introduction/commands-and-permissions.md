@@ -42,6 +42,10 @@ All admin commands require the permission `nextdungeons.admin`.
 | `/dungeon admin queue status`                     | Display active queues with size and instance counts for each floor                                                  |
 | `/dungeon admin queue clear <floorId>`            | Clear the entire queue for a specific floor                                                                         |
 | `/dungeon admin queue list <floorId>`             | List every player currently waiting in a floor queue                                                                |
+| `/dungeon admin module list`                      | List all loaded dynamic modules with their IDs, names, and versions                                                 |
+| `/dungeon admin module load <file.jar>`           | Load a module JAR from the `plugins/NextDungeon/modules/` directory at runtime                                      |
+| `/dungeon admin module unload <moduleId>`         | Unload a currently loaded module (calls `onDisable()` and removes its blocks from the registry)                     |
+| `/dungeon admin module reload <moduleId>`         | Unload and immediately reload a module (useful after updating a module JAR)                                         |
 
 ***
 

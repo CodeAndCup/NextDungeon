@@ -34,3 +34,9 @@
 * [Parties](integrations/parties.md)
 * [MMOCore](integrations/mmocore.md)
 * [MythicMobs](integrations/mythicmobs.md)
+
+## Modules
+
+* [Modules Overview](modules/overview.md)
+* [Cinematic Module](modules/cinematic.md)
+* [WorldEdit Module](modules/worldedit.md)
