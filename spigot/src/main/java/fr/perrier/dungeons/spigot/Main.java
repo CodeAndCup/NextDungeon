@@ -33,7 +33,18 @@ import fr.perrier.dungeons.spigot.listener.global.GlobalLeaveListener;
 import fr.perrier.dungeons.spigot.listener.global.GlobalPartyListener;
 import fr.perrier.dungeons.spigot.manager.GhostFactory;
 import fr.perrier.dungeons.spigot.messaging.packets.CancelInstancePacket;
+import fr.perrier.dungeons.spigot.messaging.packets.CrossServerSendToInstancePacket;
+import fr.perrier.dungeons.spigot.messaging.packets.DungeonPartyJoinRequestPacket;
+import fr.perrier.dungeons.spigot.messaging.packets.ValidateRequirementsRequestPacket;
+import fr.perrier.dungeons.spigot.messaging.packets.ValidateRequirementsResponsePacket;
 import fr.perrier.dungeons.spigot.messaging.subscribers.CancelInstanceSubscriber;
+import fr.perrier.dungeons.spigot.messaging.subscribers.CrossServerSendToInstanceSubscriber;
+import fr.perrier.dungeons.spigot.messaging.subscribers.DungeonPartyJoinRequestSubscriber;
+import fr.perrier.dungeons.spigot.messaging.subscribers.ValidateRequirementsRequestSubscriber;
+import fr.perrier.dungeons.spigot.messaging.subscribers.ValidateRequirementsResponseSubscriber;
+import fr.perrier.dungeons.spigot.parties.CrossServerValidationService;
+import fr.perrier.dungeons.spigot.parties.impl.DungeonPartyImpl;
+import fr.perrier.dungeons.spigot.parties.impl.DungeonPartyRegistry;
 import fr.perrier.dungeons.spigot.utils.LoggerUtil;
 import fr.perrier.dungeons.spigot.workflow.registry.TriggersRegistry;
 import fr.perrier.dungeons.spigot.workflow.registry.VariableRegistry;
@@ -118,6 +129,12 @@ public final class Main extends JavaPlugin {
 
     // Party service
     private PartyService partyService;
+
+    // Cluster-wide dungeon party registry (Redis-backed). Only initialized on lobby servers.
+    private DungeonPartyRegistry dungeonPartyRegistry;
+
+    // Cross-server floor requirements validation (request/response over Pidgin)
+    private CrossServerValidationService crossServerValidationService;
 
     // Queue management
     private DungeonQueueService dungeonQueueService;
@@ -253,6 +270,29 @@ public final class Main extends JavaPlugin {
         this.messaging.registerAdapter(WebEditorRequestPacket.class, new WebEditorRequestSubscriber());
         this.messaging.registerAdapter(WebEditorResponsePacket.class, null);
         this.messaging.registerAdapter(CancelInstancePacket.class, new CancelInstanceSubscriber());
+        this.messaging.registerAdapter(DungeonPartyJoinRequestPacket.class, new DungeonPartyJoinRequestSubscriber());
+        this.messaging.registerAdapter(ValidateRequirementsRequestPacket.class, new ValidateRequirementsRequestSubscriber());
+        this.messaging.registerAdapter(ValidateRequirementsResponsePacket.class, new ValidateRequirementsResponseSubscriber());
+        this.messaging.registerAdapter(CrossServerSendToInstancePacket.class, new CrossServerSendToInstanceSubscriber());
+
+        // Cross-server validation service — shared between lobbies and instance servers; the
+        // latter forward responses back to the requesting lobby.
+        this.crossServerValidationService = new CrossServerValidationService();
+
+        // Cluster-wide dungeon party registry — lobby servers only (instance servers never own parties).
+        if (!ServerUtil.isInstanceServer()) {
+            try {
+                UUID currentServiceId = instanceProvider.getCurrentServiceUniqueId();
+                if (currentServiceId == null) {
+                    getLogger().warning("DungeonPartyRegistry: could not resolve current service UUID — cross-server party finder will be unavailable");
+                } else {
+                    dungeonPartyRegistry = new DungeonPartyRegistry(redissonClient, currentServiceId);
+                    dungeonPartyRegistry.initialize();
+                }
+            } catch (Exception e) {
+                getLogger().severe("Failed to initialize DungeonPartyRegistry: " + e.getMessage());
+            }
+        }
 
         // Initialize server name service
         this.serverNameService = new ServerNameService();
@@ -317,6 +357,24 @@ public final class Main extends JavaPlugin {
         if (instanceProvider != null) {
             instanceProvider.shutdown();
         }
+
+        // Complete any pending cross-server validation futures so callers unblock on shutdown.
+        if (crossServerValidationService != null) {
+            try { crossServerValidationService.shutdown(); } catch (Exception e) {
+                getLogger().warning("CrossServerValidationService shutdown error: " + e.getMessage());
+            }
+        }
+
+        // Shutdown dungeon party registry first so heartbeat/cleanup tasks stop before we
+        // also tear down local DungeonPartyImpl caches via partyService.shutdown().
+        if (dungeonPartyRegistry != null) {
+            try { dungeonPartyRegistry.shutdown(); } catch (Exception e) {
+                getLogger().warning("DungeonPartyRegistry shutdown error: " + e.getMessage());
+            }
+        }
+
+        // Clear local DungeonPartyImpl cache
+        DungeonPartyImpl.clearAll();
 
         // Shutdown party service
         if (partyService != null) {

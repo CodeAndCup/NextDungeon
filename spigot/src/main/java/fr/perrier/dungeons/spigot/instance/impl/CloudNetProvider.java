@@ -358,6 +358,17 @@ public class CloudNetProvider implements InstanceProvider {
     }
 
     @Override
+    public UUID getCurrentServiceUniqueId() {
+        try {
+            ServiceInfoSnapshot currentService = InjectionLayer.ext().instance(ServiceInfoHolder.class).serviceInfo();
+            return currentService.serviceId().uniqueId();
+        } catch (Exception e) {
+            Main.getLoggerUtil().warning("Could not resolve current service UUID: " + e.getMessage());
+            return null;
+        }
+    }
+
+    @Override
     public ProviderType getType() {
         return ProviderType.CLOUDNET;
     }

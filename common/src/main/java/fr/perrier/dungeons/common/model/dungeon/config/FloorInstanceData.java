@@ -13,7 +13,7 @@ import java.util.*;
 @Getter
 public class FloorInstanceData {
 
-    public static final int CURRENT_SCHEMA_VERSION = 2;
+    public static final int CURRENT_SCHEMA_VERSION = 3;
     private static final Gson CHECKSUM_GSON = new Gson();
 
     protected final String floorId;
@@ -24,6 +24,11 @@ public class FloorInstanceData {
     protected final Set<UUID> players;
     protected final Map<UUID, PlayerStats> playerStats;
     protected final Map<UUID, Integer> playerCurrentLives;
+    /**
+     * Maps a player UUID to the cloud service UUID they were on when they entered this instance.
+     * Used to send players back to their origin server when the dungeon completes instead of kicking them.
+     */
+    protected final Map<UUID, UUID> originInstances;
 
     @Setter
     protected long version = 1L;
@@ -42,6 +47,7 @@ public class FloorInstanceData {
         this.players = new HashSet<>(players);
         this.playerStats = new HashMap<>();
         this.playerCurrentLives = new HashMap<>();
+        this.originInstances = new HashMap<>();
     }
 
     public FloorInstanceData(UUID instanceId, String floorId) {
@@ -51,6 +57,7 @@ public class FloorInstanceData {
         this.players = new HashSet<>();
         this.playerStats = new HashMap<>();
         this.playerCurrentLives = new HashMap<>();
+        this.originInstances = new HashMap<>();
     }
 
     /**
@@ -77,6 +84,7 @@ public class FloorInstanceData {
         snapshot.put("players", this.players);
         snapshot.put("playerStats", this.playerStats);
         snapshot.put("playerCurrentLives", this.playerCurrentLives);
+        snapshot.put("originInstances", this.originInstances);
         snapshot.put("version", this.version);
         snapshot.put("schemaVersion", this.schemaVersion);
         snapshot.put("updatedAt", this.updatedAt);

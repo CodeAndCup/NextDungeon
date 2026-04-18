@@ -135,7 +135,7 @@ public class InstancePlayerDeathListener implements Listener {
                     .npcSettings(builder ->
                             builder.profileResolver((target, spawnedNpc) ->
                                 Main.getInstance().getNpcLibPlatform().profileResolver()
-                                .resolveProfile(Profile.unresolved(target.getUniqueId()))
+                                .resolveProfile(Profile.unresolved(player.getUniqueId()))
                                 .thenApply(resolvedProfile -> spawnedNpc.profile().withProperties(resolvedProfile.properties()))
                             )
                     )

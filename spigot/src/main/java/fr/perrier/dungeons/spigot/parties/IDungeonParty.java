@@ -144,5 +144,14 @@ public interface IDungeonParty {
      * Disbands the party, removing all members and clearing the party data.
      */
     void disband();
+
+    /**
+     * Whether this party should appear in the party finder UI. Orthogonal to existence — a
+     * party can be alive (members grouped together) without being listed (e.g. mid-dungeon).
+     * Defaults to {@code true} so providers that don't care about listing behave as before.
+     */
+    default boolean isListed() {
+        return true;
+    }
 }
 

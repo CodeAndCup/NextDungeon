@@ -112,10 +112,18 @@ public class Floor extends FloorData {
 
     /**
      * Vérifie si un joueur respecte tous les requirements d'un floor.
-     * @param player Le joueur
+     *
+     * <p>Requires the player to be online on this server — minLevel checks against MMOCore's
+     * {@code PlayerData} and the inventory checks both need a live {@link Player}. For party
+     * members that are offline or on another server, this returns {@code false} so callers can
+     * abort the dungeon start cleanly instead of NPE'ing.</p>
+     *
+     * @param player Le joueur (peut être null pour un joueur offline / cross-serveur)
      * @return true si tous les requirements sont respectés, false sinon
      */
     public boolean isRequirementsValid(Player player) {
+        if (player == null) return false;
+
         PlayerData playerData = PlayerData.get(player);
         ProfileData profileData = Main.getInstance().getProfileService().getProfileData(player.getUniqueId());
 

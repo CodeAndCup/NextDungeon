@@ -193,8 +193,8 @@ public class DebugCommands {
     public static void debugPartyListCommand(Player player) {
         player.sendMessage(ChatUtil.getBar());
         player.sendMessage(ChatUtil.translate("&6Parties:"));
-        DungeonPartyImpl.getDungeonParties().values().forEach(party -> {
-            TextComponent partyComponent = new TextComponent(ChatUtil.translate("  &8- &e" + party.getParty().getPartyId() + " &8(&7&o" + party.getDungeonId() + "&8)"));
+        DungeonPartyImpl.getDungeonParties().forEach((leaderId, party) -> {
+            TextComponent partyComponent = new TextComponent(ChatUtil.translate("  &8- &e" + leaderId + " &8(&7&o" + party.getDungeonId() + "&8)"));
             HoverEvent hoverEvent = new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ComponentBuilder(party.toString()).create());
             partyComponent.setHoverEvent(hoverEvent);
             player.spigot().sendMessage(partyComponent);
@@ -204,7 +204,10 @@ public class DebugCommands {
 
     @Command(names = "dungeon debug party clean")
     public static void debugPartyCleanCommand(Player player) {
-        DungeonPartyImpl.getDungeonParties().values().forEach(DungeonPartyImpl::disband);
-        player.sendMessage(ChatUtil.translate("&#D10000All parties have been disbanded."));
+        DungeonPartyImpl.getDungeonParties().values().stream()
+                .filter(DungeonPartyImpl.class::isInstance)
+                .map(DungeonPartyImpl.class::cast)
+                .forEach(DungeonPartyImpl::disband);
+        player.sendMessage(ChatUtil.translate("&#D10000All local parties have been disbanded."));
     }
 }
