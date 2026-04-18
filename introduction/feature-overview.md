@@ -61,15 +61,18 @@ The workflow system lets you script complex dungeon behaviour without writing an
 | `AddToVariableAction` | Add a value to a numeric variable |
 | `SubtractFromVariableAction` | Subtract a value from a numeric variable |
 | `MathOperationAction` | Perform arithmetic on variables |
-| `WorldEditSchematicAction` | Paste a WorldEdit schematic at a location |
-| `WorldEditSetAction` | Fill a region with a block material |
-| `WorldEditReplaceAction` | Replace one block material with another in a region |
-| `WorldEditCutAction` | Cut (remove) blocks within a region |
+| `SummonBlockDisplayAction` | Spawn a Minecraft `BlockDisplay` entity with custom 3D transforms |
+| `ModifyBlockDisplayAction` | Modify an existing `BlockDisplay` entity by its ID |
+| `WorldEditSchematicAction` | Paste a WorldEdit schematic at a location (WorldEdit module) |
+| `WorldEditSetAction` | Fill a region with a block material (WorldEdit module) |
+| `WorldEditReplaceAction` | Replace one block material with another in a region (WorldEdit module) |
+| `WorldEditCutAction` | Cut (remove) blocks within a region (WorldEdit module) |
 
 ### Conditions
 
 | Condition | Description |
 |-----------|-------------|
+| `ForLoopAction` | Loop a block of actions a set number of times with a counter variable |
 | `IfCondition` | If/else branching with operators (`==`, `!=`, `<`, `<=`, `>`, `>=`, `contains`, `startsWith`, `endsWith`) |
 | `BlockTypeIsCondition` | Check the material of a block at a location |
 | `EntityTypeIsCondition` | Check the type of a nearby entity |
@@ -139,6 +142,23 @@ The proxy modules (Velocity/BungeeCord) expose an HTTP server for the web dashbo
 ## 10. Admin and Debug Tools
 
 Full suite of in-game commands for floor editing, queue management, instance inspection, and dungeon migration — see [Commands and Permissions](commands-and-permissions.md).
+
+## 11. Dynamic Module System
+
+NextDungeon supports **runtime-loadable JAR modules** that extend the workflow engine with custom triggers, actions, and conditions. Modules are placed in `plugins/NextDungeon/modules/` and loaded automatically at startup or on demand via `/dungeon admin module load`.
+
+### Built-in Modules
+
+| Module | ID | Description |
+|--------|----|-------------|
+| **Cinematic Module** | `cinematic` | Data-driven cinematic sequences — camera paths (Catmull-Rom interpolation), NPC actors, titles, sounds, and timeline events |
+| **WorldEdit Module** | `worldedit` | WorldEdit workflow actions (set, cut, replace, schematic paste) |
+
+Module blocks appear automatically in the Blockly editor toolbox under their own category once the module is loaded.
+
+See the [Modules Overview](../modules/overview.md) for full documentation.
+
+<!-- INSERT HERE: screenshot of the Blockly editor toolbox showing a custom module category -->
 
 ***
 

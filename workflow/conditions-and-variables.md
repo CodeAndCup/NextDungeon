@@ -99,6 +99,34 @@ Checks whether the current in-game time is within a specified range.
 
 ---
 
+## Control-Flow Blocks
+
+### ForLoopAction
+
+Repeats a list of actions a configurable number of times, exposing a loop variable that actions can read via `{player.varName}` placeholders.
+
+**Source:** `spigot/src/main/java/fr/perrier/dungeons/spigot/workflow/condition/ForLoopAction.java`
+
+> Despite being in the `condition` package, `ForLoopAction` is a **control-flow action** and appears in the **Logic** category in the Blockly editor.
+
+| Field | Default | Description |
+|-------|---------|-------------|
+| Variable name | `i` | Name of the loop counter variable (available as `{player.varName}`) |
+| Start value | `0` | Initial counter value (inclusive) |
+| End value | `10` | Final counter value (exclusive) |
+| Step | `1` | Amount by which the counter increments each iteration |
+| Loop actions | — | Actions to execute on every iteration |
+
+**Example:** Spawn 5 particles one second apart:
+
+```
+ForLoopAction (var: i, start: 0, end: 5, step: 1)
+  -- SpawnParticleAction (particle: FLAME, count: 1, location: ...)
+  -- DelayAction (ticks: 20)
+```
+
+---
+
 ## Variable System
 
 Variables are managed by `VariableRegistry` (`fr.perrier.dungeons.spigot.workflow.registry.VariableRegistry`). They allow action sequences to store, retrieve, and manipulate state.

@@ -186,9 +186,53 @@ When triggered, all players receive a completion summary (time, kills, deaths) a
 
 ---
 
+## Display Entity Actions
+
+These actions manipulate Minecraft **Display entities** (available since Minecraft 1.19.4+). They are useful for building custom visual effects and decorations inside dungeons.
+
+### SummonBlockDisplayAction
+
+Spawns a new `BlockDisplay` entity at a location with a configurable 3D transformation.
+
+**Source:** `spigot/src/main/java/fr/perrier/dungeons/spigot/workflow/action/impl/SummonBlockDisplayAction.java`
+
+| Field | Default | Description |
+|-------|---------|-------------|
+| Block type | `DIAMOND_BLOCK` | Minecraft material name for the displayed block |
+| Location | (0,64,0) | World coordinates where the entity will be spawned |
+| Scale X/Y/Z | `1.0` | Size multiplier per axis |
+| Translation X/Y/Z | `0` | Positional offset applied to the entity's display |
+| Left Rotation X/Y/Z/W | `0`/`0`/`0`/`1` | Quaternion for the left rotation transform |
+| Right Rotation X/Y/Z/W | `0`/`0`/`0`/`1` | Quaternion for the right rotation transform |
+| Display ID | — | Optional unique identifier so `ModifyBlockDisplayAction` can reference this entity later |
+
+Block displays are tracked globally by their Display ID, allowing later modification via `ModifyBlockDisplayAction`.
+
+### ModifyBlockDisplayAction
+
+Modifies an existing `BlockDisplay` entity that was previously spawned via `SummonBlockDisplayAction`.
+
+**Source:** `spigot/src/main/java/fr/perrier/dungeons/spigot/workflow/action/impl/ModifyBlockDisplayAction.java`
+
+| Field | Default | Description |
+|-------|---------|-------------|
+| Display ID | — | ID of the target `BlockDisplay` (must match the ID used at summon time) |
+| Property to modify | `ALL` | Which properties to change: `BLOCK_TYPE`, `SCALE`, `TRANSLATION`, `ROTATION`, or `ALL` |
+| Block type | — | New block material (used when property is `BLOCK_TYPE` or `ALL`) |
+| Scale X/Y/Z | `1.0` | New scale values |
+| Translation X/Y/Z | `0` | New translation offset |
+| Left Rotation X/Y/Z/W | — | New left rotation quaternion |
+| Right Rotation X/Y/Z/W | — | New right rotation quaternion |
+
+> **Note:** The `ALL` option updates all transform properties in one call.
+
+---
+
 ## WorldEdit Actions
 
-These actions require WorldEdit or FAWE to be installed on the instance server.
+These actions require the **WorldEdit Module** (`module-worldedit`) to be installed in the `plugins/NextDungeon/modules/` folder. They are provided by the `WorldEditModule` class and not built into the core plugin.
+
+See the [WorldEdit Module](../modules/worldedit.md) documentation for setup instructions.
 
 ### WorldEditSchematicAction
 
@@ -226,6 +270,18 @@ Removes all blocks within a region (fills with air).
 | Field | Default | Description |
 |-------|---------|-------------|
 | Region pos1 / pos2 | — | Region to clear |
+
+---
+
+## Module Actions
+
+`ModuleAction` is the internal action type used when a trigger calls an action registered by a dynamic module (e.g. the Cinematic module). It wraps a `ModuleActionHandler` implementation provided by the module at runtime.
+
+**Source:** `spigot/src/main/java/fr/perrier/dungeons/spigot/workflow/action/impl/ModuleAction.java`
+
+Module actions appear in the Blockly editor as dedicated blocks under their module category (e.g. **Cinematic**). They are serialised to JSON with their parameters and delegated to the module handler at execution time. If the module is not loaded, the action logs a warning and returns `false` without crashing the workflow.
+
+See the [Modules Overview](../modules/overview.md) for a full list of available module action blocks.
 
 ---
 
