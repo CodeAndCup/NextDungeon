@@ -10,6 +10,7 @@ import java.util.List;
 public class Requirements {
     private long retryCooldown;
     private List<String> requiredFloorsId;
+    private List<String> removeCompletion;
     private PartyRequirements partyRequirements;
     private List<String> requiredItems;
     private List<String> forbiddenItems;
@@ -35,6 +36,7 @@ public class Requirements {
         return "Requirements{" +
                "retryCooldown=" + retryCooldown +
                ", requiredFloorsId=" + requiredFloorsId +
+               ", removeCompletion=" + removeCompletion +
                ", partyRequirements=" + partyRequirements +
                ", requiredItems=" + requiredItems +
                ", forbiddenItems=" + forbiddenItems +

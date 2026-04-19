@@ -7,6 +7,7 @@ import fr.perrier.dungeons.common.model.dungeon.config.FloorInstanceData;
 import fr.perrier.dungeons.common.model.player.PlayerStats;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.messaging.packets.CancelInstancePacket;
+import fr.perrier.dungeons.spigot.messaging.packets.CrossServerSendToInstancePacket;
 import fr.perrier.dungeons.spigot.parties.IDungeonParty;
 import fr.perrier.dungeons.spigot.utils.LoggerUtil;
 import fr.perrier.dungeons.spigot.utils.ServerUtil;
@@ -84,14 +85,17 @@ public class FloorInstance extends FloorInstanceData {
         this.players.addAll(floorInstanceData.getPlayers());
         this.playerStats.putAll(floorInstanceData.getPlayerStats());
         this.playerCurrentLives.putAll(floorInstanceData.getPlayerCurrentLives());
+        if (floorInstanceData.getOriginInstances() != null) {
+            this.originInstances.putAll(floorInstanceData.getOriginInstances());
+        }
     }
 
     public static void generateNewInstanceAsync(String floorId, Set<UUID> players, boolean editMode, Consumer<FloorInstance> callback) {
         Bukkit.getScheduler().runTaskAsynchronously(Main.getInstance(), () -> {
             FloorInstance floorInstance = new FloorInstance(floorId, players, editMode);
-            Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
-                callback.accept(floorInstance);
-            });
+            Bukkit.getScheduler().runTask(Main.getInstance(), () ->
+                callback.accept(floorInstance)
+            );
         });
     }
 
@@ -147,16 +151,17 @@ public class FloorInstance extends FloorInstanceData {
      * @param dungeonParty the dungeon party whose members are to be sent to the cloud service
      */
     public void sendToServer(IDungeonParty dungeonParty) {
-        if(dungeonParty.areAllMembersOnline()) {
-            for (UUID uuid : dungeonParty.getMemberIds()) {
-                Player player = Bukkit.getPlayer(uuid);
-                if (player != null)
-                    sendToServer(player);
+        for (UUID uuid : dungeonParty.getMemberIds()) {
+            Player player = Bukkit.getPlayer(uuid);
+            if (player != null) {
+                // Member is on this server — run the normal loading-bar flow locally.
+                sendToServer(player);
+            } else {
+                // Member is on a peer server. Broadcast a packet so their home server can run
+                // the same sendToServer(Player) flow (loading bar, readiness wait, teleport).
+                Main.getInstance().getMessaging().sendPacket(
+                        new CrossServerSendToInstancePacket(uuid, this.instanceId));
             }
-        }else {
-            Player leader = Bukkit.getPlayer(Objects.requireNonNull(dungeonParty.getLeaderId()));
-            if (leader != null)
-                leader.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000All your party members must be online to join the instance!"));
         }
     }
 
@@ -175,13 +180,24 @@ public class FloorInstance extends FloorInstanceData {
     public void sendToServer(Player player) {
         Main.getLoggerUtil().info(String.format("Attempting to send %s to instance %s", player.getName(), instanceId));
 
+        // Record the player's current lobby cloud service so complete() can send them back
+        UUID currentServiceId = Main.getInstance().getInstanceProvider().getCurrentServiceUniqueId();
+        if (currentServiceId != null) {
+            this.originInstances.put(player.getUniqueId(), currentServiceId);
+            syncInstance();
+        } else {
+            Main.getLoggerUtil().warning(String.format(
+                    "Could not resolve origin service UUID for %s — will fall back to kick on completion",
+                    player.getName()));
+        }
+
         AtomicInteger timerDelay = new AtomicInteger(0);
         AtomicInteger currentLoad = new AtomicInteger(0);
         List<String> loadingBar = LoadingBar.getRandom().getFrames();
 
         new BukkitRunnable() {
             private final long startTime = System.currentTimeMillis();
-            private final long TIMEOUT = Main.getInstance().getConfig().getInt("InstanceSettings.loadingTimeout",120) * 1000L;
+            private final long timeout = Main.getInstance().getConfig().getInt("InstanceSettings.loadingTimeout",120) * 1000L;
 
             @Override
             public void run() {
@@ -209,7 +225,7 @@ public class FloorInstance extends FloorInstanceData {
                         ServerUtil.sendToServer(player, instanceId);
                         this.cancel();
                     } else {
-                        if (System.currentTimeMillis() - startTime > TIMEOUT) {
+                        if (System.currentTimeMillis() - startTime > timeout) {
                             Main.getLoggerUtil().warning("Timed out waiting for instance " + instanceId + " to be ready. (Now try cancelling instance..)");
                             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Timed out waiting for dungeon instance to be ready!"));
                             instance.cancelInstance();
@@ -247,8 +263,17 @@ public class FloorInstance extends FloorInstanceData {
             }
 
             ProfileData profileData = Main.getInstance().getProfileService().getProfileData(player.getUniqueId());
-            if(success)
+            if(success) {
                 profileData.addCompletedFloor(floorId);
+                
+                // Remove floors from completion if specified in requirements
+                if (getFloor().getRequirements() != null && getFloor().getRequirements().getRemoveCompletion() != null) {
+                    for (String floorToRemove : getFloor().getRequirements().getRemoveCompletion()) {
+                        profileData.getCompletedFloors().remove(floorToRemove);
+                        Main.getLoggerUtil().info("Removed completed floor: " + floorToRemove + " from player: " + player.getName());
+                    }
+                }
+            }
             profileData.addFloorStat(
                     new ProfileData.FloorStats(
                             floorId,
@@ -281,14 +306,46 @@ public class FloorInstance extends FloorInstanceData {
 
         Bukkit.broadcastMessage(ChatUtil.translate(Main.getPrefix() + "&fThe dungeon instance &e" + getInstanceName() + " &fwill shut down in &#FF000030 &fseconds."));
 
-        Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
-            Bukkit.getOnlinePlayers().forEach(player -> player.kickPlayer(ChatUtil.translate("&#FF0000The dungeon instance is shutting down! Thanks for playing!")));
-        }, 20L * 20);
+        Bukkit.getScheduler().runTaskLater(Main.getInstance(), () ->
+            Bukkit.getOnlinePlayers().forEach(this::returnPlayerToOriginOrKick)
+        , 20L * 20);
 
         Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
             Main.getInstance().getDungeonService().removeInstance(this.instanceId);
             Bukkit.shutdown();
         }, 20L * 30);
+    }
+
+    /**
+     * Sends the player back to the cloud service they came from when they started the dungeon.
+     * Falls back to kicking the player if no origin was recorded, if the origin service no longer
+     * exists, or if the transfer fails.
+     *
+     * @param player the player to move out of the dungeon instance
+     */
+    private void returnPlayerToOriginOrKick(Player player) {
+        UUID originServiceId = originInstances.get(player.getUniqueId());
+        String kickMessage = ChatUtil.translate("&#FF0000The dungeon instance is shutting down! Thanks for playing!");
+
+        if (originServiceId == null) {
+            Main.getLoggerUtil().info(String.format(
+                    "No origin recorded for %s — kicking instead of redirecting", player.getName()));
+            player.kickPlayer(kickMessage);
+            return;
+        }
+
+        Main.getInstance().getInstanceProvider().sendPlayerToInstance(player, originServiceId)
+                .whenComplete((success, error) -> {
+                    if (error != null || !Boolean.TRUE.equals(success)) {
+                        Main.getLoggerUtil().warning(String.format(
+                                "Failed to return %s to origin %s — kicking. Reason: %s",
+                                player.getName(), originServiceId,
+                                error != null ? error.getMessage() : "provider returned false"));
+                        Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
+                            if (player.isOnline()) player.kickPlayer(kickMessage);
+                        });
+                    }
+                });
     }
 
     /**
@@ -317,6 +374,7 @@ public class FloorInstance extends FloorInstanceData {
         data.getPlayers().addAll(this.players);
         data.getPlayerStats().putAll(this.playerStats);
         data.getPlayerCurrentLives().putAll(this.playerCurrentLives);
+        data.getOriginInstances().putAll(this.originInstances);
         return data;
     }
 

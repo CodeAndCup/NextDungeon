@@ -28,6 +28,10 @@ import java.util.UUID;
  */
 public class TriggerFactory {
 
+    private TriggerFactory() {
+        /* This utility class should not be instantiated */
+    }
+
     /**
      * Custom JsonDeserializer that ensures triggerId is initialized
      * Solves the problem where Gson bypasses constructors during deserialization

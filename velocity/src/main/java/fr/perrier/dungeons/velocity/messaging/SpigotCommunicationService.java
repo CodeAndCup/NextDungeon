@@ -7,7 +7,6 @@ import fr.perrier.dungeons.velocity.messaging.packets.webeditor.WebEditorRespons
 import fr.perrier.dungeons.velocity.messaging.subscribers.WebEditorResponseSubscriber;
 import jodd.util.Base64;
 
-import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -28,11 +27,11 @@ public class SpigotCommunicationService {
             String sessionId = NextDungeonVelocity.getInstance().getWebEditorServer()
                 .getSessionManager()
                 .createSessionFromProxy(dungeonName, floorId, editorUuid, editorName, spigotServer);
-                
-            NextDungeonVelocity.getInstance().getLogger().info("✅ Session created: " + sessionId + " for " + editorName);
+
+            NextDungeonVelocity.getInstance().getLogger().info("Session created: {} for {}", sessionId, editorName);
             return sessionId;
         } catch (Exception e) {
-            NextDungeonVelocity.getInstance().getLogger().error("Session creation error: " + e.getMessage());
+            NextDungeonVelocity.getInstance().getLogger().error("Session creation error: {}", e.getMessage());
             return null;
         }
     }
@@ -50,10 +49,10 @@ public class SpigotCommunicationService {
         );
         
         if (response != null && response.isSuccess()) {
-            NextDungeonVelocity.getInstance().getLogger().info("📥 Triggers loaded for " + floorId + " from " + spigotServer);
+            NextDungeonVelocity.getInstance().getLogger().info("Triggers loaded for {} from {}", floorId, spigotServer);
             return response.getData();
         } else {
-            NextDungeonVelocity.getInstance().getLogger().warn("❌ Failed to load triggers for " + floorId);
+            NextDungeonVelocity.getInstance().getLogger().warn("Failed to load triggers for {}", floorId);
             return createMockTriggersResponse(dungeonName, floorId);
         }
     }
@@ -73,18 +72,21 @@ public class SpigotCommunicationService {
         );
         
         if (response != null && response.isSuccess()) {
-            NextDungeonVelocity.getInstance().getLogger().info("📥 Triggers saved for " + floorId + " on " + spigotServer);
+            NextDungeonVelocity.getInstance().getLogger().info("Triggers saved for {} on {}", floorId, spigotServer);
             return true;
         } else {
-            NextDungeonVelocity.getInstance().getLogger().warn("❌ Backup failure triggers for " + floorId);
+            NextDungeonVelocity.getInstance().getLogger().warn("Backup failure triggers for {}", floorId);
             return false;
         }
     }
 
+
     /**
-     * Récupère les types de triggers disponibles
+     * Get trigger types from the spigot server
+     * @param spigotServer The target Spigot server
+     * @return
      */
-    public String getTriggerTypes(String spigotServer) throws Exception {
+    public String getTriggerTypes(String spigotServer) {
         WebEditorResponsePacket response = sendRequestAndWaitResponse(
             spigotServer, 
             WebEditorRequestPacket.WebEditorRequestType.GET_TRIGGER_TYPES, 
@@ -99,9 +101,13 @@ public class SpigotCommunicationService {
     }
 
     /**
-     * Génère le JavaScript Blockly
+     * Request to spigot server to generate the blockly JavaScript file to get available blocks
+     *
+     * @param spigotServer The target Spigot server
+     * @param editorUuid The UUID of the used editor
+     * @return Javascript file for blockly configuration
      */
-    public String generateBlocklyJs(String spigotServer, UUID editorUuid) throws Exception {
+    public String generateBlocklyJs(String spigotServer, UUID editorUuid) {
         WebEditorRequestPacket.GenerateBlocklyJsData data = new WebEditorRequestPacket.GenerateBlocklyJsData(editorUuid);
         
         WebEditorResponsePacket response = sendRequestAndWaitResponse(
@@ -118,7 +124,14 @@ public class SpigotCommunicationService {
     }
 
     /**
-     * Récupère les informations du floor
+     * Get floor information (like name, editor, etc.) from the Spigot server. This can be used to display contextual information in the web editor interface.
+     *
+     * @param spigotServer The target Spigot server to request the floor information from
+     * @param dungeonName The name of the dungeon for which to retrieve floor information
+     * @param floorId The ID of the floor for which to retrieve information
+     * @param editorName The name of the editor requesting the information (can be used for logging or permission checks on the Spigot side)
+     * @return A JSON string containing the floor information, or a mock response if the communication fails
+     * @throws Exception if there is an error during the communication process
      */
     public String getFloorInfo(String spigotServer, String dungeonName, String floorId, String editorName) throws Exception {
         WebEditorRequestPacket.FloorInfoData data = new WebEditorRequestPacket.FloorInfoData(dungeonName, floorId, editorName);
@@ -137,35 +150,41 @@ public class SpigotCommunicationService {
     }
 
     /**
-     * Envoie une requête Redis et attend la réponse
+     * Send a request to the specified Spigot server and wait for the response with a timeout.
+     * Note: This method assumes that the WebEditorResponseSubscriber is properly set up to handle incoming responses and match them with the requestId.
+     *
+     * @param spigotServer The target Spigot server to send the request to
+     * @param requestType The type of request being sent
+     * @param data The data payload for the request (can be null if not needed)
+     * @return The response packet received from the Spigot server, or null if a timeout or error occurred
      */
     private WebEditorResponsePacket sendRequestAndWaitResponse(String spigotServer, 
                                                               WebEditorRequestPacket.WebEditorRequestType requestType, 
-                                                              Object data) throws Exception {
+                                                              Object data) {
         String requestId = UUID.randomUUID().toString();
         
-        // Enregistrer la requête en attente
+        // Register the pending request and get a future for the response
         CompletableFuture<WebEditorResponsePacket> future = WebEditorResponseSubscriber.registerPendingRequest(
             requestId, DEFAULT_TIMEOUT_SECONDS
         );
         
-        // Créer et envoyer le packet de requête avec le serveur cible
+        // Create and send the request packet
         WebEditorRequestPacket requestPacket = new WebEditorRequestPacket(
             requestId,
-            "velocity-proxy", // TODO: obtenir l'ID du proxy depuis la config
-            spigotServer,     // Serveur cible qui doit traiter la requête
+            "velocity-proxy",
+            spigotServer, // Target Spigot server
             requestType,
             data
         );
         
         NextDungeonVelocity.getInstance().getMessaging().sendPacket(requestPacket);
-        NextDungeonVelocity.getInstance().getLogger().info("📤 Request sent to " + spigotServer + ": " + requestType + " (ID: " + requestId + ")");
+        NextDungeonVelocity.getInstance().getLogger().info("Request sent to {}: {} (ID: {})", spigotServer, requestType, requestId);
         
         try {
-            // Attendre la réponse
+            // Waiting for the response with a timeout
             return future.get(DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         } catch (Exception e) {
-            NextDungeonVelocity.getInstance().getLogger().warn("⏱️ Timeout or error waiting for response: " + e.getMessage());
+            NextDungeonVelocity.getInstance().getLogger().warn("Timeout or error waiting for response: {}", e.getMessage());
             return null;
         }
     }

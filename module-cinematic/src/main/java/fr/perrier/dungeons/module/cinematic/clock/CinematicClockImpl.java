@@ -3,7 +3,7 @@ package fr.perrier.dungeons.module.cinematic.clock;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.function.Consumer;
+import java.util.function.IntConsumer;
 
 /**
  * Implémentation de l'horloge cinématique basée sur le temps réel.
@@ -18,7 +18,7 @@ public class CinematicClockImpl implements CinematicClock {
     private Duration playTime = Duration.ZERO;
     private boolean paused = false;
     private int lastFrame = -1;
-    private final List<Consumer<Integer>> listeners = new CopyOnWriteArrayList<>();
+    private final List<IntConsumer> listeners = new CopyOnWriteArrayList<>();
 
     @Override
     public int getCurrentFrame() {
@@ -50,18 +50,18 @@ public class CinematicClockImpl implements CinematicClock {
 
     @Override
     public void setFrame(int frame) {
-        playTime = Duration.ofMillis((long) frame * MILLIS_PER_FRAME);
+        playTime = Duration.ofMillis(frame * MILLIS_PER_FRAME);
         lastFrame = frame;
         notifyListeners(frame);
     }
 
     @Override
-    public void addFrameChangeListener(Consumer<Integer> listener) {
+    public void addFrameChangeListener(IntConsumer listener) {
         listeners.add(listener);
     }
 
     @Override
-    public void removeFrameChangeListener(Consumer<Integer> listener) {
+    public void removeFrameChangeListener(IntConsumer listener) {
         listeners.remove(listener);
     }
 
@@ -71,7 +71,7 @@ public class CinematicClockImpl implements CinematicClock {
     }
 
     private void notifyListeners(int frame) {
-        for (Consumer<Integer> listener : listeners) {
+        for (IntConsumer listener : listeners) {
             try {
                 listener.accept(frame);
             } catch (Exception e) {

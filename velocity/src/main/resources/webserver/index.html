@@ -430,9 +430,6 @@
             const response = await fetch('../api/triggers');
             const data = await response.json();
 
-            /*workspace.clear();
-            console.log('Triggers chargés:', data);*/
-
             loadTriggersIntoWorkspace(data);
 
             updateDebugInfo(`✅ ${data.triggers ? data.triggers.length : 0} trigger(s) chargé(s)`);

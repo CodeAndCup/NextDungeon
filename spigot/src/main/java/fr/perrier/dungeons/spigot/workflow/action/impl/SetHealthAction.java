@@ -10,6 +10,7 @@ import lombok.Setter;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
+import java.io.Serial;
 import java.util.Map;
 
 /**
@@ -25,6 +26,7 @@ import java.util.Map;
         category = "Actions"
 )
 public class SetHealthAction extends Action implements BlocklyAction {
+    @Serial
     private static final long serialVersionUID = 1L;
 
     @BlocklyField(type = BlocklyField.FieldType.DROPDOWN, label = "Opération:",

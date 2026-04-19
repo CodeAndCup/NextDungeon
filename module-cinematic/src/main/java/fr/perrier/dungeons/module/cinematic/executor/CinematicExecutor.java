@@ -20,8 +20,7 @@ import org.bukkit.potion.PotionEffectType;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
+import java.util.function.IntConsumer;
 
 /**
  * Orchestrates a cinematic: coordinates the clock, actions, and player state.
@@ -39,14 +38,17 @@ public class CinematicExecutor {
 
     private final List<CinematicAction> actions;
     private final Player player;
+
     /** Master clock shared by the module — used only to receive ticks and drive the private clock */
     private final CinematicClock masterClock;
+
     /** Private clock per executor, always starts at frame 0 */
     private final CinematicClockImpl privateClock;
     private PlayerCinematicState stateSnapshot;
-    private Consumer<Integer> frameListener;
+    private IntConsumer frameListener;
+
     /** Listener on the masterClock that relays ticks to the privateClock */
-    private Consumer<Integer> masterTickRelay;
+    private IntConsumer masterTickRelay;
     private Listener damageListener;
     private boolean isRunning = false;
 
@@ -142,7 +144,7 @@ public class CinematicExecutor {
                             System.err.println("[Cinematic] Tick action error: " + e.getMessage());
                         }
                     }))
-                    .collect(Collectors.toList());
+                    .toList();
 
             CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
         } catch (Exception e) {

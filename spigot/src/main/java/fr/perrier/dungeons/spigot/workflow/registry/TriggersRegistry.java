@@ -42,9 +42,6 @@ public class TriggersRegistry implements Listener {
     private RegionTriggerHandler regionTriggerHandler;
 
 
-    // Instance singleton
-    private static TriggersRegistry instance;
-
     public TriggersRegistry() {
         registerDefaultHandlers();
     }
@@ -55,9 +52,7 @@ public class TriggersRegistry implements Listener {
     public void initialize() {
         // Enregistrer ce manager comme listener principal
         Listener dummyListener = new Listener() {};
-        EventExecutor executor = (listener, event) -> {
-            processEvent(event);
-        };
+        EventExecutor executor = (listener, event) -> processEvent(event);
 
         for (Class<? extends Event> eventClass : handlers.keySet()) {
             try {
@@ -111,6 +106,10 @@ public class TriggersRegistry implements Listener {
 
         try {
             List<TriggerData> allTriggers = Main.getInstance().getDungeonService().getCurrentFloor().getTriggers();
+            if (allTriggers == null) {
+                Main.getLoggerUtil().info("Triggers cache refresh: current floor has no triggers");
+                return;
+            }
 
             for (TriggerData triggerData : allTriggers) {
                 if( !(triggerData instanceof Trigger trigger)) {

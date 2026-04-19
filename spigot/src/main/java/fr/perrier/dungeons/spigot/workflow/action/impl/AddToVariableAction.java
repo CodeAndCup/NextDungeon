@@ -10,6 +10,7 @@ import lombok.Setter;
 import org.bukkit.entity.Player;
 import org.bukkit.Location;
 
+import java.io.Serial;
 import java.util.Map;
 
 /**
@@ -25,6 +26,7 @@ import java.util.Map;
         category = "Actions"
 )
 public class AddToVariableAction extends Action implements BlocklyAction {
+    @Serial
     private static final long serialVersionUID = 1L;
 
     @BlocklyField(type = BlocklyField.FieldType.TEXT_INPUT, label = "Nom variable:",
@@ -69,7 +71,7 @@ public class AddToVariableAction extends Action implements BlocklyAction {
         String scopeToUse = scope != null ? scope : "player";
 
         // Get the current variable value
-        Object currentValue = Main.getInstance().getVariableRegistry().getVariable(triggerPlayer, trimmedName);
+        Object currentValue = Main.getInstance().getVariableRegistry().getVariable(triggerPlayer, trimmedName, scopeToUse);
 
         // If variable doesn't exist, initialize it to 0
         if (currentValue == null) {
@@ -100,9 +102,9 @@ public class AddToVariableAction extends Action implements BlocklyAction {
      */
     private Object addValues(Object current, Object toAdd) {
         // Both are numbers
-        if (current instanceof Number && toAdd instanceof Number) {
-            double currentNum = ((Number) current).doubleValue();
-            double addNum = ((Number) toAdd).doubleValue();
+        if ((current instanceof Number curentNumber) && (toAdd instanceof Number newNumber)) {
+            double currentNum = curentNumber.doubleValue();
+            double addNum = newNumber.doubleValue();
             double result = currentNum + addNum;
 
             // Return as integer if both were integers and result has no decimal part
@@ -144,10 +146,6 @@ public class AddToVariableAction extends Action implements BlocklyAction {
         return trimmed;
     }
 
-    @Override
-    public boolean isChainable() {
-        return true;
-    }
 }
 
 

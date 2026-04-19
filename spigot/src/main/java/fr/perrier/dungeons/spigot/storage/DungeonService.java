@@ -1,13 +1,17 @@
 package fr.perrier.dungeons.spigot.storage;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import fr.perrier.dungeons.common.model.dungeon.FloorData;
 import fr.perrier.dungeons.common.model.dungeon.FloorMetadata;
 import fr.perrier.dungeons.common.model.dungeon.config.FloorInstanceData;
 import fr.perrier.dungeons.spigot.Main;
+import fr.perrier.dungeons.spigot.database.DatabaseManager;
 import fr.perrier.dungeons.spigot.model.Dungeon;
 import fr.perrier.dungeons.spigot.model.FloorInstance;
 import fr.perrier.dungeons.spigot.messaging.redis.RedisMessage;
 import fr.perrier.dungeons.spigot.model.Floor;
+import fr.perrier.dungeons.spigot.utils.GsonProvider;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.Bukkit;
@@ -65,9 +69,23 @@ public class DungeonService {
         this.instancesMap = redissonClient.getMap(INSTANCE_MAP);
         this.syncTopic = redissonClient.getTopic(SYNC_CHANNEL);
 
-        // Subscribe to sync messages
-        syncTopic.addListener(RedisMessage.class, (channel, msg) -> {
-            handleSyncMessage(msg);
+        subscribeSyncChannel();
+    }
+
+    /**
+     * Attaches listeners to the sync topic so this server reacts to both:
+     * <ul>
+     *   <li>{@link RedisMessage} payloads produced by peer Spigot instances</li>
+     *   <li>Raw JSON payloads produced by the Velocity/Bungee dashboard</li>
+     * </ul>
+     */
+    private void subscribeSyncChannel() {
+        syncTopic.addListener(Object.class, (channel, msg) -> {
+            if (msg instanceof RedisMessage<?> redisMessage) {
+                handlePeerSyncMessage(redisMessage);
+            } else if (msg instanceof String jsonString) {
+                handleSyncMessage(jsonString);
+            }
         });
     }
 
@@ -143,19 +161,35 @@ public class DungeonService {
      * @param floorData the floor to synchronize.
      */
     public void syncFloor(FloorData floorData) {
+        // Keep the local cache in sync first so later getCurrentFloor() calls return
+        // the freshly-saved triggers. Without this, saves persist to DB but the in-memory
+        // currentFloor still points at the pre-save FloorData — the trigger editor's
+        // subsequent /api/triggers read then returns stale triggers (default values
+        // from the pre-edit state).
+        FloorData currentLocal = currentFloor.get();
+        if (currentLocal != null && currentLocal.getId().equals(floorData.getId())) {
+            currentFloor.set(floorData);
+        }
+
+        // The shared Redis map is consumed by the proxy (Velocity), which does not have
+        // Spigot trigger classes on its classpath — Kryo throws ClassNotFoundException on
+        // types like EntityDeathTrigger. Strip triggers before anything leaves this server;
+        // triggers are loaded separately from the floor_triggers table wherever they are needed.
+        FloorData sharable = stripTriggersForSharedStorage(floorData);
+
         RedisMessage<FloorData> message = RedisMessage.create(
                 SYNC_CHANNEL,
                 Bukkit.getServer().getName(),
                 RedisMessage.MessageType.FLOOR_UPDATE,
-                floorData
+                sharable
         );
 
         // Update Redis
-        floorsMap.fastPut(floorData.getId(), floorData);
+        floorsMap.fastPut(sharable.getId(), sharable);
 
         // Also update metadata for dashboard
-        FloorMetadata metadata = FloorMetadata.from(floorData);
-        floorMetadataMap.fastPut(floorData.getId(), metadata);
+        FloorMetadata metadata = FloorMetadata.from(sharable);
+        floorMetadataMap.fastPut(sharable.getId(), metadata);
 
         // Notify other servers
         syncTopic.publish(message);
@@ -198,53 +232,243 @@ public class DungeonService {
     }
 
     /**
-     * Handle a sync message received from Redis.
-     * If the message is a floor or instance update, only update the local reference
-     * if the message is not from this server and the message is about our current
-     * floor or instance.
-     *
-     * @param message the message received
+     * Handle a peer-to-peer sync message produced by another Spigot server.
      */
-    private void handleSyncMessage(RedisMessage<?> message) {
+    private void handlePeerSyncMessage(RedisMessage<?> message) {
         String serverIdentity = Bukkit.getServer().getIp() + ":" + Bukkit.getServer().getPort();
-        if (!message.getSender().equals(serverIdentity)) { // Don't handle own messages
-            switch (message.getType()) {
-                case FLOOR_UPDATE -> {
-                    FloorData floorData = (FloorData) message.getData();
-                    // Only update if it's our current floor
-                    if (currentFloor.get() != null &&
-                            currentFloor.get().getId().equals(floorData.getId())) {
-                        currentFloor.set(floorData);
-                        // Refresh trigger cache when floor is updated
-                        Main.getInstance().getTriggersRegistry().refreshTriggerCache();
-                        Main.getLoggerUtil().info(
-                                String.format("Updated local floorData: %s from Redis", floorData.getId())
-                        );
-                    }
-                }
-                case INSTANCE_UPDATE -> {
-                    FloorInstanceData instanceData = (FloorInstanceData) message.getData();
-                    // Update local cache if it's our current instance
-                    if (currentInstanceId.get() != null &&
-                            currentInstanceId.get().equals(instanceData.getInstanceId())) {
-                        currentInstanceData.set(instanceData);
-                        Main.getLoggerUtil().info(
-                                String.format("Instance %s updated in local cache from Redis",
-                                        instanceData.getInstanceId())
-                        );
-                    }
-                }
-                case INSTANCE_REMOVE -> {
-                    FloorInstanceData instanceData = (FloorInstanceData) message.getData();
-                    if (currentInstanceId.get() != null &&
-                            currentInstanceId.get().equals(instanceData.getInstanceId())) {
-                        currentInstanceId.set(null);
-                        currentInstanceData.set(null);
-                        currentFloor.set(null);
-                        Main.getLoggerUtil().info(String.format("Removed local instanceData: %s", instanceData.getInstanceId()));
-                    }
+        if (message.getSender().equals(serverIdentity)) return; // ignore own messages
+
+        switch (message.getType()) {
+            case FLOOR_UPDATE -> {
+                if (message.getData() instanceof FloorData floorData) {
+                    handleFloorUpdate(floorData.getId(), floorData);
                 }
             }
+            case INSTANCE_UPDATE -> {
+                FloorInstanceData instanceData = (FloorInstanceData) message.getData();
+                if (currentInstanceId.get() != null &&
+                        currentInstanceId.get().equals(instanceData.getInstanceId())) {
+                    currentInstanceData.set(instanceData);
+                    Main.getLoggerUtil().info(
+                            String.format("Instance %s updated in local cache from Redis",
+                                    instanceData.getInstanceId())
+                    );
+                }
+            }
+            case INSTANCE_REMOVE -> {
+                FloorInstanceData instanceData = (FloorInstanceData) message.getData();
+                if (currentInstanceId.get() != null &&
+                        currentInstanceId.get().equals(instanceData.getInstanceId())) {
+                    currentInstanceId.set(null);
+                    currentInstanceData.set(null);
+                    currentFloor.set(null);
+                    Main.getLoggerUtil().info(String.format("Removed local instanceData: %s", instanceData.getInstanceId()));
+                }
+            }
+            default -> Main.getLoggerUtil().warning(String.format("Received unknown RedisMessage type: %s", message.getType()));
+        }
+    }
+
+    /**
+     * Parses and dispatches a JSON sync message emitted by the dashboard.
+     * Structure: {@code {type, id, name, description, data}} where {@code data}
+     * is a stringified {@link FloorData} JSON for {@code FLOOR_UPDATE}.
+     */
+    private void handleSyncMessage(String jsonString) {
+        try {
+            JsonObject jsonObject = JsonParser.parseString(jsonString).getAsJsonObject();
+            String type = jsonObject.has("type") ? jsonObject.get("type").getAsString() : null;
+            String id = jsonObject.has("id") ? jsonObject.get("id").getAsString() : null;
+            if (type == null || id == null) return;
+
+            switch (type) {
+                case "FLOOR_UPDATE" -> {
+                    String dungeonId = jsonObject.has("description") ? jsonObject.get("description").getAsString() : null;
+                    String name = jsonObject.has("name") ? jsonObject.get("name").getAsString() : null;
+                    String data = jsonObject.has("data") ? jsonObject.get("data").getAsString() : null;
+                    handleFloorUpdate(id, dungeonId, name, data);
+                }
+                case "DUNGEON_UPDATE" -> {
+                    String name = jsonObject.has("name") ? jsonObject.get("name").getAsString() : null;
+                    String description = jsonObject.has("description") ? jsonObject.get("description").getAsString() : null;
+                    String data = jsonObject.has("data") ? jsonObject.get("data").getAsString() : null;
+                    persistDungeonUpdate(id, name, description, data);
+                }
+                case "DUNGEON_DELETE" -> persistDelete(type, id);
+                case "FLOOR_DELETE" -> persistDelete(type, id);
+                case "INSTANCE_UPDATE", "INSTANCE_REMOVE" -> {
+                    // Instance events are carried as RedisMessage<FloorInstanceData> on another path.
+                }
+                default -> Main.getLoggerUtil().warning("Unknown dashboard sync message type: " + type);
+            }
+        } catch (Exception e) {
+            Main.getLoggerUtil().warning("Error handling dashboard sync message: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Persists a {@link FloorData} update coming from the dashboard. Flow:
+     * <ol>
+     *   <li>Parse + verify the incoming JSON checksum.</li>
+     *   <li>Compare against the version currently on disk — reject stale writes.</li>
+     *   <li>DATABASE FIRST: save to DB (retry + transaction). On failure, abort
+     *       AND roll back Redis so the cluster never keeps a write the DB rejected.</li>
+     *   <li>Update local Redis floorsMap + metadata.</li>
+     *   <li>Apply to {@link #currentFloor} if it matches this server.</li>
+     * </ol>
+     */
+    private void handleFloorUpdate(String floorId, String dungeonId, String name, String dataJson) {
+        if (Main.getInstance() == null) {
+            Main.getLoggerUtil().severe("[handleFloorUpdate] Main instance unavailable — skipping " + floorId);
+            return;
+        }
+        DatabaseManager db = Main.getInstance().getDatabaseManager();
+        if (db == null) {
+            Main.getLoggerUtil().warning("[handleFloorUpdate] Database manager not available for " + floorId);
+            return;
+        }
+
+        FloorData incoming;
+        try {
+            incoming = GsonProvider.GSON.fromJson(dataJson, FloorData.class);
+        } catch (Exception e) {
+            Main.getLoggerUtil().severe("[handleFloorUpdate] Cannot parse FloorData for " + floorId + ": " + e.getMessage());
+            return;
+        }
+        if (incoming == null) {
+            Main.getLoggerUtil().severe("[handleFloorUpdate] Empty FloorData for " + floorId);
+            return;
+        }
+        if (incoming.getChecksum() == null || !incoming.verifyChecksum()) {
+            Main.getLoggerUtil().severe("[handleFloorUpdate] Incoming checksum invalid for " + floorId
+                    + " — refusing to persist");
+            return;
+        }
+
+        String resolvedDungeonId = incoming.getDungeonId() != null ? incoming.getDungeonId() : dungeonId;
+        if (resolvedDungeonId == null || resolvedDungeonId.isEmpty()) {
+            Main.getLoggerUtil().severe("[handleFloorUpdate] No dungeonId for " + floorId);
+            return;
+        }
+
+        db.saveFloor(floorId, resolvedDungeonId, incoming)
+                .whenComplete((unused, error) -> {
+                    if (error != null) {
+                        Main.getLoggerUtil().severe("[handleFloorUpdate] DB save FAILED for " + floorId
+                                + " after retries: " + error.getMessage());
+                        // Roll back the optimistic Redis write from the dashboard so the cluster
+                        // does not hold state that the DB explicitly rejected.
+                        try {
+                            floorsMap.remove(floorId);
+                        } catch (Exception ignored) { }
+                        return;
+                    }
+                    // DB save succeeded — now safe to refresh Redis metadata + local floor reference.
+                    FloorData sharable = stripTriggersForSharedStorage(incoming);
+                    try {
+                        floorsMap.fastPut(floorId, sharable);
+                        floorMetadataMap.fastPut(floorId, FloorMetadata.from(sharable));
+                    } catch (Exception e) {
+                        Main.getLoggerUtil().warning("[handleFloorUpdate] Redis update failed (non-critical) for "
+                                + floorId + ": " + e.getMessage());
+                    }
+                    handleFloorUpdate(floorId, incoming);
+                });
+    }
+
+    /**
+     * Applies a {@link FloorData} to {@link #currentFloor} when it matches this
+     * server's active floor, only if the incoming version is newer than the local copy.
+     * Falls back to DB if Redis held stale / corrupted bytes.
+     */
+    private void handleFloorUpdate(String floorId, FloorData incoming) {
+        FloorData current = currentFloor.get();
+        if (current == null || !current.getId().equals(floorId)) return;
+
+        if (incoming.getVersion() <= current.getVersion()) {
+            Main.getLoggerUtil().info(String.format(
+                    "[handleFloorUpdate] Ignoring stale update for %s (incoming v%d <= current v%d)",
+                    floorId, incoming.getVersion(), current.getVersion()));
+            return;
+        }
+
+        FloorData authoritative = incoming;
+        if (!incoming.verifyChecksum()) {
+            Main.getLoggerUtil().severe("[handleFloorUpdate] Incoming checksum invalid for " + floorId
+                    + " — falling back to DB");
+            authoritative = loadFloorFromDatabase(floorId);
+            if (authoritative == null) return;
+        }
+
+        currentFloor.set(authoritative);
+        if (Main.getInstance() != null && Main.getInstance().getTriggersRegistry() != null) {
+            Main.getInstance().getTriggersRegistry().refreshTriggerCache();
+        }
+        Main.getLoggerUtil().info(String.format(
+                "Updated local floorData: %s → v%d", floorId, authoritative.getVersion()));
+    }
+
+    /**
+     * Synchronous DB fallback used when Redis / message payload is unusable.
+     * Blocks the current thread on the DB future because the caller is already
+     * inside an async listener — we do NOT want to post to the main thread here.
+     */
+    private FloorData loadFloorFromDatabase(String floorId) {
+        DatabaseManager db = Main.getInstance() != null ? Main.getInstance().getDatabaseManager() : null;
+        if (db == null) return null;
+        try {
+            return db.getFloor(floorId).get();
+        } catch (Exception e) {
+            Main.getLoggerUtil().severe("[loadFloorFromDatabase] Failed for " + floorId + ": " + e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Returns a copy of {@code src} with {@code triggers} nulled out.
+     * Triggers contain Spigot-only classes and live in their own table — they must
+     * not end up in the shared Redis map consumed by the proxy. The checksum is
+     * unaffected because {@link FloorData#calculateChecksum()} already excludes triggers.
+     */
+    private FloorData stripTriggersForSharedStorage(FloorData src) {
+        if (src == null || src.getTriggers() == null) return src;
+        FloorData copy = new FloorData(
+                src.getId(), src.getName(), src.getDescription(),
+                src.getWorldConfig(), src.getRequirements(), src.getRules(),
+                src.getSteps(), null);
+        copy.setDungeonId(src.getDungeonId());
+        copy.setVersion(src.getVersion());
+        copy.setSchemaVersion(src.getSchemaVersion());
+        copy.setUpdatedAt(src.getUpdatedAt());
+        copy.setUpdatedBy(src.getUpdatedBy());
+        copy.setChecksum(src.getChecksum());
+        return copy;
+    }
+
+    private void persistDungeonUpdate(String id, String name, String description, String data) {
+        DatabaseManager db = Main.getInstance() != null ? Main.getInstance().getDatabaseManager() : null;
+        if (db == null) return;
+        db.saveDungeon(id, name, description, data).exceptionally(e -> {
+            Main.getLoggerUtil().warning("Error saving dungeon " + id + ": " + e.getMessage());
+            return null;
+        });
+    }
+
+    private void persistDelete(String type, String id) {
+        DatabaseManager db = Main.getInstance() != null ? Main.getInstance().getDatabaseManager() : null;
+        if (db == null) return;
+        if ("DUNGEON_DELETE".equals(type)) {
+            db.deleteDungeon(id).exceptionally(e -> {
+                Main.getLoggerUtil().warning("Error deleting dungeon " + id + ": " + e.getMessage());
+                return null;
+            });
+        } else if ("FLOOR_DELETE".equals(type)) {
+            db.deleteFloor(id).exceptionally(e -> {
+                Main.getLoggerUtil().warning("Error deleting floor " + id + ": " + e.getMessage());
+                return null;
+            });
+            try { floorsMap.remove(id); } catch (Exception ignored) { }
+            try { floorMetadataMap.remove(id); } catch (Exception ignored) { }
         }
     }
 

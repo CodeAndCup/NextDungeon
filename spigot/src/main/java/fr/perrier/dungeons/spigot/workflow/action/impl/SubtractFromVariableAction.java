@@ -10,6 +10,7 @@ import lombok.Setter;
 import org.bukkit.entity.Player;
 import org.bukkit.Location;
 
+import java.io.Serial;
 import java.util.Map;
 
 /**
@@ -25,6 +26,7 @@ import java.util.Map;
         category = "Actions"
 )
 public class SubtractFromVariableAction extends Action implements BlocklyAction {
+    @Serial
     private static final long serialVersionUID = 1L;
 
     @BlocklyField(type = BlocklyField.FieldType.TEXT_INPUT, label = "Nom variable:",
@@ -69,7 +71,7 @@ public class SubtractFromVariableAction extends Action implements BlocklyAction 
         String scopeToUse = scope != null ? scope : "player";
 
         // Get the current variable value
-        Object currentValue = Main.getInstance().getVariableRegistry().getVariable(triggerPlayer, trimmedName);
+        Object currentValue = Main.getInstance().getVariableRegistry().getVariable(triggerPlayer, trimmedName, scopeToUse);
 
         // If variable doesn't exist, initialize it to 0
         if (currentValue == null) {
@@ -100,10 +102,10 @@ public class SubtractFromVariableAction extends Action implements BlocklyAction 
      */
     private Object subtractValues(Object current, Object toSubtract) {
         // Both are numbers
-        if (current instanceof Number && toSubtract instanceof Number) {
-            double currentNum = ((Number) current).doubleValue();
-            double subtractNum = ((Number) toSubtract).doubleValue();
-            double result = currentNum - subtractNum;
+        if (current instanceof Number currentNumber && toSubtract instanceof Number subtractNumber) {
+            double currentDouble = currentNumber.doubleValue();
+            double subtractDouble = subtractNumber.doubleValue();
+            double result = currentDouble - subtractDouble;
 
             // Return as integer if both were integers and result has no decimal part
             if (current instanceof Integer && toSubtract instanceof Integer && result == Math.floor(result)) {
@@ -151,10 +153,6 @@ public class SubtractFromVariableAction extends Action implements BlocklyAction 
         return trimmed;
     }
 
-    @Override
-    public boolean isChainable() {
-        return true;
-    }
 }
 
 

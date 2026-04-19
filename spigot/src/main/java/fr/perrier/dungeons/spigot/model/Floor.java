@@ -33,6 +33,21 @@ public class Floor extends FloorData {
         super(floorData.getId(), floorData.getName(), floorData.getDescription(),
                 floorData.getWorldConfig(), floorData.getRequirements(),
                 floorData.getRules(), floorData.getSteps(), floorData.getTriggers());
+        // The 8-arg FloorData constructor does NOT copy versioning metadata — replay it
+        // explicitly, otherwise every Floor wrapper resets version=1/checksum=null and
+        // wipes the heal work done upstream when it syncs back through updateMap().
+        setDungeonId(floorData.getDungeonId());
+        setVersion(floorData.getVersion());
+        setSchemaVersion(floorData.getSchemaVersion());
+        setUpdatedAt(floorData.getUpdatedAt());
+        setUpdatedBy(floorData.getUpdatedBy());
+        setChecksum(floorData.getChecksum());
+        // Triggers are stripped from the shared Redis map (they contain Spigot-only classes
+        // that blow up on the proxy). Load them from floor_triggers on demand so the
+        // instance server always has its trigger set, matching the other Floor constructors.
+        if (getTriggers() == null && getId() != null) {
+            super.setTriggers(DatabaseTriggersManager.loadTriggers(getId()));
+        }
     }
 
     /**
@@ -76,7 +91,7 @@ public class Floor extends FloorData {
      * @return a FloorData representation of this Floor
      */
     public FloorData toFloorData() {
-        return new FloorData(
+        FloorData data = new FloorData(
                 getId(),
                 getName(),
                 getDescription(),
@@ -86,14 +101,29 @@ public class Floor extends FloorData {
                 getSteps(),
                 getTriggers()
         );
+        data.setDungeonId(getDungeonId());
+        data.setVersion(getVersion());
+        data.setSchemaVersion(getSchemaVersion());
+        data.setUpdatedAt(getUpdatedAt());
+        data.setUpdatedBy(getUpdatedBy());
+        data.setChecksum(getChecksum());
+        return data;
     }
 
     /**
      * Vérifie si un joueur respecte tous les requirements d'un floor.
-     * @param player Le joueur
+     *
+     * <p>Requires the player to be online on this server — minLevel checks against MMOCore's
+     * {@code PlayerData} and the inventory checks both need a live {@link Player}. For party
+     * members that are offline or on another server, this returns {@code false} so callers can
+     * abort the dungeon start cleanly instead of NPE'ing.</p>
+     *
+     * @param player Le joueur (peut être null pour un joueur offline / cross-serveur)
      * @return true si tous les requirements sont respectés, false sinon
      */
     public boolean isRequirementsValid(Player player) {
+        if (player == null) return false;
+
         PlayerData playerData = PlayerData.get(player);
         ProfileData profileData = Main.getInstance().getProfileService().getProfileData(player.getUniqueId());
 

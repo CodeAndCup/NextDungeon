@@ -3,8 +3,10 @@ package fr.perrier.dungeons.spigot.database;
 import com.mongodb.*;
 import com.mongodb.MongoClient;
 import com.mongodb.client.*;
+import fr.perrier.dungeons.common.model.dungeon.FloorData;
 import fr.perrier.dungeons.common.workflow.trigger.TriggerData;
 import fr.perrier.dungeons.spigot.Main;
+import fr.perrier.dungeons.spigot.utils.GsonProvider;
 import fr.perrier.dungeons.spigot.workflow.serializer.InstanceSerializer;
 import fr.perrier.dungeons.spigot.model.ProfileData;
 import lombok.Getter;
@@ -25,6 +27,8 @@ public class MongoManager implements DatabaseManager {
     private MongoDatabase database;
     private MongoCollection<Document> playersCollection;
     private MongoCollection<Document> triggersCollection;
+    private MongoCollection<Document> dungeonsCollection;
+    private MongoCollection<Document> floorsCollection;
 
     /**
      * Connects to the MongoDB database and initializes collections.
@@ -39,9 +43,13 @@ public class MongoManager implements DatabaseManager {
 
         this.playersCollection = database.getCollection("profiles");
         this.triggersCollection = database.getCollection("floor_triggers");
+        this.dungeonsCollection = database.getCollection("dungeons");
+        this.floorsCollection = database.getCollection("floors");
 
         // Create index on floor_id for efficient queries
         triggersCollection.createIndex(new Document("floor_id", 1));
+        dungeonsCollection.createIndex(new Document("id", 1));
+        floorsCollection.createIndex(new Document("dungeon_id", 1));
     }
 
     /**
@@ -312,6 +320,216 @@ public class MongoManager implements DatabaseManager {
             } catch (Exception e) {
                 Main.getLoggerUtil().severe("Error deleting workflow " + workflowId + ": " + e.getMessage());
             }
+        });
+    }
+
+    @Override
+    public CompletableFuture<String> loadDungeon(String dungeonId) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                Document doc = dungeonsCollection.find(new Document("_id", dungeonId)).first();
+                if (doc != null) {
+                    return doc.getString("data");
+                }
+                return null;
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Error loading dungeon " + dungeonId + ": " + e.getMessage());
+                return null;
+            }
+        });
+    }
+
+    @Override
+    public CompletableFuture<Void> saveDungeon(String dungeonId, String name, String description, String dataJson) {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                Document doc = new Document("$set", new Document()
+                        .append("_id", dungeonId)
+                        .append("name", name)
+                        .append("description", description)
+                        .append("data", dataJson)
+                        .append("updated_at", System.currentTimeMillis()));
+                dungeonsCollection.updateOne(new Document("_id", dungeonId), doc,
+                        new com.mongodb.client.model.UpdateOptions().upsert(true));
+                Main.getLoggerUtil().info("Dungeon saved to MongoDB: " + dungeonId);
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Error saving dungeon " + dungeonId + ": " + e.getMessage());
+            }
+        });
+    }
+
+    @Override
+    public CompletableFuture<Void> deleteDungeon(String dungeonId) {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                dungeonsCollection.deleteOne(new Document("_id", dungeonId));
+                Main.getLoggerUtil().info("Dungeon deleted from MongoDB: " + dungeonId);
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Error deleting dungeon " + dungeonId + ": " + e.getMessage());
+            }
+        });
+    }
+
+    @Override
+    public CompletableFuture<String> loadFloor(String floorId) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                Document doc = floorsCollection.find(new Document("_id", floorId)).first();
+                if (doc != null) {
+                    return doc.getString("data");
+                }
+                return null;
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Error loading floor " + floorId + ": " + e.getMessage());
+                return null;
+            }
+        });
+    }
+
+    @Override
+    public CompletableFuture<Void> saveFloor(String floorId, String dungeonId, String name, String dataJson) {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                Document doc = new Document("$set", new Document()
+                        .append("_id", floorId)
+                        .append("dungeon_id", dungeonId)
+                        .append("name", name)
+                        .append("data", dataJson)
+                        .append("updated_at", System.currentTimeMillis()));
+                floorsCollection.updateOne(new Document("_id", floorId), doc,
+                        new com.mongodb.client.model.UpdateOptions().upsert(true));
+                Main.getLoggerUtil().info("Floor saved to MongoDB: " + floorId);
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Error saving floor " + floorId + ": " + e.getMessage());
+            }
+        });
+    }
+
+    @Override
+    public CompletableFuture<Void> deleteFloor(String floorId) {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                floorsCollection.deleteOne(new Document("_id", floorId));
+                Main.getLoggerUtil().info("Floor deleted from MongoDB: " + floorId);
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Error deleting floor " + floorId + ": " + e.getMessage());
+            }
+        });
+    }
+
+    // ===== Versioned Floor operations =====
+
+    private static final int SAVE_FLOOR_RETRIES = 3;
+    private static final long[] SAVE_FLOOR_BACKOFF_MS = {500L, 1000L, 2000L};
+
+    @Override
+    public CompletableFuture<Void> saveFloor(String floorId, String dungeonId, FloorData floorData) {
+        if (floorId == null || floorId.isEmpty()) {
+            return CompletableFuture.failedFuture(new IllegalArgumentException("floorId must not be empty"));
+        }
+        if (dungeonId == null || dungeonId.isEmpty()) {
+            return CompletableFuture.failedFuture(new IllegalArgumentException("dungeonId must not be empty"));
+        }
+        if (floorData == null) {
+            return CompletableFuture.failedFuture(new IllegalArgumentException("floorData must not be null"));
+        }
+        floorData.setDungeonId(dungeonId);
+        floorData.setChecksum(floorData.calculateChecksum());
+        String dataJson = GsonProvider.GSON.toJson(floorData);
+
+        return CompletableFuture.runAsync(() -> {
+            Exception lastError = null;
+            for (int attempt = 0; attempt < SAVE_FLOOR_RETRIES; attempt++) {
+                try {
+                    Document set = new Document("$set", new Document()
+                            .append("_id", floorId)
+                            .append("dungeon_id", dungeonId)
+                            .append("name", floorData.getName())
+                            .append("data", dataJson)
+                            .append("version", floorData.getVersion())
+                            .append("schema_version", floorData.getSchemaVersion())
+                            .append("updated_by", floorData.getUpdatedBy())
+                            .append("updated_at", floorData.getUpdatedAt())
+                            .append("checksum", floorData.getChecksum()));
+                    floorsCollection.updateOne(new Document("_id", floorId), set,
+                            new com.mongodb.client.model.UpdateOptions().upsert(true));
+                    Main.getLoggerUtil().info("[MongoManager] Floor saved: " + floorId + " v" + floorData.getVersion());
+                    return;
+                } catch (Exception e) {
+                    lastError = e;
+                    long backoff = SAVE_FLOOR_BACKOFF_MS[attempt];
+                    Main.getLoggerUtil().warning("[MongoManager] saveFloor attempt " + (attempt + 1)
+                            + " failed for " + floorId + ": " + e.getMessage() + " (retry in " + backoff + "ms)");
+                    try {
+                        Thread.sleep(backoff);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+            throw new RuntimeException("[MongoManager] saveFloor gave up after " + SAVE_FLOOR_RETRIES
+                    + " attempts for " + floorId, lastError);
+        });
+    }
+
+    @Override
+    public CompletableFuture<FloorData> getFloor(String floorId) {
+        if (floorId == null || floorId.isEmpty()) {
+            return CompletableFuture.completedFuture(null);
+        }
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                Document doc = floorsCollection.find(new Document("_id", floorId)).first();
+                if (doc == null) return null;
+                String json = doc.getString("data");
+                String persistedChecksum = doc.getString("checksum");
+                FloorData floor = GsonProvider.GSON.fromJson(json, FloorData.class);
+                if (floor == null) return null;
+                if (persistedChecksum != null && !persistedChecksum.isEmpty()
+                        && !persistedChecksum.equals(floor.calculateChecksum())) {
+                    Main.getLoggerUtil().severe("[MongoManager] Checksum MISMATCH for floor " + floorId);
+                    return null;
+                }
+                return floor;
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Error loading versioned floor " + floorId + ": " + e.getMessage());
+                return null;
+            }
+        });
+    }
+
+    @Override
+    public CompletableFuture<List<FloorData>> getAllFloors(int limit) {
+        return CompletableFuture.supplyAsync(() -> {
+            List<FloorData> result = new ArrayList<>();
+            try {
+                FindIterable<Document> cursor = floorsCollection.find();
+                if (limit > 0) cursor = cursor.limit(limit);
+                cursor = cursor.batchSize(100);
+                for (Document doc : cursor) {
+                    String id = doc.getString("_id");
+                    String json = doc.getString("data");
+                    String persistedChecksum = doc.getString("checksum");
+                    FloorData floor;
+                    try {
+                        floor = GsonProvider.GSON.fromJson(json, FloorData.class);
+                    } catch (Exception e) {
+                        Main.getLoggerUtil().severe("[MongoManager] Skipping unparseable floor " + id + ": " + e.getMessage());
+                        continue;
+                    }
+                    if (floor == null) continue;
+                    if (persistedChecksum != null && !persistedChecksum.isEmpty()
+                            && !persistedChecksum.equals(floor.calculateChecksum())) {
+                        Main.getLoggerUtil().severe("[MongoManager] Skipping floor " + id + " (checksum mismatch)");
+                        continue;
+                    }
+                    result.add(floor);
+                }
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Error listing floors: " + e.getMessage());
+            }
+            return result;
         });
     }
 }

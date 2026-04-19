@@ -1,7 +1,6 @@
 package fr.perrier.dungeons.spigot.module;
 
 import fr.perrier.dungeons.common.module.ModuleActionHandler;
-import fr.perrier.dungeons.common.module.ModuleBlockDescriptor;
 import fr.perrier.dungeons.common.module.ModuleBlockRegistry;
 import fr.perrier.dungeons.common.module.NextDungeonModule;
 import fr.perrier.dungeons.spigot.Main;

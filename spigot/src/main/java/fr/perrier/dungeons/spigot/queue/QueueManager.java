@@ -5,6 +5,7 @@ import fr.perrier.dungeons.common.queue.QueueEntry;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.model.Floor;
 import fr.perrier.dungeons.spigot.model.FloorInstance;
+import fr.perrier.dungeons.spigot.parties.CrossServerValidationService;
 import fr.perrier.dungeons.spigot.parties.impl.DungeonPartyImpl;
 import lombok.RequiredArgsConstructor;
 import net.md_5.bungee.api.ChatColor;
@@ -14,9 +15,12 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Manages the dungeon queue and player notifications.
@@ -144,6 +148,28 @@ public class QueueManager {
     }
 
     /**
+     * Validates every party member against the floor's requirements, routing cross-server
+     * members through {@link CrossServerValidationService}. Returns a future that completes
+     * with {@code true} only if every member passes.
+     */
+    public CompletableFuture<Boolean> validateAllMembersAsync(Floor floor, Set<UUID> memberIds) {
+        List<CompletableFuture<Boolean>> futures = new ArrayList<>();
+        for (UUID memberId : memberIds) {
+            Player local = Bukkit.getPlayer(memberId);
+            if (local != null) {
+                futures.add(CompletableFuture.completedFuture(floor.isRequirementsValid(local)));
+            } else {
+                CrossServerValidationService service = CrossServerValidationService.getInstance();
+                futures.add(service != null
+                        ? service.validateRemote(floor.getId(), memberId)
+                        : CompletableFuture.completedFuture(false));
+            }
+        }
+        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                .thenApply(v -> futures.stream().allMatch(CompletableFuture::join));
+    }
+
+    /**
      * Requests an instance for a player, adding them to queue if necessary.
      * <p>
      * Note: There is a potential race condition between checking instance availability
@@ -154,44 +180,37 @@ public class QueueManager {
      * @param floor  the floor to create instance for
      */
     public void requestInstance(Player player, Floor floor) {
-        // Check if player meets requirements before even trying to create instance or queue
-        if(isNotMatchingRequirements(DungeonPartyImpl.getDungeonPartyOf(player).getMemberIds(), floor)) {
-            DungeonPartyImpl.getDungeonPartyOf(player).getMemberIds().forEach(uuid -> {
-                Player p = Bukkit.getPlayer(uuid);
-                if(p != null) {
-                    p.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000One or more players in your party break the requirements during the loading phase to enter this floor. The instance has been cancelled."));
-                }
-            });
-            return;
-        }
+        DungeonPartyImpl party = DungeonPartyImpl.getDungeonPartyOf(player);
+        Set<UUID> memberIds = party.getMemberIds();
 
-        // Check if we can create an instance immediately
-        if (canCreateInstance(floor)) {
-
-            // Create instance - it will register itself when it starts
-            UUID leaderId = DungeonPartyImpl.getDungeonPartyOf(player).getLeaderId();
-            if (Main.getInstance().getDungeonService().isPlayerInAnyInstance(leaderId)) {
-                notifyPlayer(player, "An instance for your party is already being prepared or active. Please wait...");
+        validateAllMembersAsync(floor, memberIds).thenAccept(allPassed -> {
+            if (!allPassed) {
+                Bukkit.getScheduler().runTask(Main.getInstance(), () ->
+                        player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000One or more players in your party break the requirements to enter this floor.")));
                 return;
             }
 
-            FloorInstance.generateNewInstanceAsync(floor.getId(), DungeonPartyImpl.getDungeonPartyOf(player).getMemberIds(),false, floorInstance -> {
-                if(isNotMatchingRequirements(floorInstance.getPlayers(), floorInstance.getFloor())) {
-                    floorInstance.getPlayers().forEach(uuid -> {
-                        Player p = Bukkit.getPlayer(uuid);
-                        if(p != null) {
-                            p.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000One or more players in your party break the requirements during the loading phase to enter this floor. The instance has been cancelled."));
-                        }
+            Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
+                // Check if we can create an instance immediately
+                if (canCreateInstance(floor)) {
+                    UUID leaderId = party.getLeaderId();
+                    if (Main.getInstance().getDungeonService().isPlayerInAnyInstance(leaderId)) {
+                        notifyPlayer(player, "An instance for your party is already being prepared or active. Please wait...");
+                        return;
+                    }
+
+                    FloorInstance.generateNewInstanceAsync(floor.getId(), memberIds, false, floorInstance -> {
+                        // Pull the party out of the finder as soon as the dungeon starts —
+                        // the party itself stays alive so members return together afterwards.
+                        party.setListed(false);
+                        floorInstance.sendToServer(party);
                     });
-                    floorInstance.cancelInstance();
-                    return;
+                } else {
+                    // Add to queue
+                    addPlayerToQueue(player, floor);
                 }
-                floorInstance.sendToServer(DungeonPartyImpl.getDungeonPartyOf(player));
             });
-         } else {
-             // Add to queue
-             addPlayerToQueue(player, floor);
-         }
+        });
     }
 
     /**
@@ -245,19 +264,21 @@ public class QueueManager {
                 return;
             }
 
-            FloorInstance.generateNewInstanceAsync(floor.getId(), DungeonPartyImpl.getDungeonPartyOf(player).getMemberIds(),false, floorInstance -> {
-                if(isNotMatchingRequirements(floorInstance.getPlayers(), floorInstance.getFloor())) {
-                    floorInstance.getPlayers().forEach(uuid -> {
-                        Player p = Bukkit.getPlayer(uuid);
-                        if(p != null) {
-                            p.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000One or more players in your party break the requirements during the loading phase to enter this floor. The instance has been cancelled."));
-                        }
-                    });
-                    floorInstance.cancelInstance();
+            DungeonPartyImpl party = DungeonPartyImpl.getDungeonPartyOf(player);
+            Set<UUID> memberIds = party.getMemberIds();
+            validateAllMembersAsync(floor, memberIds).thenAccept(allPassed -> {
+                if (!allPassed) {
+                    Bukkit.getScheduler().runTask(Main.getInstance(), () ->
+                            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000One or more players in your party break the requirements during the loading phase. The instance has been cancelled.")));
                     return;
                 }
-                notifyPlayer(player, "Your turn! Creating dungeon instance...");
-                floorInstance.sendToServer(DungeonPartyImpl.getDungeonPartyOf(player));
+                Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
+                    FloorInstance.generateNewInstanceAsync(floor.getId(), memberIds, false, floorInstance -> {
+                        notifyPlayer(player, "Your turn! Creating dungeon instance...");
+                        party.setListed(false);
+                        floorInstance.sendToServer(party);
+                    });
+                });
             });
         });
 

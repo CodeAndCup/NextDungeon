@@ -10,6 +10,7 @@ import lombok.Setter;
 import org.bukkit.entity.Player;
 import org.bukkit.Location;
 
+import java.io.Serial;
 import java.util.Map;
 
 /**
@@ -25,6 +26,7 @@ import java.util.Map;
         category = "Actions"
 )
 public class GetVariableAction extends Action implements BlocklyAction {
+    @Serial
     private static final long serialVersionUID = 1L;
 
     @BlocklyField(type = BlocklyField.FieldType.TEXT_INPUT, label = "Variable source:",
@@ -77,7 +79,7 @@ public class GetVariableAction extends Action implements BlocklyAction {
         String destinationScopeToUse = destinationScope != null ? destinationScope : "player";
 
         // Récupérer la valeur de la variable source
-        Object sourceValue = Main.getInstance().getVariableRegistry().getVariable(triggerPlayer, trimmedSourceName);
+        Object sourceValue = Main.getInstance().getVariableRegistry().getVariable(triggerPlayer, trimmedSourceName, sourceScopeToUse);
 
         if (sourceValue == null) {
             if (Main.getLoggerUtil().isDebugEnabled()) {

@@ -33,12 +33,25 @@ import fr.perrier.dungeons.spigot.listener.global.GlobalLeaveListener;
 import fr.perrier.dungeons.spigot.listener.global.GlobalPartyListener;
 import fr.perrier.dungeons.spigot.manager.GhostFactory;
 import fr.perrier.dungeons.spigot.messaging.packets.CancelInstancePacket;
+import fr.perrier.dungeons.spigot.messaging.packets.CrossServerSendToInstancePacket;
+import fr.perrier.dungeons.spigot.messaging.packets.DungeonPartyJoinRequestPacket;
+import fr.perrier.dungeons.spigot.messaging.packets.ValidateRequirementsRequestPacket;
+import fr.perrier.dungeons.spigot.messaging.packets.ValidateRequirementsResponsePacket;
 import fr.perrier.dungeons.spigot.messaging.subscribers.CancelInstanceSubscriber;
+import fr.perrier.dungeons.spigot.messaging.subscribers.CrossServerSendToInstanceSubscriber;
+import fr.perrier.dungeons.spigot.messaging.subscribers.DungeonPartyJoinRequestSubscriber;
+import fr.perrier.dungeons.spigot.messaging.subscribers.ValidateRequirementsRequestSubscriber;
+import fr.perrier.dungeons.spigot.messaging.subscribers.ValidateRequirementsResponseSubscriber;
+import fr.perrier.dungeons.spigot.parties.CrossServerValidationService;
+import fr.perrier.dungeons.spigot.parties.impl.DungeonPartyImpl;
+import fr.perrier.dungeons.spigot.parties.impl.DungeonPartyRegistry;
 import fr.perrier.dungeons.spigot.utils.LoggerUtil;
 import fr.perrier.dungeons.spigot.workflow.registry.TriggersRegistry;
 import fr.perrier.dungeons.spigot.workflow.registry.VariableRegistry;
 import fr.perrier.dungeons.common.messaging.Pidgin;
 import fr.perrier.dungeons.spigot.messaging.ServerNameService;
+import fr.perrier.dungeons.spigot.model.ProfileData;
+import fr.perrier.dungeons.spigot.monitoring.CacheHealthMonitor;
 import fr.perrier.dungeons.spigot.messaging.packets.PlayerSwitchServerPacket;
 import fr.perrier.dungeons.spigot.messaging.packets.webeditor.WebEditorRequestPacket;
 import fr.perrier.dungeons.spigot.messaging.packets.webeditor.WebEditorResponsePacket;
@@ -70,7 +83,10 @@ import fr.perrier.dungeons.spigot.instance.InstanceProvider;
 import fr.perrier.dungeons.spigot.instance.InstanceProviderFactory;
 import fr.perrier.dungeons.spigot.parties.PartyService;
 
+import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Getter
 public final class Main extends JavaPlugin {
@@ -114,9 +130,18 @@ public final class Main extends JavaPlugin {
     // Party service
     private PartyService partyService;
 
+    // Cluster-wide dungeon party registry (Redis-backed). Only initialized on lobby servers.
+    private DungeonPartyRegistry dungeonPartyRegistry;
+
+    // Cross-server floor requirements validation (request/response over Pidgin)
+    private CrossServerValidationService crossServerValidationService;
+
     // Queue management
     private DungeonQueueService dungeonQueueService;
     private QueueManager queueManager;
+
+    // Cache health monitoring
+    private CacheHealthMonitor cacheHealthMonitor;
 
     @Override
     public void onEnable() {
@@ -245,6 +270,29 @@ public final class Main extends JavaPlugin {
         this.messaging.registerAdapter(WebEditorRequestPacket.class, new WebEditorRequestSubscriber());
         this.messaging.registerAdapter(WebEditorResponsePacket.class, null);
         this.messaging.registerAdapter(CancelInstancePacket.class, new CancelInstanceSubscriber());
+        this.messaging.registerAdapter(DungeonPartyJoinRequestPacket.class, new DungeonPartyJoinRequestSubscriber());
+        this.messaging.registerAdapter(ValidateRequirementsRequestPacket.class, new ValidateRequirementsRequestSubscriber());
+        this.messaging.registerAdapter(ValidateRequirementsResponsePacket.class, new ValidateRequirementsResponseSubscriber());
+        this.messaging.registerAdapter(CrossServerSendToInstancePacket.class, new CrossServerSendToInstanceSubscriber());
+
+        // Cross-server validation service — shared between lobbies and instance servers; the
+        // latter forward responses back to the requesting lobby.
+        this.crossServerValidationService = new CrossServerValidationService();
+
+        // Cluster-wide dungeon party registry — lobby servers only (instance servers never own parties).
+        if (!ServerUtil.isInstanceServer()) {
+            try {
+                UUID currentServiceId = instanceProvider.getCurrentServiceUniqueId();
+                if (currentServiceId == null) {
+                    getLogger().warning("DungeonPartyRegistry: could not resolve current service UUID — cross-server party finder will be unavailable");
+                } else {
+                    dungeonPartyRegistry = new DungeonPartyRegistry(redissonClient, currentServiceId);
+                    dungeonPartyRegistry.initialize();
+                }
+            } catch (Exception e) {
+                getLogger().severe("Failed to initialize DungeonPartyRegistry: " + e.getMessage());
+            }
+        }
 
         // Initialize server name service
         this.serverNameService = new ServerNameService();
@@ -273,15 +321,60 @@ public final class Main extends JavaPlugin {
             }
         }
 
+        // Start cache health monitoring once all services are wired up
+        try {
+            cacheHealthMonitor = new CacheHealthMonitor(this);
+            cacheHealthMonitor.startMonitoring();
+        } catch (Exception e) {
+            getLogger().warning("Cache health monitor failed to start: " + e.getMessage());
+        }
+
         getLogger().info("NextDungeon " + this.getDescription().getVersion()  + " started in " + (System.currentTimeMillis() - startTime) + " ms");
     }
 
     @Override
     public void onDisable() {
+        // Stop health monitor FIRST so it does not run mid-shutdown.
+        if (cacheHealthMonitor != null) {
+            try { cacheHealthMonitor.stop(); } catch (Exception e) {
+                getLogger().warning("Health monitor stop error: " + e.getMessage());
+            }
+        }
+
+        try {
+            saveAllPendingData();
+        } catch (Exception e) {
+            getLogger().severe("saveAllPendingData error: " + e.getMessage());
+        }
+
+        try {
+            tagRedisCache();
+        } catch (Exception e) {
+            getLogger().severe("tagRedisCache error: " + e.getMessage());
+        }
+
         // Shutdown instance provider
         if (instanceProvider != null) {
             instanceProvider.shutdown();
         }
+
+        // Complete any pending cross-server validation futures so callers unblock on shutdown.
+        if (crossServerValidationService != null) {
+            try { crossServerValidationService.shutdown(); } catch (Exception e) {
+                getLogger().warning("CrossServerValidationService shutdown error: " + e.getMessage());
+            }
+        }
+
+        // Shutdown dungeon party registry first so heartbeat/cleanup tasks stop before we
+        // also tear down local DungeonPartyImpl caches via partyService.shutdown().
+        if (dungeonPartyRegistry != null) {
+            try { dungeonPartyRegistry.shutdown(); } catch (Exception e) {
+                getLogger().warning("DungeonPartyRegistry shutdown error: " + e.getMessage());
+            }
+        }
+
+        // Clear local DungeonPartyImpl cache
+        DungeonPartyImpl.clearAll();
 
         // Shutdown party service
         if (partyService != null) {
@@ -302,7 +395,7 @@ public final class Main extends JavaPlugin {
                     dungeonService.removeInstance(info.getInstanceId());
                 else
                     getLogger().warning("Dungeon service is null while trying to remove instance " + info.getInstanceId());
-                
+
                 // Unregister from queue system
                 if (dungeonQueueService != null) {
                     Floor floor = Floor.getFloor(info.getFloorId());
@@ -310,7 +403,7 @@ public final class Main extends JavaPlugin {
                         dungeonQueueService.unregisterInstance(floor.getId(), info.getInstanceId());
                     }
                 }
-                
+
                 getLogger().info(String.format("Cleaned up instance %s from Redis", info.getInstanceId()));
             }
         }
@@ -334,6 +427,91 @@ public final class Main extends JavaPlugin {
         }
         if (ghostFactory != null) {
             ghostFactory.close();
+        }
+
+        try {
+            closeConnections();
+        } catch (Exception e) {
+            getLogger().severe("closeConnections error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Iterates every cached profile and persists it to the database. We use
+     * {@link RMap#entrySet()} (not {@code readAllMap()}) so Redisson streams
+     * entries over the wire instead of materialising all of them at once.
+     */
+    private void saveAllPendingData() {
+        if (profileService == null || profileService.getProfilesMap() == null) {
+            getLogger().info("[shutdown] No profile map to flush");
+            return;
+        }
+        if (databaseManager == null) {
+            getLogger().warning("[shutdown] databaseManager null — profiles will NOT be persisted");
+            return;
+        }
+        int saved = 0;
+        int failed = 0;
+        for (Map.Entry<UUID, ProfileData> entry : profileService.getProfilesMap().entrySet()) {
+            UUID pid = entry.getKey();
+            ProfileData data = entry.getValue();
+            if (pid == null || data == null) continue;
+            try {
+                data.setChecksum(data.calculateChecksum());
+                databaseManager.saveProfileData(pid, data);
+                saved++;
+                if (saved % 100 == 0) {
+                    getLogger().info("[shutdown] Flushed " + saved + " profile(s)...");
+                }
+            } catch (Exception e) {
+                failed++;
+                getLogger().warning("[shutdown] Failed to save profile " + pid + ": " + e.getMessage());
+            }
+        }
+        getLogger().info("[shutdown] Profile flush complete — saved=" + saved + " failed=" + failed);
+    }
+
+    /**
+     * Writes a small metadata bucket in Redis describing the last clean
+     * shutdown — version, timestamp, server name. This is consumed on the
+     * next startup by the health monitor to detect inconsistent states.
+     * TTL: 7 days (long enough for a maintenance window, short enough to
+     * avoid stale records lingering forever).
+     */
+    private void tagRedisCache() {
+        if (dungeonService == null || dungeonService.getRedissonClient() == null) {
+            return;
+        }
+        try {
+            String topic = Objects.requireNonNull(getConfig().getString("RedisConfiguration.topic"));
+            String key = topic + ":cache_tag";
+            com.google.gson.JsonObject tag = new com.google.gson.JsonObject();
+            tag.addProperty("pluginVersion", getDescription().getVersion());
+            tag.addProperty("shutdownAt", System.currentTimeMillis());
+            tag.addProperty("server", Bukkit.getServer().getName());
+            dungeonService.getRedissonClient()
+                    .getBucket(key, org.redisson.client.codec.StringCodec.INSTANCE)
+                    .set(tag.toString(), 7, TimeUnit.DAYS);
+            getLogger().info("[shutdown] Redis cache tagged (" + key + ")");
+        } catch (Exception e) {
+            getLogger().warning("[shutdown] tagRedisCache failed: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Tears down external client connections. DB first (so pending writes from
+     * {@link #saveAllPendingData()} can settle), then Redisson.
+     */
+    private void closeConnections() {
+        if (databaseManager != null) {
+            try { databaseManager.disconnect(); } catch (Exception e) {
+                getLogger().warning("[shutdown] DB disconnect error: " + e.getMessage());
+            }
+        }
+        if (dungeonService != null && dungeonService.getRedissonClient() != null) {
+            try { dungeonService.getRedissonClient().shutdown(); } catch (Exception e) {
+                getLogger().warning("[shutdown] Redisson shutdown error: " + e.getMessage());
+            }
         }
     }
 

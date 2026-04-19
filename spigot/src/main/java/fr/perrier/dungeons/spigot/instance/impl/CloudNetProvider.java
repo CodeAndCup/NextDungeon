@@ -219,8 +219,8 @@ public class CloudNetProvider implements InstanceProvider {
                 .build();
 
         ServiceTemplate targetTemplate = new ServiceTemplate.Builder()
-                .prefix(floor.getId())
-                .name("default")
+                .prefix(floor.getId().split("_")[0])
+                .name(floor.getId().split("_")[1])
                 .storage("local")
                 .priority(0)
                 .alwaysCopyToStaticServices(false)
@@ -228,7 +228,7 @@ public class CloudNetProvider implements InstanceProvider {
 
         copyTemplateFiles(sourceTemplate, targetTemplate)
                 .thenAccept(success -> {
-                    if (success) {
+                    if (Boolean.TRUE.equals(success)) {
                         Main.getLoggerUtil().info("Template for " + floor.getId() + " copied successfully.");
 
                         ServiceTaskProvider serviceTaskProvider = InjectionLayer.boot().instance(ServiceTaskProvider.class);
@@ -257,8 +257,8 @@ public class CloudNetProvider implements InstanceProvider {
                                 .templates(
                                         Collections.singletonList(
                                                 new ServiceTemplate.Builder()
-                                                        .prefix(floor.getId())
-                                                        .name("default")
+                                                        .prefix(floor.getId().split("_")[0])
+                                                        .name(floor.getId().split("_")[1])
                                                         .storage("local")
                                                         .priority(0)
                                                         .alwaysCopyToStaticServices(false)
@@ -358,6 +358,17 @@ public class CloudNetProvider implements InstanceProvider {
     }
 
     @Override
+    public UUID getCurrentServiceUniqueId() {
+        try {
+            ServiceInfoSnapshot currentService = InjectionLayer.ext().instance(ServiceInfoHolder.class).serviceInfo();
+            return currentService.serviceId().uniqueId();
+        } catch (Exception e) {
+            Main.getLoggerUtil().warning("Could not resolve current service UUID: " + e.getMessage());
+            return null;
+        }
+    }
+
+    @Override
     public ProviderType getType() {
         return ProviderType.CLOUDNET;
     }
@@ -375,7 +386,7 @@ public class CloudNetProvider implements InstanceProvider {
 
                 // Chemins spécifiques à CloudNet
                 File worldSource = new File(Main.getInstance().getDataFolder() + "/../../world");
-                File templateDest = new File(Main.getInstance().getDataFolder() + "/../../../../../local/templates/" + floor.getId() + "/default/world");
+                File templateDest = new File(Main.getInstance().getDataFolder() + "/../../../../../local/templates/" + floor.getId().split("_")[0] + "/" + floor.getId().split("_")[1] +  "/world");
 
                 // Copier les fichiers du monde vers le template CloudNet
                 jodd.io.FileUtil.copyDir(new File(worldSource, "data"), new File(templateDest, "data"));

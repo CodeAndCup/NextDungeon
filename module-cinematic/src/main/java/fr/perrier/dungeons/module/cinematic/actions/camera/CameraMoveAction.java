@@ -1,7 +1,5 @@
 package fr.perrier.dungeons.module.cinematic.actions.camera;
 
-import fr.perrier.dungeons.module.cinematic.CinematicManager;
-import fr.perrier.dungeons.module.cinematic.CinematicModule;
 import fr.perrier.dungeons.module.cinematic.action.SimpleCinematicAction;
 import fr.perrier.dungeons.module.cinematic.interpolation.PositionInterpolator;
 import fr.perrier.dungeons.module.cinematic.model.CameraWaypoint;
@@ -10,10 +8,8 @@ import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Display;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
-import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
@@ -86,7 +82,7 @@ public class CameraMoveAction extends SimpleCinematicAction<CameraSegment> {
             player.sendMessage("DEBUG: Démarrage de la caméra, téléportation à " + startLoc);
             try {
                 // Spawner l'entité caméra (ItemDisplay invisible)
-                cameraEntity = Objects.requireNonNull(startLoc.getWorld()).spawn(startLoc, ItemDisplay.class, (entity) -> {
+                cameraEntity = Objects.requireNonNull(startLoc.getWorld()).spawn(startLoc, ItemDisplay.class, entity -> {
                     entity.setItemStack(new ItemStack(Material.AIR));
                     entity.setTeleportDuration(4);
                     entity.setBillboard(Display.Billboard.FIXED);

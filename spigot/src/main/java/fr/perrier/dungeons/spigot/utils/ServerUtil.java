@@ -4,7 +4,6 @@ import com.alessiodp.parties.api.interfaces.Party;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.instance.InstanceInfo;
 import fr.perrier.dungeons.spigot.instance.InstanceProvider;
-import fr.perrier.dungeons.spigot.model.FloorInstance;
 import fr.perrier.dungeons.spigot.model.Floor;
 import lombok.NonNull;
 import org.bukkit.entity.Player;

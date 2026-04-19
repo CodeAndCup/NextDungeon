@@ -37,15 +37,19 @@ public class ActionSequenceExecutor {
         ActionData actionData = actions.get(index);
         index++;
         try {
-            if (actionData instanceof DelayAction delayAction) {
-                int ticks = delayAction.getTicks();
-                Bukkit.getScheduler().runTaskLater(Main.getInstance(), this::executeNext, Math.max(1, ticks));
-            } else if(actionData instanceof Action action) {
-                action.execute(player, location, data);
-                executeNext();
-            } else {
-                Main.getLoggerUtil().warning("Action inconnue de type: " + actionData.getClass().getName());
-                executeNext();
+            switch (actionData) {
+                case DelayAction delayAction -> {
+                    int ticks = delayAction.getTicks();
+                    Bukkit.getScheduler().runTaskLater(Main.getInstance(), this::executeNext, Math.max(1, ticks));
+                }
+                case Action action -> {
+                    action.execute(player, location, data);
+                    executeNext();
+                }
+                default -> {
+                    Main.getLoggerUtil().warning("Action inconnue de type: " + actionData.getClass().getName());
+                    executeNext();
+                }
             }
         } catch (Exception e) {
             Main.getLoggerUtil().severe("Error executing action " + actionData.getClass().getSimpleName() + ": " + e.getMessage());

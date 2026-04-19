@@ -309,6 +309,12 @@
                 <div class="form-group"><input type="text" id="req-floor-input" class="form-control" placeholder="ID du floor requis"></div>
                 <button class="btn btn-secondary" onclick="addListItem('req-floors-list','req-floor-input')">+ Ajouter</button>
             </div>
+            <div class="section-title">Floors à supprimer à la completion</div>
+            <div id="remove-completion-list"></div>
+            <div class="form-row" style="margin-top:8px;">
+                <div class="form-group"><input type="text" id="remove-completion-input" class="form-control" placeholder="ID du floor à supprimer"></div>
+                <button class="btn btn-secondary" onclick="addListItem('remove-completion-list','remove-completion-input')">+ Ajouter</button>
+            </div>
             <div class="section-title">Items requis</div>
             <div id="req-items-list"></div>
             <div class="form-row" style="margin-top:8px;">
@@ -425,7 +431,7 @@ let dungeons = [];
 let currentDungeon = null; // { id, name, description, floors }
 let isEditMode = false;
 let stepsData = []; // for modal
-let modalListData = { 'req-floors-list': [], 'req-items-list': [], 'req-forbidden-list': [] };
+let modalListData = { 'req-floors-list': [], 'remove-completion-list': [], 'req-items-list': [], 'req-forbidden-list': [] };
 
 // ============================================================
 //  API
@@ -644,7 +650,7 @@ function renderFloorsList() {
 function resetFloorModal() {
     stepsData = [];
     for (const k in modalListData) modalListData[k] = [];
-    ['req-floors-list','req-items-list','req-forbidden-list','steps-list'].forEach(id => { const el=document.getElementById(id); if(el) el.innerHTML=''; });
+    ['req-floors-list','remove-completion-list','req-items-list','req-forbidden-list','steps-list'].forEach(id => { const el=document.getElementById(id); if(el) el.innerHTML=''; });
     document.getElementById('floor-id').value = '';
     document.getElementById('floor-id').disabled = false;
     document.getElementById('floor-name').value = '';
@@ -708,8 +714,9 @@ function editFloor(fullFloorId) {
             document.getElementById('req-party-min').value = floor.requirements.party.minSize || 1;
             document.getElementById('req-party-max').value = floor.requirements.party.maxSize || 10;
         }
-        (floor.requirements.requiredFloorsId || []).forEach(v => addToList('req-floors-list', v));
-        (floor.requirements.requiredItems || []).forEach(v => addToList('req-items-list', v));
+         (floor.requirements.requiredFloorsId || []).forEach(v => addToList('req-floors-list', v));
+         (floor.requirements.removeCompletion || []).forEach(v => addToList('remove-completion-list', v));
+         (floor.requirements.requiredItems || []).forEach(v => addToList('req-items-list', v));
         (floor.requirements.forbiddenItems || []).forEach(v => addToList('req-forbidden-list', v));
     }
     if (floor.rules) {
@@ -754,6 +761,7 @@ async function saveFloor() {
                 maxSize: parseInt(document.getElementById('req-party-max').value)
             },
             requiredFloorsId: getListData('req-floors-list'),
+            removeCompletion: getListData('remove-completion-list'),
             requiredItems: getListData('req-items-list'),
             forbiddenItems: getListData('req-forbidden-list')
         },

@@ -150,7 +150,7 @@ public class DashboardService {
         List<Map.Entry<String, Long>> sortedSessions = sessionDistribution.entrySet().stream()
             .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
             .limit(10)  // Top 10
-            .collect(Collectors.toList());
+            .toList();
         
         for (Map.Entry<String, Long> entry : sortedSessions) {
             String floorId = entry.getKey();

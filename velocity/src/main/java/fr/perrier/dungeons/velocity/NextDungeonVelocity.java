@@ -61,14 +61,14 @@ public class NextDungeonVelocity {
         instance = this;
         this.startTime = System.currentTimeMillis();
         
-        // Charger la configuration
+        // Load configuration
         configManager = new ConfigManager(dataDirectory);
 
-        // Initialiser et enregistrer le gestionnaire de messages plugin
+        // Initialize and register the messaging service
         pluginMessageHandler = new PluginMessageVelocity();
         pluginMessageHandler.initialize();
         server.getEventManager().register(this, pluginMessageHandler);
-        logger.info("✅ Système de messagerie Plugin initialisé");
+        logger.info("Messaging system has been initialized");
 
         // Initialize messaging system
         try {
@@ -83,9 +83,9 @@ public class NextDungeonVelocity {
             );
             this.messaging.registerAdapter(WebEditorRequestPacket.class, null);
             this.messaging.registerAdapter(WebEditorResponsePacket.class, new WebEditorResponseSubscriber());
-            logger.info("✅ Système de messagerie Redis initialisé");
+            logger.info("Redis messaging system has been initialized");
         } catch (Exception e) {
-            logger.error("❌ Erreur initialisation messaging Redis: " + e.getMessage());
+            logger.error("Erreur initialisation messaging Redis: {}", e.getMessage());
         }
         
         // Démarrer le serveur web centralisé avec le port configuré
@@ -100,10 +100,10 @@ public class NextDungeonVelocity {
         }
 
         if (webEditorServer.startServer()) {
-            logger.info("✅ Serveur web éditeur centralisé démarré sur le port " + webEditorPort);
-            logger.info("📊 Dashboard disponible sur http://localhost:" + webEditorPort + "/dashboard");
+            logger.info("Web server has been started on port {}", webEditorPort);
+            logger.info("Dashboard available at http://localhost:{}/dashboard", webEditorPort);
         } else {
-            logger.error("❌ Impossible de démarrer le serveur web éditeur");
+            logger.error("An error occurred during the start of the web server.");
         }
 
     }
@@ -116,6 +116,6 @@ public class NextDungeonVelocity {
         if (messaging != null) {
             Pidgin.shutdown();
         }
-        logger.info("🛑 NextDungeon Velocity désactivé");
+        logger.info("NextDungeon Velocity disabled");
     }
 }

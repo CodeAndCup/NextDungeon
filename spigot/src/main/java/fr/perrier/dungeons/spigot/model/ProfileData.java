@@ -12,11 +12,16 @@ import org.checkerframework.checker.units.qual.N;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Type;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 @Getter
 @Setter
 public class ProfileData {
+
+    public static final int CURRENT_SCHEMA_VERSION = 2;
 
     private UUID playerId;
     private String displayName;
@@ -25,6 +30,12 @@ public class ProfileData {
     private final List<FloorStats> floorStats;
 
     private boolean autoReady;
+
+    private long version = 1L;
+    private int schemaVersion = CURRENT_SCHEMA_VERSION;
+    private long updatedAt = System.currentTimeMillis();
+    private String updatedBy;
+    private String checksum;
 
     public ProfileData(UUID playerId) {
         this.playerId = playerId;
@@ -40,6 +51,53 @@ public class ProfileData {
         this.completedFloors = completedFloors;
         this.floorStats = floorStats;
         this.autoReady = autoReady;
+    }
+
+    public void incrementVersion(String updater) {
+        this.version += 1L;
+        this.updatedAt = System.currentTimeMillis();
+        this.updatedBy = updater;
+    }
+
+    public String calculateChecksum() {
+        Map<String, Object> snapshot = new LinkedHashMap<>();
+        snapshot.put("playerId", playerId != null ? playerId.toString() : null);
+        snapshot.put("displayName", displayName);
+        snapshot.put("completedFloors", completedFloors);
+        List<Map<String, Object>> stats = new ArrayList<>();
+        for (FloorStats s : floorStats) {
+            stats.add(s.serialize());
+        }
+        snapshot.put("floorStats", stats);
+        snapshot.put("autoReady", autoReady);
+        snapshot.put("version", version);
+        snapshot.put("schemaVersion", schemaVersion);
+        snapshot.put("updatedAt", updatedAt);
+        snapshot.put("updatedBy", updatedBy);
+        return sha256(GsonProvider.GSON.toJson(snapshot));
+    }
+
+    public boolean verifyChecksum() {
+        if (checksum == null || checksum.isEmpty()) return false;
+        return checksum.equals(calculateChecksum());
+    }
+
+    public boolean isValid() {
+        return playerId != null && version >= 1L && schemaVersion >= 1 && verifyChecksum();
+    }
+
+    private static String sha256(String input) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] bytes = digest.digest(input.getBytes(StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder(bytes.length * 2);
+            for (byte b : bytes) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 not available", e);
+        }
     }
 
     /**
@@ -129,7 +187,7 @@ public class ProfileData {
         }
 
         /** Serialization / Deserialization */
-        private @NotNull Map<String, Object> serialize() {
+        @NotNull Map<String, Object> serialize() {
             Map<String, Object> data = new HashMap<>();
 
             data.put("floorId", this.floorId);
@@ -200,6 +258,11 @@ public class ProfileData {
         data.put("completedFloors", this.completedFloors);
         data.put("floorStats", this.floorStats);
         data.put("autoReady", this.autoReady);
+        data.put("version", this.version);
+        data.put("schemaVersion", this.schemaVersion);
+        data.put("updatedAt", this.updatedAt);
+        data.put("updatedBy", this.updatedBy);
+        data.put("checksum", this.checksum);
 
         return data;
     }
@@ -220,12 +283,21 @@ public class ProfileData {
             }
         }
 
-        return new ProfileData(
+        ProfileData profile = new ProfileData(
                 UUID.fromString((String) data.get("playerId")),
                 (String) data.get("displayName"),
                 (List<String>) data.get("completedFloors"),
                 floorStats,
                 (boolean) data.get("autoReady")
         );
+        Object versionObj = data.get("version");
+        if (versionObj instanceof Number) profile.version = ((Number) versionObj).longValue();
+        Object schemaObj = data.get("schemaVersion");
+        if (schemaObj instanceof Number) profile.schemaVersion = ((Number) schemaObj).intValue();
+        Object updatedAtObj = data.get("updatedAt");
+        if (updatedAtObj instanceof Number) profile.updatedAt = ((Number) updatedAtObj).longValue();
+        profile.updatedBy = (String) data.get("updatedBy");
+        profile.checksum = (String) data.get("checksum");
+        return profile;
     }
 }

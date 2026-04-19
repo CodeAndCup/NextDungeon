@@ -7,7 +7,6 @@ import fr.perrier.dungeons.module.cinematic.model.TimelineEvent;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.function.Consumer;
 
 /**
  * Manages the playback of a single cinematic for one viewer.
@@ -165,7 +164,7 @@ public class CinematicPlayer {
         } else if (before != null) {
             // Between two waypoints — interpolate
             int segmentLength = after.getTick() - before.getTick();
-            double progress = segmentLength > 0 ? (double)(currentTick - before.getTick()) / segmentLength : 0;
+            double progress = segmentLength > 0 ? (currentTick - before.getTick()) / segmentLength : 0;
 
             double[] pos = CameraInterpolation.interpolate(before, after, progress, before.getInterpolation());
             callback.setCameraPosition(pos[0], pos[1], pos[2], (float) pos[3], (float) pos[4]);
@@ -196,7 +195,7 @@ public class CinematicPlayer {
                     before.getYaw(), before.getPitch(), before.getAnimation());
         } else if (before != null) {
             int segmentLength = after.getTick() - before.getTick();
-            double progress = segmentLength > 0 ? (double)(currentTick - before.getTick()) / segmentLength : 0;
+            double progress = segmentLength > 0 ? (currentTick - before.getTick()) / segmentLength : 0;
             double x = before.getX() + (after.getX() - before.getX()) * progress;
             double y = before.getY() + (after.getY() - before.getY()) * progress;
             double z = before.getZ() + (after.getZ() - before.getZ()) * progress;

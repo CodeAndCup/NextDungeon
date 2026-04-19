@@ -10,6 +10,10 @@ import java.util.Objects;
  * selon la configuration (MySQL ou MongoDB).
  */
 public class DatabaseFactory {
+
+    private DatabaseFactory() {
+        // Private constructor to prevent from instantiation
+    }
     
     /**
      * Crée et connecte un gestionnaire de base de données selon la configuration.

@@ -17,6 +17,7 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 
+import java.io.Serial;
 import java.util.*;
 
 /**
@@ -33,6 +34,7 @@ import java.util.*;
         category = "Actions"
 )
 public class SummonMobInRegionAction extends Action implements BlocklyAction {
+    @Serial
     private static final long serialVersionUID = 1L;
 
     @BlocklyField(type = BlocklyField.FieldType.TEXT_INPUT, label = "Mob Type:",
@@ -90,7 +92,7 @@ public class SummonMobInRegionAction extends Action implements BlocklyAction {
         for (int x = minX; x <= maxX; x++) {
             for (int y = minY; y <= maxY; y++) {
                 for (int z = minZ; z <= maxZ; z++) {
-                    Location candidate = new Location(world, x + 0.5, y, z + 0.5);
+                    Location candidate = new Location(world, x + 0.5, y + 1, z + 0.5);
                     if (isSafe(candidate)) {
                         safeLocations.add(candidate);
                     }

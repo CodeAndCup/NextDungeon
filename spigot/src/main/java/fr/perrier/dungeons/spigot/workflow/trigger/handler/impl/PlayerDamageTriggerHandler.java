@@ -5,8 +5,6 @@ import fr.perrier.dungeons.spigot.workflow.trigger.Trigger;
 import fr.perrier.dungeons.spigot.workflow.trigger.impl.PlayerDamageTrigger;
 import fr.perrier.dungeons.spigot.workflow.trigger.handler.TriggerEventHandler;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
 import org.bukkit.event.entity.EntityDamageEvent;
 
 import java.util.*;

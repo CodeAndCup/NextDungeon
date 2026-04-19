@@ -1,6 +1,6 @@
 package fr.perrier.dungeons.spigot.workflow.trigger.impl;
 
-import fr.perrier.dungeons.spigot.Main;
+import fr.perrier.dungeons.spigot.workflow.action.impl.ModuleAction;
 import fr.perrier.dungeons.spigot.workflow.trigger.Trigger;
 import lombok.Getter;
 import lombok.Setter;

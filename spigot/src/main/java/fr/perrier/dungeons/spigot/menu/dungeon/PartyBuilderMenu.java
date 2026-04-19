@@ -191,7 +191,7 @@ public class PartyBuilderMenu extends GlassMenu {
 
         @Override
         public void clicked(Player player, int slot, ClickType clickType, int hotbarButton) {
-            DungeonPartyImpl party = new DungeonPartyImpl.Builder()
+            new DungeonPartyImpl.Builder()
                     .setDungeonId(dungeonId)
                     .setFloorId(floorId)
                     .setMinLevel(minLevel)

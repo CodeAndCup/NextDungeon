@@ -1,8 +1,8 @@
 name: NextDungeon
-version: ${project.version}
+version: ${project.version}-${git.commit.id.abbrev}
 
 description: The NextDungeon is a comprehensive Minecraft server plugin designed to bring dynamic, customizable dungeon experiences to your server.
-prefix: "&#8B0000&l&nN&#920000&l&ne&#990000&l&nx&#A00000&l&nt&#A70000&l&nD&#AE0000&l&nu&#B50000&l&nn&#BC0000&l&ng&#C30000&l&ne&#CA0000&l&no&#D10000&l&nn&b"
+prefix: "&#8B0000&l&nN&#920000&l&ne&#990000&l&nx&#A00000&l&nt&#A70000&l&nD&#AE0000&l&nu&#B50000&l&nn&#BC0000&l&ng&#C30000&l&ne&#CA0000&l&no&#D10000&l&nn&r"
 
 main: fr.perrier.dungeons.spigot.Main
 api-version: '1.21'

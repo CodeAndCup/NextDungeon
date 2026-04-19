@@ -68,9 +68,14 @@ public class BlockTypeIsCondition extends Action implements BlocklyAction {
     @Override
     public boolean execute(Player triggerPlayer, Location location, Map<String, Object> data) {
         try {
-            Location checkLocation = location != null && location.getWorld() != null
-                ? new Location(location.getWorld(), x, y, z)
-                : (triggerPlayer != null ? new Location(triggerPlayer.getWorld(), x, y, z) : null);
+            Location checkLocation;
+            if (location != null && location.getWorld() != null) {
+                checkLocation = new Location(location.getWorld(), x, y, z);
+            } else if (triggerPlayer != null) {
+                checkLocation = new Location(triggerPlayer.getWorld(), x, y, z);
+            } else {
+                checkLocation = null;
+            }
 
             if (checkLocation == null) {
                 return false;

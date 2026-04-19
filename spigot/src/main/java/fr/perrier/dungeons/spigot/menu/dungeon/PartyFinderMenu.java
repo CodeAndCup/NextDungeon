@@ -19,9 +19,15 @@ import org.bukkit.inventory.ItemStack;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 @RequiredArgsConstructor
 public class PartyFinderMenu extends PaginatedMenu {
+
+    private static final long REFRESH_COOLDOWN_MS = 2000L;
+    private static final Map<UUID, Long> LAST_REFRESH = new ConcurrentHashMap<>();
+
     private final Menu oldMenu;
     private final Dungeon dungeon;
 
@@ -37,6 +43,7 @@ public class PartyFinderMenu extends PaginatedMenu {
         PartyFinderConfiguration config = PartyFinderConfiguration.getConfigForPlayer(player.getUniqueId(),dungeon.getId());
 
         for(IDungeonParty dungeonParty : DungeonPartyImpl.getDungeonParties().values()) {
+            if(!dungeonParty.isListed()) continue;
             if(!dungeonParty.getDungeonId().equals(dungeon.getId())) continue;
 
             if(!dungeonParty.getFloorId().contains(config.getFloorFilter())) continue;
@@ -56,6 +63,7 @@ public class PartyFinderMenu extends PaginatedMenu {
         buttons.put(38, new PartyBuilderButton());
         buttons.put(40, new BackButton(oldMenu));
         buttons.put(42, new FilterButton());
+        buttons.put(44, new RefreshButton());
 
         return buttons;
     }
@@ -103,6 +111,35 @@ public class PartyFinderMenu extends PaginatedMenu {
         @Override
         public void clicked(Player player, int slot, ClickType clickType, int hotbarButton) {
             new PartyFilterMenu(PartyFinderMenu.this,dungeon).openMenu(player);
+        }
+    }
+
+    public class RefreshButton extends Button {
+
+        @Override
+        public ItemStack getButtonItem(Player player) {
+            return new ItemBuilder(Material.CLOCK)
+                    .setName("<gradient:#8B0000:bold>" + ChatUtil.toSmallCaps("refresh") + "</gradient:#D10000>")
+                    .setLore(
+                            "&7Pull the latest parties from the",
+                            "&7cluster and redraw this menu.",
+                            "",
+                            "&#FFC700Click to refresh."
+                    ).toItemStack();
+        }
+
+        @Override
+        public void clicked(Player player, int slot, ClickType clickType, int hotbarButton) {
+            long now = System.currentTimeMillis();
+            long last = LAST_REFRESH.getOrDefault(player.getUniqueId(), 0L);
+            long remainingMs = (last + REFRESH_COOLDOWN_MS) - now;
+            if (remainingMs > 0) {
+                long seconds = (remainingMs + 999) / 1000;
+                player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Please wait " + seconds + "s before refreshing again."));
+                return;
+            }
+            LAST_REFRESH.put(player.getUniqueId(), now);
+            PartyFinderMenu.this.openMenu(player);
         }
     }
 }

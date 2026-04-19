@@ -145,21 +145,30 @@ public class VariableRegistry {
      * @param name   the variable name
      * @return the value of the variable, or null if not found
      */
-    public Object getVariable(Player player, String name) {
-        if (name == null) return null;
-
-        String trimmedName = name.trim();
-
-        // Check player variables first
-        if (player != null) {
-            Object playerValue = getPlayerVariable(player, trimmedName);
-            if (playerValue != null) {
-                return playerValue;
-            }
+    public Object getVariable(Player player, String name, String scope) {
+        if (name == null || name.trim().isEmpty()) {
+            return null;
         }
 
-        // Check global variables
-        return getGlobalVariable(trimmedName);
+        switch (scope.toLowerCase()) {
+            case "player":
+                if (player != null) {
+                    return getPlayerVariable(player, name);
+                }
+                break;
+            case "global":
+                return getGlobalVariable(name);
+            default:
+                // Default to player if player exists, otherwise global
+                if (player != null) {
+                    Object playerValue = getPlayerVariable(player, name);
+                    if (playerValue != null) {
+                        return playerValue;
+                    }
+                }
+                return getGlobalVariable(name);
+        }
+        return null;
     }
 
     /**

@@ -154,6 +154,16 @@
             <id>codemc-releases</id>
             <url>https://repo.codemc.io/repository/maven-releases/</url>
         </repository>
+
+        <!-- SimpleCloud -->
+        <repository>
+            <id>simplecloud</id>
+            <url>https://repo.simplecloud.app/snapshots</url>
+        </repository>
+        <repository>
+            <id>bufbuild</id>
+            <url>https://buf.build/gen/maven</url>
+        </repository>
     </repositories>
 
     <dependencies>
@@ -275,6 +285,14 @@
             <groupId>eu.cloudnetservice.cloudnet</groupId>
             <artifactId>wrapper-jvm-api</artifactId>
             <version>4.0.0-RC13</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- SimpleCloud API -->
+        <dependency>
+            <groupId>app.simplecloud.api.platform</groupId>
+            <artifactId>spigot</artifactId>
+            <version>0.0.22-dev.1767982838988-61d2d27</version>
             <scope>provided</scope>
         </dependency>
 

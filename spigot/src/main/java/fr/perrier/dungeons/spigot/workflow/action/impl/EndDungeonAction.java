@@ -10,6 +10,7 @@ import lombok.Setter;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
+import java.io.Serial;
 import java.util.Map;
 
 @Setter
@@ -22,6 +23,7 @@ import java.util.Map;
         category = "Actions"
 )
 public class EndDungeonAction extends Action implements BlocklyAction {
+    @Serial
     private static final long serialVersionUID = 1L;
 
     public EndDungeonAction() {

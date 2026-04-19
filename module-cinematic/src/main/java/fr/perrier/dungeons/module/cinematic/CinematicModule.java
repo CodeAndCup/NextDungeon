@@ -29,7 +29,6 @@ import java.util.List;
 public class CinematicModule implements NextDungeonModule {
 
     private CinematicManager manager;
-    private CinematicClock cinematicClock;
 
     @Override
     public void onEnable(ModuleContext ctx) {
@@ -39,7 +38,7 @@ public class CinematicModule implements NextDungeonModule {
         manager.setModuleContext(ctx);
 
         // Initialize the real-time cinematic clock (20 fps)
-        this.cinematicClock = new CinematicClockImpl();
+        CinematicClock cinematicClock = new CinematicClockImpl();
         Plugin plugin = Bukkit.getPluginManager().getPlugin("NextDungeon");
         if (plugin != null) {
             // Tick every Bukkit tick (50ms) matching the 20 fps frame rate

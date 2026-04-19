@@ -77,19 +77,24 @@ public class PartyFilterMenu extends GlassMenu {
     public Button FilterDescriptionButton(Player player) {
         PartyFinderConfiguration config = PartyFinderConfiguration.getConfigForPlayer(player.getUniqueId(),dungeon.getId());
 
-        return new ConversationButton<>(
-                new ItemBuilder(Material.PAPER)
-                        .setName("<gradient:#8B0000:bold>" + ChatUtil.toSmallCaps("description") + "</gradient:#D10000>")
-                        .setLore(
-                                "&7Write a description to let everyone",
-                                "&7know what your party to do.",
-                                "",
-                                "&7Current description:",
-                                "&#90FFFF" + (config.getDescriptionFilter().isEmpty() ? "&#FF0000None" : config.getDescriptionFilter()),
-                                "",
-                                "&#FFC700Click to edit the description."
-                        )
-                        .toItemStack(),
+        ItemStack item = new ItemBuilder(Material.PAPER)
+                .setName("<gradient:#8B0000:bold>" + ChatUtil.toSmallCaps("description") + "</gradient:#D10000>")
+                .setLore(
+                        "&7Write a description to let everyone",
+                        "&7know what your party to do.",
+                        "",
+                        "&7Current description:",
+                        "&#90FFFF" + (config.getDescriptionFilter().isEmpty() ? "&#FF0000None" : config.getDescriptionFilter()),
+                        "",
+                        "&#FFC700Left-click to edit the description.",
+                        "&#FFC700Right-click to clear the filter."
+                )
+                .toItemStack();
+
+        // Right-click bypasses the conversation and clears the filter in place — ConversationButton
+        // always prompts for input on click, so we override to branch on click type.
+        return new ConversationButton<Player>(
+                item,
                 player,
                 ChatUtil.translate("&fPlease enter the description"),
                 (target, result) -> {
@@ -102,7 +107,18 @@ public class PartyFilterMenu extends GlassMenu {
                         player.sendRawMessage(ChatUtil.translate("&#FF0000You can not have more than 32 characters in the description."));
                     }
                 }
-        );
+        ) {
+            @Override
+            public void clicked(Player p, int slot, ClickType clickType, int hotbarButton) {
+                if (clickType.isRightClick()) {
+                    config.setDescriptionFilter("");
+                    p.sendRawMessage(ChatUtil.translate("&#00FF00Description filter cleared."));
+                    PartyFilterMenu.this.openMenu(p);
+                    return;
+                }
+                super.clicked(p, slot, clickType, hotbarButton);
+            }
+        };
     }
 
     public Button FilterMinLevelButton(Player player) {

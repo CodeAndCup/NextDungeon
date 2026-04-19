@@ -27,6 +27,7 @@ import java.util.concurrent.Executors;
  */
 public class ProxyWebEditorServer {
 
+    @Getter
     private final int port;
     private HttpServer server;
     private final Gson gson;
@@ -52,10 +53,6 @@ public class ProxyWebEditorServer {
         NextDungeonVelocity.getInstance().getLogger().info("✅ Service de tableau de bord initialisé");
     }
 
-    public int getPort() {
-        return port;
-    }
-
     /**
      * Démarre le serveur web centralisé
      */
@@ -77,11 +74,11 @@ public class ProxyWebEditorServer {
             server.setExecutor(Executors.newFixedThreadPool(8));
             server.start();
 
-            NextDungeonVelocity.getInstance().getLogger().info("🌐 Centralized web server start on http://localhost:" + port);
+            NextDungeonVelocity.getInstance().getLogger().info("Centralized web server start on http://localhost:{}", port);
             return true;
 
         } catch (IOException e) {
-            NextDungeonVelocity.getInstance().getLogger().error("Error starting web server: " + e.getMessage());
+            NextDungeonVelocity.getInstance().getLogger().error("Error starting web server: {}", e.getMessage());
             e.printStackTrace(System.err);
             return false;
         }
@@ -93,7 +90,7 @@ public class ProxyWebEditorServer {
     public void stopServer() {
         if (server != null) {
             server.stop(1);
-            NextDungeonVelocity.getInstance().getLogger().info("🛑 Centralized web server shut down");
+            NextDungeonVelocity.getInstance().getLogger().info("Centralized web server shut down");
         }
     }
 
@@ -105,10 +102,8 @@ public class ProxyWebEditorServer {
         public void handle(HttpExchange exchange) throws IOException {
             String path = exchange.getRequestURI().getPath();
             String method = exchange.getRequestMethod();
-            System.out.println("[RouteHandler] " + method + " " + path);
-            // Si c'est une requête dashboard qui arrive ici, la rediriger
+
             if (path.startsWith("/dashboard")) {
-                System.out.println("[RouteHandler] !! INTERCEPTED DASHBOARD REQUEST - forwarding to dashboardHandler instance");
                 dashboardHandler.handle(exchange);
                 return;
             }
@@ -130,11 +125,11 @@ public class ProxyWebEditorServer {
             }
 
             if (pathParts.length >= 3 && "api".equals(pathParts[2])) {
-                // Requête API
+                // API Request
                 handleApiRequest(exchange, session, pathParts);
             } else if (pathParts.length >= 3 && "editor".equals(pathParts[2])) {
-                // Interface éditeur
-                handleEditorRequest(exchange, session, pathParts);
+                // Editor Interface
+                handleEditorRequest(exchange, pathParts);
             } else {
                 sendNotFound(exchange);
             }
@@ -165,10 +160,10 @@ public class ProxyWebEditorServer {
     /**
      * Gère les requêtes de l'interface éditeur
      */
-    private void handleEditorRequest(HttpExchange exchange, EditorSession session, String[] pathParts) throws IOException {
+    private void handleEditorRequest(HttpExchange exchange, String[] pathParts) throws IOException {
         String filePath = pathParts.length > 3 ? pathParts[3] : "index.html";
         
-        if ("".equals(filePath) || "/".equals(filePath)) {
+        if (filePath.isEmpty() || "/".equals(filePath)) {
             filePath = "index.html";
         }
 
@@ -396,7 +391,7 @@ public class ProxyWebEditorServer {
                         response.addProperty("sessionId", sessionId);
                         response.addProperty("url", "http://" + getPrivateIp() + ":" + port + "/" + sessionId + "/editor/");
 
-                        NextDungeonVelocity.getInstance().getLogger().info("✅ Session créée: " + sessionId + " pour " + playerName);
+                        NextDungeonVelocity.getInstance().getLogger().info("Session créée: {} pour {}", sessionId, playerName);
                     }
                     case "stop_session" -> {
                         String sessionId = request.get("sessionId").getAsString();
@@ -404,8 +399,8 @@ public class ProxyWebEditorServer {
                         
                         response.addProperty("success", success);
                         response.addProperty("message", success ? "Session fermée" : "Session non trouvée");
-                        
-                        NextDungeonVelocity.getInstance().getLogger().info("🛑 Session closed: " + sessionId);
+
+                        NextDungeonVelocity.getInstance().getLogger().info("Session closed: {}", sessionId);
                     }
                     default -> {
                         response.addProperty("success", false);
@@ -586,7 +581,7 @@ public class ProxyWebEditorServer {
                     sendNotFound(exchange);
                 }
             } catch (Exception e) {
-                NextDungeonVelocity.getInstance().getLogger().error("Erreur API dashboard: " + e.getMessage());
+                NextDungeonVelocity.getInstance().getLogger().error("Erreur API dashboard: {}", e.getMessage());
                 e.printStackTrace(System.err);
                 sendErrorResponse(exchange, "Erreur traitement requête: " + e.getMessage());
             }

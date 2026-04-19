@@ -4,7 +4,6 @@ import fr.perrier.cupcodeapi.commands.annotations.ParameterType;
 import fr.perrier.cupcodeapi.utils.ChatUtil;
 import fr.perrier.dungeons.common.model.dungeon.FloorData;
 import fr.perrier.dungeons.spigot.Main;
-import fr.perrier.dungeons.spigot.model.Dungeon;
 import fr.perrier.dungeons.spigot.model.Floor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;

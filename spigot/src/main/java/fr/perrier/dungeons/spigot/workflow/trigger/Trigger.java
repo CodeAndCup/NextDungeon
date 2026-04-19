@@ -1,20 +1,13 @@
 package fr.perrier.dungeons.spigot.workflow.trigger;
 
 import fr.perrier.dungeons.common.workflow.trigger.TriggerData;
-import fr.perrier.dungeons.spigot.workflow.action.Action;
-import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.workflow.action.ActionSequenceExecutor;
 import lombok.Getter;
-import lombok.Setter;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
-import java.io.Serial;
-import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * Classe abstraite pour tous les triggers de donjon

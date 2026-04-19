@@ -9,6 +9,7 @@ import lombok.Setter;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
+import java.io.Serial;
 import java.util.Map;
 
 @Setter
@@ -21,6 +22,7 @@ import java.util.Map;
         category = "Actions"
 )
 public class DelayAction extends Action implements BlocklyAction {
+    @Serial
     private static final long serialVersionUID = 1L;
 
     @BlocklyField(type = BlocklyField.FieldType.NUMBER_INPUT, label = "Ticks (20 = 1s):", defaultValue = "20", order = 1)

@@ -9,6 +9,7 @@ import fr.perrier.dungeons.spigot.model.Dungeon;
 import fr.perrier.dungeons.spigot.model.Floor;
 import fr.perrier.dungeons.spigot.model.FloorInstance;
 import fr.perrier.dungeons.spigot.model.ProfileData;
+import fr.perrier.dungeons.spigot.parties.CrossServerValidationService;
 import fr.perrier.dungeons.spigot.parties.impl.DungeonPartyImpl;
 import lombok.RequiredArgsConstructor;
 import net.Indyuce.mmocore.api.player.PlayerData;
@@ -19,6 +20,7 @@ import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 @RequiredArgsConstructor
 public class DungeonGateMenu extends GlassMenu {
@@ -88,11 +90,13 @@ public class DungeonGateMenu extends GlassMenu {
 
         @Override
         public void clicked(Player player, int slot, ClickType clickType, int hotbarButton) {
+            //TODO: Warning player that don't have create a party can't play solo, they need to create a party builder first, need to be fixed
+
             // Prevent clicking if any player of that party is already in an instance or being prepared
             if (DungeonPartyImpl.hasLeadParty(player)) {
                 UUID leaderId = DungeonPartyImpl.getDungeonPartyOf(player).getLeaderId();
                 if (Main.getInstance().getDungeonService().isPlayerInAnyInstance(leaderId)) {
-                    player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000An instance for your party is already being prepared or active. Please wait..."));
+                    player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000An instance for your party is already being prepared or active. Please wait..."));
                     return;
                 }
             }
@@ -103,30 +107,60 @@ public class DungeonGateMenu extends GlassMenu {
                 return;
             }
             if(DungeonPartyImpl.hasLeadParty(player)) {
-                if(DungeonPartyImpl.getDungeonPartyOf(player).getMembers().size() > floor.getRequirements().getPartyRequirements().getMaxSize()) {
+                DungeonPartyImpl party = DungeonPartyImpl.getDungeonPartyOf(player);
+                if(party.getMembers().size() > floor.getRequirements().getPartyRequirements().getMaxSize()) {
                     player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Your party is too big to enter this floor."));
                     return;
                 }
-                if (DungeonPartyImpl.getDungeonPartyOf(player).getMembers().size() < floor.getRequirements().getPartyRequirements().getMinSize()) {
+                if (party.getMembers().size() < floor.getRequirements().getPartyRequirements().getMinSize()) {
                     player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Your party is too small to enter this floor."));
                     return;
                 }
 
-                FloorInstance.generateNewInstanceAsync(floor.getId(), DungeonPartyImpl.getDungeonPartyOf(player).getMemberIds(),false, floorInstance -> {
-                    if(floorInstance.getPlayers().stream().anyMatch(uuid -> !floorInstance.getFloor().isRequirementsValid(Bukkit.getPlayer(uuid)))) {
-                        floorInstance.getPlayers().forEach(uuid -> {
-                            Player p = Bukkit.getPlayer(uuid);
-                            if(p != null) {
-                                p.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000One or more players in your party break the requirements during the loading phase to enter this floor. The instance has been cancelled."));
-                            }
-                        });
-                        floorInstance.cancelInstance();
+                player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&fChecking party requirements..."));
+                Set<UUID> memberIds = party.getMemberIds();
+                validateAllMembersAsync(floor, memberIds).thenAccept(allPassed -> {
+                    if (!allPassed) {
+                        Bukkit.getScheduler().runTask(Main.getInstance(), () ->
+                                player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000One or more players in your party break the requirements to enter this floor.")));
                         return;
                     }
-                    floorInstance.sendToServer(DungeonPartyImpl.getDungeonPartyOf(player));
+
+                    Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
+                        FloorInstance.generateNewInstanceAsync(floor.getId(), memberIds, false, floorInstance -> {
+                            // Pull the party out of the finder as soon as the dungeon starts —
+                            // the party itself stays alive so members return together afterwards.
+                            party.setListed(false);
+                            floorInstance.sendToServer(party);
+                        });
+                        player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&fPlease wait while the instance is being prepared..."));
+                    });
                 });
-                player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&fPlease wait while the instance is being prepared..."));
             }
+        }
+
+        /**
+         * Validates every party member against the floor's requirements, running local checks
+         * inline and cross-server ones through {@link CrossServerValidationService}. Returns a
+         * future that completes with {@code true} only if every member passes.
+         */
+        private CompletableFuture<Boolean> validateAllMembersAsync(Floor floor, Set<UUID> memberIds) {
+            List<CompletableFuture<Boolean>> futures = new ArrayList<>();
+            for (UUID memberId : memberIds) {
+                Player local = Bukkit.getPlayer(memberId);
+                if (local != null) {
+                    futures.add(CompletableFuture.completedFuture(floor.isRequirementsValid(local)));
+                } else {
+                    CrossServerValidationService service = CrossServerValidationService.getInstance();
+                    if (service == null) {
+                        futures.add(CompletableFuture.completedFuture(false));
+                    } else {
+                        futures.add(service.validateRemote(floor.getId(), memberId));
+                    }
+                }
+            }
+            return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                    .thenApply(v -> futures.stream().allMatch(CompletableFuture::join));
         }
     }
 

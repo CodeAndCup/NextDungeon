@@ -1,7 +1,6 @@
 package fr.perrier.dungeons.spigot.instance;
 
 import fr.perrier.dungeons.spigot.model.Floor;
-import fr.perrier.dungeons.spigot.model.FloorInstance;
 import org.bukkit.entity.Player;
 
 import java.util.UUID;
@@ -102,6 +101,15 @@ public interface InstanceProvider {
      * @return CompletableFuture that completes with true if teleportation succeeds
      */
     CompletableFuture<Boolean> sendPlayerToInstance(Player player, UUID instanceId);
+
+    /**
+     * Returns the cloud service UUID of the current server, regardless of whether it is
+     * a dungeon instance or a lobby. Used to record a player's origin server before they
+     * are transferred to a dungeon, so they can be sent back on dungeon completion.
+     *
+     * @return the UUID of the current cloud service, or null if it cannot be resolved
+     */
+    UUID getCurrentServiceUniqueId();
 
     /**
      * Gets the provider type.
