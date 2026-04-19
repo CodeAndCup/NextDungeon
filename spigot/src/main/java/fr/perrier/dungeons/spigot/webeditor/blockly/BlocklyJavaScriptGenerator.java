@@ -3,6 +3,7 @@ package fr.perrier.dungeons.spigot.webeditor.blockly;
 import fr.perrier.dungeons.common.module.ModuleBlockDescriptor;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.module.ModuleLoader;
+import fr.perrier.dungeons.spigot.webeditor.blockly.annotations.BlocklyField;
 import fr.perrier.dungeons.spigot.webeditor.blockly.annotations.BlocklyInfo;
 import org.bukkit.entity.Player;
 import org.reflections.Reflections;
@@ -267,6 +268,17 @@ public class BlocklyJavaScriptGenerator {
      * @param field a BlocklyFieldInfo instance containing information about the field to generate
      */
     private void buildBlocklyFieldDefinition(StringBuilder js, BlocklyFieldExtractor.BlocklyFieldInfo field) {
+        // Value-input fields (LOCATION_INPUT, BOOLEAN_INPUT) emit their own label + input,
+        // so we skip the leading dummy input used by simple appendField-based fields.
+        if (field.type() == BlocklyField.FieldType.LOCATION_INPUT
+                || field.type() == BlocklyField.FieldType.BOOLEAN_INPUT) {
+            switch (field.type()) {
+                case BOOLEAN_INPUT -> buildBooleanFieldDefinition(js, field);
+                case LOCATION_INPUT -> buildLocationFieldDefinition(js, field);
+            }
+            return;
+        }
+
         js.append("        this.appendDummyInput()\n");
 
         if (!field.label().isEmpty()) {
@@ -277,10 +289,8 @@ public class BlocklyJavaScriptGenerator {
             case TEXT_INPUT -> buildTextFieldDefinition(js, field);
             case NUMBER_INPUT -> buildNumberFieldDefinition(js, field);
             case DROPDOWN -> buildDropdownFieldDefinition(js, field);
-            case BOOLEAN_INPUT -> buildBooleanFieldDefinition(js, field);
             case COLOR_INPUT -> buildColorFieldDefinition(js, field);
             case CHECKBOX -> buildCheckboxFieldDefinition(js, field);
-            case LOCATION_INPUT -> buildLocationFieldDefinition(js, field);
         }
     }
 
@@ -364,39 +374,13 @@ public class BlocklyJavaScriptGenerator {
     }
 
     /**
-     * Builds block definitions for user-defined function blocks.
+     * Placeholder kept for backward compatibility. The function_trigger and
+     * call_function_action block definitions are now auto-generated from their
+     * annotated Java classes (FunctionTrigger, CallFunctionAction) via the
+     * normal trigger/action build paths, so no hardcoded definitions are needed.
      */
     private void buildFunctionBlockDefinitions(StringBuilder js) {
-        js.append("// ===== USER FUNCTION BLOCKS (AUTO-GENERATED) =====\n");
-
-        // Function Definition Block
-        js.append("""
-                Blockly.Blocks['function_trigger'] = {
-                    init: function() {
-                        this.appendDummyInput()
-                            .appendField("🔧 Function")
-                            .appendField(new Blockly.FieldTextInput("my_function"), "FUNCTIONNAME");
-                        this.appendStatementInput("ACTIONS")
-                            .setCheck("Action")
-                            .appendField("Execute:");
-                        this.setColour('#673AB7');
-                        this.setTooltip("Defines a custom reusable function");
-                    }
-                };
-                       \s
-                Blockly.Blocks['call_function_action'] = {
-                    init: function() {
-                        this.appendDummyInput()
-                            .appendField("📞 Call")
-                            .appendField(new Blockly.FieldTextInput("my_function"), "FUNCTIONNAME");
-                        this.setPreviousStatement(true, "Action");
-                        this.setNextStatement(true, "Action");
-                        this.setColour('#9C27B0');
-                        this.setTooltip("Calls a previously defined function");
-                    }
-                };
-                       \s
-               \s""");
+        // Intentionally empty: block definitions auto-generated from @BlocklyField annotations.
     }
 
     /**
@@ -720,6 +704,8 @@ public class BlocklyJavaScriptGenerator {
             String blockName = descriptor.getId();
             js.append("                if (trigger.type === '").append(blockName).append("') {\n");
             js.append("                    const triggerBlock = workspace.newBlock('").append(blockName).append("');\n");
+            js.append("                    triggerBlock.initSvg();\n");
+            js.append("                    triggerBlock.render();\n");
 
             if (descriptor.getParameters() != null) {
                 for (ModuleBlockDescriptor.BlockParameter param : descriptor.getParameters()) {
@@ -736,8 +722,6 @@ public class BlocklyJavaScriptGenerator {
                 }
             }
 
-            js.append("                    triggerBlock.initSvg();\n");
-            js.append("                    triggerBlock.render();\n");
             js.append("                    loadActionsIntoBlock(triggerBlock, trigger.actions);\n");
             js.append("                    triggerBlock.moveBy(20 + (index * 300), 20);\n");
             js.append("                }\n");
@@ -798,6 +782,8 @@ public class BlocklyJavaScriptGenerator {
             String blockName = descriptor.getId();
             js.append("                if (action.type === '").append(blockName).append("') {\n");
             js.append("                    actionBlock = workspace.newBlock('").append(blockName).append("');\n");
+            js.append("                    actionBlock.initSvg();\n");
+            js.append("                    actionBlock.render();\n");
 
             if (descriptor.getParameters() != null) {
                 for (ModuleBlockDescriptor.BlockParameter param : descriptor.getParameters()) {
@@ -949,6 +935,7 @@ public class BlocklyJavaScriptGenerator {
     private void buildUtilityFunctions(StringBuilder js) {
         js.append("// ===== AUTO-GENERATED UTILITY FUNCTIONS =====\n");
 
+        buildValueInputHelperFunctions(js);
         buildTriggerGenerationFunction(js);
         buildActionExtractionFunction(js);
         buildTriggerLoadingFunction(js);
@@ -957,6 +944,79 @@ public class BlocklyJavaScriptGenerator {
 
         js.append("""
                 console.log('✅ Utility functions auto-generated and loaded');
+                """);
+    }
+
+    /**
+     * Emits JavaScript helpers for value-input fields (LOCATION_INPUT, BOOLEAN_INPUT).
+     * These fields attach a child block via appendValueInput and cannot be read/written
+     * through get/setFieldValue — they require walking the connection graph.
+     */
+    private void buildValueInputHelperFunctions(StringBuilder js) {
+        js.append("""
+                // Reads a Location child block connected to a value input and returns a LocationBlock-shaped object.
+                function extractLocationFromInput(block, inputName) {
+                    const child = block.getInputTargetBlock(inputName);
+                    if (!child) return null;
+                    const hasWorld = child.type === 'location_xyz_world' || child.type === 'location_full';
+                    const hasRotation = child.type === 'location_full';
+                    return {
+                        x: Number(child.getFieldValue('X')),
+                        y: Number(child.getFieldValue('Y')),
+                        z: Number(child.getFieldValue('Z')),
+                        worldName: hasWorld ? child.getFieldValue('WORLD') : 'world',
+                        yaw: hasRotation ? Number(child.getFieldValue('YAW')) : 0,
+                        pitch: hasRotation ? Number(child.getFieldValue('PITCH')) : 0,
+                        hasWorld: hasWorld,
+                        hasRotation: hasRotation
+                    };
+                }
+
+                // Creates and connects a Location child block from saved LocationBlock data.
+                // Caller must have initSvg/render'd the parent before invoking this helper.
+                function loadLocationIntoInput(parentBlock, inputName, locData) {
+                    if (!locData) return;
+                    const type = locData.hasRotation ? 'location_full'
+                               : (locData.hasWorld ? 'location_xyz_world' : 'location_xyz');
+                    const child = workspace.newBlock(type);
+                    child.setFieldValue(String(locData.x != null ? locData.x : 0), 'X');
+                    child.setFieldValue(String(locData.y != null ? locData.y : 0), 'Y');
+                    child.setFieldValue(String(locData.z != null ? locData.z : 0), 'Z');
+                    if (type !== 'location_xyz') {
+                        child.setFieldValue(String(locData.worldName != null ? locData.worldName : 'world'), 'WORLD');
+                    }
+                    if (type === 'location_full') {
+                        child.setFieldValue(String(locData.yaw != null ? locData.yaw : 0), 'YAW');
+                        child.setFieldValue(String(locData.pitch != null ? locData.pitch : 0), 'PITCH');
+                    }
+                    child.initSvg();
+                    child.render();
+                    const input = parentBlock.getInput(inputName);
+                    if (input && input.connection && child.outputConnection) {
+                        input.connection.connect(child.outputConnection);
+                    }
+                }
+
+                // Reads a Boolean child block connected to a value input.
+                function extractBooleanFromInput(block, inputName) {
+                    const child = block.getInputTargetBlock(inputName);
+                    if (!child) return false;
+                    return child.type === 'boolean_true';
+                }
+
+                // Creates and connects a Boolean child block from saved boolean data.
+                // Caller must have initSvg/render'd the parent before invoking this helper.
+                function loadBooleanIntoInput(parentBlock, inputName, value) {
+                    if (value === null || value === undefined) return;
+                    const child = workspace.newBlock(value ? 'boolean_true' : 'boolean_false');
+                    child.initSvg();
+                    child.render();
+                    const input = parentBlock.getInput(inputName);
+                    if (input && input.connection && child.outputConnection) {
+                        input.connection.connect(child.outputConnection);
+                    }
+                }
+
                 """);
     }
 
@@ -1304,13 +1364,13 @@ public class BlocklyJavaScriptGenerator {
 
         js.append("                if (trigger.type === '").append(triggerType).append("') {\n");
         js.append("                    const triggerBlock = workspace.newBlock('").append(triggerType).append("');\n");
+        js.append("                    triggerBlock.initSvg();\n");
+        js.append("                    triggerBlock.render();\n");
 
         for (BlocklyFieldExtractor.BlocklyFieldInfo field : fields) {
             buildFieldValueLoading(js, field, "triggerBlock", "trigger");
         }
 
-        js.append("                    triggerBlock.initSvg();\n");
-        js.append("                    triggerBlock.render();\n");
         js.append("                    loadActionsIntoBlock(triggerBlock, trigger.actions);\n");
         js.append("                    triggerBlock.moveBy(20 + (index * 300), 20);\n");
         js.append("                }\n");
@@ -1329,6 +1389,8 @@ public class BlocklyJavaScriptGenerator {
 
         js.append("                if (action.type === '").append(actionType).append("') {\n");
         js.append("                    actionBlock = workspace.newBlock('").append(actionType).append("');\n");
+        js.append("                    actionBlock.initSvg();\n");
+        js.append("                    actionBlock.render();\n");
 
         for (BlocklyFieldExtractor.BlocklyFieldInfo field : fields) {
             buildFieldValueLoading(js, field, "actionBlock", "action");
@@ -1349,10 +1411,10 @@ public class BlocklyJavaScriptGenerator {
             case TEXT_INPUT -> js.append(field.fieldName()).append(": ").append(source).append(".getFieldValue('").append(field.fieldName()).append("')");
             case NUMBER_INPUT -> js.append(field.fieldName()).append(": Number(").append(source).append(".getFieldValue('").append(field.fieldName()).append("'))");
             case DROPDOWN -> js.append(field.fieldName()).append(": ").append(source).append(".getFieldValue('").append(field.fieldName()).append("')");
-            case BOOLEAN_INPUT -> js.append(field.fieldName()).append(": ").append(source).append(".getFieldValue('").append(field.fieldName()).append("') === 'TRUE'");
+            case BOOLEAN_INPUT -> js.append(field.fieldName()).append(": extractBooleanFromInput(").append(source).append(", '").append(field.fieldName()).append("')");
             case COLOR_INPUT -> js.append(field.fieldName()).append(": ").append(source).append(".getFieldValue('").append(field.fieldName()).append("')");
             case CHECKBOX -> js.append(field.fieldName()).append(": ").append(source).append(".getFieldValue('").append(field.fieldName()).append("') === 'TRUE'");
-            case LOCATION_INPUT -> js.append(field.fieldName()).append(": ").append(source).append(".getFieldValue('").append(field.fieldName()).append("')");
+            case LOCATION_INPUT -> js.append(field.fieldName()).append(": extractLocationFromInput(").append(source).append(", '").append(field.fieldName()).append("')");
         }
     }
 
@@ -1373,13 +1435,19 @@ public class BlocklyJavaScriptGenerator {
         String prefix = "                    " + targetBlock + ".setFieldValue(";
         String suffix = ", '" + name + "');\n";
         switch (field.type()) {
-            case TEXT_INPUT, DROPDOWN, COLOR_INPUT, LOCATION_INPUT ->
+            case TEXT_INPUT, DROPDOWN, COLOR_INPUT ->
                     js.append(prefix).append(sourceData).append('.').append(name).append(suffix);
             case NUMBER_INPUT ->
                     js.append(prefix).append("Number(").append(sourceData).append('.').append(name).append(")").append(suffix);
-            case BOOLEAN_INPUT, CHECKBOX ->
+            case CHECKBOX ->
                     js.append(prefix).append(sourceData).append('.').append(name)
                       .append(" ? 'TRUE' : 'FALSE'").append(suffix);
+            case LOCATION_INPUT ->
+                    js.append("                    loadLocationIntoInput(").append(targetBlock)
+                      .append(", '").append(name).append("', ").append(sourceData).append('.').append(name).append(");\n");
+            case BOOLEAN_INPUT ->
+                    js.append("                    loadBooleanIntoInput(").append(targetBlock)
+                      .append(", '").append(name).append("', ").append(sourceData).append('.').append(name).append(");\n");
         }
     }
 }

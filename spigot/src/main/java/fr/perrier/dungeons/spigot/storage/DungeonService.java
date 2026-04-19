@@ -161,6 +161,16 @@ public class DungeonService {
      * @param floorData the floor to synchronize.
      */
     public void syncFloor(FloorData floorData) {
+        // Keep the local cache in sync first so later getCurrentFloor() calls return
+        // the freshly-saved triggers. Without this, saves persist to DB but the in-memory
+        // currentFloor still points at the pre-save FloorData — the trigger editor's
+        // subsequent /api/triggers read then returns stale triggers (default values
+        // from the pre-edit state).
+        FloorData currentLocal = currentFloor.get();
+        if (currentLocal != null && currentLocal.getId().equals(floorData.getId())) {
+            currentFloor.set(floorData);
+        }
+
         // The shared Redis map is consumed by the proxy (Velocity), which does not have
         // Spigot trigger classes on its classpath — Kryo throws ClassNotFoundException on
         // types like EntityDeathTrigger. Strip triggers before anything leaves this server;
