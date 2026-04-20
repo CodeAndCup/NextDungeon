@@ -9,6 +9,8 @@ import org.bukkit.entity.Player;
 import org.reflections.Reflections;
 
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Dynamically generates the JavaScript used by the web Blockly editor of the Spigot plugin.
@@ -17,11 +19,35 @@ import java.util.*;
  * actions by category, then builds block definitions, the toolbox and utility functions into a
  * single JavaScript string ready to be injected into the editor page.</p>
  *
+ * <h2>Bug fixes in this version</h2>
+ * <ul>
+ *   <li><b>Fixed silent exception in {@link #generateAllActionCases(StringBuilder)}</b>:
+ *       the previous empty {@code catch} block silently swallowed exceptions raised by
+ *       actions returning {@code true} from {@code requiresCustomBlockGeneration()} when
+ *       they did not override {@code generateCustomActionCase()}. This caused affected
+ *       actions (e.g. {@code summon_mob_action}, {@code send_message_action},
+ *       {@code send_title_action}, {@code delay_action}, {@code broadcast_command_action})
+ *       to be <b>silently dropped from the JSON payload on save</b>, while their
+ *       definitions and loading paths kept working. The catch now falls back to
+ *       {@link #buildActionExtractionCase(StringBuilder, Class)} like its siblings.</li>
+ *   <li><b>Consistent fallbacks across all three generation phases</b>: definition,
+ *       extraction and loading now all fall back to the annotation-driven path when a
+ *       custom hook throws.</li>
+ *   <li><b>Startup consistency check</b> ({@link #validateConsistency()}): if a class
+ *       declares {@code requiresCustomBlockGeneration() == true} but one of the three
+ *       custom hooks throws, a warning is logged so the problem becomes visible instead
+ *       of manifesting as missing data.</li>
+ *   <li><b>Improved logging</b>: swallowed exceptions are now logged at FINE/WARNING so
+ *       future regressions surface in the server log.</li>
+ * </ul>
+ *
  * @since 1.0.4-SNAPSHOT (2026-03-11)
  * @see fr.perrier.dungeons.spigot.webeditor.blockly.annotations.BlocklyInfo
  * @see fr.perrier.dungeons.spigot.webeditor.blockly.BlocklyFieldExtractor
  */
 public class BlocklyJavaScriptGenerator {
+
+    private static final Logger LOGGER = Logger.getLogger(BlocklyJavaScriptGenerator.class.getName());
 
     private final Map<String, List<Class<? extends BlocklyTrigger>>> triggersByCategory = new HashMap<>();
     private final Map<String, List<Class<? extends BlocklyAction>>> actionsByCategory = new HashMap<>();
@@ -31,22 +57,23 @@ public class BlocklyJavaScriptGenerator {
      * by scanning the classpath.
      *
      * <p>This initialization collects trigger and action classes annotated with {@code @BlocklyInfo}
-     * and organizes them by category.</p>
+     * and organizes them by category. It also runs a consistency check that warns about classes
+     * whose {@code requiresCustomBlockGeneration()} is {@code true} but whose custom hooks throw.</p>
      *
      * @since 1.0.4-SNAPSHOT (2026-03-11)
      */
     public BlocklyJavaScriptGenerator() {
         scanForComponents();
+        validateConsistency();
     }
 
     /**
-     * Scans packages to find triggers and actions annotated with @BlocklyInfo
+     * Scans packages to find triggers and actions annotated with {@code @BlocklyInfo}
      * and organizes them by category.
      */
     private void scanForComponents() {
         Reflections reflections = new Reflections("fr.perrier.dungeons");
 
-        // Scanner les triggers
         Set<Class<? extends BlocklyTrigger>> triggerClasses = reflections.getSubTypesOf(BlocklyTrigger.class);
         for (Class<? extends BlocklyTrigger> clazz : triggerClasses) {
             if (clazz.isAnnotationPresent(BlocklyInfo.class)) {
@@ -56,7 +83,6 @@ public class BlocklyJavaScriptGenerator {
             }
         }
 
-        // Scanner les actions
         Set<Class<? extends BlocklyAction>> actionClasses = reflections.getSubTypesOf(BlocklyAction.class);
         for (Class<? extends BlocklyAction> clazz : actionClasses) {
             if (clazz.isAnnotationPresent(BlocklyInfo.class)) {
@@ -65,6 +91,66 @@ public class BlocklyJavaScriptGenerator {
                 actionsByCategory.computeIfAbsent(category, k -> new ArrayList<>()).add(clazz);
             }
         }
+    }
+
+    /**
+     * Validates that every action declaring {@code requiresCustomBlockGeneration() == true} also
+     * provides working implementations of all three custom hooks.
+     *
+     * <p>This guards against the regression that previously caused actions such as
+     * {@code summon_mob_action} and {@code send_message_action} to be silently dropped from
+     * the JSON payload: their {@code generateCustomActionCase()} threw, the exception was
+     * swallowed, and no extraction case was emitted for them.</p>
+     *
+     * <p>Problems are logged as warnings rather than thrown so a misconfigured action does
+     * not prevent the whole editor from loading — the generator will automatically fall back
+     * to the annotation-driven path for such actions.</p>
+     */
+    private void validateConsistency() {
+        for (List<Class<? extends BlocklyAction>> classes : actionsByCategory.values()) {
+            for (Class<? extends BlocklyAction> actionClass : classes) {
+                try {
+                    BlocklyAction instance = actionClass.getDeclaredConstructor().newInstance();
+                    if (!instance.requiresCustomBlockGeneration()) continue;
+
+                    StringBuilder sink = new StringBuilder();
+                    checkHook(actionClass, "generateCustomBlock",             () -> instance.generateCustomBlock(sink));
+                    checkHook(actionClass, "generateCustomActionCase",        () -> instance.generateCustomActionCase(sink));
+                    checkHook(actionClass, "generateCustomActionLoadingCase", () -> instance.generateCustomActionLoadingCase(sink));
+                } catch (ReflectiveOperationException e) {
+                    LOGGER.log(Level.WARNING,
+                            "Cannot instantiate action class " + actionClass.getName()
+                            + " — it will be skipped by the Blockly generator",
+                            e);
+                }
+            }
+        }
+    }
+
+    /**
+     * Runs a single custom hook and logs a warning if it throws. Used by {@link #validateConsistency()}.
+     *
+     * @param cls      the action class owning the hook, used for contextual logging
+     * @param hookName human-readable hook name for the log message
+     * @param runnable the hook invocation
+     */
+    private void checkHook(Class<?> cls, String hookName, ThrowingRunnable runnable) {
+        try {
+            runnable.run();
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING,
+                    cls.getSimpleName() + "." + hookName + "() threw — "
+                    + "annotation-based fallback will be used. "
+                    + "Override requiresCustomBlockGeneration() or implement this hook "
+                    + "properly to silence this warning.",
+                    e);
+        }
+    }
+
+    /** Minimal functional interface allowing checked-exception-aware lambdas inside {@link #validateConsistency()}. */
+    @FunctionalInterface
+    private interface ThrowingRunnable {
+        void run() throws Exception;
     }
 
     /**
@@ -95,28 +181,13 @@ public class BlocklyJavaScriptGenerator {
         js.append("// Auto-généré par BlocklyJavaScriptGenerator\n");
         js.append("console.log('🔧 Chargement automatique des blocs Blockly...');\n\n");
 
-        // Build trigger block definitions
         buildAllTriggerBlockDefinitions(js);
-
-        // Build action block definitions
         buildAllActionBlockDefinitions(js);
-
-        // Build function block definitions
         buildFunctionBlockDefinitions(js);
-
-        // Build utility block definitions
         buildUtilityBlockDefinitions(js);
-
-        // Build variable block definitions
         buildVariableBlockDefinitions(js);
-
-        // Build dynamic module blocks
         buildDynamicModuleBlocks(js);
-
-        // Build toolbox
         buildToolbox(js);
-
-        // Build utility functions
         buildUtilityFunctions(js);
 
         js.append("console.log('✅ Tous les blocs ont été générés automatiquement!');\n");
@@ -150,25 +221,22 @@ public class BlocklyJavaScriptGenerator {
      */
     private void buildSingleTriggerBlockDefinition(StringBuilder js, Class<? extends BlocklyTrigger> triggerClass) {
         BlocklyInfo info = triggerClass.getAnnotation(BlocklyInfo.class);
-        String blockName = info.name().isEmpty() ?
-                triggerClass.getSimpleName().toLowerCase().replace("trigger", "_trigger") :
-                info.name();
+        String blockName = info.name().isEmpty()
+                ? triggerClass.getSimpleName().toLowerCase().replace("trigger", "_trigger")
+                : info.name();
 
         List<BlocklyFieldExtractor.BlocklyFieldInfo> fields = BlocklyFieldExtractor.extractFields(triggerClass);
 
         js.append("Blockly.Blocks['").append(blockName).append("'] = {\n");
         js.append("    init: function() {\n");
 
-        // Block title
         js.append("        this.appendDummyInput()\n");
         js.append("            .appendField(\"").append(escapeJavaScript(info.displayText())).append("\");\n");
 
-        // Generate fields
         for (BlocklyFieldExtractor.BlocklyFieldInfo field : fields) {
             buildBlocklyFieldDefinition(js, field);
         }
 
-        // Statement input for actions if supported
         try {
             BlocklyTrigger instance = triggerClass.getDeclaredConstructor().newInstance();
             if (instance.hasActions()) {
@@ -177,7 +245,10 @@ public class BlocklyJavaScriptGenerator {
                 js.append("            .appendField(\"Execute:\");\n");
             }
         } catch (Exception e) {
-            // Fallback: add actions by default
+            LOGGER.log(Level.FINE,
+                    "Cannot instantiate trigger " + triggerClass.getSimpleName()
+                    + " — defaulting to hasActions()=true",
+                    e);
             js.append("        this.appendStatementInput(\"ACTIONS\")\n");
             js.append("            .setCheck(\"Action\")\n");
             js.append("            .appendField(\"Execute:\");\n");
@@ -192,6 +263,15 @@ public class BlocklyJavaScriptGenerator {
         js.append("};\n\n");
     }
 
+    /**
+     * Builds block definitions for all action blocks organized by category.
+     *
+     * <p>Actions declaring {@code requiresCustomBlockGeneration() == true} are generated via
+     * their custom hook; if that hook throws, the generator falls back to the annotation-driven
+     * path so no action is ever silently missing from the output.</p>
+     *
+     * @param js the StringBuilder to accumulate the generated JavaScript code
+     */
     private void buildAllActionBlockDefinitions(StringBuilder js) {
         js.append("// ===== ACTION BLOCKS (AUTO-GENERATED) =====\n");
 
@@ -201,11 +281,23 @@ public class BlocklyJavaScriptGenerator {
                 try {
                     BlocklyAction instance = actionClass.getDeclaredConstructor().newInstance();
                     if (instance.requiresCustomBlockGeneration()) {
-                        instance.generateCustomBlock(js);
+                        try {
+                            instance.generateCustomBlock(js);
+                        } catch (Exception customEx) {
+                            LOGGER.log(Level.WARNING,
+                                    actionClass.getSimpleName() + ".generateCustomBlock() threw — "
+                                    + "falling back to annotation-based generation",
+                                    customEx);
+                            buildSingleActionBlockDefinition(js, actionClass);
+                        }
                     } else {
                         buildSingleActionBlockDefinition(js, actionClass);
                     }
-                } catch (Exception e) {
+                } catch (ReflectiveOperationException e) {
+                    LOGGER.log(Level.WARNING,
+                            "Cannot instantiate " + actionClass.getSimpleName()
+                            + " — using annotation-based definition",
+                            e);
                     buildSingleActionBlockDefinition(js, actionClass);
                 }
             }
@@ -221,25 +313,22 @@ public class BlocklyJavaScriptGenerator {
      */
     private void buildSingleActionBlockDefinition(StringBuilder js, Class<? extends BlocklyAction> actionClass) {
         BlocklyInfo info = actionClass.getAnnotation(BlocklyInfo.class);
-        String blockName = info.name().isEmpty() ?
-                actionClass.getSimpleName().toLowerCase().replace("action", "_action") :
-                info.name();
+        String blockName = info.name().isEmpty()
+                ? actionClass.getSimpleName().toLowerCase().replace("action", "_action")
+                : info.name();
 
         List<BlocklyFieldExtractor.BlocklyFieldInfo> fields = BlocklyFieldExtractor.extractFields(actionClass);
 
         js.append("Blockly.Blocks['").append(blockName).append("'] = {\n");
         js.append("    init: function() {\n");
 
-        // Block title
         js.append("        this.appendDummyInput()\n");
         js.append("            .appendField(\"").append(escapeJavaScript(info.displayText())).append("\");\n");
 
-        // Generate fields
         for (BlocklyFieldExtractor.BlocklyFieldInfo field : fields) {
             buildBlocklyFieldDefinition(js, field);
         }
 
-        // Connections for chaining
         try {
             BlocklyAction instance = actionClass.getDeclaredConstructor().newInstance();
             if (instance.isChainable()) {
@@ -247,7 +336,10 @@ public class BlocklyJavaScriptGenerator {
                 js.append("        this.setNextStatement(true, \"Action\");\n");
             }
         } catch (Exception e) {
-            // Fallback: chainable by default
+            LOGGER.log(Level.FINE,
+                    "Cannot instantiate action " + actionClass.getSimpleName()
+                    + " — defaulting to chainable",
+                    e);
             js.append("        this.setPreviousStatement(true, \"Action\");\n");
             js.append("        this.setNextStatement(true, \"Action\");\n");
         }
@@ -271,9 +363,9 @@ public class BlocklyJavaScriptGenerator {
         // Value-input fields (LOCATION_INPUT, BOOLEAN_INPUT) emit their own label + input,
         // so we skip the leading dummy input used by simple appendField-based fields.
         if (field.type() == BlocklyField.FieldType.LOCATION_INPUT
-                || field.type() == BlocklyField.FieldType.BOOLEAN_INPUT) {
+            || field.type() == BlocklyField.FieldType.BOOLEAN_INPUT) {
             switch (field.type()) {
-                case BOOLEAN_INPUT -> buildBooleanFieldDefinition(js, field);
+                case BOOLEAN_INPUT  -> buildBooleanFieldDefinition(js, field);
                 case LOCATION_INPUT -> buildLocationFieldDefinition(js, field);
             }
             return;
@@ -286,26 +378,22 @@ public class BlocklyJavaScriptGenerator {
         }
 
         switch (field.type()) {
-            case TEXT_INPUT -> buildTextFieldDefinition(js, field);
+            case TEXT_INPUT   -> buildTextFieldDefinition(js, field);
             case NUMBER_INPUT -> buildNumberFieldDefinition(js, field);
-            case DROPDOWN -> buildDropdownFieldDefinition(js, field);
-            case COLOR_INPUT -> buildColorFieldDefinition(js, field);
-            case CHECKBOX -> buildCheckboxFieldDefinition(js, field);
+            case DROPDOWN     -> buildDropdownFieldDefinition(js, field);
+            case COLOR_INPUT  -> buildColorFieldDefinition(js, field);
+            case CHECKBOX     -> buildCheckboxFieldDefinition(js, field);
         }
     }
 
-    /**
-     * Builds a text input field definition.
-     */
+    /** Builds a text input field definition. */
     private void buildTextFieldDefinition(StringBuilder js, BlocklyFieldExtractor.BlocklyFieldInfo field) {
         js.append("            .appendField(new Blockly.FieldTextInput(\"")
                 .append(escapeJavaScript(field.defaultValue()))
                 .append("\"), \"").append(field.fieldName()).append("\");\n");
     }
 
-    /**
-     * Builds a number input field definition with optional bounds.
-     */
+    /** Builds a number input field definition with optional bounds. */
     private void buildNumberFieldDefinition(StringBuilder js, BlocklyFieldExtractor.BlocklyFieldInfo field) {
         js.append("            .appendField(new Blockly.FieldNumber(")
                 .append(field.defaultValue().isEmpty() ? "0" : field.defaultValue());
@@ -318,9 +406,7 @@ public class BlocklyJavaScriptGenerator {
         js.append("), \"").append(field.fieldName()).append("\");\n");
     }
 
-    /**
-     * Builds a dropdown/select field definition.
-     */
+    /** Builds a dropdown/select field definition. */
     private void buildDropdownFieldDefinition(StringBuilder js, BlocklyFieldExtractor.BlocklyFieldInfo field) {
         js.append("            .appendField(new Blockly.FieldDropdown([");
         String[] options = field.options().split(",");
@@ -331,9 +417,7 @@ public class BlocklyJavaScriptGenerator {
         js.append("]), \"").append(field.fieldName()).append("\");\n");
     }
 
-    /**
-     * Builds a boolean value input field connected to another block.
-     */
+    /** Builds a boolean value input field connected to another block. */
     private void buildBooleanFieldDefinition(StringBuilder js, BlocklyFieldExtractor.BlocklyFieldInfo field) {
         if (!field.label().isEmpty()) {
             js.append("        this.appendDummyInput()\n");
@@ -343,27 +427,21 @@ public class BlocklyJavaScriptGenerator {
         js.append("            .setCheck(\"Boolean\");\n");
     }
 
-    /**
-     * Builds a color picker field definition.
-     */
+    /** Builds a color picker field definition. */
     private void buildColorFieldDefinition(StringBuilder js, BlocklyFieldExtractor.BlocklyFieldInfo field) {
         js.append("            .appendField(new Blockly.FieldColour(\"")
                 .append(field.defaultValue().isEmpty() ? "#ff0000" : field.defaultValue())
                 .append("\"), \"").append(field.fieldName()).append("\");\n");
     }
 
-    /**
-     * Builds a checkbox field definition.
-     */
+    /** Builds a checkbox field definition. */
     private void buildCheckboxFieldDefinition(StringBuilder js, BlocklyFieldExtractor.BlocklyFieldInfo field) {
         js.append("            .appendField(new Blockly.FieldCheckbox(")
                 .append(field.defaultValue().equalsIgnoreCase("true") ? "true" : "false")
                 .append("), \"").append(field.fieldName()).append("\");\n");
     }
 
-    /**
-     * Builds a location value input field connected to a location block.
-     */
+    /** Builds a location value input field connected to a location block. */
     private void buildLocationFieldDefinition(StringBuilder js, BlocklyFieldExtractor.BlocklyFieldInfo field) {
         if (!field.label().isEmpty()) {
             js.append("        this.appendDummyInput()\n");
@@ -378,6 +456,9 @@ public class BlocklyJavaScriptGenerator {
      * call_function_action block definitions are now auto-generated from their
      * annotated Java classes (FunctionTrigger, CallFunctionAction) via the
      * normal trigger/action build paths, so no hardcoded definitions are needed.
+     *
+     * @param js unused; kept so the calling sequence in {@link #generateJavaScript(Player)}
+     *           does not have to be rewritten if function blocks regain hardcoded parts later
      */
     private void buildFunctionBlockDefinitions(StringBuilder js) {
         // Intentionally empty: block definitions auto-generated from @BlocklyField annotations.
@@ -517,6 +598,8 @@ public class BlocklyJavaScriptGenerator {
 
     /**
      * Generates Blockly block definitions for all blocks registered by dynamic modules.
+     *
+     * @param js the StringBuilder to accumulate the generated JavaScript code
      */
     private void buildDynamicModuleBlocks(StringBuilder js) {
         ModuleLoader moduleLoader = Main.getInstance().getModuleLoader();
@@ -536,12 +619,10 @@ public class BlocklyJavaScriptGenerator {
             js.append("        this.appendDummyInput()\n");
             js.append("            .appendField(\"").append(escapeJavaScript(descriptor.getLabel())).append("\");\n");
 
-            // Generate fields from parameters
             if (descriptor.getParameters() != null) {
                 buildModuleParameterFields(js, descriptor);
             }
 
-            // Actions can chain, triggers have statement inputs
             if (descriptor.getType() == ModuleBlockDescriptor.BlockType.ACTION) {
                 js.append("        this.setPreviousStatement(true, \"Action\");\n");
                 js.append("        this.setNextStatement(true, \"Action\");\n");
@@ -615,6 +696,8 @@ public class BlocklyJavaScriptGenerator {
 
     /**
      * Generates toolbox categories for dynamic module blocks grouped by category.
+     *
+     * @param js the StringBuilder to accumulate the generated JavaScript code
      */
     private void buildModuleToolboxCategories(StringBuilder js) {
         ModuleLoader moduleLoader = Main.getInstance().getModuleLoader();
@@ -623,7 +706,6 @@ public class BlocklyJavaScriptGenerator {
         List<ModuleBlockDescriptor> allBlocks = moduleLoader.getBlockRegistry().getAllBlocks();
         if (allBlocks.isEmpty()) return;
 
-        // Group blocks by category
         Map<String, List<ModuleBlockDescriptor>> byCategory = new LinkedHashMap<>();
         for (ModuleBlockDescriptor block : allBlocks) {
             String category = block.getCategory() != null ? block.getCategory() : block.getModuleId();
@@ -653,6 +735,8 @@ public class BlocklyJavaScriptGenerator {
      * Generates JavaScript extraction cases for dynamic module trigger blocks.
      * When a module trigger block is in the workspace, this extracts its fields
      * and creates a trigger object with the correct type and actions.
+     *
+     * @param js the StringBuilder to accumulate the generated JavaScript code
      */
     private void buildModuleTriggerExtractionCases(StringBuilder js) {
         ModuleLoader moduleLoader = Main.getInstance().getModuleLoader();
@@ -673,11 +757,11 @@ public class BlocklyJavaScriptGenerator {
                     String fieldName = param.getName();
                     switch (param.getType() != null ? param.getType() : "string") {
                         case "number" ->
-                            js.append("                        ").append(fieldName).append(": Number(block.getFieldValue('").append(fieldName).append("')),\n");
+                                js.append("                        ").append(fieldName).append(": Number(block.getFieldValue('").append(fieldName).append("')),\n");
                         case "boolean" ->
-                            js.append("                        ").append(fieldName).append(": block.getFieldValue('").append(fieldName).append("') === 'TRUE',\n");
+                                js.append("                        ").append(fieldName).append(": block.getFieldValue('").append(fieldName).append("') === 'TRUE',\n");
                         default ->
-                            js.append("                        ").append(fieldName).append(": block.getFieldValue('").append(fieldName).append("'),\n");
+                                js.append("                        ").append(fieldName).append(": block.getFieldValue('").append(fieldName).append("'),\n");
                     }
                 }
             }
@@ -692,6 +776,8 @@ public class BlocklyJavaScriptGenerator {
      * Generates JavaScript loading cases for dynamic module trigger blocks.
      * When loading saved triggers, this recreates module trigger blocks and
      * sets their field values from saved data.
+     *
+     * @param js the StringBuilder to accumulate the generated JavaScript code
      */
     private void buildModuleTriggerLoadingCases(StringBuilder js) {
         ModuleLoader moduleLoader = Main.getInstance().getModuleLoader();
@@ -718,7 +804,6 @@ public class BlocklyJavaScriptGenerator {
                         js.append("                    if (trigger.").append(fieldName).append(" !== undefined) triggerBlock.setFieldValue(String(trigger.")
                                 .append(fieldName).append("), '").append(fieldName).append("');\n");
                     }
-
                 }
             }
 
@@ -732,6 +817,8 @@ public class BlocklyJavaScriptGenerator {
      * Generates JavaScript extraction cases for dynamic module action blocks.
      * When a module action block is encountered in the workspace, this extracts
      * all its field values and creates an action object with the correct type.
+     *
+     * @param js the StringBuilder to accumulate the generated JavaScript code
      */
     private void buildModuleActionExtractionCases(StringBuilder js) {
         ModuleLoader moduleLoader = Main.getInstance().getModuleLoader();
@@ -752,11 +839,11 @@ public class BlocklyJavaScriptGenerator {
                     String fieldName = param.getName();
                     switch (param.getType() != null ? param.getType() : "string") {
                         case "number" ->
-                            js.append(fieldName).append(": Number(actionBlock.getFieldValue('").append(fieldName).append("'))");
+                                js.append(fieldName).append(": Number(actionBlock.getFieldValue('").append(fieldName).append("'))");
                         case "boolean" ->
-                            js.append(fieldName).append(": actionBlock.getFieldValue('").append(fieldName).append("') === 'TRUE'");
+                                js.append(fieldName).append(": actionBlock.getFieldValue('").append(fieldName).append("') === 'TRUE'");
                         default ->
-                            js.append(fieldName).append(": actionBlock.getFieldValue('").append(fieldName).append("')");
+                                js.append(fieldName).append(": actionBlock.getFieldValue('").append(fieldName).append("')");
                     }
                 }
             }
@@ -770,6 +857,8 @@ public class BlocklyJavaScriptGenerator {
      * Generates JavaScript loading cases for dynamic module action blocks.
      * When loading a saved workflow, this recreates module action blocks in the workspace
      * and sets their field values from the saved action data.
+     *
+     * @param js the StringBuilder to accumulate the generated JavaScript code
      */
     private void buildModuleActionLoadingCases(StringBuilder js) {
         ModuleLoader moduleLoader = Main.getInstance().getModuleLoader();
@@ -816,7 +905,6 @@ public class BlocklyJavaScriptGenerator {
         js.append("    \"kind\": \"categoryToolbox\",\n");
         js.append("    \"contents\": [\n");
 
-        // Trigger categories
         for (Map.Entry<String, List<Class<? extends BlocklyTrigger>>> entry : triggersByCategory.entrySet()) {
             js.append("        {\n");
             js.append("            \"kind\": \"category\",\n");
@@ -826,9 +914,9 @@ public class BlocklyJavaScriptGenerator {
 
             for (Class<? extends BlocklyTrigger> triggerClass : entry.getValue()) {
                 BlocklyInfo info = triggerClass.getAnnotation(BlocklyInfo.class);
-                String blockName = info.name().isEmpty() ?
-                        triggerClass.getSimpleName().toLowerCase().replace("trigger", "_trigger") :
-                        info.name();
+                String blockName = info.name().isEmpty()
+                        ? triggerClass.getSimpleName().toLowerCase().replace("trigger", "_trigger")
+                        : info.name();
                 js.append("                {\"kind\": \"block\", \"type\": \"").append(blockName).append("\"},\n");
             }
 
@@ -836,9 +924,8 @@ public class BlocklyJavaScriptGenerator {
             js.append("        },\n");
         }
 
-        // Action categories
         for (Map.Entry<String, List<Class<? extends BlocklyAction>>> entry : actionsByCategory.entrySet()) {
-            if(entry.getKey().equals("Actions")) {
+            if (entry.getKey().equals("Actions")) {
                 js.append("        {\n");
                 js.append("            \"kind\": \"category\",\n");
                 js.append("            \"name\": \"⚡ ").append(entry.getKey()).append("\",\n");
@@ -860,9 +947,9 @@ public class BlocklyJavaScriptGenerator {
 
             for (Class<? extends BlocklyAction> actionClass : entry.getValue()) {
                 BlocklyInfo info = actionClass.getAnnotation(BlocklyInfo.class);
-                String blockName = info.name().isEmpty() ?
-                        actionClass.getSimpleName().toLowerCase().replace("action", "_action") :
-                        info.name();
+                String blockName = info.name().isEmpty()
+                        ? actionClass.getSimpleName().toLowerCase().replace("action", "_action")
+                        : info.name();
                 js.append("                {\"kind\": \"block\", \"type\": \"").append(blockName).append("\"},\n");
             }
 
@@ -870,7 +957,6 @@ public class BlocklyJavaScriptGenerator {
             js.append("        },\n");
         }
 
-        // Function category
         js.append("""
                         {
                             "kind": "category",
@@ -883,7 +969,6 @@ public class BlocklyJavaScriptGenerator {
                         },
                 """);
 
-        // Variable category
         js.append("""
                 {
                     "kind": "category",
@@ -896,7 +981,6 @@ public class BlocklyJavaScriptGenerator {
                 },
                 """);
 
-        // Utility category
         js.append("""
                         {
                             "kind": "category",
@@ -914,7 +998,6 @@ public class BlocklyJavaScriptGenerator {
                         },
                 """);
 
-        // Dynamic module categories
         buildModuleToolboxCategories(js);
 
         js.append("""
@@ -951,6 +1034,8 @@ public class BlocklyJavaScriptGenerator {
      * Emits JavaScript helpers for value-input fields (LOCATION_INPUT, BOOLEAN_INPUT).
      * These fields attach a child block via appendValueInput and cannot be read/written
      * through get/setFieldValue — they require walking the connection graph.
+     *
+     * @param js the StringBuilder to accumulate the generated JavaScript code
      */
     private void buildValueInputHelperFunctions(StringBuilder js) {
         js.append("""
@@ -1022,6 +1107,8 @@ public class BlocklyJavaScriptGenerator {
 
     /**
      * Builds the JavaScript function for generating triggers from the workspace.
+     *
+     * @param js the StringBuilder to accumulate the generated JavaScript code
      */
     private void buildTriggerGenerationFunction(StringBuilder js) {
         js.append("""
@@ -1051,6 +1138,8 @@ public class BlocklyJavaScriptGenerator {
 
     /**
      * Builds the JavaScript function for extracting actions from a block.
+     *
+     * @param js the StringBuilder to accumulate the generated JavaScript code
      */
     private void buildActionExtractionFunction(StringBuilder js) {
         js.append("""
@@ -1079,6 +1168,8 @@ public class BlocklyJavaScriptGenerator {
 
     /**
      * Builds the JavaScript function for loading triggers into the workspace.
+     *
+     * @param js the StringBuilder to accumulate the generated JavaScript code
      */
     private void buildTriggerLoadingFunction(StringBuilder js) {
         js.append("""
@@ -1116,6 +1207,8 @@ public class BlocklyJavaScriptGenerator {
 
     /**
      * Builds JavaScript functions for loading actions into blocks.
+     *
+     * @param js the StringBuilder to accumulate the generated JavaScript code
      */
     private void buildActionLoadingFunctions(StringBuilder js) {
         js.append("""
@@ -1152,6 +1245,8 @@ public class BlocklyJavaScriptGenerator {
 
     /**
      * Builds helper JavaScript functions for action and statement handling.
+     *
+     * @param js the StringBuilder to accumulate the generated JavaScript code
      */
     private void buildHelperFunctions(StringBuilder js) {
         js.append("""
@@ -1206,9 +1301,10 @@ public class BlocklyJavaScriptGenerator {
                 """);
     }
 
-
     /**
      * Builds JavaScript generation cases for all trigger blocks and inserts them.
+     *
+     * @param js the StringBuilder to accumulate the generated JavaScript code
      */
     private void generateAllTriggerCases(StringBuilder js) {
         for (Map.Entry<String, List<Class<? extends BlocklyTrigger>>> entry : triggersByCategory.entrySet()) {
@@ -1219,7 +1315,18 @@ public class BlocklyJavaScriptGenerator {
     }
 
     /**
-     * Builds JavaScript generation cases for all action blocks and inserts them.
+     * Builds JavaScript extraction cases for all action blocks and inserts them.
+     *
+     * <p><b>Bug fix</b>: previously, when a class returned {@code true} from
+     * {@code requiresCustomBlockGeneration()} and its {@code generateCustomActionCase()}
+     * threw (for instance because the subclass did not override it), the exception was
+     * silently swallowed by an empty {@code catch} block. As a result, these actions
+     * were <b>never emitted in the {@code getActionsFromBlock} switch</b>, so they were
+     * dropped from the JSON payload on save while their definitions and loading cases
+     * kept working. The fix now mirrors the fallback behaviour already present in
+     * {@link #generateActionsLoadingCasesPerCategory(StringBuilder)}.</p>
+     *
+     * @param js the StringBuilder to accumulate the generated JavaScript code
      */
     private void generateAllActionCases(StringBuilder js) {
         for (Map.Entry<String, List<Class<? extends BlocklyAction>>> entry : actionsByCategory.entrySet()) {
@@ -1227,12 +1334,26 @@ public class BlocklyJavaScriptGenerator {
                 try {
                     BlocklyAction instance = actionClass.getDeclaredConstructor().newInstance();
                     if (instance.requiresCustomBlockGeneration()) {
-                        instance.generateCustomActionCase(js);
+                        try {
+                            instance.generateCustomActionCase(js);
+                        } catch (Exception customEx) {
+                            LOGGER.log(Level.WARNING,
+                                    actionClass.getSimpleName() + ".generateCustomActionCase() threw — "
+                                    + "falling back to annotation-based extraction. "
+                                    + "Previously this exception was swallowed, causing the action "
+                                    + "to be silently dropped from the JSON payload on save.",
+                                    customEx);
+                            buildActionExtractionCase(js, actionClass);
+                        }
                     } else {
                         buildActionExtractionCase(js, actionClass);
                     }
-                } catch (Exception e) {
-                    // Handle error silently - fallback to default generation
+                } catch (ReflectiveOperationException e) {
+                    LOGGER.log(Level.WARNING,
+                            "Cannot instantiate " + actionClass.getSimpleName()
+                            + " — using annotation-based extraction",
+                            e);
+                    buildActionExtractionCase(js, actionClass);
                 }
             }
         }
@@ -1240,6 +1361,8 @@ public class BlocklyJavaScriptGenerator {
 
     /**
      * Builds JavaScript loading cases for all trigger blocks.
+     *
+     * @param js the StringBuilder to accumulate the generated JavaScript code
      */
     private void generateAllTriggerLoadingCases(StringBuilder js) {
         for (Map.Entry<String, List<Class<? extends BlocklyTrigger>>> entry : triggersByCategory.entrySet()) {
@@ -1251,6 +1374,11 @@ public class BlocklyJavaScriptGenerator {
 
     /**
      * Builds action loading cases for each action category.
+     *
+     * <p>This method already had a correct fallback for swallowed exceptions — it is used
+     * as the reference for the fix applied to {@link #generateAllActionCases(StringBuilder)}.</p>
+     *
+     * @param js the StringBuilder to accumulate the generated JavaScript code
      */
     private void generateActionsLoadingCasesPerCategory(StringBuilder js) {
         for (Map.Entry<String, List<Class<? extends BlocklyAction>>> entry : actionsByCategory.entrySet()) {
@@ -1258,11 +1386,23 @@ public class BlocklyJavaScriptGenerator {
                 try {
                     BlocklyAction instance = actionClass.getDeclaredConstructor().newInstance();
                     if (instance.requiresCustomBlockGeneration()) {
-                        instance.generateCustomActionLoadingCase(js);
+                        try {
+                            instance.generateCustomActionLoadingCase(js);
+                        } catch (Exception customEx) {
+                            LOGGER.log(Level.WARNING,
+                                    actionClass.getSimpleName() + ".generateCustomActionLoadingCase() threw — "
+                                    + "falling back to annotation-based loading",
+                                    customEx);
+                            buildActionLoadingCase(js, actionClass);
+                        }
                     } else {
                         buildActionLoadingCase(js, actionClass);
                     }
-                } catch (Exception e) {
+                } catch (ReflectiveOperationException e) {
+                    LOGGER.log(Level.WARNING,
+                            "Cannot instantiate " + actionClass.getSimpleName()
+                            + " — using annotation-based loading",
+                            e);
                     buildActionLoadingCase(js, actionClass);
                 }
             }
@@ -1271,6 +1411,8 @@ public class BlocklyJavaScriptGenerator {
 
     /**
      * Builds JavaScript loading cases for all action blocks.
+     *
+     * @param js the StringBuilder to accumulate the generated JavaScript code
      */
     private void generateAllActionLoadingCases(StringBuilder js) {
         generateActionsLoadingCasesPerCategory(js);
@@ -1320,6 +1462,10 @@ public class BlocklyJavaScriptGenerator {
                 js.append("                        actions: []\n");
             }
         } catch (Exception e) {
+            LOGGER.log(Level.FINE,
+                    "Cannot instantiate " + triggerClass.getSimpleName()
+                    + " while building extraction case — defaulting to hasActions()=true",
+                    e);
             js.append("                        actions: getActionsFromBlock(block)\n");
         }
 
@@ -1408,12 +1554,12 @@ public class BlocklyJavaScriptGenerator {
      */
     private void buildFieldValueExtraction(StringBuilder js, BlocklyFieldExtractor.BlocklyFieldInfo field, String source) {
         switch (field.type()) {
-            case TEXT_INPUT -> js.append(field.fieldName()).append(": ").append(source).append(".getFieldValue('").append(field.fieldName()).append("')");
-            case NUMBER_INPUT -> js.append(field.fieldName()).append(": Number(").append(source).append(".getFieldValue('").append(field.fieldName()).append("'))");
-            case DROPDOWN -> js.append(field.fieldName()).append(": ").append(source).append(".getFieldValue('").append(field.fieldName()).append("')");
-            case BOOLEAN_INPUT -> js.append(field.fieldName()).append(": extractBooleanFromInput(").append(source).append(", '").append(field.fieldName()).append("')");
-            case COLOR_INPUT -> js.append(field.fieldName()).append(": ").append(source).append(".getFieldValue('").append(field.fieldName()).append("')");
-            case CHECKBOX -> js.append(field.fieldName()).append(": ").append(source).append(".getFieldValue('").append(field.fieldName()).append("') === 'TRUE'");
+            case TEXT_INPUT     -> js.append(field.fieldName()).append(": ").append(source).append(".getFieldValue('").append(field.fieldName()).append("')");
+            case NUMBER_INPUT   -> js.append(field.fieldName()).append(": Number(").append(source).append(".getFieldValue('").append(field.fieldName()).append("'))");
+            case DROPDOWN       -> js.append(field.fieldName()).append(": ").append(source).append(".getFieldValue('").append(field.fieldName()).append("')");
+            case BOOLEAN_INPUT  -> js.append(field.fieldName()).append(": extractBooleanFromInput(").append(source).append(", '").append(field.fieldName()).append("')");
+            case COLOR_INPUT    -> js.append(field.fieldName()).append(": ").append(source).append(".getFieldValue('").append(field.fieldName()).append("')");
+            case CHECKBOX       -> js.append(field.fieldName()).append(": ").append(source).append(".getFieldValue('").append(field.fieldName()).append("') === 'TRUE'");
             case LOCATION_INPUT -> js.append(field.fieldName()).append(": extractLocationFromInput(").append(source).append(", '").append(field.fieldName()).append("')");
         }
     }
@@ -1441,14 +1587,13 @@ public class BlocklyJavaScriptGenerator {
                     js.append(prefix).append("Number(").append(sourceData).append('.').append(name).append(")").append(suffix);
             case CHECKBOX ->
                     js.append(prefix).append(sourceData).append('.').append(name)
-                      .append(" ? 'TRUE' : 'FALSE'").append(suffix);
+                            .append(" ? 'TRUE' : 'FALSE'").append(suffix);
             case LOCATION_INPUT ->
                     js.append("                    loadLocationIntoInput(").append(targetBlock)
-                      .append(", '").append(name).append("', ").append(sourceData).append('.').append(name).append(");\n");
+                            .append(", '").append(name).append("', ").append(sourceData).append('.').append(name).append(");\n");
             case BOOLEAN_INPUT ->
                     js.append("                    loadBooleanIntoInput(").append(targetBlock)
-                      .append(", '").append(name).append("', ").append(sourceData).append('.').append(name).append(");\n");
+                            .append(", '").append(name).append("', ").append(sourceData).append('.').append(name).append(");\n");
         }
     }
 }
-
