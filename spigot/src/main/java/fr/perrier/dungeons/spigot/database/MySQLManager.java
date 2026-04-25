@@ -188,6 +188,32 @@ public class MySQLManager implements DatabaseManager {
             createIndexIfMissing(conn, "floors", "idx_version", "version");
             createIndexIfMissing(conn, "floors", "idx_updated_at", "updated_at");
 
+            // Memory Labyrinth tables
+            stmt.execute("CREATE TABLE IF NOT EXISTS labyrinth_rooms (" +
+                    "id VARCHAR(64) PRIMARY KEY, " +
+                    "type VARCHAR(16) NOT NULL, " +
+                    "payload_json MEDIUMTEXT NOT NULL, " +
+                    "tags VARCHAR(255), " +
+                    "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
+                    "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" +
+                    ")");
+
+            stmt.execute("CREATE TABLE IF NOT EXISTS labyrinth_saves (" +
+                    "id VARCHAR(36) PRIMARY KEY, " +
+                    "floor_id VARCHAR(64) NOT NULL, " +
+                    "party_hash CHAR(64) NOT NULL, " +
+                    "payload_json MEDIUMTEXT NOT NULL, " +
+                    "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
+                    "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" +
+                    ")");
+            createIndexIfMissing(conn, "labyrinth_saves", "idx_party", "party_hash, floor_id");
+
+            stmt.execute("CREATE TABLE IF NOT EXISTS labyrinth_loot_tables (" +
+                    "floor_id VARCHAR(64) PRIMARY KEY, " +
+                    "payload_json MEDIUMTEXT NOT NULL, " +
+                    "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" +
+                    ")");
+
         } catch (SQLException e) {
             Main.getLoggerUtil().severe("Failed to create database tables: " + e.getMessage());
             e.printStackTrace(System.err);
@@ -869,5 +895,226 @@ public class MySQLManager implements DatabaseManager {
             }
             return result;
         }, "getAllFloors(limit=" + limit + ")");
+    }
+
+    // ===== Memory Labyrinth: room templates =====
+
+    @Override
+    public CompletableFuture<String> loadLabyrinthRoom(String roomId) {
+        return executeAsync(() -> {
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(
+                         "SELECT payload_json FROM labyrinth_rooms WHERE id = ?")) {
+                stmt.setString(1, roomId);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) return rs.getString("payload_json");
+                }
+                return null;
+            }
+        }, "Load labyrinth room " + roomId);
+    }
+
+    @Override
+    public CompletableFuture<Void> saveLabyrinthRoom(String roomId, String type, String tagsCsv, String payloadJson) {
+        return executeAsync(() -> {
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(
+                         "INSERT INTO labyrinth_rooms (id, type, payload_json, tags) VALUES (?, ?, ?, ?) " +
+                         "ON DUPLICATE KEY UPDATE type = VALUES(type), payload_json = VALUES(payload_json), tags = VALUES(tags)")) {
+                stmt.setString(1, roomId);
+                stmt.setString(2, type);
+                stmt.setString(3, payloadJson);
+                stmt.setString(4, tagsCsv);
+                stmt.executeUpdate();
+                Main.getLoggerUtil().info("Labyrinth room saved: " + roomId);
+                return null;
+            }
+        }, "Save labyrinth room " + roomId);
+    }
+
+    @Override
+    public CompletableFuture<Void> deleteLabyrinthRoom(String roomId) {
+        return executeAsync(() -> {
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(
+                         "DELETE FROM labyrinth_rooms WHERE id = ?")) {
+                stmt.setString(1, roomId);
+                stmt.executeUpdate();
+                Main.getLoggerUtil().info("Labyrinth room deleted: " + roomId);
+                return null;
+            }
+        }, "Delete labyrinth room " + roomId);
+    }
+
+    @Override
+    public CompletableFuture<List<String[]>> listLabyrinthRooms() {
+        return executeAsync(() -> {
+            List<String[]> result = new ArrayList<>();
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(
+                         "SELECT id, type, tags, payload_json FROM labyrinth_rooms ORDER BY id")) {
+                try (ResultSet rs = stmt.executeQuery()) {
+                    while (rs.next()) {
+                        result.add(new String[]{
+                                rs.getString("id"),
+                                rs.getString("type"),
+                                rs.getString("tags"),
+                                rs.getString("payload_json")
+                        });
+                    }
+                }
+            }
+            return result;
+        }, "List labyrinth rooms");
+    }
+
+    // ===== Memory Labyrinth: Infinite saves =====
+
+    @Override
+    public CompletableFuture<String> loadLabyrinthSave(String saveId) {
+        return executeAsync(() -> {
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(
+                         "SELECT payload_json FROM labyrinth_saves WHERE id = ?")) {
+                stmt.setString(1, saveId);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) return rs.getString("payload_json");
+                }
+                return null;
+            }
+        }, "Load labyrinth save " + saveId);
+    }
+
+    @Override
+    public CompletableFuture<String> findLabyrinthSaveByPartyHash(String partyHash, String floorId) {
+        return executeAsync(() -> {
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(
+                         "SELECT payload_json FROM labyrinth_saves " +
+                         "WHERE party_hash = ? AND floor_id = ? " +
+                         "ORDER BY updated_at DESC LIMIT 1")) {
+                stmt.setString(1, partyHash);
+                stmt.setString(2, floorId);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) return rs.getString("payload_json");
+                }
+                return null;
+            }
+        }, "Find labyrinth save by partyHash");
+    }
+
+    @Override
+    public CompletableFuture<Void> saveLabyrinthSave(String saveId, String floorId, String partyHash, String payloadJson) {
+        return executeAsync(() -> {
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(
+                         "INSERT INTO labyrinth_saves (id, floor_id, party_hash, payload_json) VALUES (?, ?, ?, ?) " +
+                         "ON DUPLICATE KEY UPDATE floor_id = VALUES(floor_id), party_hash = VALUES(party_hash), payload_json = VALUES(payload_json)")) {
+                stmt.setString(1, saveId);
+                stmt.setString(2, floorId);
+                stmt.setString(3, partyHash);
+                stmt.setString(4, payloadJson);
+                stmt.executeUpdate();
+                Main.getLoggerUtil().info("Labyrinth save persisted: " + saveId);
+                return null;
+            }
+        }, "Save labyrinth save " + saveId);
+    }
+
+    @Override
+    public CompletableFuture<Void> deleteLabyrinthSave(String saveId) {
+        return executeAsync(() -> {
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(
+                         "DELETE FROM labyrinth_saves WHERE id = ?")) {
+                stmt.setString(1, saveId);
+                stmt.executeUpdate();
+                Main.getLoggerUtil().info("Labyrinth save deleted: " + saveId);
+                return null;
+            }
+        }, "Delete labyrinth save " + saveId);
+    }
+
+    @Override
+    public CompletableFuture<List<String[]>> listLabyrinthSaves() {
+        return executeAsync(() -> {
+            List<String[]> result = new ArrayList<>();
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(
+                         "SELECT id, floor_id, party_hash FROM labyrinth_saves ORDER BY updated_at DESC")) {
+                try (ResultSet rs = stmt.executeQuery()) {
+                    while (rs.next()) {
+                        result.add(new String[]{
+                                rs.getString("id"),
+                                rs.getString("floor_id"),
+                                rs.getString("party_hash")
+                        });
+                    }
+                }
+            }
+            return result;
+        }, "List labyrinth saves");
+    }
+
+    // ===== Memory Labyrinth: loot tables =====
+
+    @Override
+    public CompletableFuture<String> loadLootTable(String floorId) {
+        return executeAsync(() -> {
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(
+                         "SELECT payload_json FROM labyrinth_loot_tables WHERE floor_id = ?")) {
+                stmt.setString(1, floorId);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) return rs.getString("payload_json");
+                }
+                return null;
+            }
+        }, "Load loot table " + floorId);
+    }
+
+    @Override
+    public CompletableFuture<Void> saveLootTable(String floorId, String payloadJson) {
+        return executeAsync(() -> {
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(
+                         "INSERT INTO labyrinth_loot_tables (floor_id, payload_json) VALUES (?, ?) " +
+                         "ON DUPLICATE KEY UPDATE payload_json = VALUES(payload_json)")) {
+                stmt.setString(1, floorId);
+                stmt.setString(2, payloadJson);
+                stmt.executeUpdate();
+                Main.getLoggerUtil().info("Loot table saved: " + floorId);
+                return null;
+            }
+        }, "Save loot table " + floorId);
+    }
+
+    @Override
+    public CompletableFuture<Void> deleteLootTable(String floorId) {
+        return executeAsync(() -> {
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(
+                         "DELETE FROM labyrinth_loot_tables WHERE floor_id = ?")) {
+                stmt.setString(1, floorId);
+                stmt.executeUpdate();
+                Main.getLoggerUtil().info("Loot table deleted: " + floorId);
+                return null;
+            }
+        }, "Delete loot table " + floorId);
+    }
+
+    @Override
+    public CompletableFuture<List<String>> listLootTables() {
+        return executeAsync(() -> {
+            List<String> result = new ArrayList<>();
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(
+                         "SELECT floor_id FROM labyrinth_loot_tables ORDER BY floor_id")) {
+                try (ResultSet rs = stmt.executeQuery()) {
+                    while (rs.next()) result.add(rs.getString("floor_id"));
+                }
+            }
+            return result;
+        }, "List loot tables");
     }
 }

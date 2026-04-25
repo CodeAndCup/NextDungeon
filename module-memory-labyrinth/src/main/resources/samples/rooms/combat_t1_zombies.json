@@ -1,0 +1,17 @@
+{
+  "id": "combat_t1_zombies",
+  "type": "COMBAT",
+  "worldId": "labyrinth_pool",
+  "region": { "min": { "x": 32, "y": 60, "z": 32 }, "max": { "x": 48, "y": 80, "z": 48 } },
+  "playerSpawn": { "x": 40, "y": 61, "z": 34 },
+  "doors": [
+    { "id": "exit_left", "anchor": { "x": 35, "y": 61, "z": 46 } },
+    { "id": "exit_right", "anchor": { "x": 45, "y": 61, "z": 46 } }
+  ],
+  "mobSpawns": [
+    { "mobId": "ZOMBIE", "x": 38, "y": 61, "z": 40, "count": 3 },
+    { "mobId": "ZOMBIE", "x": 42, "y": 61, "z": 40, "count": 2 }
+  ],
+  "tags": ["combat", "t1", "easy", "normal"],
+  "fixedIcon": null
+}

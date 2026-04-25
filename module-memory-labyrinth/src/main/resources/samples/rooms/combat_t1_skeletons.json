@@ -1,0 +1,17 @@
+{
+  "id": "combat_t1_skeletons",
+  "type": "COMBAT",
+  "worldId": "labyrinth_pool",
+  "region": { "min": { "x": 0, "y": 60, "z": 32 }, "max": { "x": 16, "y": 80, "z": 48 } },
+  "playerSpawn": { "x": 8, "y": 61, "z": 34 },
+  "doors": [
+    { "id": "exit_left", "anchor": { "x": 3, "y": 61, "z": 46 } },
+    { "id": "exit_right", "anchor": { "x": 13, "y": 61, "z": 46 } }
+  ],
+  "mobSpawns": [
+    { "mobId": "SKELETON", "x": 5, "y": 61, "z": 40, "count": 2 },
+    { "mobId": "SKELETON", "x": 11, "y": 61, "z": 40, "count": 2 }
+  ],
+  "tags": ["combat", "t1", "easy", "normal"],
+  "fixedIcon": null
+}

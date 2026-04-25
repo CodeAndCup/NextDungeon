@@ -1,0 +1,14 @@
+{
+  "id": "lobby_basic",
+  "type": "LOBBY",
+  "worldId": "labyrinth_pool",
+  "region": { "min": { "x": 0, "y": 60, "z": 0 }, "max": { "x": 16, "y": 80, "z": 16 } },
+  "playerSpawn": { "x": 8, "y": 61, "z": 2 },
+  "doors": [
+    { "id": "exit_left", "anchor": { "x": 3, "y": 61, "z": 14 } },
+    { "id": "exit_right", "anchor": { "x": 13, "y": 61, "z": 14 } }
+  ],
+  "mobSpawns": [],
+  "tags": ["lobby", "easy", "normal", "hard", "infinite"],
+  "fixedIcon": "NONE"
+}

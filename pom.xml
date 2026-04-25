@@ -27,6 +27,7 @@
         <module>velocity</module>
         <module>module-cinematic</module>
         <module>module-worldedit</module>
+        <module>module-memory-labyrinth</module>
     </modules>
 
     <properties>

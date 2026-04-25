@@ -29,6 +29,9 @@ public class MongoManager implements DatabaseManager {
     private MongoCollection<Document> triggersCollection;
     private MongoCollection<Document> dungeonsCollection;
     private MongoCollection<Document> floorsCollection;
+    private MongoCollection<Document> labyrinthRoomsCollection;
+    private MongoCollection<Document> labyrinthSavesCollection;
+    private MongoCollection<Document> labyrinthLootTablesCollection;
 
     /**
      * Connects to the MongoDB database and initializes collections.
@@ -46,10 +49,15 @@ public class MongoManager implements DatabaseManager {
         this.dungeonsCollection = database.getCollection("dungeons");
         this.floorsCollection = database.getCollection("floors");
 
+        this.labyrinthRoomsCollection = database.getCollection("labyrinth_rooms");
+        this.labyrinthSavesCollection = database.getCollection("labyrinth_saves");
+        this.labyrinthLootTablesCollection = database.getCollection("labyrinth_loot_tables");
+
         // Create index on floor_id for efficient queries
         triggersCollection.createIndex(new Document("floor_id", 1));
         dungeonsCollection.createIndex(new Document("id", 1));
         floorsCollection.createIndex(new Document("dungeon_id", 1));
+        labyrinthSavesCollection.createIndex(new Document("party_hash", 1).append("floor_id", 1));
     }
 
     /**
@@ -528,6 +536,212 @@ public class MongoManager implements DatabaseManager {
                 }
             } catch (Exception e) {
                 Main.getLoggerUtil().severe("Error listing floors: " + e.getMessage());
+            }
+            return result;
+        });
+    }
+
+    // ===== Memory Labyrinth: room templates =====
+
+    @Override
+    public CompletableFuture<String> loadLabyrinthRoom(String roomId) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                Document doc = labyrinthRoomsCollection.find(new Document("_id", roomId)).first();
+                if (doc != null) return doc.getString("payload_json");
+                return null;
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Error loading labyrinth room " + roomId + ": " + e.getMessage());
+                return null;
+            }
+        });
+    }
+
+    @Override
+    public CompletableFuture<Void> saveLabyrinthRoom(String roomId, String type, String tagsCsv, String payloadJson) {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                Document doc = new Document("$set", new Document()
+                        .append("_id", roomId)
+                        .append("type", type)
+                        .append("tags", tagsCsv)
+                        .append("payload_json", payloadJson)
+                        .append("updated_at", System.currentTimeMillis()));
+                labyrinthRoomsCollection.updateOne(new Document("_id", roomId), doc,
+                        new com.mongodb.client.model.UpdateOptions().upsert(true));
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Error saving labyrinth room " + roomId + ": " + e.getMessage());
+            }
+        });
+    }
+
+    @Override
+    public CompletableFuture<Void> deleteLabyrinthRoom(String roomId) {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                labyrinthRoomsCollection.deleteOne(new Document("_id", roomId));
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Error deleting labyrinth room " + roomId + ": " + e.getMessage());
+            }
+        });
+    }
+
+    @Override
+    public CompletableFuture<List<String[]>> listLabyrinthRooms() {
+        return CompletableFuture.supplyAsync(() -> {
+            List<String[]> result = new ArrayList<>();
+            try {
+                for (Document doc : labyrinthRoomsCollection.find()) {
+                    result.add(new String[]{
+                            doc.getString("_id"),
+                            doc.getString("type"),
+                            doc.getString("tags"),
+                            doc.getString("payload_json")
+                    });
+                }
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Error listing labyrinth rooms: " + e.getMessage());
+            }
+            return result;
+        });
+    }
+
+    // ===== Memory Labyrinth: Infinite saves =====
+
+    @Override
+    public CompletableFuture<String> loadLabyrinthSave(String saveId) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                Document doc = labyrinthSavesCollection.find(new Document("_id", saveId)).first();
+                if (doc != null) return doc.getString("payload_json");
+                return null;
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Error loading labyrinth save " + saveId + ": " + e.getMessage());
+                return null;
+            }
+        });
+    }
+
+    @Override
+    public CompletableFuture<String> findLabyrinthSaveByPartyHash(String partyHash, String floorId) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                Document query = new Document("party_hash", partyHash).append("floor_id", floorId);
+                Document doc = labyrinthSavesCollection.find(query)
+                        .sort(new Document("updated_at", -1))
+                        .first();
+                if (doc != null) return doc.getString("payload_json");
+                return null;
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Error finding labyrinth save by partyHash: " + e.getMessage());
+                return null;
+            }
+        });
+    }
+
+    @Override
+    public CompletableFuture<Void> saveLabyrinthSave(String saveId, String floorId, String partyHash, String payloadJson) {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                Document doc = new Document("$set", new Document()
+                        .append("_id", saveId)
+                        .append("floor_id", floorId)
+                        .append("party_hash", partyHash)
+                        .append("payload_json", payloadJson)
+                        .append("updated_at", System.currentTimeMillis()));
+                labyrinthSavesCollection.updateOne(new Document("_id", saveId), doc,
+                        new com.mongodb.client.model.UpdateOptions().upsert(true));
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Error saving labyrinth save " + saveId + ": " + e.getMessage());
+            }
+        });
+    }
+
+    @Override
+    public CompletableFuture<Void> deleteLabyrinthSave(String saveId) {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                labyrinthSavesCollection.deleteOne(new Document("_id", saveId));
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Error deleting labyrinth save " + saveId + ": " + e.getMessage());
+            }
+        });
+    }
+
+    @Override
+    public CompletableFuture<List<String[]>> listLabyrinthSaves() {
+        return CompletableFuture.supplyAsync(() -> {
+            List<String[]> result = new ArrayList<>();
+            try {
+                FindIterable<Document> cursor = labyrinthSavesCollection.find()
+                        .sort(new Document("updated_at", -1));
+                for (Document doc : cursor) {
+                    result.add(new String[]{
+                            doc.getString("_id"),
+                            doc.getString("floor_id"),
+                            doc.getString("party_hash")
+                    });
+                }
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Error listing labyrinth saves: " + e.getMessage());
+            }
+            return result;
+        });
+    }
+
+    // ===== Memory Labyrinth: loot tables =====
+
+    @Override
+    public CompletableFuture<String> loadLootTable(String floorId) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                Document doc = labyrinthLootTablesCollection.find(new Document("_id", floorId)).first();
+                if (doc != null) return doc.getString("payload_json");
+                return null;
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Error loading loot table " + floorId + ": " + e.getMessage());
+                return null;
+            }
+        });
+    }
+
+    @Override
+    public CompletableFuture<Void> saveLootTable(String floorId, String payloadJson) {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                Document doc = new Document("$set", new Document()
+                        .append("_id", floorId)
+                        .append("payload_json", payloadJson)
+                        .append("updated_at", System.currentTimeMillis()));
+                labyrinthLootTablesCollection.updateOne(new Document("_id", floorId), doc,
+                        new com.mongodb.client.model.UpdateOptions().upsert(true));
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Error saving loot table " + floorId + ": " + e.getMessage());
+            }
+        });
+    }
+
+    @Override
+    public CompletableFuture<Void> deleteLootTable(String floorId) {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                labyrinthLootTablesCollection.deleteOne(new Document("_id", floorId));
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Error deleting loot table " + floorId + ": " + e.getMessage());
+            }
+        });
+    }
+
+    @Override
+    public CompletableFuture<List<String>> listLootTables() {
+        return CompletableFuture.supplyAsync(() -> {
+            List<String> result = new ArrayList<>();
+            try {
+                for (Document doc : labyrinthLootTablesCollection.find()) {
+                    result.add(doc.getString("_id"));
+                }
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Error listing loot tables: " + e.getMessage());
             }
             return result;
         });

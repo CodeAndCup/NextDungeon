@@ -1,0 +1,15 @@
+{
+  "id": "boss_t1",
+  "type": "BOSS",
+  "worldId": "labyrinth_pool",
+  "region": { "min": { "x": 64, "y": 60, "z": 0 }, "max": { "x": 96, "y": 90, "z": 32 } },
+  "playerSpawn": { "x": 80, "y": 61, "z": 4 },
+  "doors": [
+    { "id": "exit_main", "anchor": { "x": 80, "y": 61, "z": 30 } }
+  ],
+  "mobSpawns": [
+    { "mobId": "WITHER_SKELETON", "x": 80, "y": 61, "z": 16, "count": 1 }
+  ],
+  "tags": ["boss", "t1", "easy", "normal"],
+  "fixedIcon": "GOLD"
+}
