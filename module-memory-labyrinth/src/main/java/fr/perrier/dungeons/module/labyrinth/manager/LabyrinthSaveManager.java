@@ -5,7 +5,7 @@ import com.google.gson.GsonBuilder;
 import fr.perrier.dungeons.module.labyrinth.model.DifficultyModifier;
 import fr.perrier.dungeons.module.labyrinth.model.LabyrinthRun;
 import fr.perrier.dungeons.module.labyrinth.model.LabyrinthSave;
-import fr.perrier.dungeons.module.labyrinth.model.RewardIcon;
+import fr.perrier.dungeons.common.model.labyrinth.RewardIcon;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.database.DatabaseManager;
 

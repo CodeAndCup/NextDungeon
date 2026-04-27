@@ -1,5 +1,7 @@
 package fr.perrier.dungeons.module.labyrinth.model;
 
+import fr.perrier.dungeons.common.model.labyrinth.LabyrinthRoom;
+import fr.perrier.dungeons.common.model.labyrinth.RewardIcon;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -29,10 +31,24 @@ public class LabyrinthRun {
     private UUID instanceId;
     private String floorId;
 
+    /**
+     * Optional tag the picker uses to filter rooms by difficulty
+     * (typically the floor's tagFilter from {@code LabyrinthFloorConfig}).
+     * Null/empty → no filter, picks from the whole dungeon pool.
+     */
+    private String tagFilter;
+
+    /**
+     * Cached max-rooms cap of the floor. {@link Integer#MAX_VALUE} for
+     * the infinite floor. Read by {@code advanceToChosen} to detect
+     * finite completion without re-reading the floor config.
+     */
+    private int maxRooms = Integer.MAX_VALUE;
+
     /** 0 = lobby, 1..N = combat / boss rooms. */
     private int currentRoomIndex;
 
-    private RoomTemplate currentRoom;
+    private LabyrinthRoom currentRoom;
 
     /**
      * Per-entry UUID of the current room. Two visits to the same template
@@ -44,7 +60,7 @@ public class LabyrinthRun {
     /** Icon of the room the players are currently inside. */
     private RewardIcon currentRoomIcon = RewardIcon.NONE;
 
-    private final List<RoomTemplate> routeHistory = new ArrayList<>();
+    private final List<LabyrinthRoom> routeHistory = new ArrayList<>();
 
     /** Non-null while the player is between a cleared room and the next. */
     private DoorChoice pendingChoice;

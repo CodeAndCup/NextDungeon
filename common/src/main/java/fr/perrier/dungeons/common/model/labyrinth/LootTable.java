@@ -1,4 +1,4 @@
-package fr.perrier.dungeons.module.labyrinth.model;
+package fr.perrier.dungeons.common.model.labyrinth;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -9,24 +9,23 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Loot configuration scoped to a single floor (CDC §4.4, Q5.2).
+ * Loot configuration scoped to a single labyrinth floor (CDC §4.4,
+ * Q5.2 = un pool d'items par floor).
  *
- * <p>Resolved at end-of-run (CDC §6.5) :</p>
+ * <p>Resolved at end-of-run :</p>
  * <pre>
  *   gold      = baseGold × (1 + goldPerIcon × iconCounts.GOLD) × tierMultiplier
  *   itemRolls = baseItemRolls
  *   for r in 0..itemRolls : pickWeightedFromItems(filter: minTier ≤ currentTier)
  * </pre>
  *
- * <p>One pool per floor — {@code easy} cannot drop legendary items reserved
- * to {@code infinite} (CDC Q5.2).</p>
+ * <p>Lives inline in the floor's {@code LabyrinthFloorConfig} now —
+ * no more dedicated DB table (pre-redesign R6 cleanup).</p>
  */
 @Getter
 @Setter
 @NoArgsConstructor
 public class LootTable implements Serializable {
-
-    private String floorId;
 
     private long baseGold;
     private double goldPerIcon;

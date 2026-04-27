@@ -1,6 +1,6 @@
 package fr.perrier.dungeons.module.labyrinth.loot;
 
-import fr.perrier.dungeons.module.labyrinth.model.RewardIcon;
+import fr.perrier.dungeons.common.model.labyrinth.RewardIcon;
 import lombok.Getter;
 import lombok.Setter;
 

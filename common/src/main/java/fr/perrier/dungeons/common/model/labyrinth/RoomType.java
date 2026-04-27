@@ -1,4 +1,4 @@
-package fr.perrier.dungeons.module.labyrinth.model;
+package fr.perrier.dungeons.common.model.labyrinth;
 
 /**
  * Type of a labyrinth room template.

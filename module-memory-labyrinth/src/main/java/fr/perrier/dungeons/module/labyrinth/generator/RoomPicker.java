@@ -3,9 +3,9 @@ package fr.perrier.dungeons.module.labyrinth.generator;
 import fr.perrier.dungeons.module.labyrinth.manager.RoomTemplateRegistry;
 import fr.perrier.dungeons.module.labyrinth.model.DoorChoice;
 import fr.perrier.dungeons.module.labyrinth.model.LabyrinthRun;
-import fr.perrier.dungeons.module.labyrinth.model.RewardIcon;
-import fr.perrier.dungeons.module.labyrinth.model.RoomTemplate;
-import fr.perrier.dungeons.module.labyrinth.model.RoomType;
+import fr.perrier.dungeons.common.model.labyrinth.RewardIcon;
+import fr.perrier.dungeons.common.model.labyrinth.LabyrinthRoom;
+import fr.perrier.dungeons.common.model.labyrinth.RoomType;
 import fr.perrier.dungeons.spigot.Main;
 
 import java.util.ArrayList;
@@ -50,15 +50,17 @@ public class RoomPicker {
     }
 
     /**
-     * Pick the lobby room for a run start.
+     * Pick the lobby room for a run start. {@code instanceId} keys the
+     * per-instance pool loaded by {@link RoomTemplateRegistry#load}.
      */
-    public RoomTemplate pickLobby(String floorId) {
-        List<RoomTemplate> pool = filterByFloor(registry.getByType(RoomType.LOBBY), floorId);
+    public LabyrinthRoom pickLobby(java.util.UUID instanceId, String floorId, String tagFilter) {
+        List<LabyrinthRoom> pool = filterByTag(registry.getByType(instanceId, RoomType.LOBBY), tagFilter);
         if (pool.isEmpty()) {
-            logger.warning("[MemoryLabyrinth] No LOBBY room available for floor=" + floorId);
+            logger.warning("[MemoryLabyrinth] No LOBBY room available for floor=" + floorId
+                    + " (instance=" + instanceId + ")");
             return null;
         }
-        return pool.get(rngFor(floorId.hashCode() ^ 1L).nextInt(pool.size()));
+        return pool.get(rngFor((floorId == null ? 0 : floorId.hashCode()) ^ 1L).nextInt(pool.size()));
     }
 
     /**
@@ -79,41 +81,43 @@ public class RoomPicker {
     }
 
     private DoorChoice pickBossDoor(LabyrinthRun run) {
-        List<RoomTemplate> pool = filterByFloor(registry.getByType(RoomType.BOSS), run.getFloorId());
+        List<LabyrinthRoom> pool = filterByTag(
+                registry.getByType(run.getInstanceId(), RoomType.BOSS), run.getTagFilter());
         if (pool.isEmpty()) {
             logger.warning("[MemoryLabyrinth] No BOSS room for floor=" + run.getFloorId());
             return null;
         }
         Random rng = rngFor(run.getSeed() ^ run.getCurrentRoomIndex());
-        RoomTemplate boss = pool.get(rng.nextInt(pool.size()));
+        LabyrinthRoom boss = pool.get(rng.nextInt(pool.size()));
         RewardIcon icon = iconRoller.rollFor(boss);
         return new DoorChoice(boss, icon, boss, icon, true);
     }
 
     private DoorChoice pickCombatPair(LabyrinthRun run) {
-        List<RoomTemplate> base = filterByFloor(registry.getByType(RoomType.COMBAT), run.getFloorId());
+        List<LabyrinthRoom> base = filterByTag(
+                registry.getByType(run.getInstanceId(), RoomType.COMBAT), run.getTagFilter());
         if (base.isEmpty()) {
             logger.warning("[MemoryLabyrinth] No COMBAT room for floor=" + run.getFloorId());
             return null;
         }
 
-        List<RoomTemplate> candidates = avoidRecent(base, run);
+        List<LabyrinthRoom> candidates = avoidRecent(base, run);
         if (candidates.isEmpty()) {
             // Fall back to full base — pool too small to honour avoidance window.
             candidates = base;
         }
 
         Random rng = rngFor(run.getSeed() ^ run.getCurrentRoomIndex());
-        RoomTemplate left = candidates.get(rng.nextInt(candidates.size()));
+        LabyrinthRoom left = candidates.get(rng.nextInt(candidates.size()));
 
-        RoomTemplate right;
+        LabyrinthRoom right;
         if (candidates.size() == 1) {
             // Only one option — same room on both sides (CDC §8 dégénéré).
             logger.warning("[MemoryLabyrinth] Combat pool reduced to 1 for floor=" + run.getFloorId()
                     + ", same room on both doors");
             right = left;
         } else {
-            List<RoomTemplate> remaining = new ArrayList<>(candidates);
+            List<LabyrinthRoom> remaining = new ArrayList<>(candidates);
             remaining.remove(left);
             right = remaining.get(rng.nextInt(remaining.size()));
         }
@@ -123,33 +127,31 @@ public class RoomPicker {
         return new DoorChoice(left, iconLeft, right, iconRight, false);
     }
 
-    private List<RoomTemplate> filterByFloor(List<RoomTemplate> pool, String floorId) {
+    private List<LabyrinthRoom> filterByTag(List<LabyrinthRoom> pool, String tagFilter) {
         if (pool == null || pool.isEmpty()) return Collections.emptyList();
-        if (floorId == null || floorId.isEmpty()) return pool;
-        List<RoomTemplate> out = new ArrayList<>();
-        for (RoomTemplate r : pool) {
+        if (tagFilter == null || tagFilter.isEmpty()) return pool;
+        List<LabyrinthRoom> out = new ArrayList<>();
+        for (LabyrinthRoom r : pool) {
             List<String> tags = r.getTags();
-            if (tags != null && tags.contains(floorId)) out.add(r);
+            if (tags != null && tags.contains(tagFilter)) out.add(r);
         }
-        // If no room is tagged for this floor, fall back to the full pool so
-        // that admins can keep simple setups (e.g. one untagged combat room
-        // shared across all floors). The sanity check at registry load already
-        // warns when the pool is thin.
+        // If no room carries the requested tag, fall back to the full pool
+        // so admins can keep minimal setups working without per-floor tagging.
         return out.isEmpty() ? pool : out;
     }
 
-    private List<RoomTemplate> avoidRecent(List<RoomTemplate> pool, LabyrinthRun run) {
-        List<RoomTemplate> route = run.getRouteHistory();
+    private List<LabyrinthRoom> avoidRecent(List<LabyrinthRoom> pool, LabyrinthRun run) {
+        List<LabyrinthRoom> route = run.getRouteHistory();
         if (route == null || route.isEmpty()) return pool;
         int from = Math.max(0, route.size() - RECENT_AVOID_WINDOW);
         List<String> recentIds = new ArrayList<>();
         for (int i = from; i < route.size(); i++) {
-            RoomTemplate r = route.get(i);
+            LabyrinthRoom r = route.get(i);
             if (r != null) recentIds.add(r.getId());
         }
         if (recentIds.isEmpty()) return pool;
-        List<RoomTemplate> out = new ArrayList<>();
-        for (RoomTemplate r : pool) {
+        List<LabyrinthRoom> out = new ArrayList<>();
+        for (LabyrinthRoom r : pool) {
             if (!recentIds.contains(r.getId())) out.add(r);
         }
         return out;

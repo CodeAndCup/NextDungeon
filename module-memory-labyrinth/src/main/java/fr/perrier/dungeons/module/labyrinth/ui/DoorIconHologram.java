@@ -1,6 +1,6 @@
 package fr.perrier.dungeons.module.labyrinth.ui;
 
-import fr.perrier.dungeons.module.labyrinth.model.RewardIcon;
+import fr.perrier.dungeons.common.model.labyrinth.RewardIcon;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Display;

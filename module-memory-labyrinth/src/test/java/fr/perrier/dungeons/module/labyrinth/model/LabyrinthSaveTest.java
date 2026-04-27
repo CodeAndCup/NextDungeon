@@ -1,5 +1,6 @@
 package fr.perrier.dungeons.module.labyrinth.model;
 
+import fr.perrier.dungeons.common.model.labyrinth.RewardIcon;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;

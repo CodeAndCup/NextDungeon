@@ -1,4 +1,4 @@
-package fr.perrier.dungeons.module.labyrinth.model;
+package fr.perrier.dungeons.common.model.labyrinth;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -9,12 +9,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Persisted template describing a labyrinth room.
+ * A labyrinth room template — the building block of a procedural run.
  *
- * <p>Pre-built rooms live in a static "labyrinth_pool" world ; the picker
- * teleports players between regions at runtime (CDC §2.3, v1 = static rooms).</p>
+ * <p>Lives inside a {@link LabyrinthDungeonConfig}'s shared pool ; the
+ * picker filters rooms by tag so each floor (= difficulty) can pick
+ * its own subset (CDC §4.1, Q3 = pool unique + tags).</p>
  *
- * <p>{@code fixedIcon} semantics (CDC §4.1) :
+ * <p>{@code fixedIcon} semantics :
  * <ul>
  *   <li>{@code COMBAT} → {@code null} (icon rolled at door proposal time)</li>
  *   <li>{@code LOBBY}  → {@link RewardIcon#NONE} (forced)</li>
@@ -24,14 +25,22 @@ import java.util.List;
 @Getter
 @Setter
 @NoArgsConstructor
-public class RoomTemplate implements Serializable {
+public class LabyrinthRoom implements Serializable {
 
     private String id;
     private RoomType type;
     private String worldId;
     private Region region;
     private Vec3 playerSpawn;
-    private List<Door> doors = new ArrayList<>();
+
+    /**
+     * Optional. When present, the entry point at which players are
+     * teleported when arriving from the previous room. Defaults to
+     * {@link #playerSpawn} when null.
+     */
+    private Vec3 entryDoor;
+
+    private List<Door> exitDoors = new ArrayList<>();
     private List<MobSpawn> mobSpawns = new ArrayList<>();
     private List<String> tags = new ArrayList<>();
     private RewardIcon fixedIcon;
@@ -65,9 +74,10 @@ public class RoomTemplate implements Serializable {
     }
 
     /**
-     * A door anchor in the room ; the picker uses it as the exit from this
-     * room, the {@code DoorController} positions the icon hologram and the
-     * lock/unlock state, and the player traversal triggers the transition.
+     * A door anchor in the room ; the picker uses it as the exit from
+     * this room, the {@code DoorController} positions the icon
+     * hologram and the lock/unlock state, and the player traversal
+     * triggers the transition.
      */
     @Getter
     @Setter
@@ -83,9 +93,9 @@ public class RoomTemplate implements Serializable {
     }
 
     /**
-     * A mob spawn directive. {@code mobId} references a mob from the host
-     * server's MMOCore / MythicMobs configuration ; the module applies tier
-     * scaling at spawn time (see {@link DifficultyModifier}).
+     * A mob spawn directive. {@code mobId} references a mob from the
+     * host server's MMOCore / MythicMobs configuration ; the module
+     * applies tier scaling at spawn time.
      */
     @Getter
     @Setter

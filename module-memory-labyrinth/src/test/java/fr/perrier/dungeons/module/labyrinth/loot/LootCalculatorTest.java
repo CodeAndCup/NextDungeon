@@ -2,8 +2,8 @@ package fr.perrier.dungeons.module.labyrinth.loot;
 
 import fr.perrier.dungeons.module.labyrinth.model.DifficultyModifier;
 import fr.perrier.dungeons.module.labyrinth.model.LabyrinthRun;
-import fr.perrier.dungeons.module.labyrinth.model.LootTable;
-import fr.perrier.dungeons.module.labyrinth.model.RewardIcon;
+import fr.perrier.dungeons.common.model.labyrinth.LootTable;
+import fr.perrier.dungeons.common.model.labyrinth.RewardIcon;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -28,7 +28,6 @@ class LootCalculatorTest {
     @Test
     void goldUsesIconCountAndTierLinearly() {
         LootTable table = new LootTable();
-        table.setFloorId("easy");
         table.setBaseGold(100);
         table.setGoldPerIcon(0.20);
         table.setBaseItemRolls(0);
@@ -49,7 +48,6 @@ class LootCalculatorTest {
     @Test
     void itemsRespectMinTierGate() {
         LootTable table = new LootTable();
-        table.setFloorId("infinite");
         table.setBaseGold(0);
         table.setBaseItemRolls(50);
         table.setItems(List.of(

@@ -1,8 +1,8 @@
 package fr.perrier.dungeons.module.labyrinth.generator;
 
-import fr.perrier.dungeons.module.labyrinth.model.RewardIcon;
-import fr.perrier.dungeons.module.labyrinth.model.RoomTemplate;
-import fr.perrier.dungeons.module.labyrinth.model.RoomType;
+import fr.perrier.dungeons.common.model.labyrinth.RewardIcon;
+import fr.perrier.dungeons.common.model.labyrinth.LabyrinthRoom;
+import fr.perrier.dungeons.common.model.labyrinth.RoomType;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -15,28 +15,28 @@ class IconRollerTest {
     @Test
     void lobbyAlwaysReturnsNone() {
         IconRoller roller = new IconRoller(42L);
-        RoomTemplate room = room(RoomType.LOBBY, null);
+        LabyrinthRoom room = room(RoomType.LOBBY, null);
         assertThat(roller.rollFor(room)).isEqualTo(RewardIcon.NONE);
     }
 
     @Test
     void bossUsesFixedIcon() {
         IconRoller roller = new IconRoller(42L);
-        RoomTemplate room = room(RoomType.BOSS, RewardIcon.GOLD);
+        LabyrinthRoom room = room(RoomType.BOSS, RewardIcon.GOLD);
         assertThat(roller.rollFor(room)).isEqualTo(RewardIcon.GOLD);
     }
 
     @Test
     void bossWithoutFixedIconFallsBackToNone() {
         IconRoller roller = new IconRoller(42L);
-        RoomTemplate room = room(RoomType.BOSS, null);
+        LabyrinthRoom room = room(RoomType.BOSS, null);
         assertThat(roller.rollFor(room)).isEqualTo(RewardIcon.NONE);
     }
 
     @Test
     void combatPicksFromRollableSet() {
         IconRoller roller = new IconRoller(42L);
-        RoomTemplate room = room(RoomType.COMBAT, null);
+        LabyrinthRoom room = room(RoomType.COMBAT, null);
         RewardIcon picked = roller.rollFor(room);
         assertThat(IconRoller.ROLLABLE_V1).contains(picked);
     }
@@ -44,7 +44,7 @@ class IconRollerTest {
     @Test
     void combatHonoursFixedIconOverride() {
         IconRoller roller = new IconRoller(new Random(42L), List.of(RewardIcon.GOLD));
-        RoomTemplate room = room(RoomType.COMBAT, RewardIcon.BLESSING);
+        LabyrinthRoom room = room(RoomType.COMBAT, RewardIcon.BLESSING);
         assertThat(roller.rollFor(room)).isEqualTo(RewardIcon.BLESSING);
     }
 
@@ -52,7 +52,7 @@ class IconRollerTest {
     void seedingMakesRollsDeterministic() {
         IconRoller a = new IconRoller(123L);
         IconRoller b = new IconRoller(123L);
-        RoomTemplate room = room(RoomType.COMBAT, null);
+        LabyrinthRoom room = room(RoomType.COMBAT, null);
         for (int i = 0; i < 32; i++) {
             assertThat(a.rollFor(room)).isEqualTo(b.rollFor(room));
         }
@@ -62,8 +62,8 @@ class IconRollerTest {
         return new IconRoller(seed);
     }
 
-    private static RoomTemplate room(RoomType type, RewardIcon fixedIcon) {
-        RoomTemplate r = new RoomTemplate();
+    private static LabyrinthRoom room(RoomType type, RewardIcon fixedIcon) {
+        LabyrinthRoom r = new LabyrinthRoom();
         r.setId("test_" + type);
         r.setType(type);
         r.setFixedIcon(fixedIcon);

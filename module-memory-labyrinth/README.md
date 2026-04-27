@@ -1,93 +1,181 @@
-# NextDungeon — Memory Labyrinth Module
+# Memory Labyrinth — Admin User Guide
 
-Procedural dungeon module inspired by Hades and Archero. Provides a
-labyrinth-style floor with branching room choices, visible reward icons
-above doors, a boss every 10 rooms, and an infinite mode with
-per-boss checkpoints.
+Procedural dungeon module inspired by **Hades** and **Archero**. Players
+explore a labyrinth of pre-built rooms with branching door choices,
+visible reward icons, a boss every 10 rooms, and an optional infinite
+mode with per-boss checkpoints.
 
-See `MEMORY_LAB.md` at the repository root for the full CDC.
+> Full design specification : `MEMORY_LAB.md` at the repository root.
 
 ---
 
-## Build
+## 1. Installation
 
-```
-mvn -pl module-memory-labyrinth -am clean package
-```
+1. Build the module (or use the JAR you were shipped) :
+   ```
+   mvn -pl module-memory-labyrinth -am clean package
+   ```
+2. Drop `module-memory-labyrinth-<version>.jar` into
+   `plugins/NextDungeon/modules/`.
+3. Restart the server. The host's `ModuleLoader` auto-discovers the
+   JAR ; you should see this in the console :
+   ```
+   [ModuleLoader] Loaded module: Memory Labyrinth Module v0.1.0 (memory_labyrinth) ...
+   ```
 
-The shaded JAR ends up in `module-memory-labyrinth/target/`. Drop it in
-`plugins/NextDungeon/modules/` and restart the server — the
-`ModuleLoader` picks it up at boot.
+No DB migration required — the only labyrinth-specific table is
+`labyrinth_saves`, created automatically on first boot.
 
-## Run-time wiring
+---
 
-`MemoryLabyrinthModule.onEnable` instantiates :
+## 2. Building a labyrinth dungeon (admin walkthrough)
 
-- `RoomTemplateRegistry` + `LootTableRegistry` (loaded from MySQL/Mongo)
-- `RoomPicker` + `IconRoller` (procedural)
-- `LabyrinthRunManager` + `LabyrinthRoomLifecycle` + `MobSpawner`
-- `DoorController` + `BossEncounterHandler`
-- `LabyrinthSaveManager` (Infinite checkpoints)
-- `LootCalculator` + `EndOfRunHandler`
-- `LabyrinthTriggerBus` (Blockly hooks)
-- `TierIndicatorTask` (action-bar feedback)
-- `LabyrinthAdminCommandListener` (in-game admin CRUD)
+Everything is configured from the **NextDungeon dashboard**. There are
+no JSON files to import, no CLI commands required.
 
-All Bukkit listeners are registered against the host plugin
-(`Bukkit.getPluginManager().getPlugin("NextDungeon")`) so they die with
-it on shutdown.
+### 2.1 Pre-build the rooms in a world
 
-## Database
+Pick a world dedicated to your labyrinth pool (e.g. `labyrinth_pool`)
+and physically build :
 
-Three tables / collections are auto-created on first boot (see
-`MySQLManager.createTables` and `MongoManager.connect`) :
+- **1 lobby room** — entry-side, no mobs, where players land for a fresh
+  run.
+- **N combat rooms** (8+ recommended for variety) — fights with mobs,
+  with two visible exit doors.
+- **1+ boss rooms** — single exit, contains a boss mob.
 
-- `labyrinth_rooms` — room template pool (admin-curated)
-- `labyrinth_saves` — Infinite mode checkpoints (auto-managed)
-- `labyrinth_loot_tables` — per-floor loot configuration
+For each room, note down :
+- The **cuboid region** (min and max coordinates).
+- The **player spawn point** (where players are TP'd on entry).
+- The **exit door anchor(s)** : 1 anchor for lobby/boss, 2 anchors for
+  combat (left and right candidates).
 
-## Admin commands
+You'll also pick a **dungeon spawn point** — a single location anywhere
+in the world where players land at run start, before they're sent to
+the lobby (or directly to a saved room in Infinite resume).
 
-In-game commands intercept `/labyrinth admin <subcmd>` via
-`PlayerCommandPreprocessEvent`. Same usage from the console as
-`labyrinth admin <subcmd>`. Permission for players :
-`nextdungeon.admin`.
+### 2.2 Create the dungeon in the dashboard
 
-| Command | Description |
-|---|---|
-| `list-rooms` | Dump the in-memory room pool |
-| `list-loot-tables` | Dump the in-memory loot tables |
-| `list-saves` | Query DB for every Infinite save (debug) |
-| `import-rooms <directory>` | Upsert every `*.json` in `plugins/NextDungeon/labyrinth/<directory>/` |
-| `import-loot <floorId> <file.json>` | Upsert a loot table |
-| `reload` | Re-fetch room pool + loot tables from DB |
-| `stats` | Active runs / pool size / loot table count |
+1. Open the **Dungeon Editor** in the web dashboard.
+2. Click **+ Nouveau Donjon**.
+3. Fill in id / name / description.
+4. **Type** → select `LABYRINTH`.
+5. Save. You're routed to the editor view.
 
-## Sample data
+A new **🌀 Labyrinth** tab appears next to "📋 Informations". Open it.
 
-`src/main/resources/samples/` ships starter JSON files :
+### 2.3 Configure the dungeon-level Labyrinth tab
 
-- `rooms/lobby_basic.json` — single lobby (NONE icon, no mobs)
-- `rooms/combat_t1_skeletons.json`, `combat_t1_zombies.json` — two
-  combat rooms tagged `easy`/`normal`/`t1`
-- `rooms/boss_t1.json` — wither-skeleton boss with fixed `GOLD` icon
-- `loot-tables/easy.json` — flat reward table for the easy floor
-- `loot-tables/infinite.json` — tier-gated rewards for infinite
+- **World ID** — the Bukkit world your rooms live in (e.g.
+  `labyrinth_pool`).
+- **Dungeon spawn point** — the X/Y/Z where players TP at run start.
+- **Pool de rooms** — click **+ Ajouter une room** to open the room
+  editor sub-modal :
+  - **ID** — unique within the dungeon (e.g. `combat_t1_skeletons`).
+  - **Type** — `LOBBY` / `COMBAT` / `BOSS`.
+  - **World ID** — leave empty to inherit the dungeon's world.
+  - **Region** — min/max cuboid of the build.
+  - **Player spawn** — where players appear on entry.
+  - **Exit doors** — anchors that drive door icons + traversal
+    detection. 1 for lobby/boss, 2 for combat (first = left, second =
+    right).
+  - **Mob spawns** — list of `(mobId, x, y, z, count)`. `mobId` is
+    resolved against MythicMobs first, then a vanilla `EntityType`.
+  - **Tags** — comma-separated. Used by the picker's tag filter
+    (typically the floor name : `easy`, `normal`, `hard`,
+    `infinite`).
+  - **Fixed icon** — leave empty for COMBAT to roll an icon at
+    door-proposal time ; required for BOSS ; auto-NONE for LOBBY.
 
-Copy them into `plugins/NextDungeon/labyrinth/` and import :
+Save the dungeon when you're done — the rooms are persisted in the
+dungeon's payload (no separate DB table).
 
-```
-labyrinth admin import-rooms rooms
-labyrinth admin import-loot easy easy.json
-labyrinth admin import-loot infinite infinite.json
-labyrinth admin reload
-```
+### 2.4 Add difficulties as floors
 
-## Blockly hooks (Option C)
+In the **🏗️ Floors** tab, click **+ Ajouter Floor**. Each floor of a
+labyrinth dungeon represents one difficulty.
+
+In the **Basique** tab :
+- **ID** — typically `easy`, `normal`, `hard`, `infinite`.
+- **Nom** — display name.
+- **Type de floor** → `LABYRINTH` (auto-set when the dungeon is
+  LABYRINTH).
+
+Once `LABYRINTH` is selected, a **🌀 Labyrinth** sub-tab appears in
+the floor modal. Open it to configure the difficulty :
+
+- **Max rooms** — finite floor cap (`30`/`50`/`70`…). Set to `0` for
+  the infinite floor.
+- **Tag filter** — only rooms carrying this tag are eligible (typically
+  the floor's id, e.g. `easy`).
+- **HP scaling per tier** / **DMG scaling per tier** — overrides of the
+  defaults (`0.30` HP / `0.15` DMG). Leave at `0` to use the module
+  defaults.
+- **Save activée** — check it for Infinite, leave unchecked for
+  finite floors.
+- **Loot table** :
+  - **Base gold** — flat amount per player at run end.
+  - **Gold per icon** — multiplier added per `GOLD` icon collected
+    (e.g. `0.15` = +15 % per gold icon).
+  - **Base item rolls** — number of weighted rolls per player.
+  - **Items** — add entries `(itemId, weight, minTier)`. `minTier`
+    gates the entry by the player's current difficulty tier.
+
+Save the floor. Repeat for every difficulty you want to ship.
+
+> **Tip — same room pool, different difficulties** : you typically
+> tag combat rooms with multiple floor names (`easy`, `normal`, `hard`,
+> `infinite`) so the same pool serves all difficulties, while boss
+> rooms carry only the floors they're balanced for.
+
+---
+
+## 3. Player flow
+
+Players reach your labyrinth like any other dungeon — the existing
+dashboard menu / `/dungeon` flow still applies.
+
+When they pick the labyrinth dungeon and a difficulty :
+
+1. The host plugin creates a `FloorInstance` and TPs the players to
+   the dungeon's server.
+2. Once the instance is ready, the module's
+   `LabyrinthInstanceReadyListener` takes over and TPs everyone to the
+   **dungeon spawn point**.
+3. **Infinite floor with an existing save** :
+   - The module fetches the save by `partyHash` (sha256 of the sorted
+     party UUIDs).
+   - The party leader sees a chat-clickable prompt :
+     `[Reprendre]` / `[Nouvelle partie]`.
+   - **Reprendre** → players are TP'd directly into the next room
+     (last cleared boss room + 1) with the saved tier and accumulated
+     icons restored.
+   - **Nouvelle partie** → the save is deleted ; players are TP'd to
+     the lobby for a fresh run.
+4. **No save / classic floor** → players are TP'd straight to the
+   lobby.
+5. The standard loop kicks in :
+   - Spawn mobs, lock doors.
+   - Players clear the room → doors unlock with their icons floating
+     above as item displays.
+   - Walk through a door → next room. Repeat.
+   - Boss every 10 rooms → tier+1 ; in Infinite, save is upserted ;
+     dead party members can be revived once via a chat prompt.
+6. End of run (finite completion / total wipe / voluntary exit) :
+   loot is calculated per player from the icon counts and the floor's
+   loot table, and the `labyrinth.on_run_ended` Blockly trigger
+   fires.
+
+The **action bar** displays `🌀 Salle X · Palier Y` continuously
+during the run.
+
+---
+
+## 4. Blockly hooks (Option C — events only)
 
 The module exposes **no actions** — workflows hook into seven triggers
 and three conditions to graft side effects (cinematics, sounds, gold
-distribution via Vault/MMOCore, etc.).
+distribution via Vault/MMOCore, end-of-run titles, etc.).
 
 | Block | Type | Variables |
 |---|---|---|
@@ -102,41 +190,102 @@ distribution via Vault/MMOCore, etc.).
 | `labyrinth_is_infinite_floor` | CONDITION | — |
 | `labyrinth_has_resumable_save` | CONDITION | — |
 
-## Soft dependencies
+The most common hook is `labyrinth_on_run_ended` — wire it to your
+economy plugin (`mmocore add-currency`, `eco give`, etc.) to actually
+credit the `goldEarned` value.
 
-- **MythicMobs** — autodetected via reflection (`MythicMobsBridge`).
-  When present, `RoomTemplate.MobSpawn.mobId` resolves Mythic ids
-  first ; otherwise falls back to vanilla `EntityType.valueOf`.
-- **Vault / MMOCore for gold** — not auto-distributed (CDC §6.5).
-  The `goldEarned` value is exposed on the `on_run_ended` trigger ;
-  admins wire it via Blockly to whichever currency plugin they use.
+---
 
-## Testing
+## 5. Soft dependencies
+
+| Plugin | Detected at | Behaviour without |
+|---|---|---|
+| **MythicMobs** | First mob spawn | Falls back to `EntityType.valueOf(mobId)` (vanilla mobs only). |
+| **Vault / MMOCore for gold** | Never (CDC §6.5) | `goldEarned` is exposed on `on_run_ended` only — admins wire the actual currency credit via Blockly. |
+
+---
+
+## 6. Reward icons
+
+| Icon | v1 status | Effect |
+|---|---|---|
+| 🪙 `GOLD` | implemented | Gold reward at end of run = `baseGold × (1 + goldPerIcon × iconCount) × (1 + 0.10 × (tier − 1))`. |
+| ✨ `BLESSING` | reserved | Enum exists, not rolled in v1 (placeholder for a future "buff between rooms" mechanic). |
+
+The icon shown above each door at choice time is rolled when the
+previous room is cleared :
+- LOBBY → always `NONE` (no icon displayed).
+- BOSS → uses the room's `fixedIcon` (admin-defined).
+- COMBAT → uses `fixedIcon` if set, otherwise rolled uniformly from
+  the v1 rollable set (currently `[GOLD]`).
+
+---
+
+## 7. Save (Infinite)
+
+- A save is **automatically upserted** at every boss kill on the
+  Infinite floor.
+- The save is keyed by `(partyHash, floorId)` where
+  `partyHash = sha256(sorted(initialPlayerUuids))`. Only a party with
+  the **exact same UUIDs as at run start** can resume it.
+- A save is **deleted** when : the group wipes, a leader chooses
+  « Nouvelle partie » at the resume prompt, or a player voluntarily
+  leaves the Infinite run.
+- Each save carries a `checksum` (sha256 of the canonical payload) ;
+  the module refuses to resume a save whose checksum doesn't match
+  (anti-tamper).
+- Saves are stored in the `labyrinth_saves` MySQL table /
+  `labyrinth_saves` Mongo collection. They are **cross-server** —
+  the same party can resume from any server connected to the same DB.
+
+---
+
+## 8. Limitations & v1 hors-scope
+
+- **No live preview** in the dashboard — admins build rooms in-world
+  and reference them by coordinates. A "click to set position" pad is
+  a v2 polish.
+- **`BLESSING` icon** — reserved enum, not rolled in v1.
+- **Mythic / MMOCore items at end-of-run** — vanilla `Material` ids
+  only ; Mythic item resolution is a follow-up.
+- **Pending offline loot** — players who are offline at run end are
+  skipped for inventory drops. Gold flows via the Blockly trigger so
+  admins can queue it via their economy of choice.
+- **Voluntary exit detection from inside the labyrinth** — the v1
+  module doesn't subscribe to a "player left instance" event ; if you
+  need this, fire `endOfRunHandler.onVoluntaryExit(run)` from your own
+  hook.
+
+---
+
+## 9. Testing
 
 ```
 mvn -pl module-memory-labyrinth test
 ```
 
-Pure-logic test coverage (no Bukkit env required) :
+Pure-logic test coverage (no Bukkit runtime required) :
 
-- `DifficultyModifierTest` — tier scaling formulas
-- `LabyrinthSaveTest` — partyHash determinism, checksum tamper-detection
-- `IconRollerTest` — icon resolution rules + RNG determinism
-- `LootCalculatorTest` — gold formula, item weight + minTier gate, per-player seed determinism
+- `DifficultyModifierTest` — tier scaling formulas.
+- `LabyrinthSaveTest` — `partyHash` determinism + checksum tamper
+  detection.
+- `IconRollerTest` — icon resolution rules + RNG determinism.
+- `LootCalculatorTest` — gold formula, weighted item rolls, `minTier`
+  gate, per-player seed determinism.
 
-Bukkit-dependent classes (`RoomPicker`, `MobSpawner`, lifecycle, etc.)
-are wired to `Main.getInstance().getLogger()` and currently require an
-integration harness (MockBukkit) — left as a follow-up.
+Bukkit-integration tests (room lifecycle, door controller, mob spawner,
+run manager) are not in this suite — they require a MockBukkit harness
+and are best validated in-game.
 
-## Hors-scope v1
+---
 
-- `BLESSING` icon — enum reserved, not rolled in v1
-- REST/panel endpoints (CDC §7) — pending the cinematic-pattern
-  precedent in the host plugin
-- Mythic/MMOCore item resolution at end-of-run — vanilla `Material`
-  only for now
-- Pending offline loot — offline players are skipped at distribution ;
-  gold flows via Blockly so admins can queue it via their economy
-- Voluntary exit detection from inside the labyrinth — relies on
-  external `FloorInstance` lifecycle events that the v1 module does
-  not subscribe to
+## 10. Troubleshooting
+
+| Symptom | Likely cause |
+|---|---|
+| `[MemoryLabyrinth] Dungeon X has no labyrinthDungeonConfig` at run start | The dungeon was saved as `CLASSIC` or the `🌀 Labyrinth` tab was never filled. Re-edit and save. |
+| `Instance X has no LOBBY room — run cannot start` | No room of type `LOBBY` in the pool, or none carries the floor's `tagFilter` tag. |
+| Players walk through a door but nothing happens | The door anchor coordinates don't match the actual door position in-world. Open the room editor and align them (≤ 1.5 blocks of the player's location triggers traversal). |
+| Boss kill doesn't bump the tier | The boss room is tagged with the wrong `RoomType`. It must be `BOSS` for `currentRoomIndex % 10 == 0` to trigger the boss handler. |
+| Resume prompt never appears in Infinite | No save exists yet (first run) or the party composition has changed since the last save. |
+| Rooms repeat heavily | Pool too thin — the picker logs a warning when fewer than 8 combat rooms are eligible for the current floor's tag filter. |

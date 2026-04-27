@@ -188,16 +188,8 @@ public class MySQLManager implements DatabaseManager {
             createIndexIfMissing(conn, "floors", "idx_version", "version");
             createIndexIfMissing(conn, "floors", "idx_updated_at", "updated_at");
 
-            // Memory Labyrinth tables
-            stmt.execute("CREATE TABLE IF NOT EXISTS labyrinth_rooms (" +
-                    "id VARCHAR(64) PRIMARY KEY, " +
-                    "type VARCHAR(16) NOT NULL, " +
-                    "payload_json MEDIUMTEXT NOT NULL, " +
-                    "tags VARCHAR(255), " +
-                    "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
-                    "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" +
-                    ")");
-
+            // Memory Labyrinth — Infinite saves only. Rooms and loot tables
+            // now live inline in the dungeon/floor payload (R6 cleanup).
             stmt.execute("CREATE TABLE IF NOT EXISTS labyrinth_saves (" +
                     "id VARCHAR(36) PRIMARY KEY, " +
                     "floor_id VARCHAR(64) NOT NULL, " +
@@ -207,12 +199,6 @@ public class MySQLManager implements DatabaseManager {
                     "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" +
                     ")");
             createIndexIfMissing(conn, "labyrinth_saves", "idx_party", "party_hash, floor_id");
-
-            stmt.execute("CREATE TABLE IF NOT EXISTS labyrinth_loot_tables (" +
-                    "floor_id VARCHAR(64) PRIMARY KEY, " +
-                    "payload_json MEDIUMTEXT NOT NULL, " +
-                    "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" +
-                    ")");
 
         } catch (SQLException e) {
             Main.getLoggerUtil().severe("Failed to create database tables: " + e.getMessage());
@@ -897,77 +883,6 @@ public class MySQLManager implements DatabaseManager {
         }, "getAllFloors(limit=" + limit + ")");
     }
 
-    // ===== Memory Labyrinth: room templates =====
-
-    @Override
-    public CompletableFuture<String> loadLabyrinthRoom(String roomId) {
-        return executeAsync(() -> {
-            try (Connection conn = dataSource.getConnection();
-                 PreparedStatement stmt = conn.prepareStatement(
-                         "SELECT payload_json FROM labyrinth_rooms WHERE id = ?")) {
-                stmt.setString(1, roomId);
-                try (ResultSet rs = stmt.executeQuery()) {
-                    if (rs.next()) return rs.getString("payload_json");
-                }
-                return null;
-            }
-        }, "Load labyrinth room " + roomId);
-    }
-
-    @Override
-    public CompletableFuture<Void> saveLabyrinthRoom(String roomId, String type, String tagsCsv, String payloadJson) {
-        return executeAsync(() -> {
-            try (Connection conn = dataSource.getConnection();
-                 PreparedStatement stmt = conn.prepareStatement(
-                         "INSERT INTO labyrinth_rooms (id, type, payload_json, tags) VALUES (?, ?, ?, ?) " +
-                         "ON DUPLICATE KEY UPDATE type = VALUES(type), payload_json = VALUES(payload_json), tags = VALUES(tags)")) {
-                stmt.setString(1, roomId);
-                stmt.setString(2, type);
-                stmt.setString(3, payloadJson);
-                stmt.setString(4, tagsCsv);
-                stmt.executeUpdate();
-                Main.getLoggerUtil().info("Labyrinth room saved: " + roomId);
-                return null;
-            }
-        }, "Save labyrinth room " + roomId);
-    }
-
-    @Override
-    public CompletableFuture<Void> deleteLabyrinthRoom(String roomId) {
-        return executeAsync(() -> {
-            try (Connection conn = dataSource.getConnection();
-                 PreparedStatement stmt = conn.prepareStatement(
-                         "DELETE FROM labyrinth_rooms WHERE id = ?")) {
-                stmt.setString(1, roomId);
-                stmt.executeUpdate();
-                Main.getLoggerUtil().info("Labyrinth room deleted: " + roomId);
-                return null;
-            }
-        }, "Delete labyrinth room " + roomId);
-    }
-
-    @Override
-    public CompletableFuture<List<String[]>> listLabyrinthRooms() {
-        return executeAsync(() -> {
-            List<String[]> result = new ArrayList<>();
-            try (Connection conn = dataSource.getConnection();
-                 PreparedStatement stmt = conn.prepareStatement(
-                         "SELECT id, type, tags, payload_json FROM labyrinth_rooms ORDER BY id")) {
-                try (ResultSet rs = stmt.executeQuery()) {
-                    while (rs.next()) {
-                        result.add(new String[]{
-                                rs.getString("id"),
-                                rs.getString("type"),
-                                rs.getString("tags"),
-                                rs.getString("payload_json")
-                        });
-                    }
-                }
-            }
-            return result;
-        }, "List labyrinth rooms");
-    }
-
     // ===== Memory Labyrinth: Infinite saves =====
 
     @Override
@@ -1056,65 +971,4 @@ public class MySQLManager implements DatabaseManager {
         }, "List labyrinth saves");
     }
 
-    // ===== Memory Labyrinth: loot tables =====
-
-    @Override
-    public CompletableFuture<String> loadLootTable(String floorId) {
-        return executeAsync(() -> {
-            try (Connection conn = dataSource.getConnection();
-                 PreparedStatement stmt = conn.prepareStatement(
-                         "SELECT payload_json FROM labyrinth_loot_tables WHERE floor_id = ?")) {
-                stmt.setString(1, floorId);
-                try (ResultSet rs = stmt.executeQuery()) {
-                    if (rs.next()) return rs.getString("payload_json");
-                }
-                return null;
-            }
-        }, "Load loot table " + floorId);
-    }
-
-    @Override
-    public CompletableFuture<Void> saveLootTable(String floorId, String payloadJson) {
-        return executeAsync(() -> {
-            try (Connection conn = dataSource.getConnection();
-                 PreparedStatement stmt = conn.prepareStatement(
-                         "INSERT INTO labyrinth_loot_tables (floor_id, payload_json) VALUES (?, ?) " +
-                         "ON DUPLICATE KEY UPDATE payload_json = VALUES(payload_json)")) {
-                stmt.setString(1, floorId);
-                stmt.setString(2, payloadJson);
-                stmt.executeUpdate();
-                Main.getLoggerUtil().info("Loot table saved: " + floorId);
-                return null;
-            }
-        }, "Save loot table " + floorId);
-    }
-
-    @Override
-    public CompletableFuture<Void> deleteLootTable(String floorId) {
-        return executeAsync(() -> {
-            try (Connection conn = dataSource.getConnection();
-                 PreparedStatement stmt = conn.prepareStatement(
-                         "DELETE FROM labyrinth_loot_tables WHERE floor_id = ?")) {
-                stmt.setString(1, floorId);
-                stmt.executeUpdate();
-                Main.getLoggerUtil().info("Loot table deleted: " + floorId);
-                return null;
-            }
-        }, "Delete loot table " + floorId);
-    }
-
-    @Override
-    public CompletableFuture<List<String>> listLootTables() {
-        return executeAsync(() -> {
-            List<String> result = new ArrayList<>();
-            try (Connection conn = dataSource.getConnection();
-                 PreparedStatement stmt = conn.prepareStatement(
-                         "SELECT floor_id FROM labyrinth_loot_tables ORDER BY floor_id")) {
-                try (ResultSet rs = stmt.executeQuery()) {
-                    while (rs.next()) result.add(rs.getString("floor_id"));
-                }
-            }
-            return result;
-        }, "List loot tables");
-    }
 }

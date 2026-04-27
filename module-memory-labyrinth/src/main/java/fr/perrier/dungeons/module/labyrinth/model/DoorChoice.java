@@ -1,5 +1,7 @@
 package fr.perrier.dungeons.module.labyrinth.model;
 
+import fr.perrier.dungeons.common.model.labyrinth.LabyrinthRoom;
+import fr.perrier.dungeons.common.model.labyrinth.RewardIcon;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -17,10 +19,10 @@ import lombok.Setter;
 @NoArgsConstructor
 public class DoorChoice {
 
-    private RoomTemplate left;
+    private LabyrinthRoom left;
     private RewardIcon iconLeft;
 
-    private RoomTemplate right;
+    private LabyrinthRoom right;
     private RewardIcon iconRight;
 
     /**
@@ -29,8 +31,8 @@ public class DoorChoice {
      */
     private boolean bossSingleDoor;
 
-    public DoorChoice(RoomTemplate left, RewardIcon iconLeft,
-                      RoomTemplate right, RewardIcon iconRight,
+    public DoorChoice(LabyrinthRoom left, RewardIcon iconLeft,
+                      LabyrinthRoom right, RewardIcon iconRight,
                       boolean bossSingleDoor) {
         this.left = left;
         this.iconLeft = iconLeft;

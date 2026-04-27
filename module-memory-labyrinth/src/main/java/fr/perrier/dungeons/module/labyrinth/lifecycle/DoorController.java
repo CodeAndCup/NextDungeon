@@ -3,8 +3,8 @@ package fr.perrier.dungeons.module.labyrinth.lifecycle;
 import fr.perrier.dungeons.module.labyrinth.manager.LabyrinthRunManager;
 import fr.perrier.dungeons.module.labyrinth.model.DoorChoice;
 import fr.perrier.dungeons.module.labyrinth.model.LabyrinthRun;
-import fr.perrier.dungeons.module.labyrinth.model.RewardIcon;
-import fr.perrier.dungeons.module.labyrinth.model.RoomTemplate;
+import fr.perrier.dungeons.common.model.labyrinth.RewardIcon;
+import fr.perrier.dungeons.common.model.labyrinth.LabyrinthRoom;
 import fr.perrier.dungeons.module.labyrinth.ui.DoorIconHologram;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.model.FloorInstance;
@@ -78,8 +78,8 @@ public class DoorController {
         OpenDoors previous = openByInstance.remove(instanceId);
         if (previous != null) previous.despawnHolograms();
 
-        RoomTemplate currentRoom = run.getCurrentRoom();
-        if (currentRoom == null || currentRoom.getDoors() == null || currentRoom.getDoors().isEmpty()) {
+        LabyrinthRoom currentRoom = run.getCurrentRoom();
+        if (currentRoom == null || currentRoom.getExitDoors() == null || currentRoom.getExitDoors().isEmpty()) {
             logger.warning("[MemoryLabyrinth] Cannot open doors — current room has no door anchors");
             return;
         }
@@ -101,7 +101,7 @@ public class DoorController {
             open.leftAnchor = leftAnchor;
             open.leftHologram = DoorIconHologram.spawn(leftAnchor, choice.getIconLeft());
         }
-        if (!choice.isBossSingleDoor() && currentRoom.getDoors().size() >= 2) {
+        if (!choice.isBossSingleDoor() && currentRoom.getExitDoors().size() >= 2) {
             Location rightAnchor = anchorLocation(world, currentRoom, 1);
             if (rightAnchor != null) {
                 open.rightAnchor = rightAnchor;
@@ -157,7 +157,7 @@ public class DoorController {
 
     private void fireTraversal(LabyrinthRun run, OpenDoors open, boolean leftSide, FloorInstance instance) {
         DoorChoice choice = open.choice;
-        RoomTemplate chosen = leftSide ? choice.getLeft() : choice.getRight();
+        LabyrinthRoom chosen = leftSide ? choice.getLeft() : choice.getRight();
         RewardIcon chosenIcon = leftSide ? choice.getIconLeft() : choice.getIconRight();
         // Despawn before advance so the new room's potential door layer is clean.
         open.despawnHolograms();
@@ -171,17 +171,17 @@ public class DoorController {
         return playerLoc.distanceSquared(anchor) <= TRAVERSAL_RADIUS * TRAVERSAL_RADIUS;
     }
 
-    private Location anchorLocation(World world, RoomTemplate room, int doorIndex) {
-        if (room.getDoors().size() <= doorIndex) return null;
-        RoomTemplate.Door door = room.getDoors().get(doorIndex);
+    private Location anchorLocation(World world, LabyrinthRoom room, int doorIndex) {
+        if (room.getExitDoors().size() <= doorIndex) return null;
+        LabyrinthRoom.Door door = room.getExitDoors().get(doorIndex);
         if (door == null || door.getAnchor() == null) return null;
-        RoomTemplate.Vec3 a = door.getAnchor();
+        LabyrinthRoom.Vec3 a = door.getAnchor();
         return new Location(world, a.getX(), a.getY(), a.getZ());
     }
 
     private static class OpenDoors {
         UUID instanceId;
-        RoomTemplate currentRoom;
+        LabyrinthRoom currentRoom;
         DoorChoice choice;
         Location leftAnchor;
         Location rightAnchor;

@@ -2,7 +2,7 @@ package fr.perrier.dungeons.module.labyrinth.lifecycle;
 
 import fr.perrier.dungeons.module.labyrinth.model.DifficultyModifier;
 import fr.perrier.dungeons.module.labyrinth.model.LabyrinthRun;
-import fr.perrier.dungeons.module.labyrinth.model.RoomTemplate;
+import fr.perrier.dungeons.common.model.labyrinth.LabyrinthRoom;
 import fr.perrier.dungeons.spigot.Main;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -20,7 +20,7 @@ import java.util.UUID;
 import java.util.logging.Logger;
 
 /**
- * Spawns the mobs declared by a {@link RoomTemplate} when a combat/boss
+ * Spawns the mobs declared by a {@link LabyrinthRoom} when a combat/boss
  * room is entered.
  *
  * <p>Spawned mobs receive two metadata keys :</p>
@@ -55,7 +55,7 @@ public class MobSpawner {
      */
     public int spawnRoomMobs(LabyrinthRun run) {
         if (run == null || run.getCurrentRoom() == null) return 0;
-        RoomTemplate room = run.getCurrentRoom();
+        LabyrinthRoom room = run.getCurrentRoom();
         if (room.getMobSpawns() == null || room.getMobSpawns().isEmpty()) return 0;
 
         World world = Bukkit.getWorld(room.getWorldId());
@@ -68,7 +68,7 @@ public class MobSpawner {
                 ? run.getCurrentModifier() : new DifficultyModifier();
 
         int spawned = 0;
-        for (RoomTemplate.MobSpawn spawn : room.getMobSpawns()) {
+        for (LabyrinthRoom.MobSpawn spawn : room.getMobSpawns()) {
             Location at = new Location(world, spawn.getX(), spawn.getY(), spawn.getZ());
             int count = Math.max(1, spawn.getCount());
             for (int i = 0; i < count; i++) {

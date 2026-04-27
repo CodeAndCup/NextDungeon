@@ -4,12 +4,12 @@ import fr.perrier.dungeons.common.module.ModuleBlockDescriptor;
 import fr.perrier.dungeons.common.module.ModuleBlockDescriptor.BlockType;
 import fr.perrier.dungeons.common.module.ModuleContext;
 import fr.perrier.dungeons.common.module.NextDungeonModule;
-import fr.perrier.dungeons.module.labyrinth.admin.LabyrinthAdminCommandListener;
 import fr.perrier.dungeons.module.labyrinth.event.LabyrinthTriggerBus;
 import fr.perrier.dungeons.module.labyrinth.generator.IconRoller;
 import fr.perrier.dungeons.module.labyrinth.generator.RoomPicker;
 import fr.perrier.dungeons.module.labyrinth.lifecycle.BossEncounterHandler;
 import fr.perrier.dungeons.module.labyrinth.lifecycle.DoorController;
+import fr.perrier.dungeons.module.labyrinth.lifecycle.LabyrinthInstanceReadyListener;
 import fr.perrier.dungeons.module.labyrinth.lifecycle.LabyrinthMobDeathListener;
 import fr.perrier.dungeons.module.labyrinth.lifecycle.LabyrinthPlayerDeathListener;
 import fr.perrier.dungeons.module.labyrinth.lifecycle.LabyrinthResumePromptListener;
@@ -79,7 +79,7 @@ public class MemoryLabyrinthModule implements NextDungeonModule {
     private LabyrinthPlayerDeathListener playerDeathListener;
     private LabyrinthReviveListener reviveListener;
     private LabyrinthResumePromptListener resumePromptListener;
-    private LabyrinthAdminCommandListener adminCommandListener;
+    private LabyrinthInstanceReadyListener instanceReadyListener;
     private TierIndicatorTask tierIndicatorTask;
 
     @Override
@@ -112,7 +112,6 @@ public class MemoryLabyrinthModule implements NextDungeonModule {
         // P6 — Infinite save & resume prompt
         this.saveManager = new LabyrinthSaveManager();
         runManager.setSaveManager(saveManager);
-        runManager.setDoorController(doorController);
         bossEncounterHandler.setSaveManager(saveManager);
         this.resumePromptListener = new LabyrinthResumePromptListener(runManager);
         Bukkit.getPluginManager().registerEvents(resumePromptListener, Main.getInstance());
@@ -131,11 +130,8 @@ public class MemoryLabyrinthModule implements NextDungeonModule {
         this.lootCalculator = new LootCalculator(lootTableRegistry);
         this.endOfRunHandler = new EndOfRunHandler(runManager, lootCalculator, saveManager, doorController);
         runManager.setEndOfRunHandler(endOfRunHandler);
+        runManager.setLootRegistry(lootTableRegistry);
         playerDeathListener.setEndOfRunHandler(endOfRunHandler);
-        lootTableRegistry.loadAll().exceptionally(ex -> {
-            ex.printStackTrace(System.err);
-            return null;
-        });
 
         // P9 — Blockly hooks : descriptor registration + trigger bus wiring
         this.triggerBus = new LabyrinthTriggerBus(ctx);
@@ -144,16 +140,13 @@ public class MemoryLabyrinthModule implements NextDungeonModule {
         endOfRunHandler.setTriggerBus(triggerBus);
         registerBlocklyDescriptors(ctx);
 
-        // P10 — In-game admin commands (REST/panel routes are future work,
-        // see CDC §7 — the velocity-side HTTP layer needs its own pass).
-        this.adminCommandListener = new LabyrinthAdminCommandListener(
-                roomTemplateRegistry, lootTableRegistry, runManager);
-        Bukkit.getPluginManager().registerEvents(adminCommandListener, Main.getInstance());
+        // R3 — registries are now per-instance, populated at startRun
+        // from each FloorData/Dungeon payload. No boot-time DB scan.
 
-        roomTemplateRegistry.loadAll().exceptionally(ex -> {
-            ex.printStackTrace(System.err);
-            return null;
-        });
+        // R4 — entry point hook : listen for FloorInstanceReadyEvent and
+        // start a labyrinth run when the floor's type is LABYRINTH.
+        this.instanceReadyListener = new LabyrinthInstanceReadyListener(runManager);
+        Bukkit.getPluginManager().registerEvents(instanceReadyListener, Main.getInstance());
 
         // P9 — register Blockly triggers / conditions / values
         // (no actions exposed: see CDC §5)

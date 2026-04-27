@@ -135,8 +135,21 @@ public class FloorInstance extends FloorInstanceData {
      */
     @Override
     public void setReady(boolean ready) {
+        boolean wasReady = this.ready;
         this.ready = ready;
         syncInstance();
+        // Fire FloorInstanceReadyEvent on the false→true edge so modules
+        // (e.g. memory-labyrinth) can take over a fresh instance without
+        // polling. Always dispatched on the main thread.
+        if (ready && !wasReady) {
+            Runnable fire = () -> Bukkit.getPluginManager().callEvent(
+                    new fr.perrier.dungeons.spigot.event.FloorInstanceReadyEvent(this));
+            if (Bukkit.isPrimaryThread()) {
+                fire.run();
+            } else {
+                Bukkit.getScheduler().runTask(Main.getInstance(), fire);
+            }
+        }
     }
 
     /**

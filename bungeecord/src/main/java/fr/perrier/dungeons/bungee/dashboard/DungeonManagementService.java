@@ -555,6 +555,22 @@ public class DungeonManagementService {
         private String name;
         private String description;
         private List<String> floorIds;
+
+        /**
+         * Discriminator for the dungeon kind. Defaults to {@code CLASSIC}.
+         */
+        private String dungeonType;
+
+        /**
+         * Inline {@link fr.perrier.dungeons.common.model.labyrinth.LabyrinthDungeonConfig}
+         * payload when {@code dungeonType == "LABYRINTH"}.
+         */
+        private fr.perrier.dungeons.common.model.labyrinth.LabyrinthDungeonConfig labyrinthDungeonConfig;
+
+        /** Legacy four-arg constructor — defaults to a CLASSIC dungeon. */
+        public DungeonEntry(String id, String name, String description, List<String> floorIds) {
+            this(id, name, description, floorIds, "CLASSIC", null);
+        }
     }
 
     @Data @AllArgsConstructor

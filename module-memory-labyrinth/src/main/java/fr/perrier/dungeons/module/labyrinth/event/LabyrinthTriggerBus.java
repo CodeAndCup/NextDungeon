@@ -4,9 +4,9 @@ import fr.perrier.dungeons.common.module.ModuleContext;
 import fr.perrier.dungeons.module.labyrinth.loot.LootResult;
 import fr.perrier.dungeons.module.labyrinth.model.DoorChoice;
 import fr.perrier.dungeons.module.labyrinth.model.LabyrinthRun;
-import fr.perrier.dungeons.module.labyrinth.model.RewardIcon;
-import fr.perrier.dungeons.module.labyrinth.model.RoomTemplate;
-import fr.perrier.dungeons.module.labyrinth.model.RoomType;
+import fr.perrier.dungeons.common.model.labyrinth.RewardIcon;
+import fr.perrier.dungeons.common.model.labyrinth.LabyrinthRoom;
+import fr.perrier.dungeons.common.model.labyrinth.RoomType;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.model.FloorInstance;
 import org.bukkit.Bukkit;
@@ -143,7 +143,7 @@ public class LabyrinthTriggerBus {
         return data;
     }
 
-    private static String typeName(RoomTemplate room) {
+    private static String typeName(LabyrinthRoom room) {
         return room == null || room.getType() == null ? null : room.getType().name();
     }
 

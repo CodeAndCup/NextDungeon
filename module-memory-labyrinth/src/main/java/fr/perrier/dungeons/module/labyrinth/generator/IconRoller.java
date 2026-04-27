@@ -1,8 +1,8 @@
 package fr.perrier.dungeons.module.labyrinth.generator;
 
-import fr.perrier.dungeons.module.labyrinth.model.RewardIcon;
-import fr.perrier.dungeons.module.labyrinth.model.RoomTemplate;
-import fr.perrier.dungeons.module.labyrinth.model.RoomType;
+import fr.perrier.dungeons.common.model.labyrinth.RewardIcon;
+import fr.perrier.dungeons.common.model.labyrinth.LabyrinthRoom;
+import fr.perrier.dungeons.common.model.labyrinth.RoomType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,7 +14,7 @@ import java.util.Random;
  * <p>Decision tree (CDC §1.6, §4.1, Q5.3 / Q5.5 / Q5.6) :</p>
  * <ul>
  *   <li>{@link RoomType#LOBBY} → forced {@link RewardIcon#NONE}</li>
- *   <li>{@link RoomType#BOSS}  → use {@link RoomTemplate#getFixedIcon()} (admin-defined, fixed)</li>
+ *   <li>{@link RoomType#BOSS}  → use {@link LabyrinthRoom#getFixedIcon()} (admin-defined, fixed)</li>
  *   <li>{@link RoomType#COMBAT}:
  *     <ul>
  *       <li>If {@code fixedIcon} is non-null on the template, honour it (admin override).</li>
@@ -53,7 +53,7 @@ public class IconRoller {
     /**
      * Roll the icon for a candidate room.
      */
-    public RewardIcon rollFor(RoomTemplate room) {
+    public RewardIcon rollFor(LabyrinthRoom room) {
         if (room == null) return RewardIcon.NONE;
         return switch (room.getType()) {
             case LOBBY -> RewardIcon.NONE;

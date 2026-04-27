@@ -2,6 +2,7 @@ package fr.perrier.dungeons.module.labyrinth.model;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import fr.perrier.dungeons.common.model.labyrinth.RewardIcon;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;

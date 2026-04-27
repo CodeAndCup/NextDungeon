@@ -2,8 +2,8 @@ package fr.perrier.dungeons.module.labyrinth.loot;
 
 import fr.perrier.dungeons.module.labyrinth.manager.LootTableRegistry;
 import fr.perrier.dungeons.module.labyrinth.model.LabyrinthRun;
-import fr.perrier.dungeons.module.labyrinth.model.LootTable;
-import fr.perrier.dungeons.module.labyrinth.model.RewardIcon;
+import fr.perrier.dungeons.common.model.labyrinth.LootTable;
+import fr.perrier.dungeons.common.model.labyrinth.RewardIcon;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -48,7 +48,7 @@ public class LootCalculator {
                                               boolean success) {
         List<LootResult> out = new ArrayList<>();
         if (run == null || playerIds == null) return out;
-        LootTable table = lootTables.getByFloor(run.getFloorId());
+        LootTable table = lootTables == null ? null : lootTables.getByInstance(run.getInstanceId());
         for (UUID playerId : playerIds) {
             out.add(computeForPlayer(run, playerId, table, success));
         }

@@ -3,9 +3,9 @@ package fr.perrier.dungeons.module.labyrinth.lifecycle;
 import fr.perrier.dungeons.module.labyrinth.generator.RoomPicker;
 import fr.perrier.dungeons.module.labyrinth.model.DoorChoice;
 import fr.perrier.dungeons.module.labyrinth.model.LabyrinthRun;
-import fr.perrier.dungeons.module.labyrinth.model.RewardIcon;
-import fr.perrier.dungeons.module.labyrinth.model.RoomTemplate;
-import fr.perrier.dungeons.module.labyrinth.model.RoomType;
+import fr.perrier.dungeons.common.model.labyrinth.RewardIcon;
+import fr.perrier.dungeons.common.model.labyrinth.LabyrinthRoom;
+import fr.perrier.dungeons.common.model.labyrinth.RoomType;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.model.FloorInstance;
 import org.bukkit.Bukkit;
@@ -65,7 +65,7 @@ public class LabyrinthRoomLifecycle {
      * {@link LabyrinthRun#getCurrentRoomIndex()} *before* calling this
      * method (except for the initial lobby entry, which sits at index 0).</p>
      */
-    public void enterRoom(LabyrinthRun run, RoomTemplate template, FloorInstance instance) {
+    public void enterRoom(LabyrinthRun run, LabyrinthRoom template, FloorInstance instance) {
         if (run == null || template == null) return;
         UUID roomUuid = UUID.randomUUID();
         run.setCurrentRoom(template);
@@ -163,14 +163,14 @@ public class LabyrinthRoomLifecycle {
         if (triggerBus != null) triggerBus.fireDoorsProposed(run, null);
     }
 
-    private void teleportPlayers(RoomTemplate template, FloorInstance instance) {
+    private void teleportPlayers(LabyrinthRoom template, FloorInstance instance) {
         if (instance == null || template.getPlayerSpawn() == null) return;
         World world = Bukkit.getWorld(template.getWorldId());
         if (world == null) {
             logger.warning("[MemoryLabyrinth] World not found for TP: " + template.getWorldId());
             return;
         }
-        RoomTemplate.Vec3 s = template.getPlayerSpawn();
+        LabyrinthRoom.Vec3 s = template.getPlayerSpawn();
         Location target = new Location(world, s.getX(), s.getY(), s.getZ());
         for (UUID id : instance.getPlayers()) {
             Player p = Bukkit.getPlayer(id);

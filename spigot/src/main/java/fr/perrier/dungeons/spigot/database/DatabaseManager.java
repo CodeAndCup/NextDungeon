@@ -76,28 +76,6 @@ public interface DatabaseManager {
 
     <T> CompletableFuture<T> handleAsyncOperation(CompletableFuture<T> future, String operationName);
 
-    // ===== Memory Labyrinth: room templates =====
-
-    /**
-     * Loads a {@code RoomTemplate} payload by id. Returns the JSON or {@code null}.
-     */
-    CompletableFuture<String> loadLabyrinthRoom(String roomId);
-
-    /**
-     * Upserts a {@code RoomTemplate}. {@code type} is the {@code RoomType} name
-     * (LOBBY/COMBAT/BOSS) — kept as a separate column for index-friendly listing.
-     * {@code tagsCsv} is a comma-joined list of tags.
-     */
-    CompletableFuture<Void> saveLabyrinthRoom(String roomId, String type, String tagsCsv, String payloadJson);
-
-    CompletableFuture<Void> deleteLabyrinthRoom(String roomId);
-
-    /**
-     * Returns rows of {@code [id, type, tagsCsv, payloadJson]} for every room template.
-     * Used by the registry to load the full pool at boot.
-     */
-    CompletableFuture<List<String[]>> listLabyrinthRooms();
-
     // ===== Memory Labyrinth: Infinite saves =====
 
     /**
@@ -120,20 +98,4 @@ public interface DatabaseManager {
      * Lists all saves as {@code [id, floorId, partyHash]} (admin / debug usage).
      */
     CompletableFuture<List<String[]>> listLabyrinthSaves();
-
-    // ===== Memory Labyrinth: loot tables =====
-
-    /**
-     * Loads a {@code LootTable} payload by floor id. Returns the JSON or {@code null}.
-     */
-    CompletableFuture<String> loadLootTable(String floorId);
-
-    CompletableFuture<Void> saveLootTable(String floorId, String payloadJson);
-
-    CompletableFuture<Void> deleteLootTable(String floorId);
-
-    /**
-     * Returns the floor ids of every persisted loot table.
-     */
-    CompletableFuture<List<String>> listLootTables();
 }

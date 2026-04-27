@@ -54,7 +54,7 @@ public class LabyrinthResumePromptListener implements Listener {
 
         switch (choice) {
             case ResumeOrNewPrompt.CHOICE_RESUME ->
-                    runManager.applyResumeAtLobby(run, sender);
+                    runManager.applyResume(run, sender);
             case ResumeOrNewPrompt.CHOICE_NEW ->
                     runManager.discardSaveAndContinue(run, sender);
             default ->
