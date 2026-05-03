@@ -43,7 +43,7 @@ public class BlockClickTrigger extends Trigger implements BlocklyTrigger {
     private String blockMaterial;
 
     // Transient cached enum to avoid Material.valueOf() parse on every trigger check
-    private transient org.bukkit.Material cachedMaterialEnum;
+    private transient Material cachedMaterialEnum;
 
     public void setBlockMaterial(String blockMaterial) {
         this.blockMaterial = blockMaterial;
