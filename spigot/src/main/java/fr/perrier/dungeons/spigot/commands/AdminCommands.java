@@ -225,6 +225,14 @@ public class AdminCommands {
         player.sendMessage(ChatUtil.getBar());
         player.sendMessage(ChatUtil.translate("&6Dungeon Status"));
 
+        if(instanceId.matches("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")) {
+            instanceId = instanceId.toLowerCase();
+        } else {
+            player.sendMessage(ChatUtil.translate("&#FF0000Invalid instance ID format. Expected UUID."));
+            player.sendMessage(ChatUtil.getBar());
+            return;
+        }
+
         boolean isDefaultInstance = instanceId.equals("00000000-0000-0000-0000-000000000000");
         if (isDefaultInstance && ServerUtil.isInstanceServer()) {
             InstanceInfo info = ServerUtil.getInstanceInfo();
