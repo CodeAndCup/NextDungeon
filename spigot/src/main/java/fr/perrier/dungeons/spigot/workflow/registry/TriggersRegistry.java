@@ -10,6 +10,7 @@ import fr.perrier.dungeons.spigot.workflow.trigger.handler.impl.BlockClickTrigge
 import fr.perrier.dungeons.spigot.workflow.trigger.handler.impl.PlayerDamageTriggerHandler;
 import fr.perrier.dungeons.spigot.workflow.trigger.handler.impl.ItemPickupTriggerHandler;
 import fr.perrier.dungeons.spigot.workflow.trigger.handler.impl.ChatMessageTriggerHandler;
+import fr.perrier.dungeons.spigot.workflow.trigger.handler.impl.ConsoleCommandTriggerHandler;
 import fr.perrier.dungeons.spigot.workflow.trigger.handler.impl.PlayerJumpTriggerHandler;
 import fr.perrier.dungeons.spigot.workflow.trigger.impl.FunctionTrigger;
 import org.bukkit.Bukkit;
@@ -80,6 +81,7 @@ public class TriggersRegistry implements Listener {
         registerHandler(new ItemPickupTriggerHandler());
         registerHandler(new ChatMessageTriggerHandler());
         registerHandler(new PlayerJumpTriggerHandler());
+        registerHandler(new ConsoleCommandTriggerHandler());
     }
 
     /**
