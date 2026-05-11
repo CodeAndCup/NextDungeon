@@ -13,6 +13,7 @@ import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -57,6 +58,12 @@ public class BlockClickTrigger extends Trigger implements BlocklyTrigger {
             defaultValue = "false", order = 8)
     private boolean exactPositionOnly;
 
+    @BlocklyField(type = BlocklyField.FieldType.CHECKBOX, label = "Une seule fois:",
+            defaultValue = "false", order = 9)
+    private boolean onlyOnce = false;
+
+    private transient Map<String, Long> playerTriggerHistory;
+
     public BlockClickTrigger() {
         super("Block Click Trigger");
         this.clickType = "right_click";
@@ -64,6 +71,8 @@ public class BlockClickTrigger extends Trigger implements BlocklyTrigger {
         this.blockMaterial = "STONE";
         this.locationBlock = new LocationBlock(0, 64, 0, "world");
         this.exactPositionOnly = false;
+        this.onlyOnce = false;
+        this.playerTriggerHistory = new HashMap<>();
     }
 
     public BlockClickTrigger(String name) {
@@ -73,6 +82,14 @@ public class BlockClickTrigger extends Trigger implements BlocklyTrigger {
         this.blockMaterial = "STONE";
         this.locationBlock = new LocationBlock(0, 64, 0, "world");
         this.exactPositionOnly = false;
+        this.onlyOnce = false;
+        this.playerTriggerHistory = new HashMap<>();
+    }
+
+    private void ensurePlayerTriggerHistoryInitialized() {
+        if (this.playerTriggerHistory == null) {
+            this.playerTriggerHistory = new HashMap<>();
+        }
     }
 
     @Override
@@ -81,8 +98,36 @@ public class BlockClickTrigger extends Trigger implements BlocklyTrigger {
             return false;
         }
 
+        ensurePlayerTriggerHistoryInitialized();
+
+        if (onlyOnce) {
+            String playerId = player.getUniqueId().toString() + "_once";
+            if (playerTriggerHistory.containsKey(playerId)) {
+                return false;
+            }
+            playerTriggerHistory.put(playerId, System.currentTimeMillis());
+        }
+
         // Exécuter les actions associées
         return executeActions(player, location, data);
+    }
+
+    /**
+     * Remet à zéro l'historique d'un joueur pour ce trigger
+     */
+    public void resetPlayerHistory(Player player) {
+        if (playerTriggerHistory != null) {
+            playerTriggerHistory.remove(player.getUniqueId().toString() + "_once");
+        }
+    }
+
+    /**
+     * Remet à zéro tout l'historique du trigger
+     */
+    public void resetAllHistory() {
+        if (playerTriggerHistory != null) {
+            playerTriggerHistory.clear();
+        }
     }
 
     @Override
