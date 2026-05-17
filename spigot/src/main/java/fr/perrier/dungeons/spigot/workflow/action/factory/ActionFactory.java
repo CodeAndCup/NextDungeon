@@ -82,6 +82,17 @@ public class ActionFactory {
                             actionData.get("scope").getAsString() : "player";
                     yield new SubtractFromVariableAction(variableName, value, scope);
                 }
+                case "random_number_action" -> {
+                    String variableName = actionData.has("variableName") ?
+                            actionData.get("variableName").getAsString() : "ma_variable";
+                    int min = actionData.has("min") ?
+                            actionData.get("min").getAsInt() : 1;
+                    int max = actionData.has("max") ?
+                            actionData.get("max").getAsInt() : 10;
+                    String scope = actionData.has("scope") ?
+                            actionData.get("scope").getAsString() : "player";
+                    yield new RandomNumberAction(variableName, min, max, scope);
+                }
                 case "if_action" -> {
                     IfCondition ifCondition = new IfCondition();
 
