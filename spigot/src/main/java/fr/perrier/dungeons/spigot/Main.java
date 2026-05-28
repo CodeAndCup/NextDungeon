@@ -173,8 +173,14 @@ public final class Main extends JavaPlugin {
                 .setPassword(Objects.requireNonNull(Main.getInstance().getConfig().getString("RedisConfiguration.password")))
                 .setDatabase(Main.getInstance().getConfig().getInt("RedisConfiguration.database"));
 
-        // Create Redis client
+        // Create Redis client. Wrap the rest of onEnable() in a try/finally
+        // so that if any subsequent init step fails (and we disable the
+        // plugin via early return / throws), we still shut the Redisson
+        // client down — otherwise its Netty threads keep the JVM busy and
+        // leak connections to Redis.
         RedissonClient redissonClient = Redisson.create(config);
+        boolean redissonHandedOff = false;
+        try {
 
         try {
             // Initialize Redis storage service
@@ -330,6 +336,12 @@ public final class Main extends JavaPlugin {
         }
 
         getLogger().info("NextDungeon " + this.getDescription().getVersion()  + " started in " + (System.currentTimeMillis() - startTime) + " ms");
+        redissonHandedOff = true;
+        } finally {
+            if (!redissonHandedOff) {
+                try { redissonClient.shutdown(); } catch (Exception ignored) {}
+            }
+        }
     }
 
     @Override
@@ -566,6 +578,7 @@ public final class Main extends JavaPlugin {
         pluginManager.registerEvents(new InstanceMobKillListener(), this);
         pluginManager.registerEvents(new InstancePlayerDeathListener(), this);
         pluginManager.registerEvents(new ReviveItemListener(), this);
+        pluginManager.registerEvents(new fr.perrier.dungeons.spigot.listener.dungeons.LootChestListener(), this);
     }
 
     /**

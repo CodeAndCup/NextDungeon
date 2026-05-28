@@ -253,10 +253,10 @@ public class DungeonManagementService {
 
             writeEntry(entry);
             logger.info("{} dungeon: {}", isUpdate ? "Updated" : "Created", id);
-            JsonObject dungeonDataJson = new JsonObject();
-            dungeonDataJson.addProperty("id", entry.getId());
-            dungeonDataJson.addProperty("name", entry.getName() != null ? entry.getName() : id);
-            dungeonDataJson.addProperty("description", entry.getDescription() != null ? entry.getDescription() : "");
+            // Spigot persists this payload verbatim into the dungeons table; send the full
+            // entry so dungeonType and labyrinthDungeonConfig survive the round trip.
+            // Without this LabyrinthRunManager.parseDungeonConfig() returns null and the run aborts.
+            JsonObject dungeonDataJson = entryToJson(entry);
             notifySyncChannel("DUNGEON_UPDATE", id, name, desc, dungeonDataJson.toString());
 
             JsonObject response = new JsonObject();
@@ -508,18 +508,23 @@ public class DungeonManagementService {
             floorData.setSteps(steps);
         }
         // Labyrinth fields — discriminator + per-difficulty inline config.
-        if (body.has("floorType") && !body.get("floorType").isJsonNull()) {
-            try {
-                floorData.setFloorType(fr.perrier.dungeons.common.model.dungeon.FloorType.valueOf(
-                        body.get("floorType").getAsString().toUpperCase()));
-            } catch (IllegalArgumentException ignored) {
-                floorData.setFloorType(fr.perrier.dungeons.common.model.dungeon.FloorType.CLASSIC);
+        // Authoritative source is the parent dungeon's type, not the body: a floor inside
+        // a LABYRINTH dungeon is always LABYRINTH (and vice-versa). This prevents the UI
+        // from accidentally downgrading a labyrinth floor to CLASSIC and matches the
+        // runtime invariant LabyrinthInstanceReadyListener relies on.
+        DungeonEntry parentDungeon = readEntry(dungeonId);
+        boolean parentIsLabyrinth = parentDungeon != null
+                && "LABYRINTH".equalsIgnoreCase(parentDungeon.getDungeonType());
+        if (parentIsLabyrinth) {
+            floorData.setFloorType(fr.perrier.dungeons.common.model.dungeon.FloorType.LABYRINTH);
+            if (body.has("labyrinthFloorConfig") && !body.get("labyrinthFloorConfig").isJsonNull()) {
+                floorData.setLabyrinthFloorConfig(gson.fromJson(
+                        body.get("labyrinthFloorConfig"),
+                        fr.perrier.dungeons.common.model.labyrinth.LabyrinthFloorConfig.class));
             }
-        }
-        if (body.has("labyrinthFloorConfig") && !body.get("labyrinthFloorConfig").isJsonNull()) {
-            floorData.setLabyrinthFloorConfig(gson.fromJson(
-                    body.get("labyrinthFloorConfig"),
-                    fr.perrier.dungeons.common.model.labyrinth.LabyrinthFloorConfig.class));
+        } else {
+            floorData.setFloorType(fr.perrier.dungeons.common.model.dungeon.FloorType.CLASSIC);
+            floorData.setLabyrinthFloorConfig(null);
         }
         floorData.setTriggers(null);
         return floorData;

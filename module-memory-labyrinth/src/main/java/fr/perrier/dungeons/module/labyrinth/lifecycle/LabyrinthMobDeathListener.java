@@ -37,6 +37,13 @@ public class LabyrinthMobDeathListener implements Listener {
         LabyrinthRun run = runManager.getRun(instanceId);
         if (run == null) return;
 
+        // CDC §1.6 — no loot drop during the run. Items and XP are accounted
+        // for at end-of-run via the LootTable + iconCounts pipeline. Clearing
+        // here keeps the floor clean and prevents players from farming partial
+        // rewards mid-run.
+        event.getDrops().clear();
+        event.setDroppedExp(0);
+
         runManager.onMobDeath(run, roomUuid);
     }
 

@@ -375,6 +375,23 @@ public class MongoManager implements DatabaseManager {
     }
 
     @Override
+    public CompletableFuture<List<String[]>> listAllDungeons() {
+        return CompletableFuture.supplyAsync(() -> {
+            List<String[]> result = new ArrayList<>();
+            try {
+                for (Document doc : dungeonsCollection.find()) {
+                    String id = doc.getString("_id");
+                    String data = doc.getString("data");
+                    if (id != null) result.add(new String[] { id, data });
+                }
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Error listing dungeons: " + e.getMessage());
+            }
+            return result;
+        });
+    }
+
+    @Override
     public CompletableFuture<String> loadFloor(String floorId) {
         return CompletableFuture.supplyAsync(() -> {
             try {
@@ -492,8 +509,8 @@ public class MongoManager implements DatabaseManager {
                 if (floor == null) return null;
                 if (persistedChecksum != null && !persistedChecksum.isEmpty()
                         && !persistedChecksum.equals(floor.calculateChecksum())) {
-                    Main.getLoggerUtil().severe("[MongoManager] Checksum MISMATCH for floor " + floorId);
-                    return null;
+                    Main.getLoggerUtil().warning("[MongoManager] Stale checksum for floor " + floorId
+                            + " (schema likely evolved) — returning row for caller to heal");
                 }
                 return floor;
             } catch (Exception e) {
@@ -525,8 +542,8 @@ public class MongoManager implements DatabaseManager {
                     if (floor == null) continue;
                     if (persistedChecksum != null && !persistedChecksum.isEmpty()
                             && !persistedChecksum.equals(floor.calculateChecksum())) {
-                        Main.getLoggerUtil().severe("[MongoManager] Skipping floor " + id + " (checksum mismatch)");
-                        continue;
+                        Main.getLoggerUtil().warning("[MongoManager] Stale checksum for floor " + id
+                                + " (schema likely evolved) — loading row for self-heal");
                     }
                     result.add(floor);
                 }

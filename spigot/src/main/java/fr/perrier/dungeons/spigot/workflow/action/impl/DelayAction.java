@@ -28,6 +28,11 @@ public class DelayAction extends Action implements BlocklyAction {
     @BlocklyField(type = BlocklyField.FieldType.NUMBER_INPUT, label = "Ticks (20 = 1s):", defaultValue = "20", order = 1)
     private int ticks;
 
+    public DelayAction() {
+        super("Delay", "delay_action");
+        this.ticks = 20;
+    }
+
     public DelayAction(int ticks) {
         super("Delay", "delay_action");
         this.ticks = ticks;

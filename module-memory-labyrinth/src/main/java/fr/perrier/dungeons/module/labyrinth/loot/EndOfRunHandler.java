@@ -70,11 +70,13 @@ public class EndOfRunHandler {
     }
 
     public void onFiniteCompletion(LabyrinthRun run) {
-        end(run, true);
+        // Finite WIN — boss kill at maxRooms. Player earned the loot.
+        end(run, true, true);
     }
 
     public void onTotalWipe(LabyrinthRun run) {
-        end(run, false);
+        // Loss — no loot, ever (CDC owner refinement: only winners get rewarded).
+        end(run, false, false);
         if (run != null && run.isInfinite() && saveManager != null) {
             saveManager.deleteForRun(run);
             if (triggerBus != null) triggerBus.fireSaveInvalidated(run, null, "ALL_DEAD");
@@ -82,11 +84,11 @@ public class EndOfRunHandler {
     }
 
     public void onVoluntaryExit(LabyrinthRun run) {
-        // Voluntary leave still ends the run — count as success only for
-        // finite floors that are actually completed ; otherwise treat as
-        // a failure-grade end. For now we mark as failure; finer
-        // granularity (success / abandoned) can come in P11 polish.
-        end(run, false);
+        // Voluntary exit only rewards on Infinite (the "extraction" win-state
+        // for that mode — there is no boss-kill end). Finite voluntary exit
+        // is treated as abandoning : no loot.
+        boolean isExtraction = run != null && run.isInfinite();
+        end(run, isExtraction, isExtraction);
         if (run != null && run.isInfinite() && saveManager != null) {
             // Voluntary infinite exit deletes the save (CDC §1.6).
             saveManager.deleteForRun(run);
@@ -94,22 +96,58 @@ public class EndOfRunHandler {
         }
     }
 
-    private void end(LabyrinthRun run, boolean success) {
+    private void end(LabyrinthRun run, boolean success, boolean distributeLoot) {
         if (run == null) return;
         FloorInstance instance = Main.getInstance().getDungeonService().getInstance(run.getInstanceId());
         List<UUID> recipients = instance != null
                 ? new ArrayList<>(instance.getPlayers())
                 : new ArrayList<>(run.getInitialPlayerUuids());
 
-        List<LootResult> results = lootCalculator.computeForPlayers(run, recipients, success);
-
-        for (LootResult r : results) distribute(r);
+        List<LootResult> results;
+        if (distributeLoot) {
+            results = lootCalculator.computeForPlayers(run, recipients, success);
+            for (LootResult r : results) distribute(r);
+        } else {
+            // No loot — wipe / abandoned finite. Still build empty per-player
+            // results so the on_run_ended trigger gets a consistent shape
+            // (success=false, no items, no gold) and admin workflows can
+            // react (e.g. show "you lost" cinematic).
+            results = new ArrayList<>();
+            for (UUID id : recipients) {
+                LootResult empty = new LootResult();
+                empty.setPlayerId(id);
+                empty.setSuccess(success);
+                empty.setFloorId(run.getFloorId());
+                empty.setFinalRoomIndex(run.getCurrentRoomIndex());
+                empty.setTier(run.getCurrentModifier() != null ? run.getCurrentModifier().getTier() : 1);
+                empty.setIconCounts(new java.util.EnumMap<>(run.getIconCounts()));
+                empty.setGoldEarned(0L);
+                empty.setItemsRolled(new ArrayList<>());
+                results.add(empty);
+                Player p = Bukkit.getPlayer(id);
+                if (p != null && p.isOnline()) {
+                    p.sendMessage("§c§l✦ Memory Labyrinth — Run échouée");
+                    p.sendMessage("§7Aucun loot — les récompenses ne sont distribuées qu'à la victoire.");
+                }
+            }
+        }
 
         if (triggerBus != null) triggerBus.fireRunEnded(run, results, success);
         if (onRunEndedCallback != null) onRunEndedCallback.fire(run, results, success);
 
         if (doorController != null) doorController.closeDoors(run.getInstanceId());
         runManager.endRun(run.getInstanceId());
+
+        // Hand back to the core instance lifecycle so players are returned
+        // to their origin lobby and the CloudNet floor service shuts down
+        // after the 30s broadcast — same flow as classic dungeons via
+        // EndDungeonAction.execute → FloorInstance.complete.
+        if (instance != null) {
+            instance.complete(success);
+        } else {
+            logger.warning("[MemoryLabyrinth] End of run for " + run.getInstanceId()
+                    + " — no FloorInstance found, service will NOT shut down. Players stuck.");
+        }
     }
 
     /**

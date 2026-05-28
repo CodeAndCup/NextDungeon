@@ -42,12 +42,12 @@ public class ActionFactory {
                             actionData.get("title").getAsString() : "";
                     String subtitle = actionData.has("subtitle") ?
                             actionData.get("subtitle").getAsString() : "";
-                    int fadeIn = actionData.has("fadein") ?
-                            actionData.get("fadein").getAsInt() : 10;
+                    int fadeIn = actionData.has("fadeIn") ?
+                            actionData.get("fadeIn").getAsInt() : 10;
                     int stay = actionData.has("stay") ?
                             actionData.get("stay").getAsInt() : 70;
-                    int fadeOut = actionData.has("fadeout") ?
-                            actionData.get("fadeout").getAsInt() : 20;
+                    int fadeOut = actionData.has("fadeOut") ?
+                            actionData.get("fadeOut").getAsInt() : 20;
                     yield new SendTitleAction(targetPlayer, title, subtitle, fadeIn, stay, fadeOut);
                 }
                 case "call_function_action" -> {
@@ -518,12 +518,12 @@ public class ActionFactory {
                             actionData.get("particleType").getAsString() : "FLAME";
                     int count = actionData.has("count") ?
                             actionData.get("count").getAsInt() : 10;
-                    double offsetX = actionData.has("offsetx") ?
-                            actionData.get("offsetx").getAsDouble() : 0.5;
-                    double offsetY = actionData.has("offsety") ?
-                            actionData.get("offsety").getAsDouble() : 0.5;
-                    double offsetZ = actionData.has("offsetz") ?
-                            actionData.get("offsetz").getAsDouble() : 0.5;
+                    double offsetX = actionData.has("offsetX") ?
+                            actionData.get("offsetX").getAsDouble() : 0.5;
+                    double offsetY = actionData.has("offsetY") ?
+                            actionData.get("offsetY").getAsDouble() : 0.5;
+                    double offsetZ = actionData.has("offsetZ") ?
+                            actionData.get("offsetZ").getAsDouble() : 0.5;
                     double speed = actionData.has("speed") ?
                             actionData.get("speed").getAsDouble() : 0.1;
                     String locationSource = actionData.has("locationSource") ?
@@ -543,6 +543,16 @@ public class ActionFactory {
                             actionData.get("quantity").getAsInt() : 1;
                     LocationBlock location = LocationBlockParser.parseFromJson(actionData, "location");
                     yield new DropItemAction(item, quantity, location);
+                }
+                case "spawn_loot_chest_action" -> {
+                    LocationBlock location = LocationBlockParser.parseFromJson(actionData, "location");
+                    String chestType = actionData.has("chestType") ?
+                            actionData.get("chestType").getAsString() : "CHEST";
+                    String lootMode = actionData.has("lootMode") ?
+                            actionData.get("lootMode").getAsString() : "GLOBAL";
+                    String loot = actionData.has("loot") ?
+                            actionData.get("loot").getAsString() : "";
+                    yield new SpawnLootChestAction(location, chestType, lootMode, loot);
                 }
                 case "summon_block_display_action" -> {
                     String blockType = actionData.has("blockType") ?

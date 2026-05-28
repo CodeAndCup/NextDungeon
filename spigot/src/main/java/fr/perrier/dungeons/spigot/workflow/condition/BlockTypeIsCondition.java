@@ -201,10 +201,10 @@ public class BlockTypeIsCondition extends Action implements BlocklyAction {
                                 x: parseFloat(x),
                                 y: parseFloat(y),
                                 z: parseFloat(z),
-                                blocktype: blockType,
+                                blockType: blockType,
                                 comparison: actionBlock.getFieldValue('COMPARISON'),
-                                ifactions: ifActions,
-                                elseactions: elseActions
+                                ifActions: ifActions,
+                                elseActions: elseActions
                             });
                         }
         """);
@@ -240,9 +240,9 @@ public class BlockTypeIsCondition extends Action implements BlocklyAction {
                                     actionBlock.getInput('Z').connection.connect(zBlock.outputConnection);
                                 }
                                 
-                                if (action.blocktype) {
+                                if (action.blockType) {
                                     const typeBlock = workspace.newBlock('text');
-                                    typeBlock.setFieldValue(action.blocktype, 'TEXT');
+                                    typeBlock.setFieldValue(action.blockType, 'TEXT');
                                     typeBlock.initSvg();
                                     typeBlock.render();
                                     actionBlock.getInput('BLOCKTYPE').connection.connect(typeBlock.outputConnection);
@@ -250,12 +250,12 @@ public class BlockTypeIsCondition extends Action implements BlocklyAction {
                                 
                                 actionBlock.setFieldValue(action.comparison || 'is', 'COMPARISON');
                                 
-                                if (action.ifactions && action.ifactions.length > 0) {
-                                    loadActionsIntoStatement(actionBlock, action.ifactions, 'IFACTIONS');
+                                if (action.ifActions && action.ifActions.length > 0) {
+                                    loadActionsIntoStatement(actionBlock, action.ifActions, 'IFACTIONS');
                                 }
                                 
-                                if (action.elseactions && action.elseactions.length > 0) {
-                                    loadActionsIntoStatement(actionBlock, action.elseactions, 'ELSEACTIONS');
+                                if (action.elseActions && action.elseActions.length > 0) {
+                                    loadActionsIntoStatement(actionBlock, action.elseActions, 'ELSEACTIONS');
                                 }
                             }
         """);

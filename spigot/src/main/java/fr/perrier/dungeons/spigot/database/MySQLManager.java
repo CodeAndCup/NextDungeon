@@ -696,6 +696,21 @@ public class MySQLManager implements DatabaseManager {
         }, "Delete dungeon " + dungeonId);
     }
 
+    @Override
+    public CompletableFuture<List<String[]>> listAllDungeons() {
+        return executeAsync(() -> {
+            List<String[]> result = new ArrayList<>();
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement("SELECT id, data FROM dungeons");
+                 ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    result.add(new String[] { rs.getString("id"), rs.getString("data") });
+                }
+            }
+            return result;
+        }, "listAllDungeons");
+    }
+
     // ===== Floor CRUD =====
 
     @Override
@@ -838,9 +853,8 @@ public class MySQLManager implements DatabaseManager {
                     }
                     if (persistedChecksum != null && !persistedChecksum.isEmpty()
                             && !persistedChecksum.equals(floor.calculateChecksum())) {
-                        Main.getLoggerUtil().severe("[MySQLManager] Checksum MISMATCH for floor " + floorId
-                                + " — refusing to return corrupted data");
-                        return null;
+                        Main.getLoggerUtil().warning("[MySQLManager] Stale checksum for floor " + floorId
+                                + " (schema likely evolved) — returning row for caller to heal");
                     }
                     return floor;
                 }
@@ -872,8 +886,8 @@ public class MySQLManager implements DatabaseManager {
                         if (floor == null) continue;
                         if (persistedChecksum != null && !persistedChecksum.isEmpty()
                                 && !persistedChecksum.equals(floor.calculateChecksum())) {
-                            Main.getLoggerUtil().severe("[MySQLManager] Skipping floor " + id + " (checksum mismatch)");
-                            continue;
+                            Main.getLoggerUtil().warning("[MySQLManager] Stale checksum for floor " + id
+                                    + " (schema likely evolved) — loading row for self-heal");
                         }
                         result.add(floor);
                     }

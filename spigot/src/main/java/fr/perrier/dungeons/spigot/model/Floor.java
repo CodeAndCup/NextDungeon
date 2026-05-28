@@ -33,10 +33,13 @@ public class Floor extends FloorData {
         super(floorData.getId(), floorData.getName(), floorData.getDescription(),
                 floorData.getWorldConfig(), floorData.getRequirements(),
                 floorData.getRules(), floorData.getSteps(), floorData.getTriggers());
-        // The 8-arg FloorData constructor does NOT copy versioning metadata — replay it
-        // explicitly, otherwise every Floor wrapper resets version=1/checksum=null and
-        // wipes the heal work done upstream when it syncs back through updateMap().
+        // The 8-arg FloorData constructor does NOT copy versioning metadata or the
+        // labyrinth discriminator — replay them explicitly, otherwise every Floor wrapper
+        // resets version=1/checksum=null/floorType=CLASSIC and wipes the data upstream
+        // when it syncs back through updateMap().
         setDungeonId(floorData.getDungeonId());
+        setFloorType(floorData.getFloorType());
+        setLabyrinthFloorConfig(floorData.getLabyrinthFloorConfig());
         setVersion(floorData.getVersion());
         setSchemaVersion(floorData.getSchemaVersion());
         setUpdatedAt(floorData.getUpdatedAt());
@@ -102,6 +105,8 @@ public class Floor extends FloorData {
                 getTriggers()
         );
         data.setDungeonId(getDungeonId());
+        data.setFloorType(getFloorType());
+        data.setLabyrinthFloorConfig(getLabyrinthFloorConfig());
         data.setVersion(getVersion());
         data.setSchemaVersion(getSchemaVersion());
         data.setUpdatedAt(getUpdatedAt());

@@ -111,6 +111,45 @@ public class LabyrinthRun {
      */
     private String infiniteSaveId;
 
+    // ===== v2 procedural paste (R6) =====
+    //
+    // Rooms live as static geometry in a template world. The runtime COPIES
+    // each room into the instance world at a running offset so multiple
+    // visits + multiple instances never collide. These fields drive that
+    // pipeline.
+
+    /**
+     * Bukkit world name where rooms are pasted at runtime. Defaults to
+     * the dungeon's worldId — same world holds both templates and the
+     * runtime copies, separated by a large X offset.
+     */
+    private String instanceWorldId;
+
+    /**
+     * Initial paste anchor (X) in {@link #instanceWorldId}. Picked far
+     * from typical builds (5000 by default) so the runtime copies do not
+     * overlap with the admin's template region.
+     */
+    private int baseAnchorX = 5000;
+    private int baseAnchorY = 100;
+    private int baseAnchorZ = 0;
+
+    /**
+     * Cursor that walks along +X as rooms are entered. Stride per room
+     * is computed from the source region's max horizontal dimension plus
+     * a buffer, so big rooms do not bleed into the next.
+     */
+    private int nextRoomOffsetX = 0;
+
+    /**
+     * Anchor of the current room's copy (= base + offset at entry). Used
+     * by the player TP override and by the mob/door coord translators
+     * to map template-coords → instance-coords.
+     */
+    private int currentRoomAnchorX;
+    private int currentRoomAnchorY;
+    private int currentRoomAnchorZ;
+
     public int incrementIcon(RewardIcon icon) {
         if (icon == null || icon == RewardIcon.NONE) return 0;
         int next = iconCounts.getOrDefault(icon, 0) + 1;

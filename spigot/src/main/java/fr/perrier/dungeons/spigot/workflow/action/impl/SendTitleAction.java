@@ -55,6 +55,16 @@ public class SendTitleAction extends Action implements BlocklyAction {
             defaultValue = "20", order = 6)
     private int fadeOut;
 
+    public SendTitleAction() {
+        super("SendTitle", "send_title_action");
+        this.targetPlayer = "player";
+        this.title = "&#00FF00Bonjour {player}!";
+        this.subtitle = "";
+        this.fadeIn = 10;
+        this.stay = 70;
+        this.fadeOut = 20;
+    }
+
     public SendTitleAction(String targetPlayer, String title, String subtitle, int fadeIn, int stay, int fadeOut) {
         super("SendTitle", "send_title_action");
         this.targetPlayer = targetPlayer;

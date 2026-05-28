@@ -85,9 +85,11 @@ public class DoorController {
         }
 
         DoorChoice choice = run.getPendingChoice();
-        World world = Bukkit.getWorld(currentRoom.getWorldId());
+        // v2 procedural — doors live in the pasted copy, not the template.
+        String worldId = run.getInstanceWorldId() != null ? run.getInstanceWorldId() : currentRoom.getWorldId();
+        World world = Bukkit.getWorld(worldId);
         if (world == null) {
-            logger.warning("[MemoryLabyrinth] World not found for door open: " + currentRoom.getWorldId());
+            logger.warning("[MemoryLabyrinth] World not found for door open: " + worldId);
             return;
         }
 
@@ -96,13 +98,15 @@ public class DoorController {
         open.currentRoom = currentRoom;
         open.choice = choice;
 
-        Location leftAnchor = anchorLocation(world, currentRoom, 0);
+        Location leftAnchor = anchorLocation(world, currentRoom, 0, run);
         if (leftAnchor != null) {
             open.leftAnchor = leftAnchor;
-            open.leftHologram = DoorIconHologram.spawn(leftAnchor, choice.getIconLeft());
+            open.leftHologram = choice.isBossSingleDoor()
+                    ? DoorIconHologram.spawnBoss(leftAnchor)
+                    : DoorIconHologram.spawn(leftAnchor, choice.getIconLeft());
         }
         if (!choice.isBossSingleDoor() && currentRoom.getExitDoors().size() >= 2) {
-            Location rightAnchor = anchorLocation(world, currentRoom, 1);
+            Location rightAnchor = anchorLocation(world, currentRoom, 1, run);
             if (rightAnchor != null) {
                 open.rightAnchor = rightAnchor;
                 open.rightHologram = DoorIconHologram.spawn(rightAnchor, choice.getIconRight());
@@ -171,12 +175,17 @@ public class DoorController {
         return playerLoc.distanceSquared(anchor) <= TRAVERSAL_RADIUS * TRAVERSAL_RADIUS;
     }
 
-    private Location anchorLocation(World world, LabyrinthRoom room, int doorIndex) {
+    private Location anchorLocation(World world, LabyrinthRoom room, int doorIndex, LabyrinthRun run) {
         if (room.getExitDoors().size() <= doorIndex) return null;
         LabyrinthRoom.Door door = room.getExitDoors().get(doorIndex);
         if (door == null || door.getAnchor() == null) return null;
         LabyrinthRoom.Vec3 a = door.getAnchor();
-        return new Location(world, a.getX(), a.getY(), a.getZ());
+        // v2 procedural — translate template door coords into the pasted copy.
+        LabyrinthRoom.Vec3 srcMin = room.getRegion() != null ? room.getRegion().getMin() : null;
+        double offX = (run != null && srcMin != null) ? (run.getCurrentRoomAnchorX() - srcMin.getX()) : 0;
+        double offY = (run != null && srcMin != null) ? (run.getCurrentRoomAnchorY() - srcMin.getY()) : 0;
+        double offZ = (run != null && srcMin != null) ? (run.getCurrentRoomAnchorZ() - srcMin.getZ()) : 0;
+        return new Location(world, a.getX() + offX, a.getY() + offY, a.getZ() + offZ);
     }
 
     private static class OpenDoors {

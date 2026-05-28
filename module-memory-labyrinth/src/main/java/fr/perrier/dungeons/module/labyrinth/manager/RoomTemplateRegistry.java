@@ -43,6 +43,14 @@ public class RoomTemplateRegistry {
         for (RoomType t : RoomType.values()) pool.put(t, new ArrayList<>());
         for (LabyrinthRoom room : config.getRooms()) {
             if (room == null || room.getType() == null) continue;
+            // Inherit worldId from the parent dungeon when the room left it blank
+            // ("(inherit)" in the dashboard saves null/empty). Without this, every
+            // downstream Bukkit.getWorld(room.worldId) returns null and the room
+            // becomes invisible (no TP, no mob spawn, no door open).
+            if ((room.getWorldId() == null || room.getWorldId().isEmpty())
+                    && config.getWorldId() != null && !config.getWorldId().isEmpty()) {
+                room.setWorldId(config.getWorldId());
+            }
             pool.get(room.getType()).add(room);
         }
         byInstance.put(instanceId, pool);

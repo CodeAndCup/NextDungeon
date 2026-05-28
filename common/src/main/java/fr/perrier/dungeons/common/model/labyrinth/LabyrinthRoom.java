@@ -65,11 +65,26 @@ public class LabyrinthRoom implements Serializable {
         private double x;
         private double y;
         private double z;
+        /**
+         * Optional facing applied on teleport (dungeon spawn / player spawn).
+         * Defaults to 0 ; ignored where rotation is meaningless (region corners,
+         * mob/door anchors). Old payloads without these fields deserialize to 0.
+         */
+        private float yaw;
+        private float pitch;
 
         public Vec3(double x, double y, double z) {
             this.x = x;
             this.y = y;
             this.z = z;
+        }
+
+        public Vec3(double x, double y, double z, float yaw, float pitch) {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.yaw = yaw;
+            this.pitch = pitch;
         }
     }
 

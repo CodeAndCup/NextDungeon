@@ -58,18 +58,27 @@ public class MobSpawner {
         LabyrinthRoom room = run.getCurrentRoom();
         if (room.getMobSpawns() == null || room.getMobSpawns().isEmpty()) return 0;
 
-        World world = Bukkit.getWorld(room.getWorldId());
+        // v2 procedural — mobs spawn in the pasted copy, not the template.
+        // Pick the instance world and translate every template coord by the
+        // run's current room offset (= anchor - region.min).
+        String worldId = run.getInstanceWorldId() != null ? run.getInstanceWorldId() : room.getWorldId();
+        World world = Bukkit.getWorld(worldId);
         if (world == null) {
-            logger.warning("[MemoryLabyrinth] World not found: " + room.getWorldId() + " — skipping mob spawn");
+            logger.warning("[MemoryLabyrinth] World not found: " + worldId + " — skipping mob spawn");
             return 0;
         }
+        LabyrinthRoom.Vec3 srcMin = room.getRegion() != null ? room.getRegion().getMin() : null;
+        double offX = srcMin != null ? (run.getCurrentRoomAnchorX() - srcMin.getX()) : 0;
+        double offY = srcMin != null ? (run.getCurrentRoomAnchorY() - srcMin.getY()) : 0;
+        double offZ = srcMin != null ? (run.getCurrentRoomAnchorZ() - srcMin.getZ()) : 0;
 
         DifficultyModifier modifier = run.getCurrentModifier() != null
                 ? run.getCurrentModifier() : new DifficultyModifier();
 
         int spawned = 0;
         for (LabyrinthRoom.MobSpawn spawn : room.getMobSpawns()) {
-            Location at = new Location(world, spawn.getX(), spawn.getY(), spawn.getZ());
+            Location at = new Location(world,
+                    spawn.getX() + offX, spawn.getY() + offY, spawn.getZ() + offZ);
             int count = Math.max(1, spawn.getCount());
             for (int i = 0; i < count; i++) {
                 Entity entity = spawnSingle(spawn.getMobId(), at, world);

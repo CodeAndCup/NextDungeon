@@ -17,11 +17,19 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import org.bukkit.scheduler.BukkitTask;
 
 @Getter
 public class FloorInstance extends FloorInstanceData {
+
+    // Loading-bar tasks scheduled by sendToServer(Player), keyed by player
+    // UUID so cancelInstance() (or a repeated send) can cancel them and
+    // avoid leaking an async timer that references a player who may have
+    // already disconnected.
+    private final transient Map<UUID, BukkitTask> pendingLoadTasks = new ConcurrentHashMap<>();
 
     @Getter
     private enum LoadingBar {
@@ -207,13 +215,19 @@ public class FloorInstance extends FloorInstanceData {
         AtomicInteger timerDelay = new AtomicInteger(0);
         AtomicInteger currentLoad = new AtomicInteger(0);
         List<String> loadingBar = LoadingBar.getRandom().getFrames();
+        UUID playerId = player.getUniqueId();
 
-        new BukkitRunnable() {
+        BukkitTask task = new BukkitRunnable() {
             private final long startTime = System.currentTimeMillis();
             private final long timeout = Main.getInstance().getConfig().getInt("InstanceSettings.loadingTimeout",120) * 1000L;
 
             @Override
             public void run() {
+                if (!player.isOnline()) {
+                    this.cancel();
+                    pendingLoadTasks.remove(playerId);
+                    return;
+                }
                 Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
                     Titles.sendTitle(player, 0, 3, 0, ChatUtil.translate("&f" + ChatUtil.toSmallCaps("Loading Dungeon..")), ChatUtil.translate(loadingBar.get(currentLoad.get())));
                     if(currentLoad.get() +1 >= loadingBar.size()) {
@@ -230,6 +244,7 @@ public class FloorInstance extends FloorInstanceData {
                         Main.getLoggerUtil().warning("Instance " + instanceId + "no longer exists.");
                         player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000This dungeon instance no longer exists!"));
                         this.cancel();
+                        pendingLoadTasks.remove(playerId);
                         return;
                     }
 
@@ -237,12 +252,14 @@ public class FloorInstance extends FloorInstanceData {
                         player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&fInstance is &#00FF00ready&f! Sending you to the dungeon..."));
                         ServerUtil.sendToServer(player, instanceId);
                         this.cancel();
+                        pendingLoadTasks.remove(playerId);
                     } else {
                         if (System.currentTimeMillis() - startTime > timeout) {
                             Main.getLoggerUtil().warning("Timed out waiting for instance " + instanceId + " to be ready. (Now try cancelling instance..)");
                             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Timed out waiting for dungeon instance to be ready!"));
                             instance.cancelInstance();
                             this.cancel();
+                            pendingLoadTasks.remove(playerId);
                         }
                     }
                     timerDelay.set(0);
@@ -251,6 +268,11 @@ public class FloorInstance extends FloorInstanceData {
                 }
             }
         }.runTaskTimerAsynchronously(Main.getInstance(), 0L, 2L);
+
+        // If a previous loading task for the same player is still pending
+        // (rapid re-send), cancel it so we don't accumulate orphan timers.
+        BukkitTask previous = pendingLoadTasks.put(playerId, task);
+        if (previous != null) previous.cancel();
     }
 
     /**
@@ -414,6 +436,11 @@ public class FloorInstance extends FloorInstanceData {
      * servers that the instance should be cancelled and removed.</p>
      */
     public void cancelInstance() {
+        // Cancel any pending sendToServer loading bars so we don't leak
+        // async timers referencing players that will never join.
+        for (BukkitTask task : pendingLoadTasks.values()) task.cancel();
+        pendingLoadTasks.clear();
+
         Bukkit.getScheduler().runTaskTimerAsynchronously(Main.getInstance(), () -> {
             FloorInstance instance = Main.getInstance().getDungeonService().getInstance(instanceId);
             if(instance != null && instance.isReady()) {

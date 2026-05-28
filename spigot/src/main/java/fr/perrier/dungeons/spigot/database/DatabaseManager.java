@@ -45,6 +45,14 @@ public interface DatabaseManager {
     CompletableFuture<Void> saveDungeon(String dungeonId, String name, String description, String dataJson);
     CompletableFuture<Void> deleteDungeon(String dungeonId);
 
+    /**
+     * Lists every dungeon stored in the dashboard table as a {@code [id, dataJson]}
+     * pair. Used by the lobby boot to repopulate the {@code <topic>:dd:<id>} Redis
+     * buckets the dashboard reads from when Redis has been flushed but the DB
+     * still holds the source of truth.
+     */
+    CompletableFuture<List<String[]>> listAllDungeons();
+
     // Floor CRUD operations (for dashboard)
     CompletableFuture<String> loadFloor(String floorId);
     CompletableFuture<Void> saveFloor(String floorId, String dungeonId, String name, String dataJson);

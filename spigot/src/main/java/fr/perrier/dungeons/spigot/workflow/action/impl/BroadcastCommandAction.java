@@ -30,6 +30,11 @@ public class BroadcastCommandAction extends Action implements BlocklyAction {
     @BlocklyField(type = BlocklyField.FieldType.TEXT_INPUT, label = "Commande:", defaultValue = "say Hello World!", order = 1)
     private String command;
 
+    public BroadcastCommandAction() {
+        super("BroadcastCommand", "broadcast_command_action");
+        this.command = "say Hello World!";
+    }
+
     public BroadcastCommandAction(String command) {
         super("BroadcastCommand", "broadcast_command_action");
         this.command = command;

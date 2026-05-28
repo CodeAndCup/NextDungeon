@@ -78,8 +78,14 @@ public class BossEncounterHandler {
 
         // Persist the Infinite checkpoint (CDC §6.3).
         if (run.isInfinite() && saveManager != null) {
+            UUID instanceId = run.getInstanceId();
             saveManager.upsert(run).thenRun(() -> {
-                if (triggerBus != null) triggerBus.fireCheckpointSaved(run, null);
+                // Guard: the run may have been endRun() while the DB upsert
+                // was in flight (instance shutdown, all players left, …).
+                // Firing a trigger then would touch a freed registry slot.
+                if (triggerBus == null) return;
+                if (instanceId == null || runManager.getRun(instanceId) != run) return;
+                triggerBus.fireCheckpointSaved(run, null);
             }).exceptionally(ex -> {
                 logger.warning("[MemoryLabyrinth] Failed to upsert Infinite save: " + ex.getMessage());
                 return null;

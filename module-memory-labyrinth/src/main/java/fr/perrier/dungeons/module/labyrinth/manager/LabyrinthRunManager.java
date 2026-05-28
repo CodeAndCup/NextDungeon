@@ -165,6 +165,13 @@ public class LabyrinthRunManager {
         run.setSeed(ThreadLocalRandom.current().nextLong());
         run.setStartedAtMs(System.currentTimeMillis());
         run.getInitialPlayerUuids().addAll(instance.getPlayers());
+        // v2 procedural paste — rooms are copied into this world at a sliding
+        // X-offset from baseAnchorX (5000 default, far from typical builds).
+        // Currently same as the template world ; can diverge in v3 if rooms
+        // live in a separate template world.
+        if (dungeonConfig.getWorldId() != null && !dungeonConfig.getWorldId().isEmpty()) {
+            run.setInstanceWorldId(dungeonConfig.getWorldId());
+        }
         runs.put(instanceId, run);
 
         // R5 — TP players to the dungeon spawn point first ; the lobby is
@@ -175,6 +182,9 @@ public class LabyrinthRunManager {
             run.setLobbyDecisionPending(true);
             saveManager.findSaveForRun(run).thenAccept(save ->
                     Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
+                        // Guard: the run may have been endRun()'d while the
+                        // DB lookup was in flight (instance cancelled, …).
+                        if (runs.get(instanceId) != run) return;
                         if (save == null) {
                             // No save → straight to lobby (fresh run).
                             run.setLobbyDecisionPending(false);
@@ -193,6 +203,7 @@ public class LabyrinthRunManager {
                     })).exceptionally(ex -> {
                 logger.warning("[MemoryLabyrinth] save lookup failure: " + ex.getMessage());
                 Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
+                    if (runs.get(instanceId) != run) return;
                     run.setLobbyDecisionPending(false);
                     enterLobby(run, instance);
                 });
@@ -212,7 +223,8 @@ public class LabyrinthRunManager {
             return;
         }
         LabyrinthRoom.Vec3 s = dungeonConfig.getDungeonSpawn();
-        org.bukkit.Location target = new org.bukkit.Location(world, s.getX(), s.getY(), s.getZ());
+        org.bukkit.Location target = new org.bukkit.Location(world, s.getX(), s.getY(), s.getZ(),
+                s.getYaw(), s.getPitch());
         for (UUID id : instance.getPlayers()) {
             Player p = Bukkit.getPlayer(id);
             if (p != null && p.isOnline()) p.teleport(target);
@@ -269,7 +281,8 @@ public class LabyrinthRunManager {
      */
     public void applyResume(LabyrinthRun run, Player sender) {
         if (run == null || saveManager == null) return;
-        FloorInstance instance = Main.getInstance().getDungeonService().getInstance(run.getInstanceId());
+        UUID instanceId = run.getInstanceId();
+        FloorInstance instance = Main.getInstance().getDungeonService().getInstance(instanceId);
         if (instance == null) {
             sender.sendMessage("§cInstance introuvable — resume impossible.");
             return;
@@ -277,14 +290,17 @@ public class LabyrinthRunManager {
         saveManager.findSaveForRun(run).thenAccept(save -> {
             if (save == null) {
                 Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
+                    if (runs.get(instanceId) != run) return;
                     sender.sendMessage("§cLa save n'est plus disponible.");
                     run.setLobbyDecisionPending(false);
                     enterLobby(run, instance);
                 });
                 return;
             }
-            Bukkit.getScheduler().runTask(Main.getInstance(),
-                    () -> resumeAtNextRoom(run, save, instance, sender));
+            Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
+                if (runs.get(instanceId) != run) return;
+                resumeAtNextRoom(run, save, instance, sender);
+            });
         });
     }
 
@@ -356,12 +372,19 @@ public class LabyrinthRunManager {
     /**
      * Drop a run from the manager. Called when the instance terminates
      * (success / fail / shutdown).
+     *
+     * <p>The run is removed from the live map <em>before</em> per-instance
+     * registries are released, so any callback racing against endRun
+     * (DB writes, scheduled triggers) sees a {@code null} run via
+     * {@link #getRun(UUID)} and bails out instead of touching a freed
+     * registry slot.</p>
      */
     public LabyrinthRun endRun(UUID instanceId) {
         if (instanceId == null) return null;
+        LabyrinthRun previous = runs.remove(instanceId);
         roomTemplateRegistry.release(instanceId);
         if (lootRegistry != null) lootRegistry.release(instanceId);
-        return runs.remove(instanceId);
+        return previous;
     }
 
     /**

@@ -308,6 +308,17 @@ public class InstanceSerializer {
                 }
             }
 
+            // Container actions (IfCondition, ForLoopAction, conditions with branches) hold
+            // List<Action> fields. Since Action is abstract, plain Gson cannot instantiate the
+            // nested entries (stored in legacy/flat format with a "type" field) and throws,
+            // dropping the whole action. Route them through ActionFactory which rebuilds
+            // nested actions recursively.
+            JsonObject data = dataElement.getAsJsonObject();
+            if (data.has("type")
+                    && (data.has("ifActions") || data.has("elseActions") || data.has("loopActions"))) {
+                return ActionFactory.createActionFromJson(data);
+            }
+
             try {
                 Class<?> clazz = Class.forName(className);
                 return (Action) baseGson.fromJson(dataElement, clazz);

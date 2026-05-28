@@ -33,10 +33,22 @@ public class DoorIconHologram {
      */
     public static DoorIconHologram spawn(Location anchor, RewardIcon icon) {
         if (icon == null || icon == RewardIcon.NONE) return null;
-        if (anchor == null || anchor.getWorld() == null) return null;
         Material material = materialFor(icon);
         if (material == null) return null;
+        return spawnWithMaterial(anchor, material);
+    }
 
+    /**
+     * Spawn the boss-door hologram — always a wither skeleton skull,
+     * independent of the {@link RewardIcon} carried by the choice.
+     * Used by the single-door boss layout (CDC §1.7).
+     */
+    public static DoorIconHologram spawnBoss(Location anchor) {
+        return spawnWithMaterial(anchor, Material.WITHER_SKELETON_SKULL);
+    }
+
+    private static DoorIconHologram spawnWithMaterial(Location anchor, Material material) {
+        if (anchor == null || anchor.getWorld() == null) return null;
         Location at = anchor.clone().add(0.5, Y_OFFSET, 0.5);
         ItemDisplay display = at.getWorld().spawn(at, ItemDisplay.class, d -> {
             d.setItemStack(new ItemStack(material));

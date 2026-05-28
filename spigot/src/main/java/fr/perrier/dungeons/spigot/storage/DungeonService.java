@@ -143,8 +143,29 @@ public class DungeonService {
      * @param dungeon the dungeon to synchronize.
      */
     public void syncDungeon(Dungeon dungeon) {
-        // Update Redis
-        dungeonsMap.fastPut(dungeon.getId(),dungeon);
+        if (dungeon == null) return;
+        // Floor.triggers carries Spigot-only TriggerData subclasses that blow up
+        // Kryo on the proxy or on a node whose classpath drifted (KryoBufferUnderflow
+        // on the deserialize path). Stash → clear → fastPut → restore so the live
+        // in-memory Dungeon keeps its triggers while the Redis copy is sanitised.
+        java.util.Map<Floor, java.util.List<fr.perrier.dungeons.common.workflow.trigger.TriggerData>> stash
+                = new java.util.IdentityHashMap<>();
+        if (dungeon.getFloors() != null) {
+            for (Floor f : dungeon.getFloors()) {
+                if (f != null && f.getTriggers() != null) {
+                    stash.put(f, f.getTriggers());
+                    f.setTriggers(null);
+                }
+            }
+        }
+        try {
+            dungeonsMap.fastPut(dungeon.getId(), dungeon);
+        } finally {
+            for (java.util.Map.Entry<Floor, java.util.List<fr.perrier.dungeons.common.workflow.trigger.TriggerData>> e
+                    : stash.entrySet()) {
+                e.getKey().setTriggers(e.getValue());
+            }
+        }
 
         if (Main.getLoggerUtil().isDebugEnabled()) {
             Main.getLoggerUtil().info(
@@ -437,6 +458,8 @@ public class DungeonService {
                 src.getWorldConfig(), src.getRequirements(), src.getRules(),
                 src.getSteps(), null);
         copy.setDungeonId(src.getDungeonId());
+        copy.setFloorType(src.getFloorType());
+        copy.setLabyrinthFloorConfig(src.getLabyrinthFloorConfig());
         copy.setVersion(src.getVersion());
         copy.setSchemaVersion(src.getSchemaVersion());
         copy.setUpdatedAt(src.getUpdatedAt());

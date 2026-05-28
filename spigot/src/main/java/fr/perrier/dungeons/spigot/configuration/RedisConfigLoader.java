@@ -102,6 +102,50 @@ public class RedisConfigLoader {
 
         Main.getLoggerUtil().info("[RedisConfigLoader] " + dungeonCount + " donjon(s) et " +
                 floorCount + " floor(s) chargés.");
+
+        repopulateDashboardDungeonEntries(dbManager);
+    }
+
+    /**
+     * Re-populates the dashboard's {@code <topic>:dd:<id>} Redis buckets from
+     * the {@code dungeons} DB table when they are missing.
+     *
+     * <p>Without this, flushing Redis (a frequent debug operation) leaves the
+     * dashboard reading an empty entry on the next reload — the user sees a
+     * 'reset' dungeon while the DB still holds the real configuration
+     * (dungeonType, labyrinthDungeonConfig, …). This mirrors what
+     * {@link #loadFloorsFromDatabase} does for floors.</p>
+     */
+    private static void repopulateDashboardDungeonEntries(DatabaseManager dbManager) {
+        if (dbManager == null) return;
+        String topic = Main.getInstance().getConfig().getString("RedisConfiguration.topic");
+        if (topic == null || topic.isEmpty()) {
+            Main.getLoggerUtil().warning("[RedisConfigLoader] RedisConfiguration.topic missing — cannot repopulate dd: entries");
+            return;
+        }
+        String ddPrefix = topic + ":dd:";
+        org.redisson.api.RedissonClient client = Main.getInstance().getDungeonService().getRedissonClient();
+        try {
+            java.util.List<String[]> rows = dbManager.listAllDungeons().get();
+            int written = 0;
+            int skipped = 0;
+            for (String[] row : rows) {
+                if (row == null || row.length < 2 || row[0] == null || row[1] == null) continue;
+                String key = ddPrefix + row[0];
+                org.redisson.api.RBucket<String> bucket = client.getBucket(key,
+                        org.redisson.client.codec.StringCodec.INSTANCE);
+                if (bucket.get() != null) {
+                    skipped++;
+                    continue; // Redis already has the entry, don't overwrite (dashboard may have unsynced edits).
+                }
+                bucket.set(row[1]);
+                written++;
+            }
+            Main.getLoggerUtil().info("[RedisConfigLoader] dashboard dd:* repopulated — "
+                    + written + " written, " + skipped + " already present");
+        } catch (Exception e) {
+            Main.getLoggerUtil().warning("[RedisConfigLoader] failed to repopulate dd:* entries: " + e.getMessage());
+        }
     }
 
     /**
@@ -126,9 +170,12 @@ public class RedisConfigLoader {
             for (FloorData fd : all) {
                 String dungeonId = fd.getDungeonId() != null ? fd.getDungeonId() : extractDungeonId(fd.getId());
                 if (fd.getDungeonId() == null) fd.setDungeonId(dungeonId);
-                if (fd.getChecksum() == null || fd.getChecksum().isEmpty()) {
+                String stored = fd.getChecksum();
+                boolean missing = stored == null || stored.isEmpty();
+                boolean stale = !missing && !stored.equals(fd.calculateChecksum());
+                if (missing || stale) {
                     if (fd.getUpdatedAt() <= 0L) fd.setUpdatedAt(System.currentTimeMillis());
-                    if (fd.getUpdatedBy() == null) fd.setUpdatedBy("legacy-heal");
+                    if (fd.getUpdatedBy() == null) fd.setUpdatedBy(missing ? "legacy-heal" : "schema-heal");
                     fd.setChecksum(fd.calculateChecksum());
                     healed++;
                     try {
@@ -141,7 +188,7 @@ public class RedisConfigLoader {
                 grouped.computeIfAbsent(dungeonId, k -> new ArrayList<>()).add(fd);
             }
             Main.getLoggerUtil().info("[RedisConfigLoader] " + all.size() + " floor(s) chargés depuis la BDD"
-                    + (healed > 0 ? " (" + healed + " checksum(s) legacy régénéré(s))." : "."));
+                    + (healed > 0 ? " (" + healed + " checksum(s) régénéré(s))." : "."));
         } catch (Exception e) {
             Main.getLoggerUtil().severe("[RedisConfigLoader] Échec du chargement BDD : " + e.getMessage());
         }

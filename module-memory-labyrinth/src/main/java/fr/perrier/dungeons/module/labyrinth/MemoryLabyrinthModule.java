@@ -12,6 +12,7 @@ import fr.perrier.dungeons.module.labyrinth.lifecycle.DoorController;
 import fr.perrier.dungeons.module.labyrinth.lifecycle.LabyrinthInstanceReadyListener;
 import fr.perrier.dungeons.module.labyrinth.lifecycle.LabyrinthMobDeathListener;
 import fr.perrier.dungeons.module.labyrinth.lifecycle.LabyrinthPlayerDeathListener;
+import fr.perrier.dungeons.module.labyrinth.lifecycle.LabyrinthPlayerJoinListener;
 import fr.perrier.dungeons.module.labyrinth.lifecycle.LabyrinthResumePromptListener;
 import fr.perrier.dungeons.module.labyrinth.lifecycle.LabyrinthReviveListener;
 import fr.perrier.dungeons.module.labyrinth.lifecycle.MobSpawner;
@@ -80,6 +81,7 @@ public class MemoryLabyrinthModule implements NextDungeonModule {
     private LabyrinthReviveListener reviveListener;
     private LabyrinthResumePromptListener resumePromptListener;
     private LabyrinthInstanceReadyListener instanceReadyListener;
+    private LabyrinthPlayerJoinListener playerJoinListener;
     private TierIndicatorTask tierIndicatorTask;
 
     @Override
@@ -130,6 +132,7 @@ public class MemoryLabyrinthModule implements NextDungeonModule {
         this.lootCalculator = new LootCalculator(lootTableRegistry);
         this.endOfRunHandler = new EndOfRunHandler(runManager, lootCalculator, saveManager, doorController);
         runManager.setEndOfRunHandler(endOfRunHandler);
+        runManager.getRoomLifecycle().setEndOfRunHandler(endOfRunHandler);
         runManager.setLootRegistry(lootTableRegistry);
         playerDeathListener.setEndOfRunHandler(endOfRunHandler);
 
@@ -147,6 +150,13 @@ public class MemoryLabyrinthModule implements NextDungeonModule {
         // start a labyrinth run when the floor's type is LABYRINTH.
         this.instanceReadyListener = new LabyrinthInstanceReadyListener(runManager);
         Bukkit.getPluginManager().registerEvents(instanceReadyListener, Main.getInstance());
+
+        // Replay the room teleport when a player connects after the run
+        // already started — without this, enterRoom's teleportPlayers is
+        // a no-op (player not yet online) and the player lands at the
+        // world's default spawn instead of the lobby room.
+        this.playerJoinListener = new LabyrinthPlayerJoinListener(runManager);
+        Bukkit.getPluginManager().registerEvents(playerJoinListener, Main.getInstance());
 
         // P9 — register Blockly triggers / conditions / values
         // (no actions exposed: see CDC §5)
@@ -169,6 +179,9 @@ public class MemoryLabyrinthModule implements NextDungeonModule {
         }
         if (doorController != null) {
             doorController.stop();
+        }
+        if (playerJoinListener != null) {
+            playerJoinListener.shutdown();
         }
         if (lootTableRegistry != null) {
             lootTableRegistry.clear();

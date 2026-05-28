@@ -2,10 +2,12 @@ package fr.perrier.dungeons.module.worldedit;
 
 import com.sk89q.worldedit.EditSession;
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
+import com.sk89q.worldedit.extent.clipboard.BlockArrayClipboard;
 import com.sk89q.worldedit.extent.clipboard.Clipboard;
 import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormat;
 import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormats;
 import com.sk89q.worldedit.extent.clipboard.io.ClipboardReader;
+import com.sk89q.worldedit.function.operation.ForwardExtentCopy;
 import com.sk89q.worldedit.function.operation.Operation;
 import com.sk89q.worldedit.function.operation.Operations;
 import com.sk89q.worldedit.math.BlockVector3;
@@ -30,8 +32,37 @@ import java.util.logging.Level;
 public class WorldEditManager {
     private static final Logger LOGGER = Logger.getLogger("NextDungeon-WorldEdit");
 
+    /**
+     * Hard cap on the number of blocks a single cuboid operation may
+     * touch. The set/cut/replace/copyRegion paths iterate the region on
+     * the main thread, so anything beyond a few million blocks will hang
+     * the server. 8M = 200×200×200, which is well above the largest
+     * realistic labyrinth room while still safe to chew through synchronously.
+     * If a use case ever needs more, expose this as a config knob.
+     */
+    private static final long MAX_REGION_VOLUME = 8_000_000L;
+
     public WorldEditManager() {
         LOGGER.info("WorldEditManager initialized");
+    }
+
+    /**
+     * @return {@code true} if the region [min,max] exceeds the per-op
+     *         volume cap. Logs a warning naming {@code opName} so the
+     *         workflow author can find the offending block.
+     */
+    private static boolean rejectIfTooLarge(BlockVector3 min, BlockVector3 max, String opName) {
+        long dx = (long) Math.abs(max.x() - min.x()) + 1;
+        long dy = (long) Math.abs(max.y() - min.y()) + 1;
+        long dz = (long) Math.abs(max.z() - min.z()) + 1;
+        long volume = dx * dy * dz;
+        if (volume > MAX_REGION_VOLUME) {
+            LOGGER.warning("[WorldEdit] " + opName + " refused: region volume "
+                    + volume + " > cap " + MAX_REGION_VOLUME
+                    + " (dims " + dx + "x" + dy + "x" + dz + ")");
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -51,6 +82,7 @@ public class WorldEditManager {
 
             BlockVector3 min = getMin(params);
             BlockVector3 max = getMax(params);
+            if (rejectIfTooLarge(min, max, "set")) return false;
             com.sk89q.worldedit.world.World weWorld = BukkitAdapter.adapt(bukkitWorld);
             CuboidRegion region = new CuboidRegion(weWorld, min, max);
 
@@ -93,6 +125,7 @@ public class WorldEditManager {
 
             BlockVector3 min = getMin(params);
             BlockVector3 max = getMax(params);
+            if (rejectIfTooLarge(min, max, "cut")) return false;
             com.sk89q.worldedit.world.World weWorld = BukkitAdapter.adapt(bukkitWorld);
             CuboidRegion region = new CuboidRegion(weWorld, min, max);
 
@@ -139,6 +172,7 @@ public class WorldEditManager {
 
             BlockVector3 min = getMin(params);
             BlockVector3 max = getMax(params);
+            if (rejectIfTooLarge(min, max, "replace")) return false;
             com.sk89q.worldedit.world.World weWorld = BukkitAdapter.adapt(bukkitWorld);
             CuboidRegion region = new CuboidRegion(weWorld, min, max);
 
@@ -229,6 +263,95 @@ public class WorldEditManager {
             LOGGER.log(Level.SEVERE, "Error pasting schematic", e);
             return false;
         }
+    }
+
+    /**
+     * Copies a cuboid region from one world to another using an in-memory
+     * clipboard (no schematic file needed).
+     *
+     * <p>The destination anchor is the position where {@code srcMin} will
+     * land in the destination world. Block at {@code srcMin + (dx, dy, dz)}
+     * ends up at {@code dstAnchor + (dx, dy, dz)}, preserving relative
+     * geometry.</p>
+     *
+     * @param srcWorldId  the Bukkit world name containing the source region
+     * @param srcMin      one corner of the cuboid (will be normalised internally)
+     * @param srcMax      the opposite corner of the cuboid
+     * @param dstWorldId  the destination Bukkit world name
+     * @param dstAnchor   the position where {@code srcMin} should land
+     * @return {@code true} on success, {@code false} on any I/O or WorldEdit failure
+     */
+    public boolean copyRegion(String srcWorldId, BlockVector3 srcMin, BlockVector3 srcMax,
+                              String dstWorldId, BlockVector3 dstAnchor) {
+        if (srcWorldId == null || dstWorldId == null || srcMin == null || srcMax == null || dstAnchor == null) {
+            LOGGER.warning("[WorldEdit] copyRegion called with null argument");
+            return false;
+        }
+        World srcBukkit = Bukkit.getWorld(srcWorldId);
+        World dstBukkit = Bukkit.getWorld(dstWorldId);
+        if (srcBukkit == null) {
+            LOGGER.warning("[WorldEdit] copyRegion: source world not loaded: " + srcWorldId);
+            return false;
+        }
+        if (dstBukkit == null) {
+            LOGGER.warning("[WorldEdit] copyRegion: destination world not loaded: " + dstWorldId);
+            return false;
+        }
+        BlockVector3 min = BlockVector3.at(
+                Math.min(srcMin.x(), srcMax.x()),
+                Math.min(srcMin.y(), srcMax.y()),
+                Math.min(srcMin.z(), srcMax.z()));
+        BlockVector3 max = BlockVector3.at(
+                Math.max(srcMin.x(), srcMax.x()),
+                Math.max(srcMin.y(), srcMax.y()),
+                Math.max(srcMin.z(), srcMax.z()));
+        if (rejectIfTooLarge(min, max, "copyRegion")) return false;
+
+        com.sk89q.worldedit.world.World srcWeWorld = BukkitAdapter.adapt(srcBukkit);
+        com.sk89q.worldedit.world.World dstWeWorld = BukkitAdapter.adapt(dstBukkit);
+        CuboidRegion region = new CuboidRegion(srcWeWorld, min, max);
+        BlockArrayClipboard clipboard = new BlockArrayClipboard(region);
+        // Origin = min so paste-to(dstAnchor) lines up srcMin with dstAnchor.
+        clipboard.setOrigin(min);
+
+        try (EditSession readSession = com.sk89q.worldedit.WorldEdit.getInstance().newEditSession(srcWeWorld)) {
+            ForwardExtentCopy copy = new ForwardExtentCopy(readSession, region, clipboard, min);
+            Operations.complete(copy);
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "[WorldEdit] copyRegion read failed", e);
+            return false;
+        }
+
+        try (EditSession writeSession = com.sk89q.worldedit.WorldEdit.getInstance().newEditSession(dstWeWorld)) {
+            ClipboardHolder holder = new ClipboardHolder(clipboard);
+            Operation paste = holder.createPaste(writeSession).to(dstAnchor).ignoreAirBlocks(false).build();
+            Operations.complete(paste);
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "[WorldEdit] copyRegion paste failed", e);
+            return false;
+        }
+        LOGGER.info("[WorldEdit] copyRegion " + srcWorldId + min + "→" + max
+                + " to " + dstWorldId + dstAnchor + " OK");
+        return true;
+    }
+
+    /**
+     * Map-based wrapper around {@link #copyRegion(String, BlockVector3, BlockVector3, String, BlockVector3)}
+     * so the operation can be invoked from a Blockly workflow.
+     *
+     * <p>Expected params: {@code srcWorld}, {@code pos1_x/y/z}, {@code pos2_x/y/z},
+     * {@code dstWorld}, {@code dst_x/y/z}.</p>
+     */
+    public boolean handleCopyRegion(Map<String, Object> params) {
+        String srcWorld = String.valueOf(params.getOrDefault("srcWorld", "world"));
+        String dstWorld = String.valueOf(params.getOrDefault("dstWorld", "world"));
+        BlockVector3 srcMin = BlockVector3.at(toInt(params.getOrDefault("pos1_x", 0)),
+                toInt(params.getOrDefault("pos1_y", 64)), toInt(params.getOrDefault("pos1_z", 0)));
+        BlockVector3 srcMax = BlockVector3.at(toInt(params.getOrDefault("pos2_x", 0)),
+                toInt(params.getOrDefault("pos2_y", 64)), toInt(params.getOrDefault("pos2_z", 0)));
+        BlockVector3 dst = BlockVector3.at(toInt(params.getOrDefault("dst_x", 0)),
+                toInt(params.getOrDefault("dst_y", 64)), toInt(params.getOrDefault("dst_z", 0)));
+        return copyRegion(srcWorld, srcMin, srcMax, dstWorld, dst);
     }
 
     // --- Helper methods ---
