@@ -101,6 +101,16 @@ public class LabyrinthRoom implements Serializable {
         private String id;
         private Vec3 anchor;
 
+        /**
+         * Optional override for where the reward icon hologram is rendered.
+         * When {@code null} the icon falls back to {@code anchor} lifted ~2
+         * blocks (legacy behavior). When set, the icon is placed at these
+         * coords (block-centered on X/Z, exact Y) — independent of the
+         * {@code anchor} traversal-detection point. Old payloads without
+         * this field deserialize to {@code null}.
+         */
+        private Vec3 iconAnchor;
+
         public Door(String id, Vec3 anchor) {
             this.id = id;
             this.anchor = anchor;

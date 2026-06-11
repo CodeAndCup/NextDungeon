@@ -18,7 +18,10 @@ import java.util.List;
 @Setter
 public class FloorData {
 
-    public static final int CURRENT_SCHEMA_VERSION = 2;
+    // v3: WorldConfig.spawn (Position) gained yaw/pitch — changes the
+    // checksum shape, so existing rows go stale and self-heal on load
+    // (RedisConfigLoader.healLegacyChecksums + DAO return-with-warning).
+    public static final int CURRENT_SCHEMA_VERSION = 3;
     private static final Gson CHECKSUM_GSON = new Gson();
 
     private String id;

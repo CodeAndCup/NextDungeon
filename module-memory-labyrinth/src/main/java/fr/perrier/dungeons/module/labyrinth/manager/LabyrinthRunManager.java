@@ -8,6 +8,7 @@ import fr.perrier.dungeons.common.model.labyrinth.LabyrinthDungeonConfig;
 import fr.perrier.dungeons.common.model.labyrinth.LabyrinthFloorConfig;
 import fr.perrier.dungeons.common.model.labyrinth.LabyrinthRoom;
 import fr.perrier.dungeons.common.model.labyrinth.RewardIcon;
+import fr.perrier.dungeons.module.labyrinth.blessing.BlessingBridge;
 import fr.perrier.dungeons.module.labyrinth.generator.RoomPicker;
 import fr.perrier.dungeons.module.labyrinth.lifecycle.BossEncounterHandler;
 import fr.perrier.dungeons.module.labyrinth.lifecycle.LabyrinthRoomLifecycle;
@@ -23,7 +24,10 @@ import fr.perrier.dungeons.spigot.model.Floor;
 import fr.perrier.dungeons.spigot.model.FloorInstance;
 import fr.perrier.dungeons.spigot.parties.impl.DungeonPartyImpl;
 import lombok.Getter;
+import lombok.Setter;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 
 import java.util.Map;
@@ -178,6 +182,12 @@ public class LabyrinthRunManager {
         // entered only once the (Infinite) resume/new decision is made.
         teleportToDungeonSpawn(instance, dungeonConfig);
 
+        // NOTE: the blessing session is intentionally NOT started here. The
+        // plugin opens a GUI on `dungeon start`, which would capture the
+        // screen and make the Infinite resume/new chat prompt unclickable.
+        // It is started once the run actually proceeds — enterLobby() (fresh
+        // / new game) or resumeAtNextRoom() (resume), i.e. after the choice.
+
         if (floorConfig.isSaveEnabled() && saveManager != null) {
             run.setLobbyDecisionPending(true);
             saveManager.findSaveForRun(run).thenAccept(save ->
@@ -217,13 +227,13 @@ public class LabyrinthRunManager {
 
     private void teleportToDungeonSpawn(FloorInstance instance, LabyrinthDungeonConfig dungeonConfig) {
         if (instance == null || dungeonConfig == null || dungeonConfig.getDungeonSpawn() == null) return;
-        org.bukkit.World world = Bukkit.getWorld(dungeonConfig.getWorldId());
+        World world = Bukkit.getWorld(dungeonConfig.getWorldId());
         if (world == null) {
             logger.warning("[MemoryLabyrinth] Dungeon world not found: " + dungeonConfig.getWorldId());
             return;
         }
         LabyrinthRoom.Vec3 s = dungeonConfig.getDungeonSpawn();
-        org.bukkit.Location target = new org.bukkit.Location(world, s.getX(), s.getY(), s.getZ(),
+        Location target = new Location(world, s.getX(), s.getY(), s.getZ(),
                 s.getYaw(), s.getPitch());
         for (UUID id : instance.getPlayers()) {
             Player p = Bukkit.getPlayer(id);
@@ -240,6 +250,17 @@ public class LabyrinthRunManager {
             return;
         }
         roomLifecycle.enterRoom(run, lobby, instance);
+
+        // Start the blessing session now that the run is actually beginning
+        // (deferred from finalizeStart so the Infinite resume/new prompt stays
+        // clickable). enterLobby() runs for fresh runs only — finite floors +
+        // Infinite "new game".
+        BlessingBridge.startSession(run, instance);
+
+        // Entry blessing : each player receives a passive offer on entering
+        // the lobby. Resume bypasses the lobby via resumeAtNextRoom(), so
+        // resumed parties keep their existing blessings (no entry offer).
+        BlessingBridge.offerPassive(instance);
     }
 
     /**
@@ -247,11 +268,8 @@ public class LabyrinthRunManager {
      * manager doesn't strictly own the loot registry but it needs to
      * push the per-instance loot table at startRun.
      */
+    @Setter
     private LootTableRegistry lootRegistry;
-
-    public void setLootRegistry(LootTableRegistry lootRegistry) {
-        this.lootRegistry = lootRegistry;
-    }
 
     /**
      * Pull {@code labyrinthDungeonConfig} out of a dashboard
@@ -324,6 +342,11 @@ public class LabyrinthRunManager {
         // No door choice was made on resume — neutral icon for this entry.
         run.setCurrentRoomIcon(RewardIcon.NONE);
         roomLifecycle.enterRoom(run, next, instance);
+
+        // Start the blessing session on resume too — fired after the leader's
+        // click so the prompt was clickable. No entry offer on resume: the
+        // party keeps the blessings tied to this party-hash dungeon id.
+        BlessingBridge.startSession(run, instance);
 
         broadcastInstance(instance, sender.getName() + " a repris la save (salle "
                 + save.getLastBossClearedRoom() + ", palier " + save.getDifficultyTier() + ")");

@@ -28,7 +28,9 @@ public class EditorJoinListener implements Listener {
                 Bukkit.getWorld("world"),
                 floor.getWorldConfig().getSpawn().getX(),
                 floor.getWorldConfig().getSpawn().getY(),
-                floor.getWorldConfig().getSpawn().getZ()
+                floor.getWorldConfig().getSpawn().getZ(),
+                floor.getWorldConfig().getSpawn().getYaw(),
+                floor.getWorldConfig().getSpawn().getPitch()
         );
         player.teleport(spawnLocation);
         player.setGameMode(GameMode.CREATIVE);

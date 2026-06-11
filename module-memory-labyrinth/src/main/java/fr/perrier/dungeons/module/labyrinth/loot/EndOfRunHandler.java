@@ -135,6 +135,11 @@ public class EndOfRunHandler {
         if (triggerBus != null) triggerBus.fireRunEnded(run, results, success);
         if (onRunEndedCallback != null) onRunEndedCallback.fire(run, results, success);
 
+        // Close the external blessing session for the party — completed on a
+        // win, abandoned otherwise. Fired while players are still in the
+        // instance (before endRun releases it).
+        fr.perrier.dungeons.module.labyrinth.blessing.BlessingBridge.endSession(recipients, success);
+
         if (doorController != null) doorController.closeDoors(run.getInstanceId());
         runManager.endRun(run.getInstanceId());
 

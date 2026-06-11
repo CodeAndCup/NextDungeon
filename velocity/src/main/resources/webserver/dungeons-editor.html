@@ -361,6 +361,10 @@
                 <div class="form-group"><label>Y</label><input type="number" id="spawn-y" class="form-control" value="64" step="0.5"></div>
                 <div class="form-group"><label>Z</label><input type="number" id="spawn-z" class="form-control" value="0" step="0.5"></div>
             </div>
+            <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+                <div class="form-group"><label>Yaw (rotation horizontale)</label><input type="number" id="spawn-yaw" class="form-control" value="0" step="1"></div>
+                <div class="form-group"><label>Pitch (rotation verticale)</label><input type="number" id="spawn-pitch" class="form-control" value="0" step="1"></div>
+            </div>
         </div>
 
         <!-- Requirements -->
@@ -880,6 +884,8 @@ function resetFloorModal() {
     document.getElementById('spawn-x').value = 0;
     document.getElementById('spawn-y').value = 64;
     document.getElementById('spawn-z').value = 0;
+    document.getElementById('spawn-yaw').value = 0;
+    document.getElementById('spawn-pitch').value = 0;
     document.getElementById('req-minlevel').value = 0;
     document.getElementById('req-cooldown').value = 0;
     document.getElementById('req-party-min').value = 1;
@@ -932,6 +938,8 @@ function editFloor(fullFloorId) {
             document.getElementById('spawn-x').value = floor.world.spawn.x || 0;
             document.getElementById('spawn-y').value = floor.world.spawn.y || 64;
             document.getElementById('spawn-z').value = floor.world.spawn.z || 0;
+            document.getElementById('spawn-yaw').value = floor.world.spawn.yaw || 0;
+            document.getElementById('spawn-pitch').value = floor.world.spawn.pitch || 0;
         }
     }
     if (floor.requirements) {
@@ -980,7 +988,9 @@ async function saveFloor() {
             spawn: {
                 x: parseFloat(document.getElementById('spawn-x').value),
                 y: parseFloat(document.getElementById('spawn-y').value),
-                z: parseFloat(document.getElementById('spawn-z').value)
+                z: parseFloat(document.getElementById('spawn-z').value),
+                yaw: parseFloat(document.getElementById('spawn-yaw').value) || 0,
+                pitch: parseFloat(document.getElementById('spawn-pitch').value) || 0
             }
         },
         requirements: {
@@ -1212,14 +1222,29 @@ function renderRoomDoors() {
     });
     let html = '';
     labRoomDoors.forEach((d, i) => {
-        html += `<div class="list-item" style="padding:8px 12px;gap:8px;">
+        const ic = d.iconAnchor;
+        const icx = (ic && ic.x != null) ? ic.x : '';
+        const icy = (ic && ic.y != null) ? ic.y : '';
+        const icz = (ic && ic.z != null) ? ic.z : '';
+        // onchange lazily creates iconAnchor so doors left blank keep the
+        // null fallback (icon above the anchor). Reset (↺) removes it.
+        const setIc = (axis) => `if(!labRoomDoors[${i}].iconAnchor)labRoomDoors[${i}].iconAnchor={x:0,y:0,z:0};labRoomDoors[${i}].iconAnchor.${axis}=parseFloat(this.value)||0`;
+        html += `<div class="list-item" style="padding:8px 12px;gap:8px;flex-wrap:wrap;">
             <input type="text" class="form-control" style="width:120px;" value="${d.id || ''}" onchange="labRoomDoors[${i}].id=this.value" placeholder="id">
-            <div style="display:flex;gap:8px;flex:1;">
-                <input type="number" class="form-control" style="width:90px;" value="${d.anchor.x}" onchange="labRoomDoors[${i}].anchor.x=parseFloat(this.value)||0" placeholder="X">
-                <input type="number" class="form-control" style="width:90px;" value="${d.anchor.y}" onchange="labRoomDoors[${i}].anchor.y=parseFloat(this.value)||0" placeholder="Y">
-                <input type="number" class="form-control" style="width:90px;" value="${d.anchor.z}" onchange="labRoomDoors[${i}].anchor.z=parseFloat(this.value)||0" placeholder="Z">
+            <div style="display:flex;gap:8px;flex:1;align-items:center;">
+                <span style="width:54px;color:#8a93a6;font-size:12px;">porte</span>
+                <input type="number" class="form-control" style="width:84px;" value="${d.anchor.x}" onchange="labRoomDoors[${i}].anchor.x=parseFloat(this.value)||0" placeholder="X">
+                <input type="number" class="form-control" style="width:84px;" value="${d.anchor.y}" onchange="labRoomDoors[${i}].anchor.y=parseFloat(this.value)||0" placeholder="Y">
+                <input type="number" class="form-control" style="width:84px;" value="${d.anchor.z}" onchange="labRoomDoors[${i}].anchor.z=parseFloat(this.value)||0" placeholder="Z">
             </div>
             <button class="btn btn-danger btn-sm" onclick="labRoomDoors.splice(${i},1);renderRoomDoors();">🗑️</button>
+            <div style="display:flex;gap:8px;flex:1 1 100%;align-items:center;margin-top:4px;">
+                <span style="width:54px;color:#8a93a6;font-size:12px;" title="Optionnel — laissez vide pour placer l'icône au-dessus de la porte (+2 Y).">icône</span>
+                <input type="number" class="form-control" style="width:84px;" value="${icx}" onchange="${setIc('x')}" placeholder="X">
+                <input type="number" class="form-control" style="width:84px;" value="${icy}" onchange="${setIc('y')}" placeholder="Y">
+                <input type="number" class="form-control" style="width:84px;" value="${icz}" onchange="${setIc('z')}" placeholder="Z">
+                <button class="btn btn-secondary btn-sm" title="Réinitialiser (icône au-dessus de la porte)" onclick="labRoomDoors[${i}].iconAnchor=null;renderRoomDoors();">↺</button>
+            </div>
         </div>`;
     });
     el.innerHTML = html;
