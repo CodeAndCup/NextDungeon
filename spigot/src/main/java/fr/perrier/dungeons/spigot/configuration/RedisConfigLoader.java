@@ -1,10 +1,8 @@
 package fr.perrier.dungeons.spigot.configuration;
 
 import fr.perrier.dungeons.common.model.dungeon.FloorData;
-import fr.perrier.dungeons.common.workflow.trigger.TriggerData;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.database.DatabaseManager;
-import fr.perrier.dungeons.spigot.database.DatabaseTriggersManager;
 import fr.perrier.dungeons.spigot.model.Dungeon;
 import fr.perrier.dungeons.spigot.model.Floor;
 import org.redisson.api.RMap;
@@ -238,28 +236,33 @@ public class RedisConfigLoader {
     }
 
     /**
-     * Construit un Floor depuis un FloorData, l'enregistre dans Redis (updateMap)
-     * et génère le template monde si nécessaire.
-     * Les triggers sont toujours chargés depuis la BDD afin de ne pas écraser
-     * les triggers existants lors d'un rechargement Redis.
+     * Hydrates the local cache for a single {@link FloorData} during boot / dashboard
+     * reload. This path runs ONLY on lobby servers, so it does the strict minimum needed
+     * for menus / queue — <em>metadata only</em>:
+     * <ul>
+     *   <li>builds the {@link Floor} wrapper with {@code loadTriggers=false}: the lobby
+     *       never executes triggers (those run on instance servers during a run), so we
+     *       skip the per-floor DB trigger query entirely. Triggers are loaded lazily at the
+     *       real point of use, when an instance server builds its Floor;</li>
+     *   <li>refreshes the Redis floor + metadata maps WITHOUT publishing a sync event,
+     *       so booting a lobby no longer emits a per-floor {@code FLOOR_UPDATE} storm
+     *       across the cluster;</li>
+     *   <li>does NOT generate the CloudNet world template — that is a provisioning
+     *       concern now handled lazily when an instance is actually created
+     *       ({@code CloudNetProvider.createInstance}), not on every lobby boot.</li>
+     * </ul>
+     * The returned trigger-less {@link Floor} is added to its {@link Dungeon} and synced to
+     * the shared {@code dungeons} map; that is safe because {@code syncDungeon} strips
+     * triggers from the Redis copy anyway, so menus already read trigger-less floors.
      */
     private static Floor loadFloor(FloorData fd) {
         try {
-            Floor floor = new Floor(fd);
-
-            // Charger les triggers depuis la BDD (source de vérité pour les triggers)
-            List<TriggerData> triggers =
-                    DatabaseTriggersManager.loadTriggers(fd.getId());
-            if (!triggers.isEmpty()) {
-                floor.setTriggers(triggers);
-                Main.getLoggerUtil().info("[RedisConfigLoader] " + triggers.size() +
-                        " trigger(s) chargé(s) depuis la BDD pour : " + fd.getId());
-            }
-
-            // Re-synchroniser vers Redis avec les triggers inclus
-            floor.updateMap();
-            floor.generateTemplate();
-            Main.getLoggerUtil().info("[RedisConfigLoader] Floor chargé : " + fd.getId());
+            Floor floor = new Floor(fd, false);
+            // Cache locally without re-broadcasting: the data already lives in Redis
+            // (or was just rebuilt from the DB), so a publish here would only flood the
+            // cluster with redundant pub/sub + Kryo deserialization on every server.
+            Main.getInstance().getDungeonService().cacheFloorLocalNoPublish(fd);
+            Main.getLoggerUtil().info("[RedisConfigLoader] Floor metadata chargée : " + fd.getId());
             return floor;
         } catch (Exception e) {
             Main.getLoggerUtil().severe("[RedisConfigLoader] Erreur chargement floor " +

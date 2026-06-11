@@ -666,13 +666,23 @@ public final class Main extends JavaPlugin {
     private void initializeLobbyServer() {
         getLogger().info("Initializing lobby server");
 
-        // Charger tous les donjons depuis Redis (dashboard web)
+        // Subscribe au canal de synchronisation dashboard pour recharger les floors en live.
+        // Fait en premier (synchrone, non bloquant) afin de ne manquer aucun event dashboard
+        // qui pourrait survenir pendant l'hydratation asynchrone ci-dessous.
+        subscribeDashboardSyncChannel();
+
+        // Charger tous les donjons depuis Redis (dashboard web) HORS du main thread :
+        // cette hydratation touche la BDD (triggers, dungeons) et Redis et ne doit jamais
+        // bloquer onEnable (risque watchdog sur un gros catalogue de floors).
         // Plus de chargement YAML — tout passe par Redis désormais
         // Pour migrer d'anciens donjons YAML: /dungeon admin migrate-all
-        RedisConfigLoader.loadAllDungeonsFromRedis();
-
-        // Subscribe au canal de synchronisation dashboard pour recharger les floors en live
-        subscribeDashboardSyncChannel();
+        Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
+            try {
+                RedisConfigLoader.loadAllDungeonsFromRedis();
+            } catch (Exception e) {
+                getLogger().severe("[initializeLobbyServer] Async dungeon hydration failed: " + e.getMessage());
+            }
+        });
     }
 
     /**

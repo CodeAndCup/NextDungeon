@@ -221,6 +221,34 @@ public class DungeonService {
     }
 
     /**
+     * Hydrates the local Redis cache for a floor WITHOUT publishing a sync event.
+     *
+     * <p>Used by the boot-time / dashboard-reload hydration path
+     * ({@code RedisConfigLoader.loadFloor}): that data already comes from Redis (or was
+     * just rebuilt from the DB), so re-broadcasting a {@code FLOOR_UPDATE} per floor per
+     * lobby would only flood the cluster with redundant pub/sub + Kryo deserialization.</p>
+     *
+     * <p>Behaviour mirrors {@link #syncFloor} EXCEPT it never touches {@link #syncTopic}:
+     * it keeps {@link #currentFloor} in sync when the id matches, strips triggers for the
+     * shared map, and refreshes both {@link #floorsMap} and {@link #floorMetadataMap}
+     * (idempotent) so menus / queue read consistent metadata.</p>
+     *
+     * @param floorData the floor to cache locally
+     */
+    public void cacheFloorLocalNoPublish(FloorData floorData) {
+        if (floorData == null) return;
+
+        FloorData currentLocal = currentFloor.get();
+        if (currentLocal != null && currentLocal.getId().equals(floorData.getId())) {
+            currentFloor.set(floorData);
+        }
+
+        FloorData sharable = stripTriggersForSharedStorage(floorData);
+        floorsMap.fastPut(sharable.getId(), sharable);
+        floorMetadataMap.fastPut(sharable.getId(), FloorMetadata.from(sharable));
+    }
+
+    /**
      * Synchronizes the given instance to Redis and notifies other servers.
      * This method will update the local reference, update the Redis instance map,
      * and notify other servers of the update.

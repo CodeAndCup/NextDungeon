@@ -65,12 +65,32 @@ public class CloudNetProvider implements InstanceProvider {
                 String templateName = floor.getId();
 
                 CloudServiceFactory cloudService = InjectionLayer.boot().instance(CloudServiceFactory.class);
-                ServiceTask serviceTask = InjectionLayer.boot().instance(ServiceTaskProvider.class).serviceTask(templateName);
+                ServiceTaskProvider serviceTaskProvider = InjectionLayer.boot().instance(ServiceTaskProvider.class);
+                ServiceTask serviceTask = serviceTaskProvider.serviceTask(templateName);
 
                 if (serviceTask == null) {
-                    Main.getLoggerUtil().severe("Cannot create task for " + templateName);
-                    future.complete(null);
-                    return;
+                    // The world template / ServiceTask is no longer pre-generated on every lobby
+                    // boot (that flooded each lobby with disk I/O). Provision it lazily here, the
+                    // first time an instance of this floor is actually created. We are already on an
+                    // async worker thread, so blocking on the template future is safe.
+                    Main.getLoggerUtil().info("No ServiceTask for " + templateName
+                            + " — generating world template on demand.");
+                    boolean created;
+                    try {
+                        created = Boolean.TRUE.equals(createTemplate(floor).get());
+                    } catch (Exception e) {
+                        Main.getLoggerUtil().severe("On-demand template generation failed for "
+                                + templateName + ": " + e.getMessage());
+                        future.complete(null);
+                        return;
+                    }
+                    serviceTask = serviceTaskProvider.serviceTask(templateName);
+                    if (!created || serviceTask == null) {
+                        Main.getLoggerUtil().severe("Cannot create task for " + templateName
+                                + " (template provisioning failed)");
+                        future.complete(null);
+                        return;
+                    }
                 }
 
                 ServiceConfiguration config = ServiceConfiguration.builder(serviceTask)
