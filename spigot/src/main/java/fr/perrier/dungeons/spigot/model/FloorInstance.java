@@ -79,12 +79,28 @@ public class FloorInstance extends FloorInstanceData {
         }
     }
 
+    // Maximum number of cancel-packet broadcasts before cancelInstance() gives up and
+    // forcibly drops the Redis record. At one attempt per 20 ticks (~1s) this is ~30s.
+    private static final int CANCEL_MAX_ATTEMPTS = 30;
+
+    // Handle to the repeating cancel-broadcast task so it can be stopped (it self-cancels
+    // once the instance is gone or the attempt budget is exhausted) and never leaks.
+    private transient BukkitTask cancelTask;
+
     private FloorInstance(String floorId, Set<UUID> players, boolean editMode) {
         super(floorId,players);
         this.instanceId = generateFloorServer(getFloor(), editMode);
         this.ready = false;
 
-        syncInstance();
+        // makeFloorInstance() returns null when the cloud service could not be created.
+        // Only persist the instance when it actually exists — syncing a null-keyed record
+        // would write corrupt state to Redis with no rollback path.
+        if (this.instanceId != null) {
+            syncInstance();
+        } else {
+            Main.getLoggerUtil().severe(String.format(
+                    "Failed to create a cloud service for floor %s — instance not synced", floorId));
+        }
     }
 
     public FloorInstance(FloorInstanceData floorInstanceData) {
@@ -98,11 +114,20 @@ public class FloorInstance extends FloorInstanceData {
         }
     }
 
+    /**
+     * Asynchronously creates a new instance and invokes {@code callback} on the main thread.
+     * <p>
+     * The callback receives {@code null} when instance creation failed (the underlying cloud
+     * service could not be provisioned). Callers must null-check before using the instance.
+     */
     public static void generateNewInstanceAsync(String floorId, Set<UUID> players, boolean editMode, Consumer<FloorInstance> callback) {
         Bukkit.getScheduler().runTaskAsynchronously(Main.getInstance(), () -> {
             FloorInstance floorInstance = new FloorInstance(floorId, players, editMode);
+            // Surface creation failure to the caller instead of handing back a half-built
+            // instance with a null id that would NPE on the first sendToServer().
+            FloorInstance result = floorInstance.getInstanceId() != null ? floorInstance : null;
             Bukkit.getScheduler().runTask(Main.getInstance(), () ->
-                callback.accept(floorInstance)
+                callback.accept(result)
             );
         });
     }
@@ -242,7 +267,7 @@ public class FloorInstance extends FloorInstanceData {
 
                     if (instance == null) {
                         Main.getLoggerUtil().warning("Instance " + instanceId + "no longer exists.");
-                        Main.getInstance().getDungeonService().removeInstance(this.instanceId);
+                        Main.getInstance().getDungeonService().removeInstance(instanceId);
                         player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000This dungeon instance no longer exists!"));
                         this.cancel();
                         pendingLoadTasks.remove(playerId);
@@ -258,7 +283,7 @@ public class FloorInstance extends FloorInstanceData {
                         if (System.currentTimeMillis() - startTime > timeout) {
                             Main.getLoggerUtil().warning("Timed out waiting for instance " + instanceId + " to be ready. (Now try cancelling instance..)");
                             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Timed out waiting for dungeon instance to be ready!"));
-                            Main.getInstance().getDungeonService().removeInstance(this.instanceId);
+                            Main.getInstance().getDungeonService().removeInstance(instanceId);
                             instance.cancelInstance();
                             this.cancel();
                             pendingLoadTasks.remove(playerId);
@@ -342,6 +367,16 @@ public class FloorInstance extends FloorInstanceData {
         }
 
         Bukkit.broadcastMessage(ChatUtil.translate(Main.getPrefix() + "&fThe dungeon instance &e" + getInstanceName() + " &fwill shut down in &#FF000030 &fseconds."));
+
+        // Per-player stats have been flushed to profiles above and are no longer needed.
+        // Clear them and re-sync now so that, if shutdown is interrupted before the final
+        // removeInstance() below, Redis is left with a small terminal blob instead of the
+        // full per-player payload. originInstances is kept — it is still needed to send
+        // players back to their lobby in the 20s task.
+        playerStats.clear();
+        playerCurrentLives.clear();
+        players.clear();
+        syncInstance();
 
         Bukkit.getScheduler().runTaskLater(Main.getInstance(), () ->
             Bukkit.getOnlinePlayers().forEach(this::returnPlayerToOriginOrKick)
@@ -443,12 +478,47 @@ public class FloorInstance extends FloorInstanceData {
         for (BukkitTask task : pendingLoadTasks.values()) task.cancel();
         pendingLoadTasks.clear();
 
-        Bukkit.getScheduler().runTaskTimerAsynchronously(Main.getInstance(), () -> {
-            FloorInstance instance = Main.getInstance().getDungeonService().getInstance(instanceId);
-            if(instance != null && instance.isReady()) {
-                Main.getInstance().getMessaging().sendPacket(new CancelInstancePacket(this.instanceId));
+        final UUID targetInstanceId = this.instanceId;
+        if (targetInstanceId == null) return;
+
+        // Stop a previously started cancel loop on this object before starting a new one.
+        if (cancelTask != null) {
+            cancelTask.cancel();
+            cancelTask = null;
+        }
+
+        cancelTask = new BukkitRunnable() {
+            private int attempts = 0;
+
+            @Override
+            public void run() {
+                attempts++;
+                FloorInstance instance = Main.getInstance().getDungeonService().getInstance(targetInstanceId);
+
+                // Instance already gone from Redis — nothing left to cancel.
+                if (instance == null) {
+                    this.cancel();
+                    cancelTask = null;
+                    return;
+                }
+
+                // Broadcast the cancel regardless of ready state: a stuck/preparing instance
+                // must still be told to shut down. The instance server acts on the packet as
+                // soon as it can process messages.
+                Main.getInstance().getMessaging().sendPacket(new CancelInstancePacket(targetInstanceId));
+
+                // Bounded retries: if the instance never disappears, forcibly drop the Redis
+                // record so a never-ready instance cannot leak forever, then stop the loop.
+                if (attempts >= CANCEL_MAX_ATTEMPTS) {
+                    Main.getLoggerUtil().warning(String.format(
+                            "cancelInstance: giving up after %d attempts for %s — removing stale Redis record",
+                            attempts, targetInstanceId));
+                    Main.getInstance().getDungeonService().removeInstance(targetInstanceId);
+                    this.cancel();
+                    cancelTask = null;
+                }
             }
-        }, 20L, 20L);
+        }.runTaskTimerAsynchronously(Main.getInstance(), 0L, 20L);
     }
 
     /**

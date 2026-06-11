@@ -71,7 +71,13 @@ public class AdminCommands {
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000You are already in an instance or it is being prepared."));
             return;
         }
-        FloorInstance.generateNewInstanceAsync(floor.getId(), Set.of(player.getUniqueId()), true, floorInstance -> floorInstance.sendToServer(player));
+        FloorInstance.generateNewInstanceAsync(floor.getId(), Set.of(player.getUniqueId()), true, floorInstance -> {
+            if (floorInstance == null) {
+                player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Failed to create the edit instance. Please try again."));
+                return;
+            }
+            floorInstance.sendToServer(player);
+        });
         player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#00FF00✓ &fEdit mode started for floor &e" + floor.getId() + "&f."));
         player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&fPlease wait while the instance is being prepared..."));
     }

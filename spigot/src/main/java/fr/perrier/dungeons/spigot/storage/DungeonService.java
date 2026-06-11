@@ -602,6 +602,37 @@ public class DungeonService {
     }
 
     /**
+     * Removes a single player from this server's active instance state and re-syncs.
+     * <p>
+     * Called when a player leaves an instance (quit / kick / return) so their per-player
+     * entries in {@code players}, {@code playerStats}, {@code playerCurrentLives} and
+     * {@code originInstances} do not linger in Redis after they are gone. Safe to call on
+     * lobby servers and when no instance is active — it is a no-op in those cases, and
+     * idempotent if the player was already removed.
+     *
+     * @param playerId the UUID of the player to drop from the instance state
+     */
+    public void removePlayerFromInstanceState(UUID playerId) {
+        if (playerId == null) return;
+
+        FloorInstanceData data = currentInstanceData.get();
+        if (data == null) return; // lobby, or instance already torn down
+
+        boolean changed = data.getPlayers().remove(playerId);
+        if (data.getPlayerStats().remove(playerId) != null) changed = true;
+        if (data.getPlayerCurrentLives().remove(playerId) != null) changed = true;
+        if (data.getOriginInstances().remove(playerId) != null) changed = true;
+
+        if (changed) {
+            syncInstance(data);
+            if (Main.getLoggerUtil().isDebugEnabled()) {
+                Main.getLoggerUtil().info(String.format(
+                        "Removed player %s from instance %s state", playerId, data.getInstanceId()));
+            }
+        }
+    }
+
+    /**
      * Check if an instance exists in Redis
      * @param instanceId the ID to check
      * @return true if the instance exists
