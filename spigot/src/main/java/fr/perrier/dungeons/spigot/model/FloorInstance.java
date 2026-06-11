@@ -242,6 +242,7 @@ public class FloorInstance extends FloorInstanceData {
 
                     if (instance == null) {
                         Main.getLoggerUtil().warning("Instance " + instanceId + "no longer exists.");
+                        Main.getInstance().getDungeonService().removeInstance(this.instanceId);
                         player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000This dungeon instance no longer exists!"));
                         this.cancel();
                         pendingLoadTasks.remove(playerId);
@@ -257,6 +258,7 @@ public class FloorInstance extends FloorInstanceData {
                         if (System.currentTimeMillis() - startTime > timeout) {
                             Main.getLoggerUtil().warning("Timed out waiting for instance " + instanceId + " to be ready. (Now try cancelling instance..)");
                             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Timed out waiting for dungeon instance to be ready!"));
+                            Main.getInstance().getDungeonService().removeInstance(this.instanceId);
                             instance.cancelInstance();
                             this.cancel();
                             pendingLoadTasks.remove(playerId);
