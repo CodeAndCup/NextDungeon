@@ -38,6 +38,9 @@ public class DoorController {
     public static final long POLL_PERIOD_TICKS = 5L;
     public static final double TRAVERSAL_RADIUS = 1.5;
 
+    /** Fallback height above the door anchor when no custom iconAnchor is set. */
+    private static final double ICON_Y_OFFSET = 2.0;
+
     private final LabyrinthRunManager runManager;
     private final Logger logger;
     private final Map<UUID, OpenDoors> openByInstance = new ConcurrentHashMap<>();
@@ -101,15 +104,17 @@ public class DoorController {
         Location leftAnchor = anchorLocation(world, currentRoom, 0, run);
         if (leftAnchor != null) {
             open.leftAnchor = leftAnchor;
+            Location leftIcon = iconLocation(world, currentRoom, 0, run);
             open.leftHologram = choice.isBossSingleDoor()
-                    ? DoorIconHologram.spawnBoss(leftAnchor)
-                    : DoorIconHologram.spawn(leftAnchor, choice.getIconLeft());
+                    ? DoorIconHologram.spawnBoss(leftIcon)
+                    : DoorIconHologram.spawn(leftIcon, choice.getIconLeft());
         }
         if (!choice.isBossSingleDoor() && currentRoom.getExitDoors().size() >= 2) {
             Location rightAnchor = anchorLocation(world, currentRoom, 1, run);
             if (rightAnchor != null) {
                 open.rightAnchor = rightAnchor;
-                open.rightHologram = DoorIconHologram.spawn(rightAnchor, choice.getIconRight());
+                Location rightIcon = iconLocation(world, currentRoom, 1, run);
+                open.rightHologram = DoorIconHologram.spawn(rightIcon, choice.getIconRight());
             }
         }
         openByInstance.put(instanceId, open);
@@ -186,6 +191,32 @@ public class DoorController {
         double offY = (run != null && srcMin != null) ? (run.getCurrentRoomAnchorY() - srcMin.getY()) : 0;
         double offZ = (run != null && srcMin != null) ? (run.getCurrentRoomAnchorZ() - srcMin.getZ()) : 0;
         return new Location(world, a.getX() + offX, a.getY() + offY, a.getZ() + offZ);
+    }
+
+    /**
+     * Where to render the door's reward icon hologram. Uses the door's
+     * optional {@code iconAnchor} when set (exact placement, admin-controlled
+     * height, block-centered on X/Z) ; otherwise falls back to the door
+     * anchor lifted by {@link #ICON_Y_OFFSET} — the legacy behavior. Both are
+     * translated into the pasted copy like {@link #anchorLocation}.
+     */
+    private Location iconLocation(World world, LabyrinthRoom room, int doorIndex, LabyrinthRun run) {
+        if (room.getExitDoors().size() <= doorIndex) return null;
+        LabyrinthRoom.Door door = room.getExitDoors().get(doorIndex);
+        if (door == null) return null;
+        // v2 procedural — translate template coords into the pasted copy.
+        LabyrinthRoom.Vec3 srcMin = room.getRegion() != null ? room.getRegion().getMin() : null;
+        double offX = (run != null && srcMin != null) ? (run.getCurrentRoomAnchorX() - srcMin.getX()) : 0;
+        double offY = (run != null && srcMin != null) ? (run.getCurrentRoomAnchorY() - srcMin.getY()) : 0;
+        double offZ = (run != null && srcMin != null) ? (run.getCurrentRoomAnchorZ() - srcMin.getZ()) : 0;
+        LabyrinthRoom.Vec3 ic = door.getIconAnchor();
+        if (ic != null) {
+            // Exact placement — admin set the height ; just block-center X/Z.
+            return new Location(world, ic.getX() + offX + 0.5, ic.getY() + offY, ic.getZ() + offZ + 0.5);
+        }
+        LabyrinthRoom.Vec3 a = door.getAnchor();
+        if (a == null) return null;
+        return new Location(world, a.getX() + offX + 0.5, a.getY() + offY + ICON_Y_OFFSET, a.getZ() + offZ + 0.5);
     }
 
     private static class OpenDoors {

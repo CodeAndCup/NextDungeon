@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(mvn -pl module-memory-labyrinth -am clean compile -q)"
+      "Bash(mvn -pl module-memory-labyrinth -am clean compile -q)",
+      "Bash(cd /d D:\\\\SAO\\\\Dungeons)",
+      "Bash(mvn -q -pl module-memory-labyrinth -am compile)"
     ]
   }
 }

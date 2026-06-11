@@ -390,7 +390,8 @@ public class DungeonManagementService {
             Position spawn = new Position(0, 64, 0);
             if (w.has("spawn") && !w.get("spawn").isJsonNull()) {
                 JsonObject sp = w.getAsJsonObject("spawn");
-                spawn = new Position(sp.has("x")?sp.get("x").getAsDouble():0, sp.has("y")?sp.get("y").getAsDouble():64, sp.has("z")?sp.get("z").getAsDouble():0);
+                spawn = new Position(sp.has("x")?sp.get("x").getAsDouble():0, sp.has("y")?sp.get("y").getAsDouble():64, sp.has("z")?sp.get("z").getAsDouble():0,
+                        sp.has("yaw")?sp.get("yaw").getAsFloat():0f, sp.has("pitch")?sp.get("pitch").getAsFloat():0f);
             }
             fd.setWorldConfig(new WorldConfig(folderName, difficulty.toUpperCase(), spawn));
         }
@@ -494,6 +495,8 @@ public class DungeonManagementService {
                 sp.addProperty("x", fd.getWorldConfig().getSpawn().getX());
                 sp.addProperty("y", fd.getWorldConfig().getSpawn().getY());
                 sp.addProperty("z", fd.getWorldConfig().getSpawn().getZ());
+                sp.addProperty("yaw", fd.getWorldConfig().getSpawn().getYaw());
+                sp.addProperty("pitch", fd.getWorldConfig().getSpawn().getPitch());
                 w.add("spawn", sp);
             }
             obj.add("world", w);

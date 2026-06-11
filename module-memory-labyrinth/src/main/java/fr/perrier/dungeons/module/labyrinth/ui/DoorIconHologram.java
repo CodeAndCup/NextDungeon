@@ -10,15 +10,16 @@ import org.bukkit.util.Transformation;
 import org.joml.Vector3f;
 
 /**
- * Floating item hologram displayed above a door anchor at proposal time.
+ * Floating item hologram displayed at a given location at proposal time.
  *
  * <p>Hades-style UX (CDC §1.2 / §1.6) — the player sees the reward bias of
  * the next room before choosing the door.</p>
+ *
+ * <p>This class is a pure renderer : it spawns at the exact {@link Location}
+ * it is handed. Computing that location (door anchor + offset, or the door's
+ * custom {@code iconAnchor}) is the {@code DoorController}'s job.</p>
  */
 public class DoorIconHologram {
-
-    /** Vertical offset (in blocks) above the door anchor. */
-    public static final double Y_OFFSET = 2.0;
 
     private final ItemDisplay entity;
 
@@ -27,15 +28,15 @@ public class DoorIconHologram {
     }
 
     /**
-     * Spawn a hologram at {@code anchor} for the given icon. Returns
+     * Spawn a hologram at {@code at} for the given icon. Returns
      * {@code null} when the icon is {@link RewardIcon#NONE} — no visual
      * is shown for neutral rooms.
      */
-    public static DoorIconHologram spawn(Location anchor, RewardIcon icon) {
+    public static DoorIconHologram spawn(Location at, RewardIcon icon) {
         if (icon == null || icon == RewardIcon.NONE) return null;
         Material material = materialFor(icon);
         if (material == null) return null;
-        return spawnWithMaterial(anchor, material);
+        return spawnWithMaterial(at, material);
     }
 
     /**
@@ -43,13 +44,13 @@ public class DoorIconHologram {
      * independent of the {@link RewardIcon} carried by the choice.
      * Used by the single-door boss layout (CDC §1.7).
      */
-    public static DoorIconHologram spawnBoss(Location anchor) {
-        return spawnWithMaterial(anchor, Material.WITHER_SKELETON_SKULL);
+    public static DoorIconHologram spawnBoss(Location at) {
+        return spawnWithMaterial(at, Material.WITHER_SKELETON_SKULL);
     }
 
-    private static DoorIconHologram spawnWithMaterial(Location anchor, Material material) {
-        if (anchor == null || anchor.getWorld() == null) return null;
-        Location at = anchor.clone().add(0.5, Y_OFFSET, 0.5);
+    private static DoorIconHologram spawnWithMaterial(Location location, Material material) {
+        if (location == null || location.getWorld() == null) return null;
+        Location at = location.clone();
         ItemDisplay display = at.getWorld().spawn(at, ItemDisplay.class, d -> {
             d.setItemStack(new ItemStack(material));
             d.setBillboard(Display.Billboard.CENTER);
