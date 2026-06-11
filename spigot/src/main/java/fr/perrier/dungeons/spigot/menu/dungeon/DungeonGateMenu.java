@@ -128,6 +128,10 @@ public class DungeonGateMenu extends GlassMenu {
 
                     Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
                         FloorInstance.generateNewInstanceAsync(floor.getId(), memberIds, false, floorInstance -> {
+                            if (floorInstance == null) {
+                                player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Failed to create the dungeon instance. Please try again."));
+                                return;
+                            }
                             // Pull the party out of the finder as soon as the dungeon starts —
                             // the party itself stays alive so members return together afterwards.
                             party.setListed(false);

@@ -30,6 +30,20 @@ public class Floor extends FloorData {
     }
 
     public Floor(FloorData floorData) {
+        this(floorData, true);
+    }
+
+    /**
+     * @param floorData    the source floor data (triggers are stripped from the shared Redis map)
+     * @param loadTriggers when {@code true}, lazily hydrates triggers from the
+     *                     {@code floor_triggers} table if {@code floorData} carries none — what an
+     *                     instance server needs to execute the workflow. Lobby boot passes
+     *                     {@code false}: it only needs floor metadata for menus / queue and must
+     *                     not fire a DB trigger query per floor (Phase 2 of
+     *                     DUNGEON_LOADING_OPTIMIZATION — triggers are loaded lazily at the real
+     *                     point of use, i.e. when an instance server builds its Floor).
+     */
+    public Floor(FloorData floorData, boolean loadTriggers) {
         super(floorData.getId(), floorData.getName(), floorData.getDescription(),
                 floorData.getWorldConfig(), floorData.getRequirements(),
                 floorData.getRules(), floorData.getSteps(), floorData.getTriggers());
@@ -48,7 +62,7 @@ public class Floor extends FloorData {
         // Triggers are stripped from the shared Redis map (they contain Spigot-only classes
         // that blow up on the proxy). Load them from floor_triggers on demand so the
         // instance server always has its trigger set, matching the other Floor constructors.
-        if (getTriggers() == null && getId() != null) {
+        if (loadTriggers && getTriggers() == null && getId() != null) {
             super.setTriggers(DatabaseTriggersManager.loadTriggers(getId()));
         }
     }

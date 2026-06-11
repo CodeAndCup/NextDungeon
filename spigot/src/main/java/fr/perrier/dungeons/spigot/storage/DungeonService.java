@@ -221,6 +221,34 @@ public class DungeonService {
     }
 
     /**
+     * Hydrates the local Redis cache for a floor WITHOUT publishing a sync event.
+     *
+     * <p>Used by the boot-time / dashboard-reload hydration path
+     * ({@code RedisConfigLoader.loadFloor}): that data already comes from Redis (or was
+     * just rebuilt from the DB), so re-broadcasting a {@code FLOOR_UPDATE} per floor per
+     * lobby would only flood the cluster with redundant pub/sub + Kryo deserialization.</p>
+     *
+     * <p>Behaviour mirrors {@link #syncFloor} EXCEPT it never touches {@link #syncTopic}:
+     * it keeps {@link #currentFloor} in sync when the id matches, strips triggers for the
+     * shared map, and refreshes both {@link #floorsMap} and {@link #floorMetadataMap}
+     * (idempotent) so menus / queue read consistent metadata.</p>
+     *
+     * @param floorData the floor to cache locally
+     */
+    public void cacheFloorLocalNoPublish(FloorData floorData) {
+        if (floorData == null) return;
+
+        FloorData currentLocal = currentFloor.get();
+        if (currentLocal != null && currentLocal.getId().equals(floorData.getId())) {
+            currentFloor.set(floorData);
+        }
+
+        FloorData sharable = stripTriggersForSharedStorage(floorData);
+        floorsMap.fastPut(sharable.getId(), sharable);
+        floorMetadataMap.fastPut(sharable.getId(), FloorMetadata.from(sharable));
+    }
+
+    /**
      * Synchronizes the given instance to Redis and notifies other servers.
      * This method will update the local reference, update the Redis instance map,
      * and notify other servers of the update.
@@ -599,6 +627,37 @@ public class DungeonService {
         syncTopic.publish(message);
 
         Main.getLoggerUtil().info(String.format("Removed instance %s from Redis", instanceId));
+    }
+
+    /**
+     * Removes a single player from this server's active instance state and re-syncs.
+     * <p>
+     * Called when a player leaves an instance (quit / kick / return) so their per-player
+     * entries in {@code players}, {@code playerStats}, {@code playerCurrentLives} and
+     * {@code originInstances} do not linger in Redis after they are gone. Safe to call on
+     * lobby servers and when no instance is active — it is a no-op in those cases, and
+     * idempotent if the player was already removed.
+     *
+     * @param playerId the UUID of the player to drop from the instance state
+     */
+    public void removePlayerFromInstanceState(UUID playerId) {
+        if (playerId == null) return;
+
+        FloorInstanceData data = currentInstanceData.get();
+        if (data == null) return; // lobby, or instance already torn down
+
+        boolean changed = data.getPlayers().remove(playerId);
+        if (data.getPlayerStats().remove(playerId) != null) changed = true;
+        if (data.getPlayerCurrentLives().remove(playerId) != null) changed = true;
+        if (data.getOriginInstances().remove(playerId) != null) changed = true;
+
+        if (changed) {
+            syncInstance(data);
+            if (Main.getLoggerUtil().isDebugEnabled()) {
+                Main.getLoggerUtil().info(String.format(
+                        "Removed player %s from instance %s state", playerId, data.getInstanceId()));
+            }
+        }
     }
 
     /**

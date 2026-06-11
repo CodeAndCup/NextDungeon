@@ -200,6 +200,10 @@ public class QueueManager {
                     }
 
                     FloorInstance.generateNewInstanceAsync(floor.getId(), memberIds, false, floorInstance -> {
+                        if (floorInstance == null) {
+                            notifyPlayer(player, "Failed to create the dungeon instance. Please try again.");
+                            return;
+                        }
                         // Pull the party out of the finder as soon as the dungeon starts —
                         // the party itself stays alive so members return together afterwards.
                         party.setListed(false);
@@ -274,6 +278,10 @@ public class QueueManager {
                 }
                 Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
                     FloorInstance.generateNewInstanceAsync(floor.getId(), memberIds, false, floorInstance -> {
+                        if (floorInstance == null) {
+                            notifyPlayer(player, "Failed to create the dungeon instance. Please try again.");
+                            return;
+                        }
                         notifyPlayer(player, "Your turn! Creating dungeon instance...");
                         party.setListed(false);
                         floorInstance.sendToServer(party);

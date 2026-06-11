@@ -99,6 +99,12 @@ public class InstancePlayerDeathListener implements Listener {
                 data.getCorpseNpc().unlink();
             }
         }
+
+        // Drop the player's per-player entries (stats, lives, origin, membership) from the
+        // instance state so they do not linger in Redis after the player disconnects.
+        // Run on the main thread (same pattern as InstanceJoinListener) so the backing maps
+        // are never mutated concurrently with other instance listeners.
+        Main.getInstance().getDungeonService().removePlayerFromInstanceState(player.getUniqueId());
     }
 
     /**
