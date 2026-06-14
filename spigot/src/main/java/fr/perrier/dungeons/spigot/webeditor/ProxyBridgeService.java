@@ -17,18 +17,19 @@ import java.util.concurrent.CompletableFuture;
  */
 public class ProxyBridgeService {
 
-    private static final String PROXY_HOST = "localhost";
+    private String proxyHost = "localhost"; // Default host
     private int proxyPort = 7734; // Default port
     private static final int SPIGOT_BRIDGE_PORT = 8081;
     private final Gson gson = new Gson();
 
     public ProxyBridgeService() {
-        // Try to read the port from the plugin config
+        // Try to read the host and port from the plugin config
         try {
+            proxyHost = Main.getInstance().getConfig().getString("WebEditor.proxy-host", "localhost");
             proxyPort = Main.getInstance().getConfig().getInt("WebEditor.proxy-port", 7734);
-            Main.getLoggerUtil().info("Proxy port for web editor set to: " + proxyPort);
+            Main.getLoggerUtil().info("Proxy for web editor set to: " + proxyHost + ":" + proxyPort);
         } catch (Exception e) {
-            Main.getLoggerUtil().warning("Unable to read proxy port from config, using default port: 7734");
+            Main.getLoggerUtil().warning("Unable to read proxy host/port from config, using defaults: localhost:7734");
             e.printStackTrace(System.err);
         }
     }
@@ -107,7 +108,7 @@ public class ProxyBridgeService {
      */
     private String sendPostRequest(String endpoint, String jsonData) {
         try {
-            URL url = new URL("http://" + PROXY_HOST + ":" + proxyPort + endpoint);
+            URL url = new URL("http://" + proxyHost + ":" + proxyPort + endpoint);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             
             conn.setRequestMethod("POST");

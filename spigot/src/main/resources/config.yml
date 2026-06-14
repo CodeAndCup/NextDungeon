@@ -28,6 +28,7 @@ RedisConfiguration:
 # ─────────────────────────────────────────────────────
 # Configuration du serveur web proxy pour l'éditeur
 WebEditor:
+    proxy-host: "localhost" # IP/hôte du proxy (Velocity/BungeeCord). À changer si le proxy est sur une autre machine (cluster, etc.)
     proxy-port: 7734 # Port du serveur web proxy (Velocity/BungeeCord)
 
 # ─────────────────────────────────────────────────────
