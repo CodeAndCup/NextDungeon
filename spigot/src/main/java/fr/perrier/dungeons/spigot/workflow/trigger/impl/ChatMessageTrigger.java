@@ -20,7 +20,7 @@ import java.util.Map;
 @BlocklyInfo(
         name = "chat_message_trigger",
         color = "#059000",
-        displayText = "💬 Quand le joueur envoie un message",
+        displayText = "Quand le joueur envoie un message",
         tooltip = "Déclenche quand un joueur envoie un message contenant un mot-clé",
         category = "Triggers"
 )

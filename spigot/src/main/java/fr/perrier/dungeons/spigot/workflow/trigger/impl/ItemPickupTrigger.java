@@ -22,7 +22,7 @@ import java.util.Map;
 @BlocklyInfo(
         name = "item_pickup_trigger",
         color = "#059000",
-        displayText = "🎁 Quand le joueur ramasse un item",
+        displayText = "Quand le joueur ramasse un item",
         tooltip = "Déclenche quand un joueur ramasse un item spécifique",
         category = "Triggers"
 )

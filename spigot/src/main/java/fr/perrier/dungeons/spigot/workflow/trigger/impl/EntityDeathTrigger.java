@@ -17,7 +17,7 @@ import java.util.Map;
 @BlocklyInfo(
         name = "entity_death_trigger",
         color = "#059000",
-        displayText = "📍 Quand une entité meurt",
+        displayText = "Quand une entité meurt",
         tooltip = "Déclenche lorsque une entité meurt",
         category = "Triggers"
 )

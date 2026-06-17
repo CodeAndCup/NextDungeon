@@ -19,7 +19,7 @@ import java.util.Map;
 @BlocklyInfo(
         name = "function_trigger",
         color = "#4900c5",
-        displayText = "🔧 Fonction",
+        displayText = "Fonction",
         tooltip = "Définit une fonction personnalisée réutilisable",
         category = "Triggers"
 )

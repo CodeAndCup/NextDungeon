@@ -21,7 +21,7 @@ import java.util.Map;
 @BlocklyInfo(
         name = "player_jump_trigger",
         color = "#059000",
-        displayText = "🦘 Quand le joueur saute",
+        displayText = "Quand le joueur saute",
         tooltip = "Déclenche quand un joueur saute",
         category = "Triggers"
 )

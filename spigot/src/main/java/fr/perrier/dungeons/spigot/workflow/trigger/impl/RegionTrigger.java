@@ -24,7 +24,7 @@ import java.util.Objects;
 @BlocklyInfo(
         name = "region_trigger",
         color = "#059000",
-        displayText = "📍 Quand le joueur entre/sort de région",
+        displayText = "Quand le joueur entre/sort de région",
         tooltip = "Déclenche quand un joueur entre ou sort d'une région définie",
         category = "Triggers"
 )

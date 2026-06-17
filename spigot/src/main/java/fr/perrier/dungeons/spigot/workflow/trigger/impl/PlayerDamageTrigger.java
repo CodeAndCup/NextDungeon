@@ -20,8 +20,8 @@ import java.util.Map;
 @Setter
 @BlocklyInfo(
         name = "player_damage_trigger",
-        color = "#E91E63",
-        displayText = "💔 Quand le joueur prend des dégâts",
+        color = "#059000",
+        displayText = "Quand le joueur prend des dégâts",
         tooltip = "Déclenche quand un joueur prend des dégâts",
         category = "Triggers"
 )

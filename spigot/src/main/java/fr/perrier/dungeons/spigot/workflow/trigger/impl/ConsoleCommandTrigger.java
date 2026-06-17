@@ -20,7 +20,7 @@ import java.util.Map;
 @BlocklyInfo(
         name = "console_command_trigger",
         color = "#059000",
-        displayText = "🖥 Quand la console exécute une commande",
+        displayText = "Quand la console exécute une commande",
         tooltip = "Déclenche quand une commande spécifique est exécutée depuis la console du serveur",
         category = "Triggers"
 )

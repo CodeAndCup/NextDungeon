@@ -24,7 +24,7 @@ import java.util.Map;
 @BlocklyInfo(
         name = "block_click_trigger",
         color = "#059000",
-        displayText = "🖱️ Clic sur bloc",
+        displayText = "Clic sur bloc",
         tooltip = "Déclenché quand un joueur clique sur un bloc spécifique",
         category = "Triggers"
 )
