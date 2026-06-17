@@ -23,7 +23,7 @@ import java.util.Map;
 @Getter
 @BlocklyInfo(
         name = "give_item_action",
-        color = "#FF9800",
+        color = "#2196F3",
         displayText = "🎁 Donner un item",
         tooltip = "Donne un item au joueur",
         category = "Actions"

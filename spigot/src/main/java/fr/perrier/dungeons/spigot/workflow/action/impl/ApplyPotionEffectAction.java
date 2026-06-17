@@ -22,7 +22,7 @@ import java.util.Map;
 @Getter
 @BlocklyInfo(
         name = "apply_potion_effect_action",
-        color = "#9C27B0",
+        color = "#2196F3",
         displayText = "🧪 Appliquer effet de potion",
         tooltip = "Applique un effet de potion au joueur",
         category = "Actions"

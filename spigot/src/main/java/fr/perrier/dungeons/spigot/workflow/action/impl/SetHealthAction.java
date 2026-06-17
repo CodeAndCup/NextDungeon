@@ -20,7 +20,7 @@ import java.util.Map;
 @Getter
 @BlocklyInfo(
         name = "set_health_action",
-        color = "#F44336",
+        color = "#2196F3",
         displayText = "❤️ Modifier la santé",
         tooltip = "Modifie la santé du joueur",
         category = "Actions"

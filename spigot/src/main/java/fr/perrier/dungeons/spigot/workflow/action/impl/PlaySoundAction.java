@@ -23,7 +23,7 @@ import java.util.Map;
 @Getter
 @BlocklyInfo(
         name = "play_sound_action",
-        color = "#E91E63",
+        color = "#2196F3",
         displayText = "🔊 Jouer un son",
         tooltip = "Joue un son pour un joueur",
         category = "Actions"

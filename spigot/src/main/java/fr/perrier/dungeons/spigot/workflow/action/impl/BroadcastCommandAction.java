@@ -18,7 +18,7 @@ import java.util.Map;
 @Getter
 @BlocklyInfo(
         name = "broadcast_command_action",
-        color = "#FF9800",
+        color = "#2196F3",
         displayText = "⌨️ Exécuter commande console",
         tooltip = "Exécute une commande en tant que console serveur.",
         category = "Actions"

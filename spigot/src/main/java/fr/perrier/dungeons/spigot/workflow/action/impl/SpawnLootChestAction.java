@@ -29,7 +29,7 @@ import java.util.Map;
 @Getter
 @BlocklyInfo(
         name = "spawn_loot_chest_action",
-        color = "#795548",
+        color = "#2196F3",
         displayText = "📦 Générer un coffre de loot",
         tooltip = "Place un coffre rempli de loot.\n"
                 + "GLOBAL = coffre partagé (premier arrivé premier servi).\n"
