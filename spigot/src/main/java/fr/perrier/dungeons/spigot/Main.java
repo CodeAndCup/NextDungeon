@@ -70,6 +70,7 @@ import fr.perrier.dungeons.spigot.webeditor.DungeonWebEditorManager;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Bukkit;
+import org.bukkit.GameRule;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -627,6 +628,11 @@ public final class Main extends JavaPlugin {
         // Initialize instance in Redis
         dungeonService.initializeInstance(info.getInstanceId(), info.getFloorId());
 
+        // Make sure every dungeon world keeps inventory on death — players must
+        // never drop their gear inside an instance. An instance server only
+        // hosts the dungeon, so every loaded world is a dungeon world.
+        enforceKeepInventory();
+
         // Register instance with queue system
         if (dungeonQueueService != null) {
             dungeonQueueService.registerInstance(info.getFloorId(), info.getInstanceId());
@@ -635,6 +641,26 @@ public final class Main extends JavaPlugin {
 
         // Schedule ready state
         putServerReady();
+    }
+
+    /**
+     * Ensures every loaded world on this instance server has the
+     * {@code keepInventory} gamerule enabled, setting it when it isn't.
+     *
+     * <p>Dungeon deaths must never drop the player's items. This is a safety
+     * net in case a world template ships without the gamerule. Runs on the
+     * main thread (called from {@link #initializeInstanceServer()} during
+     * {@code onEnable}) — {@link World#setGameRule} requires it.</p>
+     */
+    private void enforceKeepInventory() {
+        for (World world : Bukkit.getWorlds()) {
+            Boolean current = world.getGameRuleValue(GameRule.KEEP_INVENTORY);
+            if (current == null || !current) {
+                world.setGameRule(GameRule.KEEP_INVENTORY, true);
+                getLogger().info("[Dungeon] keepInventory was off in world '"
+                        + world.getName() + "' — forced to true.");
+            }
+        }
     }
 
     /**
