@@ -12,7 +12,11 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.HandlerList;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerMoveEvent;
 
 import java.util.Map;
 import java.util.UUID;
@@ -29,14 +33,23 @@ import java.util.logging.Logger;
  * {@code aliveMobsByRoom} accounting drives whether the room is cleared
  * or not (CDC §1.7).</p>
  *
- * <p>Polling : a single Bukkit task ticks every 5 server ticks (250 ms).
- * For each open run, it walks through the players of the instance and
- * matches their position against the anchors of the current room.</p>
+ * <p>Detection is event-driven : a {@link PlayerMoveEvent} handler checks the
+ * mover against the anchors of its run's current room. Only block-change moves
+ * are evaluated (rotation / sub-block jitter is ignored), so it is cheap and
+ * has no detection gap — unlike the previous 250 ms polling task which could
+ * miss a fast pass through the doorway.</p>
  */
-public class DoorController {
+public class DoorController implements Listener {
 
-    public static final long POLL_PERIOD_TICKS = 5L;
+    /** Horizontal detection radius (blocks) around a door anchor. */
     public static final double TRAVERSAL_RADIUS = 2.0;
+    /**
+     * Vertical tolerance (blocks) around a door anchor. Detection is a cylinder,
+     * not a sphere : a doorway is 2-3 blocks tall and players jump while running,
+     * so the anchor's Y rarely matches the player's feet exactly. A 3D sphere let
+     * that vertical gap eat into {@link #TRAVERSAL_RADIUS} and dropped traversals.
+     */
+    public static final double TRAVERSAL_HEIGHT = 3.5;
 
     /** Fallback height above the door anchor when no custom iconAnchor is set. */
     private static final double ICON_Y_OFFSET = 2.0;
@@ -44,7 +57,7 @@ public class DoorController {
     private final LabyrinthRunManager runManager;
     private final Logger logger;
     private final Map<UUID, OpenDoors> openByInstance = new ConcurrentHashMap<>();
-    private BukkitTask pollTask;
+    private boolean registered;
 
     public DoorController(LabyrinthRunManager runManager) {
         this.runManager = runManager;
@@ -52,19 +65,18 @@ public class DoorController {
     }
 
     /**
-     * Start the polling task that checks every active run for door
-     * traversals. Idempotent.
+     * Register the {@link PlayerMoveEvent} traversal listener. Idempotent.
      */
     public void start() {
-        if (pollTask != null) return;
-        pollTask = Bukkit.getScheduler().runTaskTimer(Main.getInstance(),
-                this::pollAll, POLL_PERIOD_TICKS, POLL_PERIOD_TICKS);
+        if (registered) return;
+        Bukkit.getPluginManager().registerEvents(this, Main.getInstance());
+        registered = true;
     }
 
     public void stop() {
-        if (pollTask != null) {
-            pollTask.cancel();
-            pollTask = null;
+        if (registered) {
+            HandlerList.unregisterAll(this);
+            registered = false;
         }
         for (OpenDoors o : openByInstance.values()) o.despawnHolograms();
         openByInstance.clear();
@@ -130,37 +142,42 @@ public class DoorController {
         if (open != null) open.despawnHolograms();
     }
 
-    private void pollAll() {
+    /**
+     * Detects a door traversal the moment a player steps onto an open door
+     * anchor. Cheap : returns immediately unless the mover crossed a block
+     * boundary while their run has doors open.
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPlayerMove(PlayerMoveEvent event) {
         if (openByInstance.isEmpty()) return;
-        for (Map.Entry<UUID, OpenDoors> e : openByInstance.entrySet()) {
-            UUID instanceId = e.getKey();
-            OpenDoors open = e.getValue();
-            LabyrinthRun run = runManager.getRun(instanceId);
-            if (run == null || run.getPendingChoice() == null) {
-                open.despawnHolograms();
-                openByInstance.remove(instanceId);
-                continue;
-            }
-            // Soft-lock during the Infinite lobby resume/new prompt
-            // (CDC §6.1) — players cannot leave the lobby until the
-            // leader has decided.
-            if (run.isLobbyDecisionPending()) continue;
-            FloorInstance instance = Main.getInstance().getDungeonService().getInstance(instanceId);
-            if (instance == null) continue;
+        Location to = event.getTo();
+        if (to == null) return;
+        Location from = event.getFrom();
+        // Ignore rotation-only / sub-block jitter — this event fires constantly.
+        if (from.getBlockX() == to.getBlockX()
+                && from.getBlockY() == to.getBlockY()
+                && from.getBlockZ() == to.getBlockZ()) {
+            return;
+        }
 
-            for (UUID pid : instance.getPlayers()) {
-                Player p = Bukkit.getPlayer(pid);
-                if (p == null || !p.isOnline()) continue;
-                Location loc = p.getLocation();
-                if (open.leftAnchor != null && nearby(loc, open.leftAnchor)) {
-                    fireTraversal(run, open, true, instance);
-                    break;
-                }
-                if (open.rightAnchor != null && nearby(loc, open.rightAnchor)) {
-                    fireTraversal(run, open, false, instance);
-                    break;
-                }
-            }
+        Player p = event.getPlayer();
+        LabyrinthRun run = runManager.findRunByPlayer(p.getUniqueId());
+        if (run == null || run.getPendingChoice() == null) return;
+        // Soft-lock during the Infinite lobby resume/new prompt (CDC §6.1) —
+        // players cannot leave the lobby until the leader has decided.
+        if (run.isLobbyDecisionPending()) return;
+
+        UUID instanceId = run.getInstanceId();
+        OpenDoors open = openByInstance.get(instanceId);
+        if (open == null) return;
+
+        FloorInstance instance = Main.getInstance().getDungeonService().getInstance(instanceId);
+        if (instance == null || !instance.getPlayers().contains(p.getUniqueId())) return;
+
+        if (open.leftAnchor != null && nearby(to, open.leftAnchor)) {
+            fireTraversal(run, open, true, instance);
+        } else if (open.rightAnchor != null && nearby(to, open.rightAnchor)) {
+            fireTraversal(run, open, false, instance);
         }
     }
 
@@ -177,7 +194,14 @@ public class DoorController {
     private boolean nearby(Location playerLoc, Location anchor) {
         if (playerLoc.getWorld() == null || anchor.getWorld() == null) return false;
         if (!playerLoc.getWorld().equals(anchor.getWorld())) return false;
-        return playerLoc.distanceSquared(anchor) <= TRAVERSAL_RADIUS * TRAVERSAL_RADIUS;
+        // Cylinder check : bounded vertical band + horizontal radius. Avoids the
+        // 3D-sphere flakiness where a door anchor a block or two off the player's
+        // feet level silently failed to register a traversal.
+        double dy = playerLoc.getY() - anchor.getY();
+        if (Math.abs(dy) > TRAVERSAL_HEIGHT) return false;
+        double dx = playerLoc.getX() - anchor.getX();
+        double dz = playerLoc.getZ() - anchor.getZ();
+        return dx * dx + dz * dz <= TRAVERSAL_RADIUS * TRAVERSAL_RADIUS;
     }
 
     private Location anchorLocation(World world, LabyrinthRoom room, int doorIndex, LabyrinthRun run) {
@@ -190,7 +214,9 @@ public class DoorController {
         double offX = (run != null && srcMin != null) ? (run.getCurrentRoomAnchorX() - srcMin.getX()) : 0;
         double offY = (run != null && srcMin != null) ? (run.getCurrentRoomAnchorY() - srcMin.getY()) : 0;
         double offZ = (run != null && srcMin != null) ? (run.getCurrentRoomAnchorZ() - srcMin.getZ()) : 0;
-        return new Location(world, a.getX() + offX, a.getY() + offY, a.getZ() + offZ);
+        // Block-center on X/Z so the detection radius is symmetric around the
+        // door block (the player stands at block-center, not the corner).
+        return new Location(world, a.getX() + offX + 0.5, a.getY() + offY, a.getZ() + offZ + 0.5);
     }
 
     /**
