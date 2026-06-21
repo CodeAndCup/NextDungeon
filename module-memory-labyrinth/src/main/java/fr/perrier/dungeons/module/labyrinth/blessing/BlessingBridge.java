@@ -91,16 +91,39 @@ public final class BlessingBridge {
     }
 
     /**
-     * Pushes a passive blessing offer to every player of the instance,
-     * dispatched per-player as soon as they are online. Called at the entry
-     * (lobby) room of a fresh run — finite floors and Infinite "new game";
-     * never on Infinite resume (which bypasses the lobby).
+     * Pushes a blessing offer to every player of the instance, dispatched
+     * per-player as soon as they are online. Called at the entry (lobby) room
+     * of a fresh run — finite floors and Infinite "new game"; never on
+     * Infinite resume (which bypasses the lobby).
+     *
+     * <p>An offer draws from a single one of the player's unlocked characters
+     * (weighted across its actives + passives) — the SAO-Blessing plugin owns
+     * that logic; we only trigger it. If the player has no unlocked character
+     * the plugin answers {@code EMPTY_POOL} and nothing is shown.</p>
      */
-    public static void offerPassive(FloorInstance instance) {
+    public static void offerBlessing(FloorInstance instance) {
         if (instance == null) return;
         for (UUID id : new HashSet<>(instance.getPlayers())) {
             dispatchWhenOnline(id, instance,
-                    p -> "saoblessing dungeon offer " + p.getName() + " passive", 0);
+                    p -> "saoblessing dungeon offer " + p.getName() + " blessing", 0);
+        }
+    }
+
+    /**
+     * Flushes the player's pending heroic choices for every player of the
+     * instance (one screen per level gained, the plugin chains them). Called
+     * at every room clear — heroic levels earned mid-combat are surfaced only
+     * now, never during the fight (SAO-Blessing design).
+     *
+     * <p>Dispatched per-player as soon as online ; at a room clear the party
+     * is necessarily connected, so this resolves immediately, but the
+     * online-guard keeps it safe.</p>
+     */
+    public static void offerHeroic(FloorInstance instance) {
+        if (instance == null) return;
+        for (UUID id : new HashSet<>(instance.getPlayers())) {
+            dispatchWhenOnline(id, instance,
+                    p -> "saoblessing dungeon heroics " + p.getName(), 0);
         }
     }
 
@@ -140,6 +163,7 @@ public final class BlessingBridge {
     private static void dispatch(String command) {
         Runnable task = () -> {
             try {
+                log().info("[MemoryLabyrinth] Blessing command: /" + command);
                 Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), command);
             } catch (Exception e) {
                 log().warning("[MemoryLabyrinth] Blessing command failed: /" + command

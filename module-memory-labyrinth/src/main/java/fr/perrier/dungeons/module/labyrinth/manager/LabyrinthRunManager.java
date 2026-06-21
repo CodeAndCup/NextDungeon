@@ -17,6 +17,10 @@ import fr.perrier.dungeons.module.labyrinth.loot.EndOfRunHandler;
 import fr.perrier.dungeons.module.labyrinth.model.DoorChoice;
 import fr.perrier.dungeons.module.labyrinth.model.LabyrinthRun;
 import fr.perrier.dungeons.module.labyrinth.model.LabyrinthSave;
+import fr.perrier.dungeons.module.labyrinth.ui.LabyrinthMessages;
+import static fr.perrier.dungeons.module.labyrinth.ui.LabyrinthMessages.RED;
+import static fr.perrier.dungeons.module.labyrinth.ui.LabyrinthMessages.WHITE;
+import static fr.perrier.dungeons.module.labyrinth.ui.LabyrinthMessages.DARK;
 import fr.perrier.dungeons.module.labyrinth.ui.ResumeOrNewPrompt;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.database.DatabaseManager;
@@ -257,10 +261,10 @@ public class LabyrinthRunManager {
         // Infinite "new game".
         BlessingBridge.startSession(run, instance);
 
-        // Entry blessing : each player receives a passive offer on entering
+        // Entry blessing : each player receives a blessing offer on entering
         // the lobby. Resume bypasses the lobby via resumeAtNextRoom(), so
         // resumed parties keep their existing blessings (no entry offer).
-        BlessingBridge.offerPassive(instance);
+        BlessingBridge.offerHeroic(instance);
     }
 
     /**
@@ -302,14 +306,14 @@ public class LabyrinthRunManager {
         UUID instanceId = run.getInstanceId();
         FloorInstance instance = Main.getInstance().getDungeonService().getInstance(instanceId);
         if (instance == null) {
-            sender.sendMessage("§cInstance introuvable — resume impossible.");
+            LabyrinthMessages.send(sender, RED + "Instance not found " + DARK + "— " + RED + "resume impossible" + DARK + ".");
             return;
         }
         saveManager.findSaveForRun(run).thenAccept(save -> {
             if (save == null) {
                 Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
                     if (runs.get(instanceId) != run) return;
-                    sender.sendMessage("§cLa save n'est plus disponible.");
+                    LabyrinthMessages.send(sender, RED + "The save is no longer available" + DARK + ".");
                     run.setLobbyDecisionPending(false);
                     enterLobby(run, instance);
                 });
@@ -333,7 +337,7 @@ public class LabyrinthRunManager {
         // guaranteed not to be a boss — it returns a combat pair.
         DoorChoice choice = roomPicker.pickNext(run);
         if (choice == null) {
-            sender.sendMessage("§cAucune salle disponible pour reprendre — fallback lobby.");
+            LabyrinthMessages.send(sender, RED + "No room available to resume " + DARK + "— " + RED + "falling back to lobby" + DARK + ".");
             enterLobby(run, instance);
             return;
         }
@@ -348,8 +352,9 @@ public class LabyrinthRunManager {
         // party keeps the blessings tied to this party-hash dungeon id.
         BlessingBridge.startSession(run, instance);
 
-        broadcastInstance(instance, sender.getName() + " a repris la save (salle "
-                + save.getLastBossClearedRoom() + ", palier " + save.getDifficultyTier() + ")");
+        broadcastInstance(instance, WHITE + sender.getName() + WHITE + " resumed the save "
+                + DARK + "(" + WHITE + "room " + save.getLastBossClearedRoom()
+                + DARK + ", " + WHITE + "tier " + save.getDifficultyTier() + DARK + ")");
     }
 
     /**
@@ -367,7 +372,8 @@ public class LabyrinthRunManager {
         FloorInstance instance = Main.getInstance().getDungeonService().getInstance(run.getInstanceId());
         if (instance != null) {
             enterLobby(run, instance);
-            broadcastInstance(instance, sender.getName() + " a démarré une nouvelle partie (save effacée)");
+            broadcastInstance(instance, WHITE + sender.getName() + WHITE + " started a new run "
+                    + DARK + "(" + WHITE + "save cleared" + DARK + ")");
         }
     }
 
@@ -384,7 +390,7 @@ public class LabyrinthRunManager {
     private void broadcastInstance(FloorInstance instance, String message) {
         for (UUID id : instance.getPlayers()) {
             Player p = Bukkit.getPlayer(id);
-            if (p != null && p.isOnline()) p.sendMessage("§7▶ " + message);
+            if (p != null && p.isOnline()) p.sendMessage(LabyrinthMessages.prefixed(message));
         }
     }
 

@@ -351,9 +351,15 @@ public class FloorInstance extends FloorInstanceData {
             );
             Main.getInstance().getProfileService().saveProfileData(player.getUniqueId());
 
-            Titles.sendTitle(player, 10, 70, 20,
-                    ChatUtil.translate("&f&l" + ChatUtil.toSmallCaps("Congratulations!!")),
-                    ChatUtil.translate("&#FFBB00&l" + ChatUtil.toSmallCaps("Dungeon Complete")));
+            if(success) {
+                Titles.sendTitle(player, 10, 70, 20,
+                        ChatUtil.translate("&f&l" + ChatUtil.toSmallCaps("Congratulations!!")),
+                        ChatUtil.translate("&#FFBB00&l" + ChatUtil.toSmallCaps("Dungeon Complete")));
+            } else {
+                Titles.sendTitle(player, 10, 70, 20,
+                        ChatUtil.translate("&f&l" + ChatUtil.toSmallCaps("Dungeon Failed!")),
+                        ChatUtil.translate("&#FF0000&l" + ChatUtil.toSmallCaps("Better luck next time!")));
+            }
 
             Dungeon currentDungeon = Dungeon.getDungeon(floorId.split("_")[0]);
 

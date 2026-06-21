@@ -2,6 +2,10 @@ package fr.perrier.dungeons.module.labyrinth.ui;
 
 import fr.perrier.dungeons.module.labyrinth.lifecycle.LabyrinthResumePromptListener;
 import fr.perrier.dungeons.module.labyrinth.model.LabyrinthSave;
+import static fr.perrier.dungeons.module.labyrinth.ui.LabyrinthMessages.RED;
+import static fr.perrier.dungeons.module.labyrinth.ui.LabyrinthMessages.WHITE;
+import static fr.perrier.dungeons.module.labyrinth.ui.LabyrinthMessages.DARK;
+import static fr.perrier.dungeons.module.labyrinth.ui.LabyrinthMessages.GREEN;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.chat.HoverEvent;
@@ -36,26 +40,30 @@ public final class ResumeOrNewPrompt {
         Player leader = Bukkit.getPlayer(leaderId);
         if (leader == null || !leader.isOnline()) return;
 
-        ComponentBuilder builder = new ComponentBuilder()
-                .append("§6▶ §eMemory Labyrinth — §fSave détectée")
-                .append("\n", ComponentBuilder.FormatRetention.NONE)
-                .append("§7Salle atteinte : §f" + save.getLastBossClearedRoom())
-                .append(" §8| §7Palier : §f" + save.getDifficultyTier())
-                .append("\n", ComponentBuilder.FormatRetention.NONE);
+        ComponentBuilder builder = new ComponentBuilder();
+        builder.append(TextComponent.fromLegacyText(LabyrinthMessages.prefixed("&lSave detected")));
+        builder.append("\n", ComponentBuilder.FormatRetention.NONE);
+        builder.append(TextComponent.fromLegacyText(LabyrinthMessages.color(
+                WHITE + "Reached room " + DARK + ": " + WHITE + save.getLastBossClearedRoom()
+                        + " " + DARK + "| " + WHITE + "Tier " + DARK + ": " + WHITE + save.getDifficultyTier())));
+        builder.append("\n", ComponentBuilder.FormatRetention.NONE);
 
-        TextComponent resume = new TextComponent("§a§l[Reprendre]");
+        TextComponent resume = new TextComponent(TextComponent.fromLegacyText(
+                LabyrinthMessages.color(DARK + "[" + GREEN + "&lResume" + DARK + "]")));
         resume.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,
                 COMMAND_PREFIX + " " + CHOICE_RESUME));
         resume.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
-                new Text("§eReprendre la save (salle " + save.getLastBossClearedRoom() + ")")));
+                new Text(LabyrinthMessages.color(WHITE + "Resume the save " + DARK + "(" + WHITE + "room "
+                        + save.getLastBossClearedRoom() + DARK + ")"))));
 
-        TextComponent fresh = new TextComponent("§c§l[Nouvelle partie]");
+        TextComponent fresh = new TextComponent(TextComponent.fromLegacyText(
+                LabyrinthMessages.color(DARK + "[" + RED + "&lNew game" + DARK + "]")));
         fresh.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,
                 COMMAND_PREFIX + " " + CHOICE_NEW));
         fresh.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
-                new Text("§eEffacer la save et démarrer un nouveau run")));
+                new Text(LabyrinthMessages.color(WHITE + "Delete the save and start a new run"))));
 
-        builder.append(resume).append("  ").append(fresh);
+        builder.append(resume).append("  ", ComponentBuilder.FormatRetention.NONE).append(fresh);
         leader.spigot().sendMessage(builder.create());
     }
 
@@ -63,7 +71,7 @@ public final class ResumeOrNewPrompt {
         if (memberIds == null) return;
         for (UUID id : memberIds) {
             Player p = Bukkit.getPlayer(id);
-            if (p != null && p.isOnline()) p.sendMessage("§7" + message);
+            if (p != null && p.isOnline()) p.sendMessage(LabyrinthMessages.prefixed(WHITE + message));
         }
     }
 }

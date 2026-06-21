@@ -14,6 +14,7 @@ import fr.perrier.dungeons.common.model.dungeon.FloorData;
 import fr.perrier.dungeons.spigot.commands.AdminCommands;
 import fr.perrier.dungeons.spigot.commands.ConsoleCommands;
 import fr.perrier.dungeons.spigot.commands.DebugCommands;
+import fr.perrier.dungeons.spigot.commands.PartyCommands;
 import fr.perrier.dungeons.spigot.commands.PlayerCommands;
 import fr.perrier.dungeons.spigot.commands.params.DungeonParameterType;
 import fr.perrier.dungeons.spigot.commands.params.FloorParameterType;
@@ -541,6 +542,7 @@ public final class Main extends JavaPlugin {
         commandHandler.registerCommands(AdminCommands.class);
         commandHandler.registerCommands(DebugCommands.class);
         commandHandler.registerCommands(PlayerCommands.class);
+        commandHandler.registerCommands(PartyCommands.class);
         commandHandler.registerCommands(ConsoleCommands.class);
     }
 

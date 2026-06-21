@@ -7,6 +7,7 @@ import fr.perrier.cupcodeapi.menuapi.pagination.PaginatedMenu;
 import fr.perrier.cupcodeapi.utils.ChatUtil;
 import fr.perrier.cupcodeapi.utils.ItemBuilder;
 import fr.perrier.dungeons.spigot.Main;
+import fr.perrier.dungeons.spigot.menu.utils.MenuTitle;
 import fr.perrier.dungeons.spigot.menu.utils.PartyButton;
 import fr.perrier.dungeons.spigot.model.Dungeon;
 import fr.perrier.dungeons.spigot.parties.IDungeonParty;
@@ -33,7 +34,8 @@ public class PartyFinderMenu extends PaginatedMenu {
 
     @Override
     public String getPrePaginatedTitle(Player player) {
-        return "&#8B0000&l" + ChatUtil.toSmallCaps("party finder");
+        // Navigation buttons cap the layout at slot 44, giving a 5-row inventory.
+        return MenuTitle.ofRows(5, "&#8B0000&l" + ChatUtil.toSmallCaps("party finder"));
     }
 
     @Override

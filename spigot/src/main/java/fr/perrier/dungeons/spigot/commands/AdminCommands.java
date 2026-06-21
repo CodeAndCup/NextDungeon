@@ -41,6 +41,7 @@ public class AdminCommands {
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin queue &8- &fQueue management"));
         // Status commands
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin status &#D63333<dungeon> [floor]"));
+        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin list"));
         // Module commands
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin module list"));
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin module load &#D63333<file.jar>"));
@@ -223,6 +224,37 @@ public class AdminCommands {
     }
 
     // ======================= Utils Commands =======================
+
+    @Command(names = {"dungeon admin list", "dungeons admin list", "nextdungeon admin list", "nextdungeons admin list", "nd admin list"},
+            permission = "nextdungeon.admin")
+    public static void onDungeonListCommand(CommandSender sender) {
+        sender.sendMessage(ChatUtil.getBar());
+        sender.sendMessage(ChatUtil.translate("<gradient:#8B0000:bold>NextDungeon</gradient:#D10000> &8| &fAvailable Dungeons"));
+        sender.sendMessage("");
+
+        var queueService = Main.getInstance().getDungeonQueueService();
+
+        for (Dungeon dungeon : Dungeon.getDungeons()) {
+            sender.sendMessage(ChatUtil.translate("&#D10000" + dungeon.getName() + " &7(" + dungeon.getId() + ")"));
+            for (Floor floor : dungeon.getFloors()) {
+                int queueSize = queueService != null ? queueService.getQueueSize(floor.getId()) : 0;
+                int activeInstances = queueService != null ? queueService.getActiveInstanceCount(floor.getId()) : 0;
+                int maxInstances = floor.getRules() != null ? floor.getRules().getMaxInstance() : 0;
+
+                sender.sendMessage(ChatUtil.translate(String.format(
+                        "  &8• &f%s &7(ID: %s) - &eQueue: %d &7| &eInstances: %d/%s",
+                        floor.getName(),
+                        floor.getId(),
+                        queueSize,
+                        activeInstances,
+                        maxInstances > 0 ? String.valueOf(maxInstances) : "∞"
+                )));
+            }
+        }
+
+        sender.sendMessage("");
+        sender.sendMessage(ChatUtil.getBar());
+    }
 
     @Command(
             names = {"dungeon admin status", "dungeons admin status", "nextdungeon admin status", "nextdungeons admin status", "nd admin status"},

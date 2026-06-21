@@ -36,7 +36,7 @@ import java.util.logging.Logger;
 public class DoorController {
 
     public static final long POLL_PERIOD_TICKS = 5L;
-    public static final double TRAVERSAL_RADIUS = 1.5;
+    public static final double TRAVERSAL_RADIUS = 2.0;
 
     /** Fallback height above the door anchor when no custom iconAnchor is set. */
     private static final double ICON_Y_OFFSET = 2.0;

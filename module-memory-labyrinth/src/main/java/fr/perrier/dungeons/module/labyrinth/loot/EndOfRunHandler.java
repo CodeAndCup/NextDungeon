@@ -4,6 +4,12 @@ import fr.perrier.dungeons.module.labyrinth.lifecycle.DoorController;
 import fr.perrier.dungeons.module.labyrinth.manager.LabyrinthRunManager;
 import fr.perrier.dungeons.module.labyrinth.manager.LabyrinthSaveManager;
 import fr.perrier.dungeons.module.labyrinth.model.LabyrinthRun;
+import fr.perrier.dungeons.module.labyrinth.ui.LabyrinthMessages;
+import static fr.perrier.dungeons.module.labyrinth.ui.LabyrinthMessages.RED;
+import static fr.perrier.dungeons.module.labyrinth.ui.LabyrinthMessages.WHITE;
+import static fr.perrier.dungeons.module.labyrinth.ui.LabyrinthMessages.DARK;
+import static fr.perrier.dungeons.module.labyrinth.ui.LabyrinthMessages.GREEN;
+import static fr.perrier.dungeons.module.labyrinth.ui.LabyrinthMessages.GOLD;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.model.FloorInstance;
 import lombok.Getter;
@@ -126,8 +132,8 @@ public class EndOfRunHandler {
                 results.add(empty);
                 Player p = Bukkit.getPlayer(id);
                 if (p != null && p.isOnline()) {
-                    p.sendMessage("§c§l✦ Memory Labyrinth — Run échouée");
-                    p.sendMessage("§7Aucun loot — les récompenses ne sont distribuées qu'à la victoire.");
+                    p.sendMessage(LabyrinthMessages.prefixed(RED + "&lRun failed" + WHITE + "."));
+                    p.sendMessage(LabyrinthMessages.color(WHITE + "No loot " + DARK + "— " + WHITE + "rewards are only granted on victory" + DARK + "."));
                 }
             }
         }
@@ -193,17 +199,17 @@ public class EndOfRunHandler {
 
     private void sendSummary(Player player, LootResult result, List<String> droppedItems) {
         String head = result.isSuccess()
-                ? "§a§l✦ Memory Labyrinth — Run terminée"
-                : "§c§l✦ Memory Labyrinth — Run échouée";
-        player.sendMessage(head);
-        player.sendMessage("§7Salles parcourues : §f" + result.getFinalRoomIndex()
-                + " §8| §7Palier final : §f" + result.getTier());
+                ? GREEN + "&lRun complete" + WHITE + "."
+                : RED + "&lRun failed" + WHITE + ".";
+        player.sendMessage(LabyrinthMessages.prefixed(head));
+        player.sendMessage(LabyrinthMessages.color(WHITE + "Rooms cleared " + DARK + ": " + WHITE + result.getFinalRoomIndex()
+                + " " + DARK + "| " + WHITE + "Final tier " + DARK + ": " + WHITE + result.getTier()));
         if (result.getGoldEarned() > 0) {
-            player.sendMessage("§e🪙 Or estimé : §f" + result.getGoldEarned()
-                    + " §7(distribué via le workflow `on_run_ended`)");
+            player.sendMessage(LabyrinthMessages.color(GOLD + "Estimated gold " + DARK + ": " + WHITE + result.getGoldEarned()
+                    + " " + DARK + "(" + WHITE + "granted via the on_run_ended workflow" + DARK + ")"));
         }
         if (!droppedItems.isEmpty()) {
-            player.sendMessage("§b🎁 Items reçus : §f" + String.join(", ", droppedItems));
+            player.sendMessage(LabyrinthMessages.color(GOLD + "Items received " + DARK + ": " + WHITE + String.join(DARK + ", " + WHITE, droppedItems)));
         }
     }
 

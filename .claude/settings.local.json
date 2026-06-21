@@ -15,7 +15,9 @@
       "Bash(grep -o 'setInitialAriaContext[^}]\\\\{0,300\\\\}')",
       "Bash(curl -s \"https://unpkg.com/blockly@13.0.0/msg/js/fr.js\")",
       "Bash(curl -s \"https://unpkg.com/blockly@13.0.0/msg/js/en.js\")",
-      "Bash(curl -s \"https://unpkg.com/blockly@12.3.1/msg/js/fr.js\")"
+      "Bash(curl -s \"https://unpkg.com/blockly@12.3.1/msg/js/fr.js\")",
+      "Bash(gh api *)",
+      "mcp__ide__getDiagnostics"
     ]
   }
 }

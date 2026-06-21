@@ -389,7 +389,7 @@ public class CloudNetProvider implements InstanceProvider {
 
                 // Chemins spécifiques à CloudNet
                 File worldSource = new File(Main.getInstance().getDataFolder() + "/../../world");
-                File templateDest = new File(Main.getInstance().getDataFolder() + "/../../../../../local/templates/" + floor.getId().split("_")[0] + "/" + floor.getId().split("_")[1] + "/world");
+                File templateDest = new File(Main.getInstance().getDataFolder() + "/../../../../../local/templates/" + TEMPLATE_PREFIX + "/" + floor.getId() + "/world");
 
                 // Copier les fichiers du monde vers le template CloudNet
                 jodd.io.FileUtil.copyDir(new File(worldSource, "data"), new File(templateDest, "data"));

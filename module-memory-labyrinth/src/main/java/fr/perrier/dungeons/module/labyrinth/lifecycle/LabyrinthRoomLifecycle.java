@@ -6,6 +6,7 @@ import fr.perrier.dungeons.module.labyrinth.model.LabyrinthRun;
 import fr.perrier.dungeons.common.model.labyrinth.RewardIcon;
 import fr.perrier.dungeons.common.model.labyrinth.LabyrinthRoom;
 import fr.perrier.dungeons.common.model.labyrinth.RoomType;
+import fr.perrier.dungeons.module.labyrinth.ui.LabyrinthMessages;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.model.FloorInstance;
 import org.bukkit.Bukkit;
@@ -168,6 +169,12 @@ public class LabyrinthRoomLifecycle {
                 ? System.currentTimeMillis() - run.getCurrentRoomEnteredAtMs() : 0L;
         if (triggerBus != null) triggerBus.fireRoomCleared(run, null, clearTimeMs);
 
+        // Player feedback : "Room N cleared in %time%". Skip the lobby — it is
+        // mob-less and auto-cleared, so "Room 0 cleared" would be noise.
+        if (run.getCurrentRoom() != null && run.getCurrentRoom().getType() != RoomType.LOBBY) {
+            announceRoomCleared(run, clearTimeMs);
+        }
+
         // Boss-room side effects fire BEFORE the door is presented so the
         // revive prompt and tier bump are visible while the player walks
         // toward the single boss-exit door (CDC §6.3).
@@ -201,6 +208,12 @@ public class LabyrinthRoomLifecycle {
             }
         }
 
+        // Per-room blessing rewards (SAO-Blessing §3 flow). Fires here — after
+        // the finite-completion early return, so it never overlaps the run-end
+        // `end` dispatch — and only for real combat/boss rooms (the lobby got
+        // its blessing at enterLobby and yields no heroic levels).
+        dispatchRoomRewards(run);
+
         DoorChoice next = roomPicker.pickNext(run);
         if (next == null) {
             logger.warning("[MemoryLabyrinth] No next room available for floor=" + run.getFloorId()
@@ -210,6 +223,49 @@ public class LabyrinthRoomLifecycle {
         run.setPendingChoice(next);
         if (doorController != null) doorController.openDoors(run);
         if (triggerBus != null) triggerBus.fireDoorsProposed(run, null);
+    }
+
+    /**
+     * Broadcasts "Room N cleared in &lt;time&gt;" (NextDungeon palette) to every
+     * online player of the run's instance.
+     */
+    private void announceRoomCleared(LabyrinthRun run, long clearTimeMs) {
+        FloorInstance instance = Main.getInstance().getDungeonService().getInstance(run.getInstanceId());
+        if (instance == null) return;
+        String message = LabyrinthMessages.prefixed(
+                LabyrinthMessages.WHITE + "Room " + LabyrinthMessages.RED + run.getCurrentRoomIndex()
+                        + LabyrinthMessages.WHITE + " cleared in " + LabyrinthMessages.RED + formatClearTime(clearTimeMs));
+        for (UUID id : instance.getPlayers()) {
+            Player p = Bukkit.getPlayer(id);
+            if (p != null && p.isOnline()) p.sendMessage(message);
+        }
+    }
+
+    /** Formats a clear duration as {@code m:ss} above a minute, else {@code s.S s}. */
+    private static String formatClearTime(long clearTimeMs) {
+        long totalSeconds = clearTimeMs / 1000;
+        if (totalSeconds >= 60) {
+            return String.format("%d:%02d", totalSeconds / 60, totalSeconds % 60);
+        }
+        return String.format("%.1fs", clearTimeMs / 1000.0);
+    }
+
+    /**
+     * Triggers the SAO-Blessing per-room rewards for the just-cleared room :
+     * a blessing offer when the room's reward icon is {@link RewardIcon#BLESSING}
+     * (gold rooms grant no blessing — CDC), and a heroics flush on every
+     * combat/boss room. No-op for the lobby (handled separately) and when the
+     * instance is gone.
+     */
+    private void dispatchRoomRewards(LabyrinthRun run) {
+        LabyrinthRoom room = run.getCurrentRoom();
+        if (room == null || room.getType() == RoomType.LOBBY) return;
+        FloorInstance instance = Main.getInstance().getDungeonService().getInstance(run.getInstanceId());
+        if (instance == null) return;
+        if (run.getCurrentRoomIcon() == RewardIcon.BLESSING) {
+            fr.perrier.dungeons.module.labyrinth.blessing.BlessingBridge.offerBlessing(instance);
+        }
+        fr.perrier.dungeons.module.labyrinth.blessing.BlessingBridge.offerHeroic(instance);
     }
 
     private void teleportPlayers(LabyrinthRoom template, FloorInstance instance, LabyrinthRun run) {

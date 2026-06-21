@@ -1,5 +1,9 @@
 package fr.perrier.dungeons.module.labyrinth.lifecycle;
 
+import fr.perrier.dungeons.module.labyrinth.ui.LabyrinthMessages;
+import static fr.perrier.dungeons.module.labyrinth.ui.LabyrinthMessages.RED;
+import static fr.perrier.dungeons.module.labyrinth.ui.LabyrinthMessages.WHITE;
+import static fr.perrier.dungeons.module.labyrinth.ui.LabyrinthMessages.DARK;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -33,7 +37,8 @@ public class LabyrinthReviveListener implements Listener {
         Player sender = event.getPlayer();
         String rest = message.substring(prefix.length()).trim();
         if (rest.isEmpty()) {
-            sender.sendMessage("§cUsage : /" + BossEncounterHandler.REVIVE_COMMAND + " <pseudo>");
+            LabyrinthMessages.send(sender, RED + "Usage " + DARK + ": " + WHITE + "/" + BossEncounterHandler.REVIVE_COMMAND
+                    + " " + DARK + "<" + WHITE + "player" + DARK + ">");
             return;
         }
         // Split on whitespace and take the first token — guards against

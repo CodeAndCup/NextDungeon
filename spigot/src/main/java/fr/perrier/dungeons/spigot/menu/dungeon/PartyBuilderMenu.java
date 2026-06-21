@@ -9,6 +9,7 @@ import fr.perrier.cupcodeapi.menuapi.buttons.ConversationButton;
 import fr.perrier.cupcodeapi.menuapi.buttons.DisplayButton;
 import fr.perrier.cupcodeapi.utils.ChatUtil;
 import fr.perrier.cupcodeapi.utils.ItemBuilder;
+import fr.perrier.dungeons.spigot.menu.utils.MenuTitle;
 import fr.perrier.dungeons.spigot.model.Dungeon;
 import fr.perrier.dungeons.spigot.model.Floor;
 import fr.perrier.dungeons.spigot.parties.impl.DungeonPartyImpl;
@@ -42,7 +43,8 @@ public class PartyBuilderMenu extends GlassMenu {
 
     @Override
     public String getTitle(Player player) {
-        return "&#8B0000&l" + ChatUtil.toSmallCaps("party builder");
+        // Buttons cap the layout at slot 32, giving a 4-row inventory.
+        return MenuTitle.ofRows(4, "&#8B0000&l" + ChatUtil.toSmallCaps("party builder"));
     }
 
     @Override
@@ -251,7 +253,9 @@ public class PartyBuilderMenu extends GlassMenu {
 
         @Override
         public String getTitle(Player player) {
-            return "&#8B0000&l" + ChatUtil.toSmallCaps("select a floor");
+            // Back button sits at slot 40 (<=5 floors) or 49 (>5), giving a 5- or 6-row inventory.
+            int rows = dungeon.getFloors().size() <= 5 ? 5 : 6;
+            return MenuTitle.ofRows(rows, "&#8B0000&l" + ChatUtil.toSmallCaps("select a floor"));
         }
 
         @RequiredArgsConstructor

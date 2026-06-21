@@ -2,6 +2,10 @@ package fr.perrier.dungeons.module.labyrinth.lifecycle;
 
 import fr.perrier.dungeons.module.labyrinth.manager.LabyrinthRunManager;
 import fr.perrier.dungeons.module.labyrinth.model.LabyrinthRun;
+import fr.perrier.dungeons.module.labyrinth.ui.LabyrinthMessages;
+import static fr.perrier.dungeons.module.labyrinth.ui.LabyrinthMessages.RED;
+import static fr.perrier.dungeons.module.labyrinth.ui.LabyrinthMessages.WHITE;
+import static fr.perrier.dungeons.module.labyrinth.ui.LabyrinthMessages.DARK;
 import fr.perrier.dungeons.module.labyrinth.ui.ResumeOrNewPrompt;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -36,19 +40,20 @@ public class LabyrinthResumePromptListener implements Listener {
         Player sender = event.getPlayer();
         String rest = message.substring(prefix.length()).trim();
         if (rest.isEmpty()) {
-            sender.sendMessage("§cUsage : /" + COMMAND + " " + ResumeOrNewPrompt.CHOICE_RESUME
-                    + "|" + ResumeOrNewPrompt.CHOICE_NEW);
+            LabyrinthMessages.send(sender, RED + "Usage " + DARK + ": " + WHITE + "/" + COMMAND + " "
+                    + DARK + "<" + WHITE + ResumeOrNewPrompt.CHOICE_RESUME
+                    + DARK + "|" + WHITE + ResumeOrNewPrompt.CHOICE_NEW + DARK + ">");
             return;
         }
         String choice = rest.split("\\s+", 2)[0].toLowerCase();
 
         LabyrinthRun run = runManager.findRunByPlayer(sender.getUniqueId());
         if (run == null) {
-            sender.sendMessage("§cTu n'es pas dans une instance de Memory Labyrinth.");
+            LabyrinthMessages.send(sender, RED + "You are not in a Memory Labyrinth instance" + DARK + ".");
             return;
         }
         if (!run.isLobbyDecisionPending()) {
-            sender.sendMessage("§cIl n'y a pas de save à reprendre ici.");
+            LabyrinthMessages.send(sender, RED + "There is no save to resume here" + DARK + ".");
             return;
         }
 
@@ -58,7 +63,7 @@ public class LabyrinthResumePromptListener implements Listener {
             case ResumeOrNewPrompt.CHOICE_NEW ->
                     runManager.discardSaveAndContinue(run, sender);
             default ->
-                    sender.sendMessage("§cChoix invalide : " + choice);
+                    LabyrinthMessages.send(sender, RED + "Invalid choice " + DARK + ": " + WHITE + choice);
         }
     }
 }

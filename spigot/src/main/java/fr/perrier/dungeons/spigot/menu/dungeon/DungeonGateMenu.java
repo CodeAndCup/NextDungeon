@@ -4,9 +4,11 @@ import fr.perrier.cupcodeapi.menuapi.Button;
 import fr.perrier.cupcodeapi.menuapi.GlassMenu;
 import fr.perrier.cupcodeapi.utils.ChatUtil;
 import fr.perrier.cupcodeapi.utils.ItemBuilder;
+import fr.perrier.dungeons.common.model.dungeon.FloorType;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.model.Dungeon;
 import fr.perrier.dungeons.spigot.model.Floor;
+import fr.perrier.dungeons.spigot.menu.utils.MenuTitle;
 import fr.perrier.dungeons.spigot.model.FloorInstance;
 import fr.perrier.dungeons.spigot.model.ProfileData;
 import fr.perrier.dungeons.spigot.parties.CrossServerValidationService;
@@ -43,7 +45,13 @@ public class DungeonGateMenu extends GlassMenu {
 
     @Override
     public String getTitle(Player player) {
-        return "&#8B0000&l" + ChatUtil.toSmallCaps(dungeon.getName());
+        String name = "&#8B0000&l" + ChatUtil.toSmallCaps(dungeon.getName());
+        if(dungeon.getFloors().getFirst().getFloorType() == FloorType.LABYRINTH) {
+            return MenuTitle.of(MenuTitle.LABYRINTH, name);
+        }
+        // Footer buttons sit at slot 42 (<=5 floors) or 51 (>5), giving a 5- or 6-row inventory.
+        int rows = dungeon.getFloors().size() <= 5 ? 5 : 6;
+        return MenuTitle.ofRows(rows, name);
     }
 
     @Override

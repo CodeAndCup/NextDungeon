@@ -307,32 +307,75 @@ public class WorldEditManager {
                 Math.max(srcMin.z(), srcMax.z()));
         if (rejectIfTooLarge(min, max, "copyRegion")) return false;
 
+        // Force-load every chunk the copy will touch BEFORE the WorldEdit
+        // operations run. The destination is a sliding +X offset far from the
+        // template build (baseAnchorX defaults to 5000), so those chunks are
+        // usually ungenerated ; if the batched paste touches a chunk that is
+        // not yet ready it fails intermittently (the "paste FAILED" symptom).
+        // Pre-loading makes generation deterministic and synchronous here.
+        BlockVector3 dstMax = dstAnchor.add(max.subtract(min));
+        ensureChunksLoaded(srcBukkit, min.x(), min.z(), max.x(), max.z());
+        ensureChunksLoaded(dstBukkit, dstAnchor.x(), dstAnchor.z(), dstMax.x(), dstMax.z());
+
         com.sk89q.worldedit.world.World srcWeWorld = BukkitAdapter.adapt(srcBukkit);
         com.sk89q.worldedit.world.World dstWeWorld = BukkitAdapter.adapt(dstBukkit);
         CuboidRegion region = new CuboidRegion(srcWeWorld, min, max);
-        BlockArrayClipboard clipboard = new BlockArrayClipboard(region);
-        // Origin = min so paste-to(dstAnchor) lines up srcMin with dstAnchor.
-        clipboard.setOrigin(min);
 
-        try (EditSession readSession = com.sk89q.worldedit.WorldEdit.getInstance().newEditSession(srcWeWorld)) {
-            ForwardExtentCopy copy = new ForwardExtentCopy(readSession, region, clipboard, min);
-            Operations.complete(copy);
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "[WorldEdit] copyRegion read failed", e);
-            return false;
+        // A single retry absorbs transient failures (a chunk that was still
+        // finishing async load/generation on the first pass). Re-pasting to the
+        // same anchor is idempotent — it overwrites — so a retry is safe.
+        Exception lastError = null;
+        for (int attempt = 1; attempt <= 2; attempt++) {
+            BlockArrayClipboard clipboard = new BlockArrayClipboard(region);
+            // Origin = min so paste-to(dstAnchor) lines up srcMin with dstAnchor.
+            clipboard.setOrigin(min);
+            try (EditSession readSession = com.sk89q.worldedit.WorldEdit.getInstance().newEditSession(srcWeWorld)) {
+                ForwardExtentCopy copy = new ForwardExtentCopy(readSession, region, clipboard, min);
+                Operations.complete(copy);
+            } catch (Exception e) {
+                lastError = e;
+                LOGGER.log(Level.WARNING, "[WorldEdit] copyRegion read failed (attempt "
+                        + attempt + "/2)", e);
+                continue;
+            }
+            try (EditSession writeSession = com.sk89q.worldedit.WorldEdit.getInstance().newEditSession(dstWeWorld)) {
+                ClipboardHolder holder = new ClipboardHolder(clipboard);
+                Operation paste = holder.createPaste(writeSession).to(dstAnchor).ignoreAirBlocks(false).build();
+                Operations.complete(paste);
+            } catch (Exception e) {
+                lastError = e;
+                LOGGER.log(Level.WARNING, "[WorldEdit] copyRegion paste failed (attempt "
+                        + attempt + "/2)", e);
+                continue;
+            }
+            LOGGER.info("[WorldEdit] copyRegion " + srcWorldId + min + "→" + max
+                    + " to " + dstWorldId + dstAnchor + " OK"
+                    + (attempt > 1 ? " (after retry)" : ""));
+            return true;
         }
+        LOGGER.log(Level.SEVERE, "[WorldEdit] copyRegion " + srcWorldId + min + "→" + max
+                + " to " + dstWorldId + dstAnchor + " FAILED after 2 attempts", lastError);
+        return false;
+    }
 
-        try (EditSession writeSession = com.sk89q.worldedit.WorldEdit.getInstance().newEditSession(dstWeWorld)) {
-            ClipboardHolder holder = new ClipboardHolder(clipboard);
-            Operation paste = holder.createPaste(writeSession).to(dstAnchor).ignoreAirBlocks(false).build();
-            Operations.complete(paste);
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "[WorldEdit] copyRegion paste failed", e);
-            return false;
+    /**
+     * Synchronously loads (generating if necessary) every chunk overlapping the
+     * X/Z span so a subsequent WorldEdit batch never trips over an unloaded
+     * chunk. Coordinates are block coordinates ; Y is irrelevant for chunk
+     * addressing. Safe to call with min/max in any order.
+     */
+    private static void ensureChunksLoaded(World world, int x1, int z1, int x2, int z2) {
+        int minCx = Math.min(x1, x2) >> 4;
+        int maxCx = Math.max(x1, x2) >> 4;
+        int minCz = Math.min(z1, z2) >> 4;
+        int maxCz = Math.max(z1, z2) >> 4;
+        for (int cx = minCx; cx <= maxCx; cx++) {
+            for (int cz = minCz; cz <= maxCz; cz++) {
+                if (!world.isChunkLoaded(cx, cz)) {
+                    world.getChunkAt(cx, cz); // loads + generates synchronously
+                }
+            }
         }
-        LOGGER.info("[WorldEdit] copyRegion " + srcWorldId + min + "→" + max
-                + " to " + dstWorldId + dstAnchor + " OK");
-        return true;
     }
 
     /**

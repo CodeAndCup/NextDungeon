@@ -3,6 +3,10 @@ package fr.perrier.dungeons.module.labyrinth.lifecycle;
 import fr.perrier.dungeons.module.labyrinth.manager.LabyrinthRunManager;
 import fr.perrier.dungeons.module.labyrinth.manager.LabyrinthSaveManager;
 import fr.perrier.dungeons.module.labyrinth.model.LabyrinthRun;
+import fr.perrier.dungeons.module.labyrinth.ui.LabyrinthMessages;
+import static fr.perrier.dungeons.module.labyrinth.ui.LabyrinthMessages.RED;
+import static fr.perrier.dungeons.module.labyrinth.ui.LabyrinthMessages.WHITE;
+import static fr.perrier.dungeons.module.labyrinth.ui.LabyrinthMessages.DARK;
 import fr.perrier.dungeons.module.labyrinth.ui.RevivePromptComponent;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.listener.dungeons.InstancePlayerDeathListener;
@@ -117,38 +121,40 @@ public class BossEncounterHandler {
         UUID senderId = sender.getUniqueId();
         LabyrinthRun run = findRunOf(senderId);
         if (run == null) {
-            sender.sendMessage("§cTu n'es pas dans une instance de Memory Labyrinth.");
+            LabyrinthMessages.send(sender, RED + "You are not in a Memory Labyrinth instance" + DARK + ".");
             return;
         }
         if (!run.isReviveAvailable()) {
-            sender.sendMessage("§cLe revive n'est plus disponible.");
+            LabyrinthMessages.send(sender, RED + "The revive is no longer available" + DARK + ".");
             return;
         }
         if (run.getDeadPlayers().contains(senderId)) {
-            sender.sendMessage("§cTu ne peux pas revive en étant mort toi-même.");
+            LabyrinthMessages.send(sender, RED + "You can't revive while you're dead yourself" + DARK + ".");
             return;
         }
 
         UUID targetId = uuidByName(run, targetName);
         if (targetId == null || !run.getDeadPlayers().contains(targetId)) {
-            sender.sendMessage("§c" + targetName + " n'est pas dans la liste des morts.");
+            LabyrinthMessages.send(sender, WHITE + targetName + RED + " is not in the list of dead players" + DARK + ".");
             return;
         }
         Player target = Bukkit.getPlayer(targetId);
         if (target == null || !target.isOnline()) {
-            sender.sendMessage("§c" + targetName + " n'est plus en ligne — revive impossible.");
+            LabyrinthMessages.send(sender, WHITE + targetName + RED + " is no longer online " + DARK + "— " + RED + "revive impossible" + DARK + ".");
             return;
         }
 
         // Consume the one-shot, remove from deadPlayers, delegate to core.
+        // Teleport the revived player to the reviver so they rejoin the group
+        // at the boss room instead of the (possibly far-away) room they died in.
         run.setReviveAvailable(false);
         run.getDeadPlayers().remove(targetId);
-        InstancePlayerDeathListener.revivePlayer(target);
+        InstancePlayerDeathListener.revivePlayer(target, sender.getLocation());
 
         FloorInstance instance = Main.getInstance().getDungeonService().getInstance(run.getInstanceId());
         if (instance != null) {
             RevivePromptComponent.sendCancellation(instance,
-                    sender.getName() + " a ressuscité " + target.getName());
+                    sender.getName() + " revived " + target.getName());
         }
     }
 

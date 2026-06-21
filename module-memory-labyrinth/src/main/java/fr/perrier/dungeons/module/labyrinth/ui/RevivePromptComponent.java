@@ -34,20 +34,26 @@ public final class RevivePromptComponent {
     public static void send(FloorInstance instance, Set<UUID> deadPlayers) {
         if (instance == null || deadPlayers == null || deadPlayers.isEmpty()) return;
 
-        ComponentBuilder builder = new ComponentBuilder()
-                .append("§6☠ §eUn revive est disponible — choisis un coéquipier : ")
-                .append("\n");
+        ComponentBuilder builder = new ComponentBuilder();
+        builder.append(TextComponent.fromLegacyText(LabyrinthMessages.prefixed(
+                LabyrinthMessages.RED + "☠ " + LabyrinthMessages.WHITE + "A revive is available "
+                        + LabyrinthMessages.DARK + "— " + LabyrinthMessages.WHITE + "choose a teammate "
+                        + LabyrinthMessages.DARK + ":")));
+        builder.append("\n", ComponentBuilder.FormatRetention.NONE);
         boolean first = true;
         for (UUID deadId : deadPlayers) {
             String name = nameOf(deadId);
             if (name == null) continue;
-            if (!first) builder.append(" §7|§r ").reset();
-            TextComponent tc = new TextComponent("§a§l[" + name + "]");
+            if (!first) builder.append(TextComponent.fromLegacyText(
+                    LabyrinthMessages.color(" " + LabyrinthMessages.DARK + "| ")));
+            TextComponent tc = new TextComponent(TextComponent.fromLegacyText(
+                    LabyrinthMessages.color(LabyrinthMessages.DARK + "[" + LabyrinthMessages.GREEN + "&l"
+                            + name + LabyrinthMessages.DARK + "]")));
             tc.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,
                     COMMAND_PREFIX + name));
             tc.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
-                    new Text("§eRessusciter " + name)));
-            builder.append(tc);
+                    new Text(LabyrinthMessages.color(LabyrinthMessages.WHITE + "Revive " + name))));
+            builder.append(tc, ComponentBuilder.FormatRetention.NONE);
             first = false;
         }
         TextComponent message = new TextComponent(builder.create());
@@ -61,7 +67,7 @@ public final class RevivePromptComponent {
 
     public static void sendCancellation(FloorInstance instance, String reason) {
         if (instance == null) return;
-        String text = "§7" + reason;
+        String text = LabyrinthMessages.prefixed(LabyrinthMessages.WHITE + reason);
         for (UUID pid : instance.getPlayers()) {
             Player p = Bukkit.getPlayer(pid);
             if (p != null && p.isOnline()) p.sendMessage(text);

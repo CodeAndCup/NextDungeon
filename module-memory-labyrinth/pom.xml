@@ -38,6 +38,17 @@
             <scope>provided</scope>
         </dependency>
 
+        <!-- WorldEdit API — provided by the WorldEdit plugin at runtime.
+             The room paste calls it directly (no reflection / module hop) ;
+             resolves through the NextDungeon plugin classloader like every
+             other soft plugin dependency. -->
+        <dependency>
+            <groupId>com.sk89q.worldedit</groupId>
+            <artifactId>worldedit-bukkit</artifactId>
+            <version>7.4.0-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -48,6 +59,16 @@
         <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- CupCodeAPI — ChatUtil for the NextDungeon color scheme (gradient
+             prefix, hex colors). Provided by the host plugin at runtime;
+             reachable because the module classloader parents to it. -->
+        <dependency>
+            <groupId>fr.perrier</groupId>
+            <artifactId>cupcodeapi</artifactId>
+            <version>1.21.3-v1.1.6</version>
             <scope>provided</scope>
         </dependency>
 
@@ -70,6 +91,17 @@
         <repository>
             <id>spigotmc-repo</id>
             <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
+        </repository>
+        <repository>
+            <id>sk89q-repo</id>
+            <url>https://maven.enginehub.org/repo/</url>
+        </repository>
+        <repository>
+            <id>CupCodeMaven</id>
+            <url>https://maven.pkg.github.com/CodeAndCup/CupCodeAPI</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
         </repository>
     </repositories>
 

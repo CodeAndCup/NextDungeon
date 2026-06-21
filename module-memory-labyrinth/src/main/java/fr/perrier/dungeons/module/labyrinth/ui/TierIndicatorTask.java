@@ -51,8 +51,10 @@ public class TierIndicatorTask {
         for (LabyrinthRun run : runManager.getRunsView()) {
             int tier = run.getCurrentModifier() != null ? run.getCurrentModifier().getTier() : 1;
             int idx = run.getCurrentRoomIndex();
-            String label = "§b🌀 §fSalle §e" + idx + " §8| §fPalier §e" + tier;
-            TextComponent comp = new TextComponent(label);
+            String label = LabyrinthMessages.color(LabyrinthMessages.WHITE + "Room "
+                    + LabyrinthMessages.RED + idx + " " + LabyrinthMessages.DARK + "| "
+                    + LabyrinthMessages.WHITE + "Tier " + LabyrinthMessages.RED + tier);
+            TextComponent comp = new TextComponent(TextComponent.fromLegacyText(label));
             FloorInstance instance = Main.getInstance().getDungeonService().getInstance(run.getInstanceId());
             if (instance == null) continue;
             for (UUID id : instance.getPlayers()) {

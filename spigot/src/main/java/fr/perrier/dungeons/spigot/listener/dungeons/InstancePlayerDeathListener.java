@@ -12,6 +12,7 @@ import com.mojang.authlib.GameProfile;
 import fr.perrier.cupcodeapi.utils.ChatUtil;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.model.FloorInstance;
+import fr.perrier.dungeons.common.model.dungeon.FloorType;
 import fr.perrier.dungeons.common.model.player.PlayerStats;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -118,16 +119,33 @@ public class InstancePlayerDeathListener implements Listener {
         Player player = event.getEntity();
         player.setRespawnLocation(player.getLocation().clone().add(0,2,0));
 
-        Bukkit.broadcastMessage(ChatUtil.translate(
-                Objects.requireNonNull(Main.getInstance().getConfig().getString("ReviveSystem.deathMessage"))
-                        .replace("{player}", player.getName())
-                        .replace("{lives}", String.valueOf(
-                                Main.getInstance().getDungeonService()
-                                        .getCurrentInstance()
-                                        .getPlayerCurrentLives()
-                                        .getOrDefault(player.getUniqueId(), 0)
-                        ))
-        ));
+        // Floors with a custom revive flow (e.g. Memory Labyrinth) keep the
+        // dead player as a ghost until a teammate revives them at the boss
+        // room or the run ends — the standard 15s ghost-timeout auto-revive
+        // must NOT run, otherwise the player comes back to life on his own.
+        FloorInstance currentInstance = Main.getInstance().getDungeonService().getCurrentInstance();
+        boolean customRevive = currentInstance != null
+                && currentInstance.getFloor() != null
+                && currentInstance.getFloor().getFloorType() == FloorType.LABYRINTH;
+
+        if (customRevive) {
+            // Custom-revive floors have no "lives" mechanic — the player simply
+            // stays down until a teammate revives them. Skip the lives-based
+            // core death message and announce a fall instead.
+            Bukkit.broadcastMessage(ChatUtil.translate(
+                    "&c☠ " + player.getName() + " has fallen — a teammate can revive them."));
+        } else {
+            Bukkit.broadcastMessage(ChatUtil.translate(
+                    Objects.requireNonNull(Main.getInstance().getConfig().getString("ReviveSystem.deathMessage"))
+                            .replace("{player}", player.getName())
+                            .replace("{lives}", String.valueOf(
+                                    Main.getInstance().getDungeonService()
+                                            .getCurrentInstance()
+                                            .getPlayerCurrentLives()
+                                            .getOrDefault(player.getUniqueId(), 0)
+                            ))
+            ));
+        }
 
         if(!Main.getInstance().getGhostFactory().isGhost(player)) {
             int ghostDuration = Main.getInstance().getConfig().getInt("ReviveSystem.ghostDuration", 15);
@@ -169,16 +187,27 @@ public class InstancePlayerDeathListener implements Listener {
                 player.setFlying(true);
                 player.setInvulnerable(true);
 
-                // Créer la barre de santé au-dessus du NPC
+                // Créer la barre de santé au-dessus du NPC. Custom-revive
+                // floors show a static "awaiting revive" label since there is
+                // no death countdown — the player stays dead until revived.
                 Location npcLoc = ghostData.getDeathLocation().clone().add(0, 1.05, 0);
+                String corpseText = customRevive
+                        ? "&f" + ChatUtil.toSmallCaps(player.getName()) + "\n&#ff0000☠ " + ChatUtil.toSmallCaps("awaiting revive")
+                        : "&f" + ChatUtil.toSmallCaps(player.getName() + " will died in") + "\n" + "&#ff0000❤ &#BB0000⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛ &f15s";
                TextDisplay healthBar = ghostData.getDeathLocation().getWorld().spawn(npcLoc, org.bukkit.entity.TextDisplay.class, display -> {
-                    display.setText(ChatUtil.translate("&f" + ChatUtil.toSmallCaps(player.getName() + " will died in") + "\n" + "&#ff0000❤ &#BB0000⬛⬛⬛⬛⬛⬛⬛⬛⬛⬛ &f15s"));
+                    display.setText(ChatUtil.translate(corpseText));
                     display.setAlignment(TextDisplay.TextAlignment.CENTER);
                     display.setBillboard(Display.Billboard.CENTER);
                     display.setLineWidth(200);
                 });
                 ghostData.setHealthBarDisplay(healthBar);
             }, 5L);
+
+            // Custom-revive floors own the death resolution — skip the core
+            // ghost-timeout countdown entirely so the player remains a ghost.
+            if (customRevive) {
+                return;
+            }
 
             BukkitRunnable task = new BukkitRunnable() {
                 @Override
@@ -256,10 +285,24 @@ public class InstancePlayerDeathListener implements Listener {
 
     /**
      * Revives a ghost player, removing ghost effects and cleaning up NPCs and displays.
+     * The player is teleported back to where they died.
      *
      * @param player the player to revive
      */
     public static void revivePlayer(Player player) {
+        revivePlayer(player, null);
+    }
+
+    /**
+     * Revives a ghost player, removing ghost effects and cleaning up NPCs and displays.
+     *
+     * @param player the player to revive
+     * @param target where to teleport the revived player ; when {@code null} the
+     *               player is sent back to their death location. Custom-revive
+     *               floors (e.g. Memory Labyrinth) pass the reviver's location so
+     *               the player rejoins the group instead of an old, far-away room.
+     */
+    public static void revivePlayer(Player player, Location target) {
         GhostData data = GHOST_DATA.get(player.getUniqueId());
         if(data != null && !data.isRevived()) {
             data.setRevived(true);
@@ -279,7 +322,7 @@ public class InstancePlayerDeathListener implements Listener {
                 player.removePotionEffect(PotionEffectType.BLINDNESS);
 
                 // Téléporter et afficher message
-                player.teleport(data.getDeathLocation());
+                player.teleport(target != null ? target : data.getDeathLocation());
                 String reviveMessage = Objects.requireNonNull(Main.getInstance().getConfig().getString("ReviveSystem.reviveMessage"));
                 Bukkit.broadcastMessage(ChatUtil.translate(reviveMessage.replace("{player}", player.getName())));
 

@@ -77,8 +77,9 @@ public class ConsoleCommandTriggerHandler implements TriggerEventHandler<ServerC
         }
 
         if (cancelled) {
-            // Empêche Bukkit d'essayer de résoudre la commande (évite le "Unknown command" si c'est un mot-clé custom)
-            event.setCommand("nextdungeon_consoletrigger_noop");
+            // Annule proprement l'event : empêche Bukkit de résoudre la commande
+            // sans provoquer de "Unknown command" (ServerCommandEvent est Cancellable depuis 1.21).
+            event.setCancelled(true);
         }
     }
 
