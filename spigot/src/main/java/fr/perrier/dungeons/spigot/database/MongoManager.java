@@ -588,6 +588,25 @@ public class MongoManager implements DatabaseManager {
     }
 
     @Override
+    public CompletableFuture<List<String>> findLabyrinthSavesByPartyHash(String partyHash, String floorId) {
+        return CompletableFuture.supplyAsync(() -> {
+            List<String> result = new ArrayList<>();
+            try {
+                Document query = new Document("party_hash", partyHash).append("floor_id", floorId);
+                FindIterable<Document> cursor = labyrinthSavesCollection.find(query)
+                        .sort(new Document("updated_at", -1));
+                for (Document doc : cursor) {
+                    String payload = doc.getString("payload_json");
+                    if (payload != null) result.add(payload);
+                }
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Error listing labyrinth saves by partyHash: " + e.getMessage());
+            }
+            return result;
+        });
+    }
+
+    @Override
     public CompletableFuture<Void> saveLabyrinthSave(String saveId, String floorId, String partyHash, String payloadJson) {
         return CompletableFuture.runAsync(() -> {
             try {

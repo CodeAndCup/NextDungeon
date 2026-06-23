@@ -111,6 +111,15 @@ public class LabyrinthRun {
      */
     private String infiniteSaveId;
 
+    /**
+     * The resumable saves found at start (most recent first), held until the
+     * leader makes the resume/new decision. Lets the prompt be (re)sent when
+     * the leader actually connects — the save lookup resolves before players
+     * join, so the prompt would otherwise be built while the leader is still
+     * offline and silently dropped. In-memory only.
+     */
+    private java.util.List<LabyrinthSave> pendingResumeSaves = new java.util.ArrayList<>();
+
     // ===== v2 procedural paste (R6) =====
     //
     // Rooms live as static geometry in a template world. The runtime COPIES
@@ -170,7 +179,12 @@ public class LabyrinthRun {
         return currentRoomIndex == 0;
     }
 
+    /**
+     * Infinite mode is defined by the floor's room cap, not its name : a floor
+     * with {@code maxRooms <= 0} has no cap and is stored here as
+     * {@link Integer#MAX_VALUE} (set at run start from the floor config).
+     */
     public boolean isInfinite() {
-        return "infinite".equalsIgnoreCase(floorId);
+        return maxRooms == Integer.MAX_VALUE || maxRooms <= 0;
     }
 }

@@ -21,17 +21,12 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Implémentation du provider utilisant CloudNet pour gérer les instances.
@@ -107,9 +102,23 @@ public class CloudNetProvider implements InstanceProvider {
                 }
 
                 service.serviceInfo().provider().startAsync();
-                Main.getLoggerUtil().info("Service started for " + floorId + " (editMode=" + editMode + ")");
+                AtomicInteger failedStartCout = new AtomicInteger();
 
-                future.complete(service.serviceInfo().serviceId().uniqueId());
+                Bukkit.getScheduler().runTaskTimerAsynchronously(Main.getInstance(), task -> {
+                    if (service.serviceInfo().lifeCycle() == ServiceLifeCycle.RUNNING) {
+                        task.cancel();
+                        Main.getLoggerUtil().info("Service started for " + floorId + " (editMode=" + editMode + ")");
+                        future.complete(service.serviceInfo().serviceId().uniqueId());
+                    } else if (service.serviceInfo().lifeCycle() == ServiceLifeCycle.PREPARED) {
+                        Main.getLoggerUtil().warning("As failed to start and is still in PREPARED life cycle, retrying start for " + floorId + "(retry N°" + (failedStartCout.incrementAndGet()) + ")");
+                        service.serviceInfo().provider().startAsync();
+                    }
+                    if (failedStartCout.get() >= 5) {
+                        task.cancel();
+                        Main.getLoggerUtil().severe("Service failed to start for " + floorId + " after 5 attempts.");
+                        future.complete(null);
+                    }
+                }, 20L, 20L);
             } catch (Exception e) {
                 Main.getLoggerUtil().severe("An error occurred during the instance creation: " + e.getMessage());
                 future.complete(null);

@@ -4,15 +4,18 @@ import fr.perrier.dungeons.common.model.dungeon.FloorData;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.database.DatabaseTriggersManager;
 import fr.perrier.dungeons.spigot.utils.ServerUtil;
+import io.lumine.mythic.lib.api.item.NBTItem;
 import lombok.Getter;
 import lombok.Setter;
 import net.Indyuce.mmocore.api.player.PlayerData;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 @Getter
@@ -164,7 +167,7 @@ public class Floor extends FloorData {
         if (this.getRequirements().getRequiredItems() != null && !this.getRequirements().getRequiredItems().isEmpty()) {
             for (String requiredItem : this.getRequirements().getRequiredItems()) {
                 boolean hasItem = Arrays.stream(player.getInventory().getContents())
-                        .anyMatch(itemStack -> itemStack != null && Objects.requireNonNull(itemStack.getItemMeta()).getDisplayName().equals(requiredItem));
+                        .anyMatch(itemStack -> itemMatches(itemStack, requiredItem));
                 if (!hasItem) {
                     return false;
                 }
@@ -174,7 +177,7 @@ public class Floor extends FloorData {
         if (this.getRequirements().getForbiddenItems() != null && !this.getRequirements().getForbiddenItems().isEmpty()) {
             for (String forbiddenItem : this.getRequirements().getForbiddenItems()) {
                 boolean hasItem = Arrays.stream(player.getInventory().getContents())
-                        .anyMatch(itemStack -> itemStack != null && Objects.requireNonNull(itemStack.getItemMeta()).getDisplayName().equals(forbiddenItem));
+                        .anyMatch(itemStack -> itemMatches(itemStack, forbiddenItem));
                 if (hasItem) {
                     return false;
                 }
@@ -182,6 +185,74 @@ public class Floor extends FloorData {
         }
         // Si tout est respecté
         return true;
+    }
+
+    /**
+     * Vérifie si un {@link ItemStack} correspond à un identifiant de requirement.
+     *
+     * <p>La correspondance est tolérante : un item satisfait le requirement si son identifiant
+     * MMOItems ({@code MMOITEMS_ITEM_ID}) <em>ou</em> son nom d'affichage est égal à la valeur
+     * attendue. L'identifiant MMOItems est lu via l'API NBT de MythicLib (la couche sur laquelle
+     * MMOItems stocke ses items), ce qui permet de cibler un item par son ID logique plutôt que
+     * par un displayname qui peut varier (couleur, reforge, gemmes…).</p>
+     *
+     * @param itemStack   l'item de l'inventaire (peut être null)
+     * @param requirement l'identifiant attendu (ID MMOItems ou displayname)
+     * @return true si l'item correspond au requirement
+     */
+    private boolean itemMatches(@Nullable ItemStack itemStack, String requirement) {
+        if (itemStack == null || itemStack.getType() == Material.AIR || requirement == null) {
+            return false;
+        }
+
+        // Correspondance par ID MMOItems (insensible à la casse — les IDs sont en majuscules)
+        NBTItem nbtItem = NBTItem.get(itemStack);
+        if (nbtItem.hasType()) {
+            String mmoId = nbtItem.getString("MMOITEMS_ITEM_ID");
+            if (mmoId != null && !mmoId.isEmpty() && mmoId.equalsIgnoreCase(requirement)) {
+                return true;
+            }
+        }
+
+        // Correspondance par nom d'affichage (fallback / items vanilla)
+        ItemMeta meta = itemStack.getItemMeta();
+        return meta != null && meta.hasDisplayName() && meta.getDisplayName().equals(requirement);
+    }
+
+    /**
+     * Consomme un exemplaire (N-1) de chaque item requis dans l'inventaire du joueur.
+     *
+     * <p>Appelé une fois le joueur effectivement entré dans le donjon : les requirements ayant
+     * déjà été validés au lancement, on retire ici une unité de chacun des {@code requiredItems}
+     * (matché par ID MMOItems ou displayname via {@link #itemMatches}). Si un item requis a une
+     * pile {@code > 1}, seule une unité est décrémentée ; sinon la pile est entièrement retirée.
+     * Doit être exécuté sur le thread principal (accès inventaire Bukkit).</p>
+     *
+     * @param player le joueur dont on décrémente les items requis (no-op si null)
+     */
+    public void consumeRequiredItems(Player player) {
+        if (player == null || this.getRequirements() == null) return;
+
+        java.util.List<String> requiredItems = this.getRequirements().getRequiredItems();
+        if (requiredItems == null || requiredItems.isEmpty()) return;
+
+        ItemStack[] contents = player.getInventory().getContents();
+        for (String requiredItem : requiredItems) {
+            for (int i = 0; i < contents.length; i++) {
+                ItemStack itemStack = contents[i];
+                if (!itemMatches(itemStack, requiredItem)) continue;
+
+                int amount = itemStack.getAmount();
+                if (amount <= 1) {
+                    player.getInventory().setItem(i, null);
+                    contents[i] = null;
+                } else {
+                    itemStack.setAmount(amount - 1);
+                }
+                break; // une seule unité retirée par item requis
+            }
+        }
+        player.updateInventory();
     }
 
 

@@ -93,13 +93,12 @@ public class EndOfRunHandler {
         // Voluntary exit only rewards on Infinite (the "extraction" win-state
         // for that mode — there is no boss-kill end). Finite voluntary exit
         // is treated as abandoning : no loot.
+        //
+        // The save is intentionally NOT deleted : leaving via /nd memory leave
+        // banks the loot and ends this session, but the run stays resumable
+        // from its last boss checkpoint next time the party comes back.
         boolean isExtraction = run != null && run.isInfinite();
         end(run, isExtraction, isExtraction);
-        if (run != null && run.isInfinite() && saveManager != null) {
-            // Voluntary infinite exit deletes the save (CDC §1.6).
-            saveManager.deleteForRun(run);
-            if (triggerBus != null) triggerBus.fireSaveInvalidated(run, null, "VOLUNTARY_EXIT");
-        }
     }
 
     private void end(LabyrinthRun run, boolean success, boolean distributeLoot) {

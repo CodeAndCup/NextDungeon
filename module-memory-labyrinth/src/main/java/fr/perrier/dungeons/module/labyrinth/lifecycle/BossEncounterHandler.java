@@ -83,14 +83,29 @@ public class BossEncounterHandler {
         // Persist the Infinite checkpoint (CDC §6.3).
         if (run.isInfinite() && saveManager != null) {
             UUID instanceId = run.getInstanceId();
-            saveManager.upsert(run).thenRun(() -> {
+            int roomIndex = run.getCurrentRoomIndex();
+            saveManager.upsert(run).thenRun(() -> Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
                 // Guard: the run may have been endRun() while the DB upsert
-                // was in flight (instance shutdown, all players left, …).
-                // Firing a trigger then would touch a freed registry slot.
-                if (triggerBus == null) return;
+                // was in flight (instance shutdown, all players left, …) —
+                // acting then would touch a freed registry slot.
                 if (instanceId == null || runManager.getRun(instanceId) != run) return;
-                triggerBus.fireCheckpointSaved(run, null);
-            }).exceptionally(ex -> {
+
+                // Player feedback : the run is now checkpointed at this boss.
+                FloorInstance inst = Main.getInstance().getDungeonService().getInstance(instanceId);
+                if (inst != null) {
+                    for (UUID pid : inst.getPlayers()) {
+                        Player p = Bukkit.getPlayer(pid);
+                        if (p != null && p.isOnline()) {
+                            LabyrinthMessages.send(p, WHITE + "Progress saved " + DARK + "— "
+                                    + WHITE + "checkpoint at room " + RED + roomIndex + DARK + ".");
+                            LabyrinthMessages.send(p, WHITE + "You can exit dungeon here with "
+                                    + RED + "/nd memory leave");
+                        }
+                    }
+                }
+
+                if (triggerBus != null) triggerBus.fireCheckpointSaved(run, null);
+            })).exceptionally(ex -> {
                 logger.warning("[MemoryLabyrinth] Failed to upsert Infinite save: " + ex.getMessage());
                 return null;
             });

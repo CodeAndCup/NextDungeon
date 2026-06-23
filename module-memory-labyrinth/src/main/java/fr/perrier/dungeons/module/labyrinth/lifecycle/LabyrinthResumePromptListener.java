@@ -41,11 +41,10 @@ public class LabyrinthResumePromptListener implements Listener {
         String rest = message.substring(prefix.length()).trim();
         if (rest.isEmpty()) {
             LabyrinthMessages.send(sender, RED + "Usage " + DARK + ": " + WHITE + "/" + COMMAND + " "
-                    + DARK + "<" + WHITE + ResumeOrNewPrompt.CHOICE_RESUME
-                    + DARK + "|" + WHITE + ResumeOrNewPrompt.CHOICE_NEW + DARK + ">");
+                    + DARK + "<" + WHITE + "saveId" + DARK + "|" + WHITE + ResumeOrNewPrompt.CHOICE_NEW + DARK + ">");
             return;
         }
-        String choice = rest.split("\\s+", 2)[0].toLowerCase();
+        String choice = rest.split("\\s+", 2)[0];
 
         LabyrinthRun run = runManager.findRunByPlayer(sender.getUniqueId());
         if (run == null) {
@@ -57,13 +56,10 @@ public class LabyrinthResumePromptListener implements Listener {
             return;
         }
 
-        switch (choice) {
-            case ResumeOrNewPrompt.CHOICE_RESUME ->
-                    runManager.applyResume(run, sender);
-            case ResumeOrNewPrompt.CHOICE_NEW ->
-                    runManager.discardSaveAndContinue(run, sender);
-            default ->
-                    LabyrinthMessages.send(sender, RED + "Invalid choice " + DARK + ": " + WHITE + choice);
+        if (ResumeOrNewPrompt.CHOICE_NEW.equalsIgnoreCase(choice)) {
+            runManager.newRun(sender);
+        } else {
+            runManager.resumeChosen(sender, choice);
         }
     }
 }

@@ -98,6 +98,13 @@ public interface DatabaseManager {
      */
     CompletableFuture<String> findLabyrinthSaveByPartyHash(String partyHash, String floorId);
 
+    /**
+     * Lists every save for a {@code (partyHash, floorId)} couple as
+     * {@code payload_json}, most recently updated first. Used to present the
+     * resumable-run list for the infinite labyrinth.
+     */
+    CompletableFuture<List<String>> findLabyrinthSavesByPartyHash(String partyHash, String floorId);
+
     CompletableFuture<Void> saveLabyrinthSave(String saveId, String floorId, String partyHash, String payloadJson);
 
     CompletableFuture<Void> deleteLabyrinthSave(String saveId);

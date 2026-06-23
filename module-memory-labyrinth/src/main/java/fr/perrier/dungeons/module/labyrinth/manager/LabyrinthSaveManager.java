@@ -11,6 +11,7 @@ import fr.perrier.dungeons.spigot.database.DatabaseManager;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
@@ -23,6 +24,9 @@ import java.util.logging.Logger;
 public class LabyrinthSaveManager {
 
     private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
+
+    /** Max resumable saves kept per (party, floor) — oldest pruned beyond this. */
+    private static final int MAX_SAVES_PER_PARTY = 3;
 
     private final Logger logger;
 
@@ -45,6 +49,25 @@ public class LabyrinthSaveManager {
         String partyHash = LabyrinthSave.computePartyHash(run.getInitialPlayerUuids());
         return db.findLabyrinthSaveByPartyHash(partyHash, run.getFloorId())
                 .thenApply(this::deserializeAndVerify);
+    }
+
+    /**
+     * List every resumable save for the run's party (most recent first), with
+     * verified checksums. Drives the resume-run selection list.
+     */
+    public CompletableFuture<List<LabyrinthSave>> findSavesForRun(LabyrinthRun run) {
+        if (run == null) return CompletableFuture.completedFuture(List.of());
+        DatabaseManager db = Main.getInstance().getDatabaseManager();
+        if (db == null) return CompletableFuture.completedFuture(List.of());
+        String partyHash = LabyrinthSave.computePartyHash(run.getInitialPlayerUuids());
+        return db.findLabyrinthSavesByPartyHash(partyHash, run.getFloorId()).thenApply(payloads -> {
+            List<LabyrinthSave> saves = new ArrayList<>();
+            for (String json : payloads) {
+                LabyrinthSave s = deserializeAndVerify(json);
+                if (s != null) saves.add(s);
+            }
+            return saves;
+        });
     }
 
     /**
@@ -96,7 +119,40 @@ public class LabyrinthSaveManager {
         run.setInfiniteSaveId(save.getId());
 
         String payload = GSON.toJson(save);
-        return db.saveLabyrinthSave(save.getId(), save.getFloorId(), save.getPartyHash(), payload);
+        String partyHash = save.getPartyHash();
+        String floorId = save.getFloorId();
+        return db.saveLabyrinthSave(save.getId(), floorId, partyHash, payload)
+                .thenCompose(v -> pruneToCap(db, partyHash, floorId));
+    }
+
+    /**
+     * Keep at most {@link #MAX_SAVES_PER_PARTY} saves per (party, floor),
+     * deleting the oldest beyond the cap. Called after each checkpoint write.
+     */
+    private CompletableFuture<Void> pruneToCap(DatabaseManager db, String partyHash, String floorId) {
+        return db.findLabyrinthSavesByPartyHash(partyHash, floorId).thenCompose(payloads -> {
+            if (payloads == null || payloads.size() <= MAX_SAVES_PER_PARTY) {
+                return CompletableFuture.completedFuture(null);
+            }
+            // Payloads are ordered most-recent-first — delete everything past the cap.
+            CompletableFuture<Void> chain = CompletableFuture.completedFuture(null);
+            for (int i = MAX_SAVES_PER_PARTY; i < payloads.size(); i++) {
+                String id = parseId(payloads.get(i));
+                if (id == null) continue;
+                chain = chain.thenCompose(x -> db.deleteLabyrinthSave(id));
+            }
+            return chain;
+        });
+    }
+
+    /** Best-effort id extraction (no checksum verification — used for pruning). */
+    private String parseId(String json) {
+        try {
+            LabyrinthSave s = GSON.fromJson(json, LabyrinthSave.class);
+            return s != null ? s.getId() : null;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     /**

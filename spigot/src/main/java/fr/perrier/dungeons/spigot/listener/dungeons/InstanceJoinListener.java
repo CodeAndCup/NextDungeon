@@ -50,6 +50,9 @@ public class InstanceJoinListener implements Listener {
             // Initialize player stats and lives if not already present
             if(!instance.getPlayerStats().containsKey(player.getUniqueId())) {
                 instance.getPlayerStats().put(player.getUniqueId(), new PlayerStats(player.getUniqueId()));
+                // First join only: consume one of each required item (N-1). Guarded by the
+                // stats-init check so a reconnect into the same instance doesn't re-consume.
+                floor.consumeRequiredItems(player);
             }
             if(!instance.getPlayerCurrentLives().containsKey(player.getUniqueId())) {
                 instance.getPlayerCurrentLives().put(player.getUniqueId(), floor.getRules().getMaxLives());

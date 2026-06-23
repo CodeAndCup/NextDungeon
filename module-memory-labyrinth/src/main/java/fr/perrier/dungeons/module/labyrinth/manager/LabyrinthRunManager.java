@@ -182,44 +182,36 @@ public class LabyrinthRunManager {
         }
         runs.put(instanceId, run);
 
-        // R5 — TP players to the dungeon spawn point first ; the lobby is
-        // entered only once the (Infinite) resume/new decision is made.
-        teleportToDungeonSpawn(instance, dungeonConfig);
-
-        // NOTE: the blessing session is intentionally NOT started here. The
-        // plugin opens a GUI on `dungeon start`, which would capture the
-        // screen and make the Infinite resume/new chat prompt unclickable.
-        // It is started once the run actually proceeds — enterLobby() (fresh
-        // / new game) or resumeAtNextRoom() (resume), i.e. after the choice.
-
-        if (floorConfig.isSaveEnabled() && saveManager != null) {
+        // Infinite floors : land everyone in the lobby but FROZEN — no blessing,
+        // doors locked — until the leader picks a save to resume or starts a new
+        // run. Finite floors enter the lobby normally (full start).
+        if (run.isInfinite() && saveManager != null) {
             run.setLobbyDecisionPending(true);
-            saveManager.findSaveForRun(run).thenAccept(save ->
+            enterLobbyFrozen(run, instance);
+            saveManager.findSavesForRun(run).thenAccept(saves ->
                     Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
                         // Guard: the run may have been endRun()'d while the
                         // DB lookup was in flight (instance cancelled, …).
                         if (runs.get(instanceId) != run) return;
-                        if (save == null) {
-                            // No save → straight to lobby (fresh run).
-                            run.setLobbyDecisionPending(false);
-                            enterLobby(run, instance);
+                        if (saves == null || saves.isEmpty()) {
+                            // Nothing to resume → start a fresh run from the lobby.
+                            beginNewRun(run, instance);
                             return;
                         }
+                        run.getPendingResumeSaves().clear();
+                        run.getPendingResumeSaves().addAll(saves);
                         UUID leader = resolveLeader(instance);
-                        if (leader == null) {
-                            // No leader resolvable — fall back to fresh run.
-                            run.setLobbyDecisionPending(false);
-                            enterLobby(run, instance);
-                            return;
+                        if (leader != null) {
+                            Player lp = Bukkit.getPlayer(leader);
+                            if (lp != null && lp.isOnline()) {
+                                ResumeOrNewPrompt.sendToLeader(leader, saves);
+                            }
                         }
-                        run.setInfiniteSaveId(save.getId());
-                        ResumeOrNewPrompt.sendToLeader(leader, save);
                     })).exceptionally(ex -> {
                 logger.warning("[MemoryLabyrinth] save lookup failure: " + ex.getMessage());
                 Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
                     if (runs.get(instanceId) != run) return;
-                    run.setLobbyDecisionPending(false);
-                    enterLobby(run, instance);
+                    beginNewRun(run, instance);
                 });
                 return null;
             });
@@ -229,20 +221,41 @@ public class LabyrinthRunManager {
         return run;
     }
 
-    private void teleportToDungeonSpawn(FloorInstance instance, LabyrinthDungeonConfig dungeonConfig) {
-        if (instance == null || dungeonConfig == null || dungeonConfig.getDungeonSpawn() == null) return;
-        World world = Bukkit.getWorld(dungeonConfig.getWorldId());
-        if (world == null) {
-            logger.warning("[MemoryLabyrinth] Dungeon world not found: " + dungeonConfig.getWorldId());
+    /**
+     * Enter the lobby room while the run is frozen ({@code lobbyDecisionPending}
+     * = true) : players are placed in the lobby geometry but the doors stay
+     * locked and no blessing is granted yet. Used for the infinite resume/new
+     * decision — see {@link #beginNewRun}.
+     */
+    private void enterLobbyFrozen(LabyrinthRun run, FloorInstance instance) {
+        LabyrinthRoom lobby = roomPicker.pickLobby(
+                run.getInstanceId(), run.getFloorId(), run.getTagFilter());
+        if (lobby == null) {
+            logger.warning("[MemoryLabyrinth] No lobby room for floor=" + run.getFloorId());
             return;
         }
-        LabyrinthRoom.Vec3 s = dungeonConfig.getDungeonSpawn();
-        Location target = new Location(world, s.getX(), s.getY(), s.getZ(),
-                s.getYaw(), s.getPitch());
-        for (UUID id : instance.getPlayers()) {
-            Player p = Bukkit.getPlayer(id);
-            if (p != null && p.isOnline()) p.teleport(target);
+        // pending == true → enterRoom does NOT auto-clear the lobby, so doors
+        // stay closed and players cannot leave until the decision is made.
+        roomLifecycle.enterRoom(run, lobby, instance);
+    }
+
+    /**
+     * Begin a fresh run from the (already-entered, frozen) lobby : unfreeze,
+     * grant the lobby blessing and open the doors. Does NOT delete other saves
+     * — the party can still resume them next time.
+     */
+    private void beginNewRun(LabyrinthRun run, FloorInstance instance) {
+        run.setLobbyDecisionPending(false);
+        run.getPendingResumeSaves().clear();
+        if (run.getCurrentRoom() == null) {
+            // Lobby was never entered (edge case) — full entry.
+            enterLobby(run, instance);
+            return;
         }
+        BlessingBridge.startSession(run, instance);
+        BlessingBridge.offerHeroic(instance);
+        // The lobby is mob-less : clearing it opens the exit doors.
+        roomLifecycle.onRoomCleared(run);
     }
 
     private void enterLobby(LabyrinthRun run, FloorInstance instance) {
@@ -255,10 +268,7 @@ public class LabyrinthRunManager {
         }
         roomLifecycle.enterRoom(run, lobby, instance);
 
-        // Start the blessing session now that the run is actually beginning
-        // (deferred from finalizeStart so the Infinite resume/new prompt stays
-        // clickable). enterLobby() runs for fresh runs only — finite floors +
-        // Infinite "new game".
+        // Start the blessing session now that the run is actually beginning.
         BlessingBridge.startSession(run, instance);
 
         // Entry blessing : each player receives a blessing offer on entering
@@ -296,34 +306,51 @@ public class LabyrinthRunManager {
     }
 
     /**
-     * Resume the player(s) onto the room right after the last cleared
-     * boss (CDC §6.1 / §6.5 — R5 redesign). The lobby is bypassed
-     * entirely on resume : the players go straight to room
-     * {@code lastBossClearedRoom + 1}.
+     * Leader picked a save in the resume list — load it and drop the party onto
+     * the room right after its last cleared boss. The lobby is bypassed.
      */
-    public void applyResume(LabyrinthRun run, Player sender) {
-        if (run == null || saveManager == null) return;
-        UUID instanceId = run.getInstanceId();
-        FloorInstance instance = Main.getInstance().getDungeonService().getInstance(instanceId);
+    public void resumeChosen(Player sender, String saveId) {
+        if (sender == null || saveId == null) return;
+        LabyrinthRun run = findRunByPlayer(sender.getUniqueId());
+        if (run == null || !run.isLobbyDecisionPending()) return;
+        FloorInstance instance = Main.getInstance().getDungeonService().getInstance(run.getInstanceId());
         if (instance == null) {
             LabyrinthMessages.send(sender, RED + "Instance not found " + DARK + "— " + RED + "resume impossible" + DARK + ".");
             return;
         }
-        saveManager.findSaveForRun(run).thenAccept(save -> {
-            if (save == null) {
-                Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
-                    if (runs.get(instanceId) != run) return;
-                    LabyrinthMessages.send(sender, RED + "The save is no longer available" + DARK + ".");
-                    run.setLobbyDecisionPending(false);
-                    enterLobby(run, instance);
-                });
-                return;
-            }
-            Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
-                if (runs.get(instanceId) != run) return;
-                resumeAtNextRoom(run, save, instance, sender);
-            });
-        });
+        UUID leader = resolveLeader(instance);
+        if (leader != null && !leader.equals(sender.getUniqueId())) {
+            LabyrinthMessages.send(sender, RED + "Only the party leader can choose the save" + DARK + ".");
+            return;
+        }
+        LabyrinthSave save = null;
+        for (LabyrinthSave s : run.getPendingResumeSaves()) {
+            if (s != null && saveId.equals(s.getId())) { save = s; break; }
+        }
+        if (save == null) {
+            LabyrinthMessages.send(sender, RED + "That save is no longer available" + DARK + ".");
+            return;
+        }
+        resumeAtNextRoom(run, save, instance, sender);
+    }
+
+    /**
+     * Leader picked "New run" — start a fresh run from the lobby. Existing
+     * saves are kept (the party can still resume them later).
+     */
+    public void newRun(Player sender) {
+        if (sender == null) return;
+        LabyrinthRun run = findRunByPlayer(sender.getUniqueId());
+        if (run == null || !run.isLobbyDecisionPending()) return;
+        FloorInstance instance = Main.getInstance().getDungeonService().getInstance(run.getInstanceId());
+        if (instance == null) return;
+        UUID leader = resolveLeader(instance);
+        if (leader != null && !leader.equals(sender.getUniqueId())) {
+            LabyrinthMessages.send(sender, RED + "Only the party leader can start a new run" + DARK + ".");
+            return;
+        }
+        beginNewRun(run, instance);
+        broadcastInstance(instance, WHITE + sender.getName() + WHITE + " started a new run" + DARK + ".");
     }
 
     private void resumeAtNextRoom(LabyrinthRun run, LabyrinthSave save, FloorInstance instance, Player sender) {
@@ -331,6 +358,7 @@ public class LabyrinthRunManager {
         // tier, seed, iconCounts.
         saveManager.applyResume(run, save);
         run.setLobbyDecisionPending(false);
+        run.getPendingResumeSaves().clear();
 
         // Pick the next combat room. pickNext sees currentRoomIndex =
         // lastBossClearedRoom (multiple of 10), so nextIndex = +1 is
@@ -358,23 +386,58 @@ public class LabyrinthRunManager {
     }
 
     /**
-     * Discard the bound save and start a fresh run by entering the
-     * lobby (R5 redesign — players were waiting at the dungeon spawn).
+     * (Re)send the resume/new prompt to the leader when they connect, if the
+     * run is still awaiting the decision. Covers the race where the save lookup
+     * resolves before the leader is online (so the initial prompt was dropped).
      */
-    public void discardSaveAndContinue(LabyrinthRun run, Player sender) {
-        if (run == null) return;
-        if (saveManager != null) {
-            String partyHash = LabyrinthSave.computePartyHash(run.getInitialPlayerUuids());
-            saveManager.deleteByPartyHash(partyHash, run.getFloorId());
-            run.setInfiniteSaveId(null);
-        }
-        run.setLobbyDecisionPending(false);
+    public void maybeOfferResume(Player joiner) {
+        if (joiner == null) return;
+        LabyrinthRun run = findRunByPlayer(joiner.getUniqueId());
+        if (run == null || !run.isLobbyDecisionPending()) return;
+        if (run.getPendingResumeSaves().isEmpty()) return;
         FloorInstance instance = Main.getInstance().getDungeonService().getInstance(run.getInstanceId());
-        if (instance != null) {
-            enterLobby(run, instance);
-            broadcastInstance(instance, WHITE + sender.getName() + WHITE + " started a new run "
-                    + DARK + "(" + WHITE + "save cleared" + DARK + ")");
+        if (instance == null) return;
+        UUID leader = resolveLeader(instance);
+        if (leader == null || !leader.equals(joiner.getUniqueId())) return;
+        ResumeOrNewPrompt.sendToLeader(leader, run.getPendingResumeSaves());
+    }
+
+    /**
+     * Handle a player's {@code /nd memory leave} — the leader-driven dungeon
+     * exit advertised after each boss. Banks the loot (infinite extraction)
+     * and ends the run via the voluntary-exit path.
+     */
+    public void requestLeave(Player sender) {
+        if (sender == null) return;
+        LabyrinthRun run = findRunByPlayer(sender.getUniqueId());
+        if (run == null) {
+            LabyrinthMessages.send(sender, RED + "You are not in a Memory Labyrinth run" + DARK + ".");
+            return;
         }
+        FloorInstance instance = Main.getInstance().getDungeonService().getInstance(run.getInstanceId());
+        UUID leader = instance != null ? resolveLeader(instance) : null;
+        if (leader != null && !leader.equals(sender.getUniqueId())) {
+            LabyrinthMessages.send(sender, RED + "Only the party leader can exit the dungeon" + DARK + ".");
+            return;
+        }
+        if (instance != null) {
+            for (UUID pid : instance.getPlayers()) {
+                Player p = Bukkit.getPlayer(pid);
+                if (p != null && p.isOnline()) {
+                    LabyrinthMessages.send(p, WHITE + sender.getName() + WHITE + " exited the dungeon" + DARK + ".");
+                }
+            }
+        }
+        voluntaryExit(run);
+    }
+
+    /**
+     * Bank the loot and end an (infinite) run — the extraction win-state.
+     * Delegates to the end-of-run handler's voluntary exit path.
+     */
+    public void voluntaryExit(LabyrinthRun run) {
+        if (run == null || endOfRunHandler == null) return;
+        endOfRunHandler.onVoluntaryExit(run);
     }
 
     private UUID resolveLeader(FloorInstance instance) {

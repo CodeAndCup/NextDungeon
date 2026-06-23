@@ -933,6 +933,25 @@ public class MySQLManager implements DatabaseManager {
     }
 
     @Override
+    public CompletableFuture<List<String>> findLabyrinthSavesByPartyHash(String partyHash, String floorId) {
+        return executeAsync(() -> {
+            List<String> result = new ArrayList<>();
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(
+                         "SELECT payload_json FROM labyrinth_saves " +
+                         "WHERE party_hash = ? AND floor_id = ? " +
+                         "ORDER BY updated_at DESC")) {
+                stmt.setString(1, partyHash);
+                stmt.setString(2, floorId);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    while (rs.next()) result.add(rs.getString("payload_json"));
+                }
+            }
+            return result;
+        }, "List labyrinth saves by partyHash");
+    }
+
+    @Override
     public CompletableFuture<Void> saveLabyrinthSave(String saveId, String floorId, String partyHash, String payloadJson) {
         return executeAsync(() -> {
             try (Connection conn = dataSource.getConnection();

@@ -10,6 +10,7 @@ import fr.perrier.dungeons.module.labyrinth.generator.RoomPicker;
 import fr.perrier.dungeons.module.labyrinth.lifecycle.BossEncounterHandler;
 import fr.perrier.dungeons.module.labyrinth.lifecycle.DoorController;
 import fr.perrier.dungeons.module.labyrinth.lifecycle.LabyrinthInstanceReadyListener;
+import fr.perrier.dungeons.module.labyrinth.lifecycle.LabyrinthLeaveListener;
 import fr.perrier.dungeons.module.labyrinth.lifecycle.LabyrinthMobDeathListener;
 import fr.perrier.dungeons.module.labyrinth.lifecycle.LabyrinthPlayerDeathListener;
 import fr.perrier.dungeons.module.labyrinth.lifecycle.LabyrinthPlayerJoinListener;
@@ -80,6 +81,7 @@ public class MemoryLabyrinthModule implements NextDungeonModule {
     private LabyrinthPlayerDeathListener playerDeathListener;
     private LabyrinthReviveListener reviveListener;
     private LabyrinthResumePromptListener resumePromptListener;
+    private LabyrinthLeaveListener leaveListener;
     private LabyrinthInstanceReadyListener instanceReadyListener;
     private LabyrinthPlayerJoinListener playerJoinListener;
     private TierIndicatorTask tierIndicatorTask;
@@ -117,6 +119,8 @@ public class MemoryLabyrinthModule implements NextDungeonModule {
         bossEncounterHandler.setSaveManager(saveManager);
         this.resumePromptListener = new LabyrinthResumePromptListener(runManager);
         Bukkit.getPluginManager().registerEvents(resumePromptListener, Main.getInstance());
+        this.leaveListener = new LabyrinthLeaveListener(runManager);
+        Bukkit.getPluginManager().registerEvents(leaveListener, Main.getInstance());
 
         // P7 — Difficulty scaling : Mythic spawn bridge probe + tier
         // action-bar feedback. Scaling itself is already applied by
@@ -256,6 +260,6 @@ public class MemoryLabyrinthModule implements NextDungeonModule {
 
     @Override
     public String getVersion() {
-        return "0.1.0";
+        return "0.1.1";
     }
 }

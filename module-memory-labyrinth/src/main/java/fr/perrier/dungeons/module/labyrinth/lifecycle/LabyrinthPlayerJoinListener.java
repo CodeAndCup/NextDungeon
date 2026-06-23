@@ -3,6 +3,7 @@ package fr.perrier.dungeons.module.labyrinth.lifecycle;
 import fr.perrier.dungeons.common.model.labyrinth.LabyrinthRoom;
 import fr.perrier.dungeons.module.labyrinth.manager.LabyrinthRunManager;
 import fr.perrier.dungeons.module.labyrinth.model.LabyrinthRun;
+import fr.perrier.dungeons.module.labyrinth.ui.LabyrinthMessages;
 import fr.perrier.dungeons.spigot.Main;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -57,23 +58,32 @@ public class LabyrinthPlayerJoinListener implements Listener {
         LabyrinthRun run = runManager.findRunByPlayer(player.getUniqueId());
         if (run == null) return;
 
+        // (Re)offer the Infinite resume/new prompt — the save lookup usually
+        // resolves before the leader connects, so the prompt is sent here.
+        runManager.maybeOfferResume(player);
+
         LabyrinthRoom target = run.getCurrentRoom();
         if (target == null || target.getPlayerSpawn() == null) return;
 
         String worldId = run.getInstanceWorldId() != null ? run.getInstanceWorldId() : target.getWorldId();
         if (worldId == null) return;
+
         World world = Bukkit.getWorld(worldId);
         if (world == null) {
             Main.getInstance().getLogger().warning(
                     "[MemoryLabyrinth] World not found on join TP: " + worldId);
+            LabyrinthMessages.send(player, LabyrinthMessages.RED + "Labyrinth world not found: " + worldId);
             return;
         }
+
         // v2 procedural: TP to the offset-adjusted location of the pasted copy.
         LabyrinthRoom.Vec3 spawn = target.getPlayerSpawn();
         LabyrinthRoom.Vec3 srcMin = target.getRegion() != null ? target.getRegion().getMin() : null;
+
         double dx = srcMin != null ? (spawn.getX() - srcMin.getX()) : 0;
         double dy = srcMin != null ? (spawn.getY() - srcMin.getY()) : 0;
         double dz = srcMin != null ? (spawn.getZ() - srcMin.getZ()) : 0;
+
         Location dst = new Location(world,
                 run.getCurrentRoomAnchorX() + dx,
                 run.getCurrentRoomAnchorY() + dy,
@@ -83,10 +93,13 @@ public class LabyrinthPlayerJoinListener implements Listener {
         UUID playerId = player.getUniqueId();
         BukkitTask task = Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
             pendingTeleports.remove(playerId);
-            if (player.isOnline()) player.teleport(dst);
+            if (player.isOnline())
+                player.teleport(dst);
         }, 1L);
+
         BukkitTask previous = pendingTeleports.put(playerId, task);
-        if (previous != null) previous.cancel();
+        if (previous != null)
+            previous.cancel();
     }
 
     @EventHandler

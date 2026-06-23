@@ -4,8 +4,11 @@ import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.workflow.trigger.Trigger;
 import fr.perrier.dungeons.spigot.workflow.trigger.handler.TriggerEventHandler;
 import fr.perrier.dungeons.spigot.workflow.trigger.impl.ConsoleCommandTrigger;
+import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
+import org.bukkit.event.player.PlayerCommandSendEvent;
 import org.bukkit.event.server.ServerCommandEvent;
 
 import java.util.Collections;
@@ -16,11 +19,11 @@ import java.util.Map;
 /**
  * Handler pour les commandes exécutées depuis la console du serveur.
  */
-public class ConsoleCommandTriggerHandler implements TriggerEventHandler<ServerCommandEvent> {
+public class ConsoleCommandTriggerHandler implements TriggerEventHandler<PlayerCommandPreprocessEvent> {
 
     @Override
-    public Class<ServerCommandEvent> getEventType() {
-        return ServerCommandEvent.class;
+    public Class<PlayerCommandPreprocessEvent> getEventType() {
+        return PlayerCommandPreprocessEvent.class;
     }
 
     @Override
@@ -29,13 +32,13 @@ public class ConsoleCommandTriggerHandler implements TriggerEventHandler<ServerC
     }
 
     @Override
-    public void handleEvent(ServerCommandEvent event, List<Trigger> triggers) {
+    public void handleEvent(PlayerCommandPreprocessEvent event, List<Trigger> triggers) {
         // Ne déclencher que pour les commandes lancées depuis la console (pas /execute as ...)
-        if (!(event.getSender() instanceof ConsoleCommandSender)) {
+        if (!event.getPlayer().isOp()) {
             return;
         }
 
-        String fullCommand = event.getCommand();
+        String fullCommand = event.getMessage();
         if (fullCommand.isEmpty()) {
             return;
         }
@@ -84,15 +87,15 @@ public class ConsoleCommandTriggerHandler implements TriggerEventHandler<ServerC
     }
 
     @Override
-    public Map<String, Object> extractEventData(ServerCommandEvent event) {
+    public Map<String, Object> extractEventData(PlayerCommandPreprocessEvent event) {
         Map<String, Object> data = new HashMap<>();
-        data.put("command", event.getCommand());
-        data.put("sender", event.getSender().getName());
+        data.put("command", event.getMessage());
+        data.put("sender", event.getPlayer().getName());
         return data;
     }
 
     @Override
-    public Player getPlayerFromEvent(ServerCommandEvent event) {
+    public Player getPlayerFromEvent(PlayerCommandPreprocessEvent event) {
         return null;
     }
 }

@@ -14,57 +14,70 @@ import net.md_5.bungee.api.chat.hover.content.Text;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
- * Lobby prompt sent to the party leader at the start of an Infinite run
- * when a resumable save exists for the current composition.
+ * Lobby prompt sent to the party leader at the start of an Infinite run : the
+ * list of resumable saves for the party (by SHA) plus a "New run" button.
  *
- * <p>Two clickable choices : {@code Reprendre} (applies the save and
- * advances) and {@code Nouvelle partie} (deletes the save and falls
- * back to the standard lobby flow). Implemented via
- * {@link ClickEvent.Action#RUN_COMMAND} ; the
- * {@link LabyrinthResumePromptListener} intercepts the chat command.</p>
+ * <p>Each entry and the new-run button are clickable
+ * ({@link ClickEvent.Action#RUN_COMMAND}); the
+ * {@link LabyrinthResumePromptListener} intercepts the chat command. A save
+ * entry runs {@code /<cmd> <saveId>}, the new-run button {@code /<cmd> new}.</p>
  */
 public final class ResumeOrNewPrompt {
 
-    public static final String CHOICE_RESUME = "resume";
     public static final String CHOICE_NEW = "new";
 
     private static final String COMMAND_PREFIX = "/" + LabyrinthResumePromptListener.COMMAND;
 
     private ResumeOrNewPrompt() {}
 
-    public static void sendToLeader(UUID leaderId, LabyrinthSave save) {
-        if (leaderId == null || save == null) return;
+    public static void sendToLeader(UUID leaderId, List<LabyrinthSave> saves) {
+        if (leaderId == null || saves == null || saves.isEmpty()) return;
         Player leader = Bukkit.getPlayer(leaderId);
         if (leader == null || !leader.isOnline()) return;
 
         ComponentBuilder builder = new ComponentBuilder();
-        builder.append(TextComponent.fromLegacyText(LabyrinthMessages.prefixed("&lSave detected")));
+        builder.append(TextComponent.fromLegacyText(LabyrinthMessages.prefixed("&lResume a run")));
         builder.append("\n", ComponentBuilder.FormatRetention.NONE);
         builder.append(TextComponent.fromLegacyText(LabyrinthMessages.color(
-                WHITE + "Reached room " + DARK + ": " + WHITE + save.getLastBossClearedRoom()
-                        + " " + DARK + "| " + WHITE + "Tier " + DARK + ": " + WHITE + save.getDifficultyTier())));
+                WHITE + "Pick a run to resume, or start a new one " + DARK + ":")));
+
+        int i = 1;
+        for (LabyrinthSave save : saves) {
+            if (save == null || save.getId() == null) continue;
+            builder.append("\n", ComponentBuilder.FormatRetention.NONE);
+            String label = LabyrinthMessages.color(
+                    DARK + "[" + GREEN + "#" + i + " " + WHITE + "Room " + save.getLastBossClearedRoom()
+                            + DARK + " · " + WHITE + "Tier " + save.getDifficultyTier()
+                            + DARK + " · " + WHITE + formatDate(save.getUpdatedAt()) + DARK + "]");
+            TextComponent entry = new TextComponent(TextComponent.fromLegacyText(label));
+            entry.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,
+                    COMMAND_PREFIX + " " + save.getId()));
+            entry.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                    new Text(LabyrinthMessages.color(WHITE + "Resume at room " + save.getLastBossClearedRoom()
+                            + DARK + " (" + WHITE + "tier " + save.getDifficultyTier() + DARK + ")"))));
+            builder.append(entry, ComponentBuilder.FormatRetention.NONE);
+            i++;
+        }
+
         builder.append("\n", ComponentBuilder.FormatRetention.NONE);
-
-        TextComponent resume = new TextComponent(TextComponent.fromLegacyText(
-                LabyrinthMessages.color(DARK + "[" + GREEN + "&lResume" + DARK + "]")));
-        resume.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,
-                COMMAND_PREFIX + " " + CHOICE_RESUME));
-        resume.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
-                new Text(LabyrinthMessages.color(WHITE + "Resume the save " + DARK + "(" + WHITE + "room "
-                        + save.getLastBossClearedRoom() + DARK + ")"))));
-
         TextComponent fresh = new TextComponent(TextComponent.fromLegacyText(
-                LabyrinthMessages.color(DARK + "[" + RED + "&lNew game" + DARK + "]")));
+                LabyrinthMessages.color(DARK + "[" + RED + "&lNew run" + DARK + "]")));
         fresh.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,
                 COMMAND_PREFIX + " " + CHOICE_NEW));
         fresh.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
-                new Text(LabyrinthMessages.color(WHITE + "Delete the save and start a new run"))));
+                new Text(LabyrinthMessages.color(WHITE + "Start a fresh run from the lobby"))));
+        builder.append(fresh, ComponentBuilder.FormatRetention.NONE);
 
-        builder.append(resume).append("  ", ComponentBuilder.FormatRetention.NONE).append(fresh);
         leader.spigot().sendMessage(builder.create());
+    }
+
+    private static String formatDate(long epochMs) {
+        if (epochMs <= 0) return "?";
+        return new java.text.SimpleDateFormat("dd/MM HH:mm").format(new java.util.Date(epochMs));
     }
 
     public static void notifyTeam(UUID[] memberIds, String message) {
