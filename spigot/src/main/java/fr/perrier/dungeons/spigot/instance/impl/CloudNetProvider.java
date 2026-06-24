@@ -101,24 +101,30 @@ public class CloudNetProvider implements InstanceProvider {
                     return;
                 }
 
-                service.serviceInfo().provider().startAsync();
+                ServiceInfoSnapshot serviceInfoSnapshot = service.serviceInfo();
+
+                serviceInfoSnapshot.provider().start();
+
                 AtomicInteger failedStartCout = new AtomicInteger();
 
                 Bukkit.getScheduler().runTaskTimerAsynchronously(Main.getInstance(), task -> {
-                    if (service.serviceInfo().lifeCycle() == ServiceLifeCycle.RUNNING) {
+                    CloudServiceProvider cloudServiceProvider = InjectionLayer.ext().instance(CloudServiceProvider.class);
+                    ServiceInfoSnapshot serviceInfoSnapshotFromServiceName = cloudServiceProvider.serviceByName(serviceInfoSnapshot.name());
+
+                    if (serviceInfoSnapshotFromServiceName.lifeCycle() == ServiceLifeCycle.RUNNING) {
                         task.cancel();
                         Main.getLoggerUtil().info("Service started for " + floorId + " (editMode=" + editMode + ")");
-                        future.complete(service.serviceInfo().serviceId().uniqueId());
-                    } else if (service.serviceInfo().lifeCycle() == ServiceLifeCycle.PREPARED) {
+                        future.complete(serviceInfoSnapshotFromServiceName.serviceId().uniqueId());
+                    } else if (serviceInfoSnapshotFromServiceName.lifeCycle() == ServiceLifeCycle.PREPARED) {
                         Main.getLoggerUtil().warning("As failed to start and is still in PREPARED life cycle, retrying start for " + floorId + "(retry N°" + (failedStartCout.incrementAndGet()) + ")");
-                        service.serviceInfo().provider().startAsync();
+                        serviceInfoSnapshotFromServiceName.provider().start();
                     }
-                    if (failedStartCout.get() >= 5) {
+                    if (failedStartCout.get() >= 5 && serviceInfoSnapshotFromServiceName.lifeCycle() != ServiceLifeCycle.RUNNING) {
                         task.cancel();
                         Main.getLoggerUtil().severe("Service failed to start for " + floorId + " after 5 attempts.");
                         future.complete(null);
                     }
-                }, 20L, 20L);
+                }, 60L, 20L);
             } catch (Exception e) {
                 Main.getLoggerUtil().severe("An error occurred during the instance creation: " + e.getMessage());
                 future.complete(null);
