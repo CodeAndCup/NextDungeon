@@ -23,6 +23,7 @@ import org.bukkit.inventory.ItemStack;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 @RequiredArgsConstructor
 public class DungeonGateMenu extends GlassMenu {
@@ -86,6 +87,18 @@ public class DungeonGateMenu extends GlassMenu {
 
     @RequiredArgsConstructor
     public static class FloorButton extends Button {
+        /**
+         * Party leaders whose dungeon launch is mid-flight — between the click and the instance
+         * actually registering in Redis. Instance creation is fully async (party validation +
+         * cloud service spin-up), so during that window {@code isPlayerInAnyInstance}
+         * still returns {@code false} and every extra click would spawn a separate instance.
+         * Acquiring the leader's slot here closes that race.
+         */
+        private static final Set<UUID> launchingLeaders = ConcurrentHashMap.newKeySet();
+
+        /** Safety net (in ticks) after which the launch lock is released even if no callback fired. */
+        private static final long LAUNCH_LOCK_TIMEOUT_TICKS = 200L; // 10 seconds
+
         private final Floor floor;
 
         @Override
@@ -125,10 +138,21 @@ public class DungeonGateMenu extends GlassMenu {
                     return;
                 }
 
+                // Acquire the launch lock for this party leader. add() returns false when a launch
+                // is already in flight, so rapid double-clicks are rejected before any async work.
+                UUID leaderId = party.getLeaderId();
+                if (!launchingLeaders.add(leaderId)) {
+                    player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000A dungeon launch is already in progress for your party. Please wait..."));
+                    return;
+                }
+                // Safety net: never strand the leader behind the lock if a callback is somehow lost.
+                Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> launchingLeaders.remove(leaderId), LAUNCH_LOCK_TIMEOUT_TICKS);
+
                 player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&fChecking party requirements..."));
                 Set<UUID> memberIds = party.getMemberIds();
                 validateAllMembersAsync(floor, memberIds).thenAccept(allPassed -> {
                     if (!allPassed) {
+                        launchingLeaders.remove(leaderId);
                         Bukkit.getScheduler().runTask(Main.getInstance(), () ->
                                 player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000One or more players in your party break the requirements to enter this floor.")));
                         return;
@@ -137,6 +161,7 @@ public class DungeonGateMenu extends GlassMenu {
                     Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
                         FloorInstance.generateNewInstanceAsync(floor.getId(), memberIds, false, floorInstance -> {
                             if (floorInstance == null) {
+                                launchingLeaders.remove(leaderId);
                                 player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Failed to create the dungeon instance. Please try again."));
                                 return;
                             }
@@ -144,6 +169,8 @@ public class DungeonGateMenu extends GlassMenu {
                             // the party itself stays alive so members return together afterwards.
                             party.setListed(false);
                             floorInstance.sendToServer(party);
+                            // Keep the lock held: by the time the safety-net timeout releases it the
+                            // instance is registered in Redis, so isPlayerInAnyInstance takes over.
                         });
                         player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&fPlease wait while the instance is being prepared..."));
                     });
