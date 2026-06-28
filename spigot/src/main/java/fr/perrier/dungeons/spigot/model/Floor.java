@@ -220,6 +220,22 @@ public class Floor extends FloorData {
     }
 
     /**
+     * Indique si le joueur possède au moins un item correspondant à {@code requirement}, en
+     * utilisant la même logique de matching que la validation des requirements
+     * ({@link #itemMatches} : ID MMOItems ou displayname). Exposé pour que l'affichage du lore
+     * (✔/✘) reste cohérent avec la validation réelle au lieu de matcher uniquement le displayname.
+     *
+     * @param player      le joueur dont on inspecte l'inventaire
+     * @param requirement l'identifiant attendu (ID MMOItems ou displayname)
+     * @return true si l'inventaire contient un item correspondant
+     */
+    public boolean playerHasItemMatching(Player player, String requirement) {
+        if (player == null) return false;
+        return Arrays.stream(player.getInventory().getContents())
+                .anyMatch(itemStack -> itemMatches(itemStack, requirement));
+    }
+
+    /**
      * Consomme un exemplaire (N-1) de chaque item requis dans l'inventaire du joueur.
      *
      * <p>Appelé une fois le joueur effectivement entré dans le donjon : les requirements ayant

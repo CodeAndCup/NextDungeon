@@ -298,7 +298,7 @@ public class DungeonGateMenu extends GlassMenu {
         }
         if(floor.getRequirements().getRequiredItems() != null && !floor.getRequirements().getRequiredItems().isEmpty()) {
             for(String requiredItem : floor.getRequirements().getRequiredItems()) {
-                boolean hasItem = Arrays.stream(player.getInventory().getContents()).anyMatch(itemStack -> itemStack != null && Objects.requireNonNull(itemStack.getItemMeta()).getDisplayName().equals(requiredItem));
+                boolean hasItem = floor.playerHasItemMatching(player, requiredItem);
                 if(hasItem) {
                     lore.add("&#00FF00✔ Possess " + requiredItem);
                 } else {
@@ -308,7 +308,7 @@ public class DungeonGateMenu extends GlassMenu {
         }
         if(floor.getRequirements().getForbiddenItems() != null && !floor.getRequirements().getForbiddenItems().isEmpty()) {
             for(String forbiddenItem : floor.getRequirements().getForbiddenItems()) {
-                boolean hasItem = Arrays.stream(player.getInventory().getContents()).anyMatch(itemStack -> itemStack != null && Objects.requireNonNull(itemStack.getItemMeta()).getDisplayName().equals(forbiddenItem));
+                boolean hasItem = floor.playerHasItemMatching(player, forbiddenItem);
                 if(hasItem) {
                     lore.add("&#FF0000✘ Do not possess " + forbiddenItem);
                 } else {
