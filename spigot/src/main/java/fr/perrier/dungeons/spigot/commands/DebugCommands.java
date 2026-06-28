@@ -15,12 +15,14 @@ import fr.perrier.dungeons.spigot.model.Dungeon;
 import fr.perrier.dungeons.spigot.model.Floor;
 import fr.perrier.dungeons.spigot.parties.impl.DungeonPartyImpl;
 import fr.perrier.dungeons.spigot.utils.LoggerUtil;
+import io.lumine.mythic.lib.api.item.NBTItem;
 import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -169,5 +171,51 @@ public class DebugCommands {
                 .map(DungeonPartyImpl.class::cast)
                 .forEach(DungeonPartyImpl::disband);
         player.sendMessage(ChatUtil.translate("&#D10000All local parties have been disbanded."));
+    }
+
+    /**
+     * Compares the held item against a floor's configured item requirements, printing both sides
+     * of the match (the item's MMOItems id vs each stored requiredItems/forbiddenItems entry) so a
+     * failing ✘ in the gate menu can be diagnosed as either a data mismatch (the stored requirement
+     * differs from the id) or a stale-deploy issue (this server runs old matching code).
+     */
+    @Command(names = {"dungeon debug itemreq", "dungeons debug itemreq", "nextdungeon debug itemreq", "nextdungeons debug itemreq", "nd debug itemreq"}, permission = "nextdungeon.debug")
+    public static void debugItemReqCommand(Player player, @Param(name = "Floor ID", tabCompleteFlags = {"floors"}) FloorData floorData) {
+        Floor floor = Floor.getFloor(floorData.getId());
+        if (floor == null) {
+            player.sendMessage(ChatUtil.translate("&#FF0000Floor with ID '" + floorData.getId() + "' not found."));
+            return;
+        }
+
+        ItemStack item = player.getInventory().getItemInMainHand();
+        if (item == null || item.getType().isAir()) {
+            player.sendMessage(ChatUtil.translate("&#FF0000Hold the item you want to test in your main hand."));
+            return;
+        }
+        NBTItem nbtItem = NBTItem.get(item);
+        String heldId = nbtItem.hasType() ? nbtItem.getString("MMOITEMS_ITEM_ID") : "<not an MMOItems item>";
+
+        player.sendMessage(ChatUtil.getBar());
+        player.sendMessage(ChatUtil.translate("&6Item requirement check for floor &e" + floor.getName()));
+        player.sendMessage(ChatUtil.translate("  &8- &eHeld item MMOITEMS_ITEM_ID: &f'" + heldId + "'"));
+
+        java.util.List<String> required = floor.getRequirements().getRequiredItems();
+        player.sendMessage(ChatUtil.translate("  &eRequired items (&f" + (required == null ? 0 : required.size()) + "&e):"));
+        if (required != null) {
+            for (String req : required) {
+                boolean match = floor.playerHasItemMatching(player, req);
+                player.sendMessage(ChatUtil.translate("    " + (match ? "&#00FF00✔" : "&#FF0000✘") + " &7'" + req + "'"));
+            }
+        }
+
+        java.util.List<String> forbidden = floor.getRequirements().getForbiddenItems();
+        player.sendMessage(ChatUtil.translate("  &eForbidden items (&f" + (forbidden == null ? 0 : forbidden.size()) + "&e):"));
+        if (forbidden != null) {
+            for (String forb : forbidden) {
+                boolean match = floor.playerHasItemMatching(player, forb);
+                player.sendMessage(ChatUtil.translate("    " + (match ? "&#FF0000✘ owns" : "&#00FF00✔ clear") + " &7'" + forb + "'"));
+            }
+        }
+        player.sendMessage(ChatUtil.getBar());
     }
 }
