@@ -111,6 +111,19 @@ public class CloudNetProvider implements InstanceProvider {
                     CloudServiceProvider cloudServiceProvider = InjectionLayer.ext().instance(CloudServiceProvider.class);
                     ServiceInfoSnapshot serviceInfoSnapshotFromServiceName = cloudServiceProvider.serviceByName(serviceInfoSnapshot.name());
 
+                    // serviceByName returns null when the service is no longer known to CloudNet
+                    // (crashed/removed after start(), or a transient lookup gap). Dereferencing it
+                    // would NPE every tick forever since this branch never cancels — count it as a
+                    // failed start and bail out after the retry budget so future always completes.
+                    if (serviceInfoSnapshotFromServiceName == null) {
+                        if (failedStartCout.incrementAndGet() >= 5) {
+                            task.cancel();
+                            Main.getLoggerUtil().severe("Service " + floorId + " vanished from CloudNet before reaching RUNNING.");
+                            future.complete(null);
+                        }
+                        return;
+                    }
+
                     if (serviceInfoSnapshotFromServiceName.lifeCycle() == ServiceLifeCycle.RUNNING) {
                         task.cancel();
                         Main.getLoggerUtil().info("Service started for " + floorId + " (editMode=" + editMode + ")");
