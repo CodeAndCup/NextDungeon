@@ -5,6 +5,7 @@ import com.google.gson.JsonParser;
 import fr.perrier.dungeons.common.model.dungeon.FloorData;
 import fr.perrier.dungeons.common.model.dungeon.FloorMetadata;
 import fr.perrier.dungeons.common.model.dungeon.config.FloorInstanceData;
+import fr.perrier.dungeons.common.workflow.trigger.TriggerData;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.database.DatabaseManager;
 import fr.perrier.dungeons.spigot.model.Dungeon;
@@ -20,8 +21,7 @@ import org.redisson.api.RMap;
 import org.redisson.api.RTopic;
 import org.redisson.api.RedissonClient;
 
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 @RequiredArgsConstructor
@@ -148,8 +148,8 @@ public class DungeonService {
         // Kryo on the proxy or on a node whose classpath drifted (KryoBufferUnderflow
         // on the deserialize path). Stash → clear → fastPut → restore so the live
         // in-memory Dungeon keeps its triggers while the Redis copy is sanitised.
-        java.util.Map<Floor, java.util.List<fr.perrier.dungeons.common.workflow.trigger.TriggerData>> stash
-                = new java.util.IdentityHashMap<>();
+        Map<Floor, List<TriggerData>> stash
+                = new IdentityHashMap<>();
         if (dungeon.getFloors() != null) {
             for (Floor f : dungeon.getFloors()) {
                 if (f != null && f.getTriggers() != null) {
@@ -161,7 +161,7 @@ public class DungeonService {
         try {
             dungeonsMap.fastPut(dungeon.getId(), dungeon);
         } finally {
-            for (java.util.Map.Entry<Floor, java.util.List<fr.perrier.dungeons.common.workflow.trigger.TriggerData>> e
+            for (Map.Entry<Floor, List<TriggerData>> e
                     : stash.entrySet()) {
                 e.getKey().setTriggers(e.getValue());
             }

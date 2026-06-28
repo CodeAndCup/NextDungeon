@@ -503,7 +503,7 @@ async function loadDungeons() {
     try {
         const data = await API.getDungeons();
         if (!data.success) { el.innerHTML = `<div class="error-msg">Erreur: ${data.error}</div>`; return; }
-        dungeons = data.dungeons || [];
+        dungeons = (data.dungeons || []).sort((a, b) => (a.name || a.id).localeCompare(b.name || b.id, undefined, { sensitivity: 'base' }));
         renderDungeonsList(dungeons);
     } catch(e) { el.innerHTML = `<div class="error-msg">Erreur de connexion: ${e.message}</div>`; }
 }
