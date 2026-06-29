@@ -26,12 +26,14 @@ public final class MenuTitle {
 
     /** Title for a {@code rows}-high menu: {@code gui_base_<rows>} background + offset + name. */
     public static String ofRows(int rows, String legacyName) {
-        return of(baseGlyph(rows), legacyName);
+        return legacyName;
+        //return of(baseGlyph(rows), legacyName);
     }
 
     /** Title built from an explicit background glyph (e.g. {@link #LABYRINTH}). */
     public static String of(String glyph, String legacyName) {
-        return negativeSpace(OFFSET_X) + glyph + legacyName;
+        return legacyName;
+        //return negativeSpace(OFFSET_X) + glyph + legacyName;
     }
 
     /** {@code gui_base_<rows>} glyph: U+E400 = 1 row … U+E405 = 6 rows (clamped to that range). */

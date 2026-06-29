@@ -74,6 +74,7 @@ DatabaseConfiguration:
 
 InstanceSettings:
     loadingTimeout: 120  # Temps en secondes avant qu'une instance en chargement n'échoue
+    emptyShutdownTimeout: 120  # Temps en secondes sans aucun joueur avant que le serveur d'instance ne se ferme
 
 # ─────────────────────────────────────────────────────
 # ☁️  CONFIGURATION DU PROVIDER D'INSTANCES

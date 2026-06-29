@@ -409,6 +409,14 @@ public class TriggersRegistry implements Listener {
                         Main.getLoggerUtil().info("Invoking handler: " + handler.getClass().getSimpleName() + " for event: " + event.getEventName());
                     }
                     TriggerEventHandler<T> typedHandler = (TriggerEventHandler<T>) handler;
+                    // Ghost players (dead, awaiting revive) fly freely through the
+                    // instance and must not fire any player-bound trigger (block click,
+                    // item pickup, jump, region, damage, ...). Events with no associated
+                    // player (e.g. console commands) return null and are unaffected.
+                    Player subject = typedHandler.getPlayerFromEvent(event);
+                    if (subject != null && Main.getInstance().getGhostFactory().isGhost(subject)) {
+                        continue;
+                    }
                     typedHandler.handleEvent(event, triggers);
                 }
             }

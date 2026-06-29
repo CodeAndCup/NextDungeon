@@ -370,6 +370,10 @@ public class FloorInstance extends FloorInstanceData {
             player.sendMessage(ChatUtil.translate("&#D10000Enemies killed: &f" + playerStats.getEnemiesKilled()));
             player.sendMessage(ChatUtil.translate("&#D10000Deaths: &f" + playerStats.getDeaths()));
             player.sendMessage(ChatUtil.getBar());
+
+            if(Main.getInstance().getGhostFactory().isGhost(player)) {
+                Main.getInstance().getGhostFactory().removePlayer(player);
+            }
         }
 
         Bukkit.broadcastMessage(ChatUtil.translate(Main.getPrefix() + "&fThe dungeon instance &e" + getInstanceName() + " &fwill shut down in &#FF000030 &fseconds."));

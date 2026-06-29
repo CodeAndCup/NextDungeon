@@ -579,6 +579,7 @@ public final class Main extends JavaPlugin {
         PluginManager pluginManager = getServer().getPluginManager();
         pluginManager.registerEvents(new InstanceJoinListener(), this);
         pluginManager.registerEvents(new InstanceMobKillListener(), this);
+        pluginManager.registerEvents(new fr.perrier.dungeons.spigot.listener.dungeons.NaturalSpawnBlockListener(), this);
         pluginManager.registerEvents(new InstancePlayerDeathListener(), this);
         pluginManager.registerEvents(new ReviveItemListener(), this);
         pluginManager.registerEvents(new fr.perrier.dungeons.spigot.listener.dungeons.LootChestListener(), this);
@@ -638,6 +639,11 @@ public final class Main extends JavaPlugin {
             dungeonQueueService.registerInstance(info.getFloorId(), info.getInstanceId());
             getLogger().info(String.format("Registered instance %s with queue system", info.getInstanceId()));
         }
+
+        // Reclaim this cloud service once it has sat empty for too long — players
+        // all left, the run wiped, or nobody ever joined. Drops the Redis record
+        // and shuts the server down so CloudNet can tear the service back down.
+        new fr.perrier.dungeons.spigot.monitoring.EmptyInstanceWatchdog(this, info.getInstanceId()).start();
 
         // Schedule ready state
         putServerReady();

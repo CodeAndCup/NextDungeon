@@ -20,11 +20,15 @@ import lombok.Setter;
 import org.bukkit.*;
 import org.bukkit.craftbukkit.v1_21_R3.entity.CraftPlayer;
 import org.bukkit.entity.Display;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.projectiles.ProjectileSource;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.potion.PotionEffect;
@@ -106,6 +110,41 @@ public class InstancePlayerDeathListener implements Listener {
         // Run on the main thread (same pattern as InstanceJoinListener) so the backing maps
         // are never mutated concurrently with other instance listeners.
         Main.getInstance().getDungeonService().removePlayerFromInstanceState(player.getUniqueId());
+    }
+
+    /**
+     * Prevents ghost players (dead, awaiting revive) from dealing damage.
+     * Ghosts are invulnerable so they cannot be hit, but nothing stops them
+     * from hitting mobs or other players — this cancels any damage whose
+     * attacker is a ghost, covering both melee and projectiles they fired.
+     *
+     * @param event the entity-vs-entity damage event
+     */
+    @EventHandler(ignoreCancelled = true)
+    public void onGhostDealDamage(EntityDamageByEntityEvent event) {
+        Player attacker = resolveAttacker(event.getDamager());
+        if (attacker != null && Main.getInstance().getGhostFactory().isGhost(attacker)) {
+            event.setCancelled(true);
+        }
+    }
+
+    /**
+     * Resolves the player responsible for a damage source, if any.
+     *
+     * @param damager the entity that dealt the damage (a player or a projectile)
+     * @return the attacking player, or {@code null} if the source is not a player
+     */
+    private static Player resolveAttacker(Entity damager) {
+        if (damager instanceof Player player) {
+            return player;
+        }
+        if (damager instanceof Projectile projectile) {
+            ProjectileSource shooter = projectile.getShooter();
+            if (shooter instanceof Player player) {
+                return player;
+            }
+        }
+        return null;
     }
 
     /**

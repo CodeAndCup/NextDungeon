@@ -161,6 +161,9 @@ public class DoorController implements Listener {
         }
 
         Player p = event.getPlayer();
+        // Ghosts (dead players awaiting revive) fly freely across the labyrinth;
+        // only living players choose a door, so they must not fire a traversal.
+        if (Main.getInstance().getGhostFactory().isGhost(p)) return;
         LabyrinthRun run = runManager.findRunByPlayer(p.getUniqueId());
         if (run == null || run.getPendingChoice() == null) return;
         // Soft-lock during the Infinite lobby resume/new prompt (CDC §6.1) —
