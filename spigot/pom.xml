@@ -7,7 +7,7 @@
     <parent>
         <groupId>fr.perrier</groupId>
         <artifactId>NextDungeon</artifactId>
-        <version>1.0.4-SNAPSHOT</version>
+        <version>1.0.5-SNAPSHOT</version>
     </parent>
     <artifactId>NextDungeon-Spigot</artifactId>
     <packaging>jar</packaging>
@@ -379,7 +379,7 @@
         <dependency>
             <groupId>fr.perrier</groupId>
             <artifactId>NextDungeon-Common</artifactId>
-            <version>1.0.4-SNAPSHOT</version>
+            <version>1.0.5-SNAPSHOT</version>
         </dependency>
 
         <!-- Test Dependencies -->
