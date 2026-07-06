@@ -72,6 +72,7 @@ NextDungeon can load extra **modules** that add new triggers, actions, and condi
 |--------|------|
 | **Cinematic** | Scripted cinematics — camera paths, titles, sounds, screen effects |
 | **WorldEdit** | Region operations — set, cut, replace, and paste schematics |
+| **Memory Labyrinth** | A roguelike dungeon mode — random rooms, door choices, bosses, and endless runs |
 
 Module blocks appear in the editor automatically once the module is loaded. See the [Modules Overview](../modules/overview.md).
 

@@ -41,3 +41,8 @@
 * [Modules Overview](modules/overview.md)
 * [Cinematic Module](modules/cinematic.md)
 * [WorldEdit Module](modules/worldedit.md)
+* [Memory Labyrinth Module](modules/memory-labyrinth.md)
+
+## Legal
+
+* [License](legal/license.md)

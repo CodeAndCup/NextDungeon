@@ -29,6 +29,7 @@ When the server starts (or when you load one manually), each module registers it
 |--------|------|---------|
 | **Cinematic** | Camera cutscenes, titles, sounds, screen effects | [Cinematic Module](cinematic.md) |
 | **WorldEdit** | Region operations — set, cut, replace, copy, paste schematics | [WorldEdit Module](worldedit.md) |
+| **Memory Labyrinth** | A full roguelike dungeon mode — random rooms, door choices, bosses, and Infinite runs | [Memory Labyrinth Module](memory-labyrinth.md) |
 
 ---
 
