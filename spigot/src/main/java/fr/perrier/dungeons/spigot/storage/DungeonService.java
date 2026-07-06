@@ -706,6 +706,22 @@ public class DungeonService {
     }
 
     /**
+     * Checks whether the given player is a member of the floor instance hosted on <em>this</em>
+     * server. Membership is the roster passed at launch (the dungeon party / admin), not mere
+     * presence in the world: a player who reached the instance without going through the launch
+     * flow (e.g. a staff {@code /server} teleport) is absent from the roster. Reads only the local
+     * cached instance — never blocks on Redis.
+     *
+     * @param playerId the UUID of the player to check
+     * @return true if this server hosts an instance and the player belongs to it
+     */
+    public boolean isPlayerInCurrentInstance(UUID playerId) {
+        if (playerId == null) return false;
+        FloorInstanceData local = currentInstanceData.get();
+        return local != null && local.getPlayers() != null && local.getPlayers().contains(playerId);
+    }
+
+    /**
      * Checks whether the given player UUID is already part of any instance (local cached or in Redis).
      * Useful to prevent creating duplicate instances for the same players.
      *

@@ -47,12 +47,11 @@ public class InstanceJoinListener implements Listener {
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FFCC00Warning: You joined an instance that you were not part of. If you are seeing this message and you are not a part of the player or a staff member, please report this to the staff team as soon as possible."));
         } else {
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#00FF00You have joined the instance for floor " + floor.getName() + "."));
-            // Initialize player stats and lives if not already present
+            // Initialize player stats and lives if not already present. Required items are NOT
+            // consumed here — that now happens on the lobby at launch, before loading, so a player
+            // can't drop the item during loading to dodge the cost (see CrossServerValidationService).
             if(!instance.getPlayerStats().containsKey(player.getUniqueId())) {
                 instance.getPlayerStats().put(player.getUniqueId(), new PlayerStats(player.getUniqueId()));
-                // First join only: consume one of each required item (N-1). Guarded by the
-                // stats-init check so a reconnect into the same instance doesn't re-consume.
-                floor.consumeRequiredItems(player);
             }
             if(!instance.getPlayerCurrentLives().containsKey(player.getUniqueId())) {
                 instance.getPlayerCurrentLives().put(player.getUniqueId(), floor.getRules().getMaxLives());

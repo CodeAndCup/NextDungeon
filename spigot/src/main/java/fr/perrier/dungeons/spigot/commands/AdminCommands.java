@@ -50,7 +50,6 @@ public class AdminCommands {
         player.sendMessage(ChatUtil.getBar());
     }
 
-    // ======================= Edit Commands =======================
 
     @Command(
             names = {"dungeon admin edit start", "dungeons admin edit start", "nextdungeon admin edit start", "nextdungeons admin edit start", "nd admin edit start"},
@@ -223,8 +222,6 @@ public class AdminCommands {
         Main.getInstance().getWebEditorManager().stopWebEditor(player);
     }
 
-    // ======================= Utils Commands =======================
-
     @Command(names = {"dungeon admin list", "dungeons admin list", "nextdungeon admin list", "nextdungeons admin list", "nd admin list"},
             permission = "nextdungeon.admin")
     public static void onDungeonListCommand(CommandSender sender) {
@@ -305,8 +302,6 @@ public class AdminCommands {
         }
         player.sendMessage(ChatUtil.getBar());
     }
-
-    // ======================= Queue Commands =======================
 
     @Command(names = {"dungeon admin queue", "dungeons admin queue", "nextdungeon admin queue", "nextdungeons admin queue", "nd admin queue"}, permission = "nextdungeons.admin")
     public static void adminQueueCommand(Player player) {

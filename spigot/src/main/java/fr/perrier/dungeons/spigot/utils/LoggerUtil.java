@@ -25,7 +25,7 @@ import org.bukkit.Bukkit;
  * </ul>
  * <p>
  * <strong>Thread Safety:</strong> This class uses a simple singleton pattern without explicit
- * synchronization. For thread-safe initialization in multi-threaded environments, consider
+ * synchronization. For thread-safe initialization in multithreaded environments, consider
  * using eager initialization or synchronized access.
  * <p>
  * <strong>Usage Example:</strong>

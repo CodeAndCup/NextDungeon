@@ -45,8 +45,15 @@ public class RegionTrigger extends Trigger implements BlocklyTrigger {
     @BlocklyField(type = BlocklyField.FieldType.CHECKBOX, label = "Une seule fois:", order = 4)
     private boolean onlyOnce = false;
 
+    @BlocklyField(type = BlocklyField.FieldType.CHECKBOX, label = "Une seule fois (global):", order = 6)
+    private boolean onlyOnceGlobal = false;
+
     @BlocklyField(type = BlocklyField.FieldType.NUMBER_INPUT, label = "Cooldown (sec):", defaultValue = "0", order = 5)
     private int cooldownSeconds = 0;
+
+    // History key used for the instance-wide "once" gate (onlyOnceGlobal). Distinct from any
+    // player-UUID key so the two gates never collide.
+    private static final String GLOBAL_ONCE_KEY = "__global_once";
 
     private transient Map<String, Long> playerTriggerHistory;
 
@@ -108,6 +115,16 @@ public class RegionTrigger extends Trigger implements BlocklyTrigger {
             }
 
             playerTriggerHistory.put(playerId, System.currentTimeMillis());
+        }
+
+        // Global "once": fires a single time for the whole instance, regardless of which player
+        // triggered it. Takes precedence — once consumed, no other player can fire it.
+        if (onlyOnceGlobal) {
+            if (playerTriggerHistory.containsKey(GLOBAL_ONCE_KEY)) {
+                return false;
+            }
+
+            playerTriggerHistory.put(GLOBAL_ONCE_KEY, System.currentTimeMillis());
         }
 
         return executeActions(player, location, data);
@@ -222,6 +239,7 @@ public class RegionTrigger extends Trigger implements BlocklyTrigger {
         info.put("enabled", isEnabled());
         info.put("region_event", regionEvent);
         info.put("only_once", onlyOnce);
+        info.put("only_once_global", onlyOnceGlobal);
         info.put("cooldown_seconds", cooldownSeconds);
         info.put("world", worldName);
         info.put("region_bounds", String.format("(%,.1f,%,.1f,%,.1f) -> (%,.1f,%,.1f,%,.1f)",

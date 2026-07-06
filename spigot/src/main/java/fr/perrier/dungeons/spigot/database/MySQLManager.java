@@ -417,8 +417,6 @@ public class MySQLManager implements DatabaseManager {
         );
     }
 
-    // ==================== TRIGGER OPERATIONS ====================
-
     /**
      * Loads the triggers for a floor from the database.
      * @param floorId the floor ID

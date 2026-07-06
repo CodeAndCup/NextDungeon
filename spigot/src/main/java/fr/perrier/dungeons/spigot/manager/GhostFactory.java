@@ -25,11 +25,9 @@ public class GhostFactory {
     private static final String GHOST_TEAM_NAME = "Ghosts";
     private static final long UPDATE_DELAY = 20L;
 
-    // No players in the ghost factory
     private static final OfflinePlayer[] EMPTY_PLAYERS = new OfflinePlayer[0];
     private Team ghostTeam;
 
-    // Task that must be cleaned up
     private BukkitTask task;
     @Getter
     private boolean closed;
@@ -55,7 +53,6 @@ public class GhostFactory {
     private void createTask() {
         task = Bukkit.getScheduler().runTaskTimer(Main.getInstance(), () -> {
             OfflinePlayer[] members = getMembers();
-            if (members.length == 0) return;
             for (OfflinePlayer member : members) {
                 Player player = member.getPlayer();
 
@@ -156,7 +153,6 @@ public class GhostFactory {
         if (!closed) {
             closed = true;
 
-            // Remove every players
             if(ghostTeam != null) {
                 Set<OfflinePlayer> members = new HashSet<>(ghostTeam.getPlayers());
                 for (OfflinePlayer member : members) {
@@ -167,13 +163,11 @@ public class GhostFactory {
                 }
             }
 
-            // Cancel task
             if (task != null) {
                 task.cancel();
                 task = null;
             }
 
-            // Unregister team
             if (ghostTeam != null) {
                 ghostTeam.unregister();
                 ghostTeam = null;

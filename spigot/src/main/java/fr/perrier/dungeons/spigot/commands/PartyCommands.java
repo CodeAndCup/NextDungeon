@@ -47,8 +47,6 @@ public class PartyCommands {
         }
     }
 
-    // ==================== help ====================
-
     @Command(names = {"dungeon party","dungeons party","nextdungeon party","nextdungeons party","nd party"})
     public static void onParty(CommandSender sender) {
         if (notAPlayer(sender)) return;
@@ -76,8 +74,6 @@ public class PartyCommands {
         onParty(sender);
     }
 
-    // ==================== create ====================
-
     @Command(names = {"dungeon party create","dungeons party create","nextdungeon party create","nextdungeons party create","nd party create"})
     public static void onCreate(CommandSender sender,
                                 @Param(name = "name", wildcard = true, baseValue = NAME_SENTINEL) String name) {
@@ -99,8 +95,6 @@ public class PartyCommands {
         }
         player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&fParty &e" + partyName + " &fcreated. Use &e/party invite <player> &fto add members."));
     }
-
-    // ==================== invite ====================
 
     @Command(names = {"dungeon party invite","dungeons party invite","nextdungeon party invite","nextdungeons party invite","nd party invite"})
     public static void onInvite(CommandSender sender, @Param(name = "Player") String targetName) {
@@ -147,8 +141,6 @@ public class PartyCommands {
                 + " &finvited you to &e" + party.getName() + "&f. Use &a/party accept &for &c/party deny&f (60s)."));
     }
 
-    // ==================== accept ====================
-
     @Command(names = {"dungeon party accept","dungeons party accept","nextdungeon party accept","nextdungeons party accept","nd party accept"})
     public static void onAccept(CommandSender sender) {
         if (notAPlayer(sender)) return;
@@ -185,8 +177,6 @@ public class PartyCommands {
         broadcast(party, "&e" + player.getName() + " &fjoined the party.", player.getUniqueId());
     }
 
-    // ==================== deny ====================
-
     @Command(names = {"dungeon party deny","dungeons party deny","nextdungeon party deny","nextdungeons party deny","nd party deny"})
     public static void onDeny(CommandSender sender) {
         if (notAPlayer(sender)) return;
@@ -204,8 +194,6 @@ public class PartyCommands {
             inviter.sendMessage(ChatUtil.translate(Main.getPrefix() + "&e" + player.getName() + " &fdeclined your party invite."));
         }
     }
-
-    // ==================== leave ====================
 
     @Command(names = {"dungeon party leave","dungeons party leave","nextdungeon party leave","nextdungeons party leave","nd party leave"})
     public static void onLeave(CommandSender sender) {
@@ -248,8 +236,6 @@ public class PartyCommands {
         broadcast(party, "&e" + player.getName() + " &fleft the party.", null);
     }
 
-    // ==================== kick ====================
-
     @Command(names = {"dungeon party kick","dungeons party kick","nextdungeon party kick","nextdungeons party kick","nd party kick"})
     public static void onKick(CommandSender sender, @Param(name = "Player") String targetName) {
         if (notAPlayer(sender)) return;
@@ -288,8 +274,6 @@ public class PartyCommands {
         broadcast(party, "&e" + nameOf(targetId) + " &fwas kicked from the party.", null);
     }
 
-    // ==================== promote ====================
-
     @Command(names = {"dungeon party promote","dungeons party promote","nextdungeon party promote","nextdungeons party promote","nd party promote"})
     public static void onPromote(CommandSender sender, @Param(name = "Player") String targetName) {
         if (notAPlayer(sender)) return;
@@ -323,8 +307,6 @@ public class PartyCommands {
         }
     }
 
-    // ==================== disband ====================
-
     @Command(names = {"dungeon party disband","dungeons party disband","nextdungeon party disband","nextdungeons party disband","nd party disband"})
     public static void onDisband(CommandSender sender) {
         if (notAPlayer(sender)) return;
@@ -347,8 +329,6 @@ public class PartyCommands {
         party.disband();
         player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&fParty disbanded."));
     }
-
-    // ==================== info ====================
 
     @Command(names = {"dungeon party info","dungeons party info","nextdungeon party info","nextdungeons party info","nd party info",
             "dungeon party list","dungeons party list","nextdungeon party list","nextdungeons party list","nd party list"})
@@ -378,8 +358,6 @@ public class PartyCommands {
         sender.sendMessage("");
         sender.sendMessage(ChatUtil.getBar());
     }
-
-    // ==================== helpers ====================
 
     /**
      * Returns the {@link PartyService} if the internal provider is active,

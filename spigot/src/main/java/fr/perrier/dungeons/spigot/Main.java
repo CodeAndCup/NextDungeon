@@ -35,11 +35,13 @@ import fr.perrier.dungeons.spigot.listener.global.GlobalPartyListener;
 import fr.perrier.dungeons.spigot.manager.GhostFactory;
 import fr.perrier.dungeons.spigot.messaging.packets.CancelInstancePacket;
 import fr.perrier.dungeons.spigot.messaging.packets.CrossServerSendToInstancePacket;
+import fr.perrier.dungeons.spigot.messaging.packets.ConsumeRequirementsRequestPacket;
 import fr.perrier.dungeons.spigot.messaging.packets.DungeonPartyJoinRequestPacket;
 import fr.perrier.dungeons.spigot.messaging.packets.ValidateRequirementsRequestPacket;
 import fr.perrier.dungeons.spigot.messaging.packets.ValidateRequirementsResponsePacket;
 import fr.perrier.dungeons.spigot.messaging.subscribers.CancelInstanceSubscriber;
 import fr.perrier.dungeons.spigot.messaging.subscribers.CrossServerSendToInstanceSubscriber;
+import fr.perrier.dungeons.spigot.messaging.subscribers.ConsumeRequirementsRequestSubscriber;
 import fr.perrier.dungeons.spigot.messaging.subscribers.DungeonPartyJoinRequestSubscriber;
 import fr.perrier.dungeons.spigot.messaging.subscribers.ValidateRequirementsRequestSubscriber;
 import fr.perrier.dungeons.spigot.messaging.subscribers.ValidateRequirementsResponseSubscriber;
@@ -281,6 +283,7 @@ public final class Main extends JavaPlugin {
         this.messaging.registerAdapter(DungeonPartyJoinRequestPacket.class, new DungeonPartyJoinRequestSubscriber());
         this.messaging.registerAdapter(ValidateRequirementsRequestPacket.class, new ValidateRequirementsRequestSubscriber());
         this.messaging.registerAdapter(ValidateRequirementsResponsePacket.class, new ValidateRequirementsResponseSubscriber());
+        this.messaging.registerAdapter(ConsumeRequirementsRequestPacket.class, new ConsumeRequirementsRequestSubscriber());
         this.messaging.registerAdapter(CrossServerSendToInstancePacket.class, new CrossServerSendToInstanceSubscriber());
 
         // Cross-server validation service — shared between lobbies and instance servers; the

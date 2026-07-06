@@ -31,7 +31,6 @@ public class PartyFilterMenu extends GlassMenu {
 
     @Override
     public String getTitle(Player player) {
-        // Buttons cap the layout at slot 22, giving a 3-row inventory.
         return MenuTitle.ofRows(3, "&#8B0000&l" + ChatUtil.toSmallCaps("search settings"));
     }
 

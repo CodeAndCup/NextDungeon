@@ -474,6 +474,11 @@ public class DungeonManagementService {
                 requirementsObject.getAsJsonArray("requiredItems").forEach(e -> requiredItemsList.add(e.getAsString()));
                 req.setRequiredItems(requiredItemsList);
             }
+            if (requirementsObject.has("nonConsumedItems") && requirementsObject.get("nonConsumedItems").isJsonArray()) {
+                List<String> nonConsumedItemsList = new ArrayList<>();
+                requirementsObject.getAsJsonArray("nonConsumedItems").forEach(e -> nonConsumedItemsList.add(e.getAsString()));
+                req.setNonConsumedItems(nonConsumedItemsList);
+            }
             if (requirementsObject.has("forbiddenItems") && requirementsObject.get("forbiddenItems").isJsonArray()) {
                 List<String> forbiddenItemsList = new ArrayList<>();
                 requirementsObject.getAsJsonArray("forbiddenItems").forEach(e -> forbiddenItemsList.add(e.getAsString()));
@@ -619,6 +624,12 @@ public class DungeonManagementService {
                 requirements.getRequiredItems().forEach(requirementsItemsArray::add);
             }
             requirementsObject.add("requiredItems", requirementsItemsArray);
+
+            JsonArray nonConsumedItemsArray = new JsonArray();
+            if (requirements.getNonConsumedItems() != null) {
+                requirements.getNonConsumedItems().forEach(nonConsumedItemsArray::add);
+            }
+            requirementsObject.add("nonConsumedItems", nonConsumedItemsArray);
 
             JsonArray forbiddenItemsArray = new JsonArray();
             if (requirements.getForbiddenItems() != null) {

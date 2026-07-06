@@ -271,10 +271,6 @@ public class RedisConfigLoader {
         }
     }
 
-    // =========================================================
-    //  Helpers
-    // =========================================================
-
     /** Extrait le dungeonId depuis un floorId de format "dungeonId_floorRawId". */
     public static String extractDungeonId(String floorId) {
         int idx = floorId.lastIndexOf("_");

@@ -409,13 +409,23 @@ public class TriggersRegistry implements Listener {
                         Main.getLoggerUtil().info("Invoking handler: " + handler.getClass().getSimpleName() + " for event: " + event.getEventName());
                     }
                     TriggerEventHandler<T> typedHandler = (TriggerEventHandler<T>) handler;
-                    // Ghost players (dead, awaiting revive) fly freely through the
-                    // instance and must not fire any player-bound trigger (block click,
-                    // item pickup, jump, region, damage, ...). Events with no associated
-                    // player (e.g. console commands) return null and are unaffected.
+                    // Events with no associated player (e.g. console commands) return null here
+                    // and are server-driven, so they bypass the player-bound gates below.
                     Player subject = typedHandler.getPlayerFromEvent(event);
-                    if (subject != null && Main.getInstance().getGhostFactory().isGhost(subject)) {
-                        continue;
+                    if (subject != null) {
+                        // Ghost players (dead, awaiting revive) fly freely through the
+                        // instance and must not fire any player-bound trigger (block click,
+                        // item pickup, jump, region, damage, ...).
+                        if (Main.getInstance().getGhostFactory().isGhost(subject)) {
+                            continue;
+                        }
+                        // Only players on this server's instance roster may drive its triggers.
+                        // Someone who reached the instance world without going through the dungeon
+                        // launch (e.g. a staff /server teleport) is absent from the roster and must
+                        // not be able to fire floor triggers.
+                        if (!Main.getInstance().getDungeonService().isPlayerInCurrentInstance(subject.getUniqueId())) {
+                            continue;
+                        }
                     }
                     typedHandler.handleEvent(event, triggers);
                 }

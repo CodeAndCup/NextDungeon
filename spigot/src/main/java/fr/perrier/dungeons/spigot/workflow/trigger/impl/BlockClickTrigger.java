@@ -62,7 +62,15 @@ public class BlockClickTrigger extends Trigger implements BlocklyTrigger {
             defaultValue = "false", order = 9)
     private boolean onlyOnce = false;
 
+    @BlocklyField(type = BlocklyField.FieldType.CHECKBOX, label = "Une seule fois (global):",
+            defaultValue = "false", order = 10)
+    private boolean onlyOnceGlobal = false;
+
     private transient Map<String, Long> playerTriggerHistory;
+
+    // History key used for the instance-wide "once" gate (onlyOnceGlobal). Distinct from any
+    // player-UUID key so the two gates never collide.
+    private static final String GLOBAL_ONCE_KEY = "__global_once";
 
     public BlockClickTrigger() {
         super("Block Click Trigger");
@@ -72,6 +80,7 @@ public class BlockClickTrigger extends Trigger implements BlocklyTrigger {
         this.locationBlock = new LocationBlock(0, 64, 0, "world");
         this.exactPositionOnly = false;
         this.onlyOnce = false;
+        this.onlyOnceGlobal = false;
         this.playerTriggerHistory = new HashMap<>();
     }
 
@@ -83,6 +92,7 @@ public class BlockClickTrigger extends Trigger implements BlocklyTrigger {
         this.locationBlock = new LocationBlock(0, 64, 0, "world");
         this.exactPositionOnly = false;
         this.onlyOnce = false;
+        this.onlyOnceGlobal = false;
         this.playerTriggerHistory = new HashMap<>();
     }
 
@@ -106,6 +116,15 @@ public class BlockClickTrigger extends Trigger implements BlocklyTrigger {
                 return false;
             }
             playerTriggerHistory.put(playerId, System.currentTimeMillis());
+        }
+
+        // Global "once": fires a single time for the whole instance, regardless of which player
+        // triggered it. Takes precedence — once consumed, no other player can fire it.
+        if (onlyOnceGlobal) {
+            if (playerTriggerHistory.containsKey(GLOBAL_ONCE_KEY)) {
+                return false;
+            }
+            playerTriggerHistory.put(GLOBAL_ONCE_KEY, System.currentTimeMillis());
         }
 
         // Exécuter les actions associées

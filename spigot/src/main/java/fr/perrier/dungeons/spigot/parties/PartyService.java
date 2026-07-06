@@ -116,8 +116,6 @@ public class PartyService {
         return activeProvider.getName();
     }
 
-    // ==================== Delegate methods ====================
-
     /**
      * Creates a new party with the given leader.
      *

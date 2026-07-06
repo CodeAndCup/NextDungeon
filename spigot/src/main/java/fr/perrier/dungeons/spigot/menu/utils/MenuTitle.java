@@ -38,7 +38,7 @@ public final class MenuTitle {
 
     /** {@code gui_base_<rows>} glyph: U+E400 = 1 row … U+E405 = 6 rows (clamped to that range). */
     public static String baseGlyph(int rows) {
-        int clamped = Math.max(1, Math.min(6, rows));
+        int clamped = Math.clamp(rows, 1, 6);
         return String.valueOf((char) (0xE400 + clamped - 1));
     }
 

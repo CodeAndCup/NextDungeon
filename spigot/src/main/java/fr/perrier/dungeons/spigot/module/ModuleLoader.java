@@ -25,11 +25,6 @@ public class ModuleLoader {
 
     private final Logger logger;
     private final File modulesDirectory;
-    /**
-     * -- GETTER --
-     *
-     * @return the shared block registry
-     */
     @Getter
     private final DefaultModuleBlockRegistry blockRegistry;
     private final Map<String, NextDungeonModule> loadedModules = new ConcurrentHashMap<>();

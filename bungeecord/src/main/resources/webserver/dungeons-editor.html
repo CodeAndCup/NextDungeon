@@ -436,6 +436,8 @@ let currentDungeon = null; // { id, name, description, floors }
 let isEditMode = false;
 let stepsData = []; // for modal
 let modalListData = { 'req-floors-list': [], 'remove-completion-list': [], 'req-items-list': [], 'req-forbidden-list': [] };
+// Per required-item consume flag: item id -> bool. Absent/true = consumed at launch (historical default).
+let reqItemConsume = {};
 
 // ============================================================
 //  API
@@ -654,6 +656,7 @@ function renderFloorsList() {
 function resetFloorModal() {
     stepsData = [];
     for (const k in modalListData) modalListData[k] = [];
+    reqItemConsume = {};
     ['req-floors-list','remove-completion-list','req-items-list','req-forbidden-list','steps-list'].forEach(id => { const el=document.getElementById(id); if(el) el.innerHTML=''; });
     document.getElementById('floor-id').value = '';
     document.getElementById('floor-id').disabled = false;
@@ -724,6 +727,7 @@ function editFloor(fullFloorId) {
         }
          (floor.requirements.requiredFloorsId || []).forEach(v => addToList('req-floors-list', v));
          (floor.requirements.removeCompletion || []).forEach(v => addToList('remove-completion-list', v));
+         (floor.requirements.nonConsumedItems || []).forEach(v => { reqItemConsume[v] = false; });
          (floor.requirements.requiredItems || []).forEach(v => addToList('req-items-list', v));
         (floor.requirements.forbiddenItems || []).forEach(v => addToList('req-forbidden-list', v));
     }
@@ -773,6 +777,7 @@ async function saveFloor() {
             requiredFloorsId: getListData('req-floors-list'),
             removeCompletion: getListData('remove-completion-list'),
             requiredItems: getListData('req-items-list'),
+            nonConsumedItems: getListData('req-items-list').filter(v => reqItemConsume[v] === false),
             forbiddenItems: getListData('req-forbidden-list')
         },
         rules: {
@@ -890,6 +895,7 @@ function addToList(listId, value) {
 function removeFromList(listId, value) {
     if (!modalListData[listId]) return;
     modalListData[listId] = modalListData[listId].filter(v => v !== value);
+    if (listId === 'req-items-list') delete reqItemConsume[value];
     renderList(listId);
 }
 
@@ -897,10 +903,28 @@ function renderList(listId) {
     const el = document.getElementById(listId);
     if (!el) return;
     const items = modalListData[listId] || [];
+    if (listId === 'req-items-list') {
+        el.innerHTML = items.map(v => {
+            const consumed = reqItemConsume[v] !== false; // default: consumed
+            return `<div class="list-item" style="padding:8px 12px;">
+        <span>${v}</span>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.85em;margin-left:auto;">
+            <input type="checkbox" ${consumed ? 'checked' : ''} onchange="setReqItemConsume('${escapeHtml(v)}', this.checked)" style="width:14px;height:14px;cursor:pointer;">
+            Consommé
+        </label>
+        <button class="btn btn-danger btn-sm" onclick="removeFromList('${listId}','${escapeHtml(v)}')">×</button>
+    </div>`;
+        }).join('');
+        return;
+    }
     el.innerHTML = items.map(v => `<div class="list-item" style="padding:8px 12px;">
         <span>${v}</span>
         <button class="btn btn-danger btn-sm" onclick="removeFromList('${listId}','${escapeHtml(v)}')">×</button>
     </div>`).join('');
+}
+
+function setReqItemConsume(value, checked) {
+    reqItemConsume[value] = checked;
 }
 
 function getListData(listId) {

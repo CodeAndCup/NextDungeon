@@ -159,8 +159,14 @@ public class DungeonGateMenu extends GlassMenu {
                     }
 
                     Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
+                        // Consume the required items now — on the lobby, before any instance loading —
+                        // so a member can't drop the item during provisioning to dodge the cost.
+                        Map<UUID, List<ItemStack>> consumedItems =
+                                CrossServerValidationService.consumeForAllMembers(floor, memberIds);
                         FloorInstance.generateNewInstanceAsync(floor.getId(), memberIds, false, floorInstance -> {
                             if (floorInstance == null) {
+                                // Launch aborted after consumption: refund the local members.
+                                CrossServerValidationService.refundLocalMembers(consumedItems);
                                 launchingLeaders.remove(leaderId);
                                 player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Failed to create the dungeon instance. Please try again."));
                                 return;

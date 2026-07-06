@@ -12,12 +12,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -50,11 +45,6 @@ public class LootChestManager {
     private final Map<String, LootChest> chests = new ConcurrentHashMap<>();
 
     private LootChestManager() {
-    }
-
-    public enum LootMode {
-        GLOBAL,
-        PER_PLAYER
     }
 
     /**
@@ -116,8 +106,8 @@ public class LootChestManager {
         if (saved != null) {
             inv.setContents(saved);
         } else {
-            for (ItemStack item : chest.loot) inv.addItem(item.clone());
-            // Mark as opened with a fresh snapshot so even an immediate close persists.
+            for (ItemStack item : chest.loot)
+                inv.addItem(item.clone());
             chest.perPlayerContents.put(player.getUniqueId(), inv.getContents());
         }
         player.openInventory(inv);
@@ -141,7 +131,6 @@ public class LootChestManager {
         chests.clear();
     }
 
-    // ── parsing ──────────────────────────────────────────────
 
     private List<ItemStack> parseLoot(String spec) {
         List<ItemStack> out = new ArrayList<>();
@@ -161,8 +150,8 @@ public class LootChestManager {
                 Main.getLoggerUtil().warning("[LootChest] Unknown material in loot spec: '" + matName + "'");
                 continue;
             }
-            qty = Math.max(1, Math.min(qty, mat.getMaxStackSize() * 9)); // cap to a chest-ish amount
-            // Split into stacks respecting max stack size.
+            qty = Math.clamp(qty, 1, mat.getMaxStackSize() * 9);
+
             int remaining = qty;
             int max = Math.max(1, mat.getMaxStackSize());
             while (remaining > 0) {
@@ -190,7 +179,7 @@ public class LootChestManager {
     }
 
     private static String blockKey(Location loc) {
-        return loc.getWorld().getName() + ":" + loc.getBlockX() + ":" + loc.getBlockY() + ":" + loc.getBlockZ();
+        return Objects.requireNonNull(loc.getWorld()).getName() + ":" + loc.getBlockX() + ":" + loc.getBlockY() + ":" + loc.getBlockZ();
     }
 
     /**

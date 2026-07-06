@@ -109,8 +109,6 @@ public class MongoManager implements DatabaseManager {
         throw new UnsupportedOperationException("Not implemented yet");
     }
 
-    // ==================== TRIGGER OPERATIONS ====================
-
     /**
      * Loads the triggers for a floor from MongoDB.
      * @param floorId the floor ID
@@ -208,8 +206,6 @@ public class MongoManager implements DatabaseManager {
         });
     }
 
-    // ===== Cinematic CRUD (MongoDB) =====
-
     @Override
     public CompletableFuture<String> loadCinematic(String cinematicId) {
         return CompletableFuture.supplyAsync(() -> {
@@ -277,8 +273,6 @@ public class MongoManager implements DatabaseManager {
             return result;
         });
     }
-
-    // ===== Workflow CRUD (MongoDB) =====
 
     @Override
     public CompletableFuture<String> loadWorkflow(String workflowId) {
@@ -438,8 +432,6 @@ public class MongoManager implements DatabaseManager {
         });
     }
 
-    // ===== Versioned Floor operations =====
-
     private static final int SAVE_FLOOR_RETRIES = 3;
     private static final long[] SAVE_FLOOR_BACKOFF_MS = {500L, 1000L, 2000L};
 
@@ -553,8 +545,6 @@ public class MongoManager implements DatabaseManager {
             return result;
         });
     }
-
-    // ===== Memory Labyrinth: Infinite saves =====
 
     @Override
     public CompletableFuture<String> loadLabyrinthSave(String saveId) {

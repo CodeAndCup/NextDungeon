@@ -30,7 +30,6 @@ public class GlobalPartyListener implements Listener {
                 member.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Your party has been removed from the party finder!"));
         });
 
-        // Get the registered DungeonPartyImpl (if any) and unregister it so it removes the real entry
         DungeonPartyImpl dp = DungeonPartyImpl.getDungeonPartyOf(party.getLeader());
         if (dp != null) {
             dp.disband();

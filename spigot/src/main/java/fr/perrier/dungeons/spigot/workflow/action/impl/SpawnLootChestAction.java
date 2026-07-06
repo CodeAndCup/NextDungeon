@@ -2,6 +2,7 @@ package fr.perrier.dungeons.spigot.workflow.action.impl;
 
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.loot.LootChestManager;
+import fr.perrier.dungeons.spigot.loot.LootMode;
 import fr.perrier.dungeons.spigot.webeditor.blockly.BlocklyAction;
 import fr.perrier.dungeons.spigot.webeditor.blockly.annotations.BlocklyField;
 import fr.perrier.dungeons.spigot.webeditor.blockly.annotations.BlocklyInfo;
@@ -89,11 +90,11 @@ public class SpawnLootChestAction extends Action implements BlocklyAction {
             material = Material.CHEST;
         }
 
-        LootChestManager.LootMode mode;
+        LootMode mode;
         try {
-            mode = LootChestManager.LootMode.valueOf((lootMode == null ? "GLOBAL" : lootMode).toUpperCase(Locale.ROOT));
+            mode = LootMode.valueOf((lootMode == null ? "GLOBAL" : lootMode).toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
-            mode = LootChestManager.LootMode.GLOBAL;
+            mode = LootMode.GLOBAL;
         }
 
         return LootChestManager.get().placeChest(target, material, mode, loot);

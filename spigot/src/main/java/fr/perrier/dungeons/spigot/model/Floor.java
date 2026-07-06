@@ -15,7 +15,9 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 @Getter
@@ -238,25 +240,40 @@ public class Floor extends FloorData {
     /**
      * Consomme un exemplaire (N-1) de chaque item requis dans l'inventaire du joueur.
      *
-     * <p>Appelé une fois le joueur effectivement entré dans le donjon : les requirements ayant
-     * déjà été validés au lancement, on retire ici une unité de chacun des {@code requiredItems}
-     * (matché par ID MMOItems ou displayname via {@link #itemMatches}). Si un item requis a une
-     * pile {@code > 1}, seule une unité est décrémentée ; sinon la pile est entièrement retirée.
-     * Doit être exécuté sur le thread principal (accès inventaire Bukkit).</p>
+     * <p>Appelé au lancement du donjon, côté lobby, avant tout chargement de l'instance : les
+     * requirements ayant déjà été validés, on retire ici une unité de chacun des
+     * {@code requiredItems} (matché par ID MMOItems ou displayname via {@link #itemMatches}). Si
+     * un item requis a une pile {@code > 1}, seule une unité est décrémentée ; sinon la pile est
+     * entièrement retirée. Doit être exécuté sur le thread principal (accès inventaire Bukkit).</p>
+     *
+     * <p>Chaque unité retirée est clonée et renvoyée : si le lancement est abandonné après la
+     * consommation (échec de création de l'instance), l'appelant peut rendre ces items au joueur.</p>
      *
      * @param player le joueur dont on décrémente les items requis (no-op si null)
+     * @return la liste des unités retirées (clones, quantité 1) pour un éventuel remboursement
      */
-    public void consumeRequiredItems(Player player) {
-        if (player == null || this.getRequirements() == null) return;
+    public List<ItemStack> consumeRequiredItems(Player player) {
+        List<ItemStack> removed = new ArrayList<>();
+        if (player == null || this.getRequirements() == null) return removed;
 
-        java.util.List<String> requiredItems = this.getRequirements().getRequiredItems();
-        if (requiredItems == null || requiredItems.isEmpty()) return;
+        List<String> requiredItems = this.getRequirements().getRequiredItems();
+        if (requiredItems == null || requiredItems.isEmpty()) return removed;
+
+        // Items flagged as non-consumable on the web panel are a pure "must have it" check —
+        // validated but kept in the inventory. Everything else keeps the historical behaviour.
+        List<String> nonConsumed = this.getRequirements().getNonConsumedItems();
 
         ItemStack[] contents = player.getInventory().getContents();
         for (String requiredItem : requiredItems) {
+            if (nonConsumed != null && nonConsumed.contains(requiredItem)) continue;
             for (int i = 0; i < contents.length; i++) {
                 ItemStack itemStack = contents[i];
                 if (!itemMatches(itemStack, requiredItem)) continue;
+
+                // Snapshot d'une unité (pour remboursement si le lancement échoue ensuite).
+                ItemStack refundUnit = itemStack.clone();
+                refundUnit.setAmount(1);
+                removed.add(refundUnit);
 
                 int amount = itemStack.getAmount();
                 if (amount <= 1) {
@@ -269,6 +286,7 @@ public class Floor extends FloorData {
             }
         }
         player.updateInventory();
+        return removed;
     }
 
 

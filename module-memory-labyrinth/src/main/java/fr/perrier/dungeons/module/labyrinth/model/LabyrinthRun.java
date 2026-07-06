@@ -118,10 +118,8 @@ public class LabyrinthRun {
      * join, so the prompt would otherwise be built while the leader is still
      * offline and silently dropped. In-memory only.
      */
-    private java.util.List<LabyrinthSave> pendingResumeSaves = new java.util.ArrayList<>();
+    private List<LabyrinthSave> pendingResumeSaves = new ArrayList<>();
 
-    // ===== v2 procedural paste (R6) =====
-    //
     // Rooms live as static geometry in a template world. The runtime COPIES
     // each room into the instance world at a running offset so multiple
     // visits + multiple instances never collide. These fields drive that

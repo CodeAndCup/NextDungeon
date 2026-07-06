@@ -23,6 +23,7 @@ import org.bukkit.inventory.ItemStack;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class PartyBuilderMenu extends GlassMenu {
     private final Menu oldMenu;
@@ -35,15 +36,13 @@ public class PartyBuilderMenu extends GlassMenu {
         this.oldMenu = oldMenu;
         this.dungeonId = dungeonId;
 
-        // Set by default the first floor of the dungeon
         this.floorId = Dungeon.getDungeon(dungeonId).getFloors().getFirst().getId();
 
-        this.minLevel = Floor.getFloor(floorId).getRequirements().getMinLevel();
+        this.minLevel = Objects.requireNonNull(Floor.getFloor(floorId)).getRequirements().getMinLevel();
     }
 
     @Override
     public String getTitle(Player player) {
-        // Buttons cap the layout at slot 32, giving a 4-row inventory.
         return MenuTitle.ofRows(4, "&#8B0000&l" + ChatUtil.toSmallCaps("party builder"));
     }
 
@@ -141,7 +140,7 @@ public class PartyBuilderMenu extends GlassMenu {
                                 player.sendRawMessage(ChatUtil.translate("&#FF0000You can not have a negative minimum player level."));
                                 return;
                             }
-                            if (minLevelInt < Floor.getFloor(floorId).getRequirements().getMinLevel()) {
+                            if (minLevelInt < Objects.requireNonNull(Floor.getFloor(floorId)).getRequirements().getMinLevel()) {
                                 player.sendRawMessage(ChatUtil.translate("&#FF0000You can not have a minimum player level lower than the floor minimum level: &f" + Floor.getFloor(floorId).getRequirements().getMinLevel()));
                                 return;
                             }
@@ -253,7 +252,6 @@ public class PartyBuilderMenu extends GlassMenu {
 
         @Override
         public String getTitle(Player player) {
-            // Back button sits at slot 40 (<=5 floors) or 49 (>5), giving a 5- or 6-row inventory.
             int rows = dungeon.getFloors().size() <= 5 ? 5 : 6;
             return MenuTitle.ofRows(rows, "&#8B0000&l" + ChatUtil.toSmallCaps("select a floor"));
         }

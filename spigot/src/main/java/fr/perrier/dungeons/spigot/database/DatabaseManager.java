@@ -84,8 +84,6 @@ public interface DatabaseManager {
 
     <T> CompletableFuture<T> handleAsyncOperation(CompletableFuture<T> future, String operationName);
 
-    // ===== Memory Labyrinth: Infinite saves =====
-
     /**
      * Loads a save by primary key. Returns the JSON or {@code null}.
      */

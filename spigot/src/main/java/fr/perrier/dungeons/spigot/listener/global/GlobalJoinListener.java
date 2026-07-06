@@ -22,12 +22,9 @@ public class GlobalJoinListener implements Listener {
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
 
-        // Check if we have cached profile data for this player
         if(Main.getInstance().getProfileService().hasCachedProfileData(player.getUniqueId())) {
-            // Player is switching server so we send a packet to notify other servers and avoid saving profile data in db
             Main.getInstance().getMessaging().sendPacket(new PlayerSwitchServerPacket(event.getPlayer().getUniqueId()));
         } else {
-            // Load profile data from database and cache it
             ProfileData profileData = Main.getInstance().getProfileService().getProfileData(player.getUniqueId());
             if(profileData.getDisplayName().isEmpty()) {
                 profileData.setDisplayName(player.getName());

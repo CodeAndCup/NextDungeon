@@ -403,6 +403,7 @@ public class DungeonManagementService {
             if (r.has("requiredFloorsId") && r.get("requiredFloorsId").isJsonArray()) { List<String> l=new ArrayList<>(); r.getAsJsonArray("requiredFloorsId").forEach(e->l.add(e.getAsString())); req.setRequiredFloorsId(l); }
             if (r.has("removeCompletion") && r.get("removeCompletion").isJsonArray()) { List<String> l=new ArrayList<>(); r.getAsJsonArray("removeCompletion").forEach(e->l.add(e.getAsString())); req.setRemoveCompletion(l); }
             if (r.has("requiredItems")    && r.get("requiredItems").isJsonArray())    { List<String> l=new ArrayList<>(); r.getAsJsonArray("requiredItems").forEach(e->l.add(e.getAsString())); req.setRequiredItems(l); }
+            if (r.has("nonConsumedItems") && r.get("nonConsumedItems").isJsonArray()) { List<String> l=new ArrayList<>(); r.getAsJsonArray("nonConsumedItems").forEach(e->l.add(e.getAsString())); req.setNonConsumedItems(l); }
             if (r.has("forbiddenItems")   && r.get("forbiddenItems").isJsonArray())   { List<String> l=new ArrayList<>(); r.getAsJsonArray("forbiddenItems").forEach(e->l.add(e.getAsString())); req.setForbiddenItems(l); }
             if (r.has("party") && !r.get("party").isJsonNull()) {
                 JsonObject p = r.getAsJsonObject("party");
@@ -509,6 +510,7 @@ public class DungeonManagementService {
             JsonArray rfi=new JsonArray(); if(r.getRequiredFloorsId()!=null) r.getRequiredFloorsId().forEach(rfi::add); rj.add("requiredFloorsId",rfi);
             JsonArray rmc=new JsonArray(); if(r.getRemoveCompletion()!=null) r.getRemoveCompletion().forEach(rmc::add); rj.add("removeCompletion",rmc);
             JsonArray ri=new JsonArray();  if(r.getRequiredItems()!=null) r.getRequiredItems().forEach(ri::add); rj.add("requiredItems",ri);
+            JsonArray nci=new JsonArray(); if(r.getNonConsumedItems()!=null) r.getNonConsumedItems().forEach(nci::add); rj.add("nonConsumedItems",nci);
             JsonArray fi=new JsonArray();  if(r.getForbiddenItems()!=null) r.getForbiddenItems().forEach(fi::add); rj.add("forbiddenItems",fi);
             if (r.getPartyRequirements()!=null) { JsonObject p=new JsonObject(); p.addProperty("minSize",r.getPartyRequirements().getMinSize()); p.addProperty("maxSize",r.getPartyRequirements().getMaxSize()); rj.add("party",p); }
             obj.add("requirements", rj);

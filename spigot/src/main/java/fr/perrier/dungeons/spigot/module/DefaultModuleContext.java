@@ -46,7 +46,7 @@ public class DefaultModuleContext implements ModuleContext {
         List<Trigger> triggers = registry.getTriggersByType(triggerType);
         for (Trigger trigger : triggers) {
             if (!trigger.isEnabled()) continue;
-            // For ModuleTriggers, honour the optional cinematicId filter if present in data
+
             if (trigger instanceof ModuleTrigger moduleTrigger) {
                 Object filterObj = moduleTrigger.getParameters().get("cinematicId");
                 if (filterObj != null && !filterObj.toString().isEmpty()) {

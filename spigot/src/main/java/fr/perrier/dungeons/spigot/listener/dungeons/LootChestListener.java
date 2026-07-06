@@ -1,6 +1,7 @@
 package fr.perrier.dungeons.spigot.listener.dungeons;
 
 import fr.perrier.dungeons.spigot.loot.LootChestManager;
+import fr.perrier.dungeons.spigot.loot.LootMode;
 import org.bukkit.block.Block;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -34,10 +35,8 @@ public class LootChestListener implements Listener {
         LootChestManager.LootChest chest = LootChestManager.get().getChestAt(block.getLocation());
         if (chest == null) return;
 
-        // GLOBAL chests use the real container — let vanilla handle the open.
-        if (chest.getMode() != LootChestManager.LootMode.PER_PLAYER) return;
+        if (chest.getMode() != LootMode.PER_PLAYER) return;
 
-        // PER_PLAYER : suppress the vanilla open and show the virtual inventory.
         event.setCancelled(true);
         LootChestManager.get().openPerPlayer(event.getPlayer(), chest);
     }

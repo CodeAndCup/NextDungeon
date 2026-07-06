@@ -311,8 +311,6 @@ public class DungeonPartyImpl implements IDungeonParty {
         if (registry != null) registry.remove(leaderId);
     }
 
-    // ==================== Static methods ====================
-
     /**
      * Gets every dungeon party in the cluster, including those hosted on peer servers. Local
      * parties return as {@link DungeonPartyImpl} (with live {@link IParty}); remote parties
