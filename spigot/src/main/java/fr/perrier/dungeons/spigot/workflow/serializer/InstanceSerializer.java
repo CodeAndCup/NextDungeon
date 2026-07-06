@@ -172,11 +172,15 @@ public class InstanceSerializer {
                             flatTrigger.add(entry.getKey(), entry.getValue());
                         }
                     }
-                    // Copy actions
-                    if (data.has("actions")) {
-                        flatTrigger.add("actions", data.get("actions"));
+                    // Attach actions with the format-aware deserializer below rather than
+                    // letting TriggerFactory's flat parser handle them — that parser only
+                    // understands the legacy "type" action format and throws a NPE on the
+                    // newer "className/data" format that the editor now saves.
+                    Trigger moduleTrigger = TriggerFactory.createTriggerFromJson(flatTrigger);
+                    if (moduleTrigger != null && data.has("actions") && data.get("actions").isJsonArray()) {
+                        moduleTrigger.setActions(deserializeActions(data.getAsJsonArray("actions")));
                     }
-                    return TriggerFactory.createTriggerFromJson(flatTrigger);
+                    return moduleTrigger;
                 } catch (Exception e) {
                     if(Main.getLoggerUtil() != null) {
                         Main.getLoggerUtil().warning("Error recreating ModuleTrigger: " + e.getMessage());

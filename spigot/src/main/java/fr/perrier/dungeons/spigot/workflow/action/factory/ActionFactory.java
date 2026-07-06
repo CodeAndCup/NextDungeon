@@ -24,7 +24,15 @@ public class ActionFactory {
 
     public static Action createActionFromJson(JsonObject actionData) {
         try {
-            String type = actionData.get("type").getAsString();
+            JsonElement typeElement = actionData.get("type");
+            if (typeElement == null || typeElement.isJsonNull()) {
+                // Not in the legacy flat "type" format (e.g. a "className/data" action).
+                // This factory only builds flat-format actions, so skip gracefully instead
+                // of throwing — the format-aware deserializer handles the other shape.
+                Main.getLoggerUtil().warning("Action JSON has no 'type' field, skipping: " + actionData);
+                return null;
+            }
+            String type = typeElement.getAsString();
 
             // Edit here and edit in TriggerSaveManager too
             return switch (type) {
