@@ -355,6 +355,22 @@ public class DungeonPartyImpl implements IDungeonParty {
     }
 
     /**
+     * Returns the local dungeon party that contains the given member, or null if none does.
+     * Unlike {@link #getDungeonPartyOf(UUID)} (keyed by leader) this scans membership, so it
+     * finds the party of a non-leader member — used to leader-gate dungeon launches even when the
+     * underlying provider doesn't track membership for finder-joined players.
+     */
+    public static DungeonPartyImpl getDungeonPartyContaining(UUID memberId) {
+        if (memberId == null) return null;
+        for (DungeonPartyImpl party : localParties.values()) {
+            if (party.getMemberIds().contains(memberId)) {
+                return party;
+            }
+        }
+        return null;
+    }
+
+    /**
      * Returns the party led by the given UUID if it is hosted on this server. Returns null
      * for remote-hosted parties — use {@link #getDungeonParties()} for a cluster-wide view.
      */

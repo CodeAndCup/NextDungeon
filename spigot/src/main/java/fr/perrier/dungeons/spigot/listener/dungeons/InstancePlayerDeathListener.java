@@ -205,8 +205,11 @@ public class InstancePlayerDeathListener implements Listener {
             ghostData.setCorpseNpc(npc);
 
             Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
-                player.teleport(player.getLocation().clone().add(0, 2, 0));
+                // Respawn first, then teleport to the stored death location. A dead player's live
+                // getLocation() is the void/fallback position, so teleporting to it (and before the
+                // respawn) dropped the ghost below the map. The corpse position is the reliable value.
                 player.spigot().respawn();
+                player.teleport(ghostData.getDeathLocation().clone().add(0, 2, 0));
                 Main.getInstance().getGhostFactory().addPlayer(player);
                 player.setAllowFlight(true);
                 player.setFlying(true);
