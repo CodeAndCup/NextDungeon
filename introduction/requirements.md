@@ -1,5 +1,5 @@
 ---
-description: Before installing NextDungeon, ensure your server meets all requirements.
+description: Before installing NextDungeon, make sure your server meets these requirements.
 icon: shield-check
 ---
 
@@ -7,67 +7,65 @@ icon: shield-check
 
 ## Server Platform
 
-* **Minecraft Server**: Spigot, Paper, or compatible fork — version **1.21.4** (API-version set to `1.21` in `plugin.yml`)
-* **Java Version**: Java **21** or newer (Maven compiler source and target set to `21`)
+* **Minecraft server:** Spigot, Paper, or a compatible fork — version **1.21.4**
+* **Java:** Java **21** or newer
 
-## Required Dependencies
+## Required Plugins
 
-The following must be present before NextDungeon can start:
+These must be installed before NextDungeon will start:
 
-| Dependency       | Purpose                                                                  | Notes                                      |
-| ---------------- | ------------------------------------------------------------------------ | ------------------------------------------ |
-| **Redis**        | Cross-server data sync, dungeon state, queue management, player profiles | Accessed via Redisson (single-server mode) |
-| **MMOCore**      | Player level checks for floor requirements                               | Listed as a hard `depend` in `plugin.yml`  |
-| **PacketEvents** | NPC library (NPC-Lib / ghost system)                                     | Listed as a hard `depend` in `plugin.yml`  |
+| Plugin | Why it's needed |
+|--------|-----------------|
+| **Redis** | Keeps dungeons, instances, queues, and profiles in sync across your network |
+| **MMOCore** | Player level checks for floor requirements |
+| **PacketEvents** | Powers the corpse/ghost display used by the revive system |
 
-> **Important:** If MMOCore or packetevents are absent, the plugin will refuse to load.
+> If MMOCore or PacketEvents is missing, the plugin will not load.
 
-## Optional / Integration Dependencies
+## Optional Plugins
 
-| Plugin                    | Feature                                       | Declaration                |
-| ------------------------- | --------------------------------------------- | -------------------------- |
-| **CloudNet v4.0.0-RC13+** | Dynamic dungeon instance creation and routing | `softdepend`               |
-| **Parties (AlessioDP)**   | Group play, party requirements                | `softdepend`               |
-| **MythicMobs**            | Custom mobs and bosses inside dungeons        | `softdepend`               |
-| **WorldEdit / FAWE**      | `WorldEdit*Action` workflow actions           | Used at runtime if present |
+| Plugin | Adds |
+|--------|------|
+| **CloudNet** (4.0.0-RC13+) | Runs each floor as its own dedicated server (see [CloudNet](../integrations/cloudnet.md)) |
+| **AlessioDP Parties** | Party play (otherwise the built-in party system is used) |
+| **MythicMobs** | Custom mobs and bosses inside dungeons |
+| **WorldEdit / FAWE** | The WorldEdit region actions (via the WorldEdit module) |
 
-> CloudNet is the only supported `InstanceProvider` type in `1.0.4-SNAPSHOT`. Without it the plugin can still run on a single server but cannot spin up isolated floor instances.
+> Without CloudNet, the plugin still runs on a single server but cannot create isolated floor instances.
 
 ## Database
 
-NextDungeon requires **one** of the following for persistent player stats and trigger storage:
+You need **one** of these for saved player stats and trigger storage:
 
-* **MySQL** (default) — configured under `DatabaseConfiguration.mysql` in `config.yml`
-* **MongoDB** — configured under `DatabaseConfiguration.mongodb` in `config.yml`
+* **MySQL** (recommended)
+* **MongoDB**
 
-> MongoDB support for triggers is planned for future releases. Currently MySQL is the recommended choice.
+Configure your choice under `DatabaseConfiguration` in [`config.yml`](../configuration/main-config-file.md).
 
-## Proxy
+> Full MongoDB support for triggers is planned; MySQL is the recommended choice for now.
 
-To use the **Blockly web editor** and the **dashboard**, install the appropriate proxy module:
+## Proxy (for the Editor & Dashboard)
 
-* **Velocity** — place `NextDungeon-Velocity.jar` in Velocity's `plugins/` folder
-* **BungeeCord** — place `NextDungeon-BungeeCord.jar` in BungeeCord's `plugins/` folder
+To use the visual editor and the web dashboard, install the matching proxy plugin:
 
-Both proxy modules require access to the same Redis instance as the Spigot servers.
+* **Velocity** — `NextDungeon-Velocity.jar`
+* **BungeeCord** — `NextDungeon-BungeeCord.jar`
+
+The proxy needs access to the same Redis as your game servers.
 
 ## Web Editor Access
 
-The web editor HTTP server binds to the port defined by `WebEditor.proxy-port` (default `7734`). Make sure:
+The editor is served on the port set by `WebEditor.proxy-port` (default `7734`). Make sure that port is reachable from your admins' browsers and open in your firewall.
 
-* The port is accessible from your admin's browser
-* Your firewall allows TCP connections on that port
+## Hardware
 
-## Hardware Recommendations
-
-* **RAM**: Minimum 4 GB for the network; add \~512 MB per simultaneous dungeon instance
-* **Storage**: SSD recommended for faster world template loading via CloudNet
-* **CPU**: Modern multi-core processor; instance creation involves asynchronous tasks
+* **RAM:** ~4 GB for the network, plus ~512 MB per simultaneous dungeon instance
+* **Storage:** SSD recommended for faster world loading
+* **CPU:** a modern multi-core processor
 
 ## Permissions
 
-* Server `OP` or the `nextdungeons.admin` permission node is required for admin commands
-* See [Commands and Permissions](commands-and-permissions.md) for the full permission list
+Admin commands require server `OP` or the `nextdungeon.admin` permission — see [Commands & Permissions](commands-and-permissions.md) for the full list.
 
 ***
 

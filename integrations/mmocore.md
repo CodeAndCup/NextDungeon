@@ -1,78 +1,40 @@
 ---
-description: Integrating NextDungeon with MMOCore for RPG-style level requirements.
+description: Gate dungeon floors behind MMOCore player levels.
 icon: star
 ---
 
 # MMOCore Integration
 
-MMOCore by MagicGlens (Indyuce) is an advanced RPG core plugin for Minecraft. NextDungeon integrates with MMOCore to enforce **player level requirements** for entering dungeon floors.
+NextDungeon uses **MMOCore** (by Indyuce) for RPG-style **level requirements** on dungeon floors.
 
-## Dependency Type
+## Required Plugin
 
-MMOCore is declared as a **hard dependency** in `plugin.yml`:
+MMOCore is a **hard dependency** — NextDungeon will not start without it. Install it even if you don't use level requirements on any floor.
 
-```
-depend: [ MMOCore, packetevents ]
-```
-
-This means NextDungeon will **not load** if MMOCore is not present on the server.
+1. Install [MMOCore](https://www.spigotmc.org/resources/mmocore.87699/) on all game servers (including your floor instance templates).
+2. Configure MMOCore so it tracks player levels as you want.
 
 ---
 
-## How It Works
+## Setting a Level Requirement
 
-When a player attempts to enter a floor, `Floor.isRequirementsValid(player)` is called. The MMOCore integration is in this check:
+In a floor's **Requirements** (in the web dashboard), set the **minimum level**:
 
-```java
-PlayerData playerData = PlayerData.get(player);
-if (this.getRequirements().getMinLevel() > 0) {
-    if (playerData.getLevel() < this.getRequirements().getMinLevel()) {
-        return false;
-    }
-}
-```
+| Minimum level | Behaviour |
+|---------------|-----------|
+| `0` | No level requirement — anyone can enter |
+| `> 0` | The player must be at least this MMOCore level |
 
-`PlayerData.get(player)` retrieves the MMOCore player data, and `.getLevel()` returns the player's current MMOCore level. If the player's level is below the floor's `minimum_level`, entry is denied.
+A player below the required level is turned away when they try to launch the floor, and the requirement shows as unmet on the floor's icon.
 
 ---
 
-## Configuring Level Requirements
+## Prerequisite Floors
 
-In your floor's YAML configuration:
-
-```yaml
-requirements:
-  minimum_level: 10    # Minimum MMOCore level required to enter this floor
-```
-
-| Value | Behaviour |
-|-------|-----------|
-| `0` | No level requirement (any player can enter) |
-| `> 0` | Player must have at least this MMOCore level |
-
----
-
-## Prerequisites
-
-1. Install [MMOCore](https://www.spigotmc.org/resources/mmocore.87699/) on all game servers.
-2. Place `MMOCore.jar` in the `plugins/` folder.
-3. Configure MMOCore to track player levels.
-
-> MMOCore must be installed even if you set `minimum_level: 0` on all floors, because it is a hard dependency.
-
----
-
-## Completed Floor Tracking
-
-NextDungeon stores completed floor IDs in `ProfileData.completedFloors` (persisted via `ProfileService`). This is used for:
-
-* The `required_floor` requirement check (prerequisite floors)
-* The completion screen stat display
-
-This data is independent of MMOCore — it is managed by NextDungeon's own `ProfileService`.
+Floors can also require that another floor be **completed first**. NextDungeon records each player's completed floors automatically and checks them alongside the level requirement. This is separate from MMOCore — it's tracked by NextDungeon itself.
 
 ---
 
 ## Future Plans
 
-A developer API for exposing dungeon completion events to MMOCore quests, rewards, and progression systems is planned for a future release.
+An API to expose dungeon completion to MMOCore quests, rewards, and progression is planned for a future release.

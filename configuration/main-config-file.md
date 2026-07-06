@@ -47,9 +47,9 @@ RedisConfiguration:
 | `username` | string  | `default`     | Redis ACL username (use `default` for no authentication)                                                                                   |
 | `password` | string  | `""`          | Redis password (leave empty if no password is set)                                                                                         |
 | `database` | integer | `0`           | Redis logical database index (0-15)                                                                                                        |
-| `topic`    | string  | `nextdungeon` | Namespace prefix for all Redis keys and pub/sub channels. Change this if running multiple NextDungeon networks on the same Redis instance. |
+| `topic`    | string  | `nextdungeon` | Namespace prefix that keeps this network's data separate. Change it only if you run multiple separate NextDungeon networks on the same Redis instance. |
 
-> **Warning:** Changing `topic` after initial setup requires migrating all stored Redis keys. Only change this if you know what you are doing.
+> **Warning:** Changing `topic` after setup separates the plugin from its existing stored data. Only change it if you know what you are doing.
 
 ***
 
@@ -59,12 +59,14 @@ Configuration for the Blockly web editor reverse-proxy endpoint (served by the V
 
 ```yaml
 WebEditor:
+  proxy-host: "localhost"
   proxy-port: 7734
 ```
 
-| Key          | Type    | Default | Description                                                                                               |
-| ------------ | ------- | ------- | --------------------------------------------------------------------------------------------------------- |
-| `proxy-port` | integer | `7734`  | Port on which the proxy's web editor HTTP server listens. Make sure this matches the proxy module config. |
+| Key          | Type    | Default     | Description                                                                                     |
+| ------------ | ------- | ----------- | ----------------------------------------------------------------------------------------------- |
+| `proxy-host` | string  | `localhost` | Host/IP of the proxy that serves the trigger editor. Players open the editor link at this host. |
+| `proxy-port` | integer | `7734`      | Port the editor is served on. Make sure it matches your proxy module's config.                  |
 
 ***
 
@@ -127,11 +129,13 @@ Parameters related to dungeon instance lifecycle.
 ```yaml
 InstanceSettings:
   loadingTimeout: 120
+  emptyShutdownTimeout: 120
 ```
 
-| Key              | Type    | Default | Description                                                                                                                                            |
-| ---------------- | ------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `loadingTimeout` | integer | `120`   | Seconds to wait for an instance to become ready before timing out. If exceeded, `FloorInstance.cancelInstance()` is called and the player is notified. |
+| Key                    | Type    | Default | Description                                                                                             |
+| ---------------------- | ------- | ------- | ------------------------------------------------------------------------------------------------------- |
+| `loadingTimeout`       | integer | `120`   | Seconds to wait for an instance to become ready before giving up and notifying the player.              |
+| `emptyShutdownTimeout` | integer | `120`   | Seconds an instance stays up with no players before it shuts down automatically to free resources.      |
 
 ***
 

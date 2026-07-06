@@ -1,14 +1,13 @@
 ---
-description: The Cinematic Module adds data-driven camera sequences, NPC actors, and timeline events to dungeon workflows.
+description: The Cinematic Module adds camera cutscenes, titles, sounds, and screen effects to dungeon workflows.
 icon: film
 ---
 
 # Cinematic Module
 
-The **Cinematic Module** (`module-cinematic`) extends NextDungeon with a full cinematic system. It enables server administrators to create smooth, data-driven cutscenes inside dungeon floors using the Blockly workflow editor — no coding required.
+The **Cinematic Module** lets you build smooth in-dungeon cutscenes right in the workflow editor — camera moves, titles, sounds, and screen effects — no coding required.
 
 **Module ID:** `cinematic`
-**Source:** `module-cinematic/src/main/java/fr/perrier/dungeons/module/cinematic/`
 
 <!-- INSERT HERE: video demonstration of a cinematic sequence inside a dungeon floor -->
 
@@ -16,12 +15,9 @@ The **Cinematic Module** (`module-cinematic`) extends NextDungeon with a full ci
 
 ## Features
 
-* **Camera paths** with Catmull-Rom spline interpolation for smooth movement
-* **NPC actors** spawned and moved along predefined paths
-* **Timeline events** — trigger messages, sounds, and titles at precise timestamps
-* **Screen effects** — blind fade, on-screen titles, and sound cues
-* **Real-time clock** running at 20 fps (one Bukkit tick per frame)
-* All cinematic data stored in the database as JSON — no files on disk
+* **Camera paths** with smooth interpolation between waypoints
+* **Timeline events** — fire messages, sounds, and titles at exact moments
+* **Screen effects** — screen-black fades, on-screen titles, and sound cues
 
 ---
 
@@ -29,83 +25,63 @@ The **Cinematic Module** (`module-cinematic`) extends NextDungeon with a full ci
 
 1. Place `module-cinematic.jar` in `plugins/NextDungeon/modules/`.
 2. Restart the server, **or** run `/dungeon admin module load module-cinematic.jar`.
-3. Open the Blockly editor — a new **Cinematic** category appears in the toolbox.
+3. Open the editor — a new **Cinematic** category appears in the toolbox.
 
 ---
 
-## Workflow Blocks
+## Blocks
 
-### Action Blocks
+### Actions
 
-| Block | Description |
-|-------|-------------|
-| **Start Cinematic** | Starts a named cinematic sequence for the player. Freezes the player's view and begins playback. |
-| **Stop Cinematic** | Immediately stops the currently playing cinematic and restores normal player control. |
-| **Clear Cinematic** | Removes all cinematic data (waypoints, NPC paths, timeline events) for the current floor. |
-| **Add Camera Waypoint** | Appends a camera waypoint (X, Y, Z, yaw, pitch, duration in ms) to the active cinematic path. |
-| **Move NPC** | Moves a registered NPC actor along its defined path over a given duration. |
-| **Add Timeline Event** | Schedules an event (message, sound, title, or effect) at a specific timestamp during playback. |
-| **Camera Move (Segment)** | Adds a segment-based camera animation from one location to another with configurable duration. |
-| **Title (Cinematic)** | Displays a title/subtitle at a given timestamp during the cinematic. |
-| **Sound (Cinematic)** | Plays a sound effect at a given timestamp. |
-| **Message (Cinematic)** | Sends a chat message at a given timestamp. |
-| **Blind (Cinematic)** | Applies a screen-darkening effect for a specified duration (useful for scene transitions). |
+| Block | What it does |
+|-------|--------------|
+| **Start Cinematic** | Starts a named cinematic for the player (or everyone) and takes over their view |
+| **Stop Cinematic** | Stops the current cinematic and returns control to the player |
+| **Clear Cinematic** | Clears a cinematic's saved waypoints — use it before redefining them on replay |
+| **Add Camera Waypoint** | Adds a camera point (position, look angle, timing, interpolation) to a cinematic |
+| **Camera Move** | Smoothly moves the camera along a path over a range of frames |
+| **Cinematic Title** | Shows a title/subtitle during a segment |
+| **Cinematic Sound** | Plays a sound at a given moment |
+| **Cinematic Message** | Sends a chat or action-bar message at a given moment |
+| **Screen Black** | Fades the screen to black for a segment (great for scene changes) |
+| **Move NPC** *(experimental)* | Intended to move an NPC actor along the timeline — currently a work in progress |
+| **Timeline Event** *(experimental)* | Intended to schedule generic timeline events — currently a work in progress |
 
-### Trigger Blocks
+### Triggers
 
-| Block | Description |
-|-------|-------------|
-| **Cinematic End** | Fires when a cinematic sequence finishes playing. Use this to resume normal gameplay or start a new sequence. |
+| Block | What it does |
+|-------|--------------|
+| **When Cinematic Ends** | Fires when a cinematic finishes — use it to resume gameplay or chain another scene |
 
-### Condition Blocks
+### Conditions
 
-| Block | Description |
-|-------|-------------|
-| **Is Cinematic Playing** | Returns `true` if a cinematic is currently playing for the triggering player. |
+| Block | What it does |
+|-------|--------------|
+| **Is Cinematic Playing?** | Passes while a cinematic is playing for the player |
 
 ---
 
 ## Example: Intro Cutscene on Floor Entry
 
-In the Blockly editor, attach to `RegionTrigger` (region: `spawn`, event: `enter`):
-
 ```
-RegionTrigger (spawn, enter)
-  -- Start Cinematic (name: "floor1_intro")
-  -- Add Camera Waypoint (x: 100, y: 65, z: 200, yaw: 180, pitch: -20, duration: 2000ms)
-  -- Add Camera Waypoint (x: 110, y: 68, z: 210, yaw: 160, pitch: -30, duration: 3000ms)
-  -- Add Timeline Event (at: 1000ms, type: TITLE, value: "Welcome to the Dungeon!")
-  -- Add Timeline Event (at: 1000ms, type: SOUND, value: "ENTITY_ENDER_DRAGON_GROWL")
+Region Enter/Exit (spawn room, Enter)
+  ├─ Start Cinematic ("floor1_intro")
+  ├─ Add Camera Waypoint (overlooking the entrance)
+  ├─ Add Camera Waypoint (panning toward the first room)
+  ├─ Cinematic Title ("Welcome to the Dungeon!")
+  └─ Cinematic Sound (dragon growl)
 
-Cinematic End (name: "floor1_intro")
-  -- SendMessageAction (message: "The dungeon awaits...")
-  -- TeleportLocationAction (to: boss_room_entrance)
+When Cinematic Ends ("floor1_intro")
+  ├─ Send Message ("The dungeon awaits...")
+  └─ Teleport (to the first room)
 ```
 
-<!-- INSERT HERE: screenshot of the Cinematic category in the Blockly editor -->
-
----
-
-## Architecture
-
-| Class | Description |
-|-------|-------------|
-| `CinematicModule` | Module entry point — registers all blocks and initialises the cinematic clock |
-| `CinematicManager` | Manages active cinematics per player; dispatches timeline events |
-| `CinematicClock` / `CinematicClockImpl` | Real-time 20 fps clock that ticks the active cinematic players |
-| `CinematicPlayer` | Per-player state during playback (current time, active segments) |
-| `CinematicData` | Data model containing waypoints, NPC paths, and timeline events for one cinematic |
-| `CameraInterpolation` | Catmull-Rom spline interpolation between `CameraWaypoint` positions |
-| `PositionInterpolator` | Computes interpolated `Location` values between two waypoints at a given time fraction |
-| `CinematicExecutor` | Executes scheduled actions (title, sound, message, blind) from the timeline |
-| `CinematicActionFactory` | Creates `CinematicAction` instances from raw segment data |
-| `CinematicSegment` | Base class for a single playback segment (camera, title, sound, message, blind) |
+<!-- INSERT HERE: screenshot of the Cinematic category in the editor -->
 
 ---
 
 ## Notes
 
-* The cinematic clock ticks asynchronously every Bukkit tick. Keep segment logic lightweight to avoid performance issues on large servers.
-* Camera waypoints use Catmull-Rom interpolation, which requires at least **3 waypoints** for smooth curves. For straight camera moves, use the **Camera Move (Segment)** block instead.
-* NPC actors are managed by the plugin's NPC library (NPC-Lib). Ensure `packetevents` is installed, as it is required by the NPC system.
-* All cinematic data is stored in the database. Deleting or editing a floor does **not** automatically remove its cinematic data — use the **Clear Cinematic** block to clean up.
+* Smooth curved camera paths need at least **3 waypoints**. For a simple straight move, use the **Camera Move** block.
+* A cinematic's data stays saved with the floor. Editing or deleting the floor doesn't automatically wipe it — use **Clear Cinematic** to reset it.
+* **Move NPC** and **Timeline Event** are placeholders for now; their full behaviour is still in development.

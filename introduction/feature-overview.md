@@ -8,160 +8,73 @@ icon: magnifying-glass
 
 ## 1. Multi-Floor Dungeon System
 
-Each **Dungeon** (`fr.perrier.dungeons.spigot.model.Dungeon`) acts as a container for one or more **Floors** (`fr.perrier.dungeons.spigot.model.Floor`). Floors are the playable units; every floor is independently configured with:
+Each **dungeon** is a container for one or more **floors**. Floors are the playable levels, and each one is configured on its own with:
 
-* A **world configuration** (difficulty, spawn coordinates)
-* **Requirements** (minimum MMOCore level, prerequisite floors, required/forbidden items, party size)
-* **Game rules** (max lives, death-ban duration, gamemode, flight, max concurrent instances)
-* **Steps** (named cuboid regions that mark progression checkpoints)
-* **Triggers and actions** (workflow automation attached to this floor)
+* **World settings** — difficulty and spawn point
+* **Requirements** — minimum level, prerequisite floors, required/forbidden items, party size
+* **Rules** — max lives, death penalty, game mode, flight, max concurrent instances
+* **Steps** — named regions that mark progress through the floor
+* **Triggers and actions** — the automation attached to the floor
 
-Dungeon and floor data is serialised with Gson and stored in Redis, so all lobby and instance servers share the same up-to-date configuration.
-
-<!-- INSERT HERE: UML diagram showing Dungeon → Floor → FloorInstance hierarchy -->
+Dungeon and floor definitions are shared across all your servers automatically, so every lobby shows the same up-to-date content.
 
 ## 2. Trigger-Action Workflow Engine
 
-The workflow system lets you script complex dungeon behaviour without writing any Java code.
+The workflow system lets you script rich dungeon behaviour with no coding — you build everything visually in the web editor.
 
-### Triggers
+* **Triggers** react to what happens in the dungeon (a player enters a region, clicks a block, kills a mob, sends a chat message…). See the [Triggers reference](../workflow/triggers.md).
+* **Actions** are what happens next (send a message, teleport, spawn mobs, give items, play sounds, run commands, end the run…). See the [Actions reference](../workflow/actions.md).
+* **Conditions & loops** add logic — run actions only when your rules are met, or repeat them — plus **variables** to remember values like scores and counters. See [Conditions & Variables](../workflow/conditions-and-variables.md).
 
-| Trigger | Description |
-|---------|-------------|
-| `BlockClickTrigger` | Player clicks/interacts with a specific block (by material and/or exact coordinates) |
-| `ChatMessageTrigger` | Player sends a chat message matching a pattern |
-| `EntityDeathTrigger` | An entity of a specific type dies |
-| `FunctionTrigger` | Reusable named sub-workflow callable via `CallFunctionAction` |
-| `ItemPickupTrigger` | Player picks up an item with a specific display name |
-| `PlayerDamageTrigger` | Player receives damage (optionally filtered by damage cause) |
-| `PlayerJumpTrigger` | Player jumps |
-| `RegionTrigger` | Player enters or exits a named cuboid region |
+<!-- INSERT HERE: screenshot of a trigger with attached actions in the web editor -->
 
-### Actions
+## 3. Visual Web Editor
 
-| Action | Description |
-|--------|-------------|
-| `SendMessageAction` | Send a chat message to a player or broadcast to all (`@all`) |
-| `SendTitleAction` | Display a title/subtitle on screen |
-| `TeleportLocationAction` | Teleport a player to specific coordinates |
-| `SummonMobAction` | Spawn a vanilla or MythicMobs entity at a location |
-| `SummonMobInRegionAction` | Spawn mobs at random positions within a region |
-| `EndDungeonAction` | Mark the dungeon as complete (success) or failed |
-| `GiveItemAction` | Give an item to the player |
-| `DropItemAction` | Drop an item on the ground |
-| `PlaySoundAction` | Play a sound at a location |
-| `SpawnParticleAction` | Spawn particle effects |
-| `ApplyPotionEffectAction` | Apply a potion effect |
-| `SetHealthAction` | Set or modify a player's health |
-| `DelayAction` | Wait a number of ticks before continuing the action sequence |
-| `CallFunctionAction` | Call a named `FunctionTrigger` |
-| `BroadcastCommandAction` | Execute a console command |
-| `SetVariableAction` | Set a named variable (global or per-player) |
-| `GetVariableAction` | Read a variable into another variable |
-| `AddToVariableAction` | Add a value to a numeric variable |
-| `SubtractFromVariableAction` | Subtract a value from a numeric variable |
-| `MathOperationAction` | Perform arithmetic on variables |
-| `SummonBlockDisplayAction` | Spawn a Minecraft `BlockDisplay` entity with custom 3D transforms |
-| `ModifyBlockDisplayAction` | Modify an existing `BlockDisplay` entity by its ID |
-| `WorldEditSchematicAction` | Paste a WorldEdit schematic at a location (WorldEdit module) |
-| `WorldEditSetAction` | Fill a region with a block material (WorldEdit module) |
-| `WorldEditReplaceAction` | Replace one block material with another in a region (WorldEdit module) |
-| `WorldEditCutAction` | Cut (remove) blocks within a region (WorldEdit module) |
+When you open a floor in edit mode, you get a drag-and-drop editor in your browser. Snap triggers, actions, and conditions together, fill in their fields, and save — the workflow goes live immediately. See [Editing Dungeons](../dungeon-management/editing-dungeons.md).
 
-### Conditions
+<!-- INSERT HERE: video demonstration of the editor in action -->
 
-| Condition | Description |
-|-----------|-------------|
-| `ForLoopAction` | Loop a block of actions a set number of times with a counter variable |
-| `IfCondition` | If/else branching with operators (`==`, `!=`, `<`, `<=`, `>`, `>=`, `contains`, `startsWith`, `endsWith`) |
-| `BlockTypeIsCondition` | Check the material of a block at a location |
-| `EntityTypeIsCondition` | Check the type of a nearby entity |
-| `LocationIsSafeCondition` | Check whether a location is safe to teleport to |
-| `PlayerHasItemCondition` | Check whether the player holds a specific item |
-| `PlayerInRegionCondition` | Check whether the player is inside a named region |
-| `PlayerPermissionCondition` | Check whether the player has a specific permission |
-| `TimeOfDayCondition` | Check the current in-game time |
+## 4. Isolated Instances
 
-### Variable System
-
-Global and per-player variables (`VariableRegistry`) allow triggers to share state across action sequences. Variables are referenced as `{global.name}` or `{player.name}` inside message strings.
-
-<!-- INSERT HERE: screenshot of the Blockly web editor showing a trigger-action workflow -->
-
-## 3. Blockly Web Editor
-
-When a floor instance is started in **edit mode** (`/dungeon admin edit start`), an HTTP server is launched on the configured `WebEditor.proxy-port` (default `7734`). The admin navigates to the editor URL and uses a drag-and-drop Google Blockly interface to build trigger workflows. Saving from the editor persists the workflow to the database.
-
-<!-- INSERT HERE: video demonstration of the Blockly editor in action -->
-
-## 4. CloudNet Instance Management
-
-Every floor runs as a separate CloudNet service. The plugin (`CloudNetProvider`):
-
-1. Creates a service from the floor CloudNet task template
-2. Injects instance metadata (floor ID, UUID, edit mode flag, creation timestamp) as service properties
-3. Registers the instance in Redis so lobby servers monitor readiness
-4. Routes players to the instance once `ready = true`
-5. Cleans up the service and Redis entries when the run ends
+Every floor run happens on its own dedicated server, created on demand and cleaned up when the run ends. Players are routed to it automatically once it's ready. This keeps runs isolated from each other and from the lobby. See the [CloudNet integration](../integrations/cloudnet.md).
 
 ## 5. Queue System
 
-The `DungeonQueueService` (Redis-backed) maintains a FIFO queue per floor. When a player requests to join:
+When a floor is full, players wait in a queue and receive position updates. As instances free up, the next players are pulled in automatically and sent straight to a fresh instance.
 
-1. `QueueManager` checks if a ready instance exists
-2. If capacity is available, a new instance is launched and the player is sent directly
-3. Otherwise the player enters the queue and receives position updates
-4. As instances free up, the queue manager dequeues the next entry automatically
+## 6. Revive & Ghost System
 
-## 6. Revive and Ghost System
+On death inside a dungeon, a player becomes a ghost for a configurable time and is placed at their fallen body (the corpse) rather than being sent to spectate. Teammates can use the **revive item** to bring them back at that spot. If the timer runs out first, the player loses a life; running out of lives triggers a configurable penalty command. Tune it all under `ReviveSystem` in the [config](../configuration/main-config-file.md).
 
-On death inside a dungeon the player becomes a ghost for a configurable duration (`ghostDuration`) and is placed at their fallen body (the corpse) rather than being sent to spectate. Teammates can use the **revive item** to bring them back at that spot. When the timer expires without a revive the player loses a life. Exhausting all lives triggers the configurable `banCommand`.
+## 7. Party Play
 
-## 7. Party Integration
+Players tackle dungeons in groups. NextDungeon works with the **AlessioDP Parties** plugin or its own **built-in party system** (chosen with `PartyProvider.type`). Only the **party leader** starts a dungeon, and a leader can launch **directly from any existing party** without using the Party Finder first. See [Parties Integration](../integrations/parties.md).
 
-Two party backends are supported via `PartyService`:
+## 8. Player Profiles & Statistics
 
-* **AlessioDP Parties** — Uses the popular Parties plugin API
-* **Internal Party System** — Built-in lightweight group management
+Each player's progress is saved: which floors they've completed, plus per-run stats like completion time, enemies killed, deaths, and success/failure. This data drives floor prerequisites and leaderboards.
 
-Provider selection is controlled by `PartyProvider.type` in `config.yml` (`AUTO`, `AlessioDPParties`, `Internal`).
+## 9. Web Dashboard
 
-Only the **party leader** can start a dungeon, and a leader can launch **directly from any existing party** (external or internal) without going through the Party Finder first. See [Parties Integration → Launching a Dungeon](../integrations/parties.md#launching-a-dungeon) for the full launch rules.
-
-## 8. Player Profiles and Statistics
-
-`ProfileService` tracks per-player data in Redis with persistence to MySQL or MongoDB:
-
-* Completed floor IDs
-* Per-run stats: completion time, enemies killed, death count, success/failure flag
-
-## 9. Dashboard Web Interface
-
-The proxy modules (Velocity/BungeeCord) expose an HTTP server for the web dashboard. Changes sync to lobby servers automatically via the `{topic}:sync` Redis channel.
+A browser dashboard (served by your proxy) lets you create and edit dungeons and floors visually. Changes sync to every lobby server automatically.
 
 <!-- INSERT HERE: screenshot of the web dashboard -->
 
-## 10. Admin and Debug Tools
+## 10. Admin & Debug Tools
 
-Full suite of in-game commands for floor editing, queue management, instance inspection, and dungeon migration — see [Commands and Permissions](commands-and-permissions.md).
+A full set of in-game commands covers floor editing, testing, queue management, instance inspection, and module management — see [Commands & Permissions](commands-and-permissions.md).
 
-## 11. Dynamic Module System
+## 11. Add-on Modules
 
-NextDungeon supports **runtime-loadable JAR modules** that extend the workflow engine with custom triggers, actions, and conditions. Modules are placed in `plugins/NextDungeon/modules/` and loaded automatically at startup or on demand via `/dungeon admin module load`.
+NextDungeon can load extra **modules** that add new triggers, actions, and conditions to the editor. Two ship with the plugin:
 
-### Built-in Modules
+| Module | Adds |
+|--------|------|
+| **Cinematic** | Scripted cinematics — camera paths, titles, sounds, screen effects |
+| **WorldEdit** | Region operations — set, cut, replace, and paste schematics |
 
-| Module | ID | Description |
-|--------|----|-------------|
-| **Cinematic Module** | `cinematic` | Data-driven cinematic sequences — camera paths (Catmull-Rom interpolation), NPC actors, titles, sounds, and timeline events |
-| **WorldEdit Module** | `worldedit` | WorldEdit workflow actions (set, cut, replace, schematic paste) |
-
-Module blocks appear automatically in the Blockly editor toolbox under their own category once the module is loaded.
-
-See the [Modules Overview](../modules/overview.md) for full documentation.
-
-<!-- INSERT HERE: screenshot of the Blockly editor toolbox showing a custom module category -->
+Module blocks appear in the editor automatically once the module is loaded. See the [Modules Overview](../modules/overview.md).
 
 ***
 
-Explore the [Getting Started](../getting-started/installation.md) section to begin setting up your own dungeons!
+Ready to build? Head to [Getting Started](../getting-started/installation.md).

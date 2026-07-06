@@ -12,7 +12,7 @@ Before you begin, make sure the following are in place:
 | Requirement | Version | Notes |
 |------------|---------|-------|
 | Minecraft server (Spigot/Paper) | 1.21.4 | Any compatible fork works |
-| Java | 21+ | Required for the plugin and CloudNet |
+| Java | 21+ | Required to run the plugin |
 | Redis | 6.x or 7.x | Local or remote; accessible from all servers |
 | MMOCore | Latest | Hard dependency |
 | PacketEvents | Latest | Hard dependency |
@@ -60,14 +60,13 @@ Choose the module matching your proxy software and place it in that proxy's `plu
 
 ## Step 5: First Start — Generate Default Configs
 
-Start your Minecraft server once to generate the default configuration files:
+Start your Minecraft server once to generate the default configuration file:
 
 ```
 plugins/NextDungeon/config.yml
-plugins/NextDungeon/dungeons/dungeon_exemple.yml
 ```
 
-Check the console for startup errors. The plugin will disable itself if Redis, MMOCore, or packetevents are unavailable.
+Check the console for startup errors. The plugin will disable itself if Redis, MMOCore, or PacketEvents are unavailable. (You'll create your dungeons later from the web dashboard, not from config files.)
 
 ## Step 6: Configure the Plugin
 
@@ -133,10 +132,10 @@ redis:
 Reload or restart the server. In-game, run:
 
 ```
-/dungeon list
+/dungeon admin list
 ```
 
-An empty list means the plugin is loaded correctly. Run `/dungeon debug list dungeons` to confirm Redis connectivity.
+An empty list means the plugin is loaded correctly. Run `/dungeon debug list dungeons` to confirm the database/cache connection.
 
 ---
 

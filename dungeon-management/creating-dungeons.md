@@ -5,113 +5,103 @@ icon: plus
 
 # Creating Dungeons
 
-This guide walks you through creating a fully functional dungeon from scratch — from the world build to the live queue.
+A **dungeon** is a container for one or more **floors**. Each floor is an independent, playable level with its own world, entry requirements, rules, and trigger workflows. This guide takes you from an empty world to a floor players can enter.
 
 ## Overview
 
-A **dungeon** is a container (`Dungeon` object) that holds one or more **floors** (`Floor` objects). Each floor is an independent playable level with its own world, requirements, rules, and trigger-action workflows. Floors are stored in Redis and managed via the `DungeonService`.
+Creating a floor has four parts:
+
+1. **Build the world** for the floor.
+2. **Create the dungeon and floor** in the web dashboard.
+3. **Set up a CloudNet task** so the floor can run as its own server.
+4. **Enter edit mode** to fine-tune the world and add triggers, then save.
 
 ***
 
-## Web Dashboard
+## 1. Build the World
 
-1. Open the dashboard in your browser (served by the Velocity/BungeeCord proxy on the configured `WebEditor.proxy-port`, default `7734`).
-2. Click **New Dungeon** and fill in the ID and name.
-3. Add floors with the **Add Floor** button and configure each floor's settings.
-4. Save. The dungeon is pushed to Redis and all lobby servers load it automatically.
+Build (or import) your dungeon in a normal Minecraft world on one of your servers. While building, note down:
 
-***
-
-## Setting Up the CloudNet Task Template
-
-Every floor that will run as an isolated CloudNet instance needs a corresponding **CloudNet task**.
-
-1. In the CloudNet management panel, create a new task named exactly **`<dungeonId>_<floorId>`** — for example `my_dungeon_floor1`.
-2. Set the task type to `MINECRAFT_SERVER`.
-3. Assign it to one or more CloudNet nodes.
-4. Set the minimum/maximum service count and memory allocation.
-5. Upload your dungeon world as a **static template** in CloudNet's template storage under the same name.
-
-> The `CloudNetProvider` looks up the task by the floor ID when creating an instance. If no task is found, instance creation fails with `Cannot create task for <floorId>`.
+* The **spawn point** where players arrive.
+* The **corners of each region** you'll use for triggers (rooms, boss arenas, trap zones). WorldEdit's `//pos1` / `//pos2` are handy for reading coordinates.
 
 ***
 
-## Starting Edit Mode
+## 2. Create the Dungeon in the Dashboard
 
-Edit mode lets you modify the floor world and configure triggers without affecting live players.
+1. Open the web dashboard in your browser (served by your proxy — see [Installation](../getting-started/installation.md)).
+2. Click **New Dungeon** and give it an ID and a name.
+3. Add one or more floors with **Add Floor**, and set each floor's:
+   * **World** settings (difficulty, spawn point)
+   * **Requirements** (minimum level, prerequisite floors, required/forbidden items, party size)
+   * **Rules** (max lives, death penalty, flight, max concurrent instances)
+   * **Steps** — named regions that mark progress through the floor
+4. Save. Your changes are shared with every lobby server automatically.
+
+***
+
+## 3. Set Up the CloudNet Task
+
+Each floor runs as its own isolated server, so it needs a matching **CloudNet task**.
+
+1. In CloudNet, create a task named exactly **`<dungeonId>_<floorId>`** — for example `my_dungeon_floor1`.
+2. Set its type to a Minecraft server and assign it to one or more nodes.
+3. Configure memory and service counts.
+4. Upload your dungeon world as a **static template** under the same name.
+
+> If no task exists for a floor, launching it will fail. Double-check the task name matches `<dungeonId>_<floorId>` exactly.
+
+For more detail, see the [CloudNet integration](../integrations/cloudnet.md) page.
+
+***
+
+## 4. Edit Mode: Finish the World & Add Triggers
+
+Edit mode gives you a private copy of the floor to build in and script, without affecting live players.
+
+From a lobby server:
 
 ```
-/dungeon admin edit start my_dungeon floor1
+/dungeon admin edit start <floorId>
 ```
 
-This:
+This sends you to a dedicated edit server. There you can:
 
-1. Creates a new CloudNet service in edit mode (the `editMode` property is injected into the service)
-2. Sends you to the edit server
-3. Enables edit-only listeners (`EditorJoinListener`)
+* Build and change the world freely.
+* Open the visual trigger editor:
 
-On the edit server you can:
+```
+/dungeon admin webeditor start
+```
 
-* Build and modify the world normally
-* Run `/dungeon admin webeditor start` to open the Blockly editor
+The plugin gives you a clickable link in chat. Open it, drag **triggers** onto the workspace, attach **actions**, add **conditions** where needed, and click **Save**. Your workflow is saved immediately — see [Editing Dungeons](editing-dungeons.md) for the full editor walkthrough.
 
-### Using the Blockly Editor
-
-1. Run `/dungeon admin webeditor start` in-game.
-2. The plugin starts an HTTP server and provides the URL in chat.
-3. Open the URL in your browser.
-4. Drag triggers from the **Triggers** category onto the workspace.
-5. Attach actions from the **Actions** category to each trigger.
-6. Configure conditions with blocks from the **Logic** category.
-7. Save when finished. The workflow is persisted to the database immediately.
-
-***
-
-## Saving and Publishing
-
-When editing is complete:
+When you're done, save the world and leave edit mode:
 
 ```
 /dungeon admin edit stop --confirm
 ```
 
-This:
-
-1. Saves the world template back to CloudNet (`InstanceProvider.saveEditWorldToTemplate`)
-2. Shuts down the edit server
-3. Triggers are already saved to the database from the web editor
-
-After saving, the floor is ready for players.
+This saves the world back to the CloudNet template and shuts the edit server down. (Without `--confirm`, you'll get a confirmation prompt first.)
 
 ***
 
-## Verifying the New Dungeon
+## 5. Test the Floor
 
-From a lobby server:
-
-```
-/dungeon list
-```
-
-Your new dungeon and floor should appear with queue and instance statistics. Test it with:
+From a lobby server, launch the floor yourself:
 
 ```
-/dungeon admin test my_dungeon floor1
+/dungeon admin run <floorId>
+```
+
+Check that everything is loaded with:
+
+```
+/dungeon admin list
 ```
 
 ***
 
 ## Multi-Floor Dungeons
 
-To add a second floor that requires the first:
-
-```yaml
-    - id: "floor2"
-      name: "Floor Two"
-      requirements:
-        required_floor: ["my_dungeon_floor1"]   # Must complete floor1 first
-        minimum_level: 5
-        ...
-```
-
-Players who have not completed `my_dungeon_floor1` will be blocked from entering `floor2`. Completion records are stored in `ProfileService` and checked in `Floor.isRequirementsValid()`.
+To make one floor require another, set the later floor's **prerequisite floor** in the dashboard (under Requirements). Players who haven't completed the earlier floor are blocked from entering. Completion is tracked per player automatically, so once someone finishes `floor1`, `floor2` unlocks for them.

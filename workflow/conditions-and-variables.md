@@ -1,177 +1,163 @@
 ---
-description: Conditions and variable system for workflow logic in NextDungeon.
+description: Add logic and memory to your workflows with conditions, loops, and variables.
 icon: code-branch
 ---
 
 # Conditions & Variables
 
-Conditions add logical branching to your trigger workflows. Variables let triggers share and persist state across action sequences.
+**Conditions** let a workflow make decisions — run some actions only when a rule is true. **Variables** let a workflow remember values (like a score or a counter) and use them later.
 
 ---
 
-## Condition Blocks
+## Conditions
 
-### IfCondition
+Every condition has an **Then** branch (runs when the check passes) and an optional **Else** branch (runs when it fails). Drop actions inside whichever branch you need.
 
-The most general condition. Compares two values with an operator and executes the `then` branch if true, or the `else` branch if false.
+### 🔀 If
 
-**Source:** `spigot/src/main/java/fr/perrier/dungeons/spigot/workflow/condition/IfCondition.java`
-
-| Field | Default | Description |
-|-------|---------|-------------|
-| Left value | `value1` | First operand (can be a variable reference, e.g. `{global.score}`) |
-| Operator | `==` | Comparison operator: `==`, `!=`, `<`, `<=`, `>`, `>=`, `contains`, `startsWith`, `endsWith` |
-| Right value | `value2` | Second operand |
-| Then actions | — | Actions to execute if the condition is true |
-| Else actions | — | Actions to execute if the condition is false (optional) |
-
-### BlockTypeIsCondition
-
-Checks whether the block at a specified location has a specific material.
-
-**Source:** `spigot/src/main/java/fr/perrier/dungeons/spigot/workflow/condition/BlockTypeIsCondition.java`
+Compares two values and runs *Then* or *Else* based on the result. Values can be plain text/numbers or variables like `{global.score}`.
 
 | Field | Default | Description |
 |-------|---------|-------------|
-| Location | (0,64,0) | Block coordinates |
-| Material | `STONE` | Expected Minecraft material |
+| Value #1 | `value1` | First value |
+| Operator | `==` | `==`, `!=`, `<`, `<=`, `>`, `>=`, `contains`, `startsWith`, `endsWith` |
+| Value #2 | `value2` | Second value |
 
-### EntityTypeIsCondition
+### 🎒 Player Has Item
 
-Checks whether an entity involved in the event matches a specific type.
-
-**Source:** `spigot/src/main/java/fr/perrier/dungeons/spigot/workflow/condition/EntityTypeIsCondition.java`
-
-| Field | Default | Description |
-|-------|---------|-------------|
-| Entity type | `ZOMBIE` | Expected Minecraft EntityType name |
-
-### LocationIsSafeCondition
-
-Checks whether a location is safe to teleport to (not inside a solid block, not above a void).
-
-**Source:** `spigot/src/main/java/fr/perrier/dungeons/spigot/workflow/condition/LocationIsSafeCondition.java`
+Passes when the player is carrying enough of an item.
 
 | Field | Default | Description |
 |-------|---------|-------------|
-| Location | (0,64,0) | Coordinates to check |
+| Item type | `DIAMOND` | The item to look for |
+| Minimum amount | 1 | How many are required |
+| Check the name | Off | Also require a specific display name |
+| Item name | — | The display name to match (when *Check the name* is on) |
 
-### PlayerHasItemCondition
+### 👹 Entity Is of Type
 
-Checks whether the triggering player holds an item with a specific display name.
-
-**Source:** `spigot/src/main/java/fr/perrier/dungeons/spigot/workflow/condition/PlayerHasItemCondition.java`
-
-| Field | Default | Description |
-|-------|---------|-------------|
-| Item display name | — | Exact display name of the item (colour codes stripped for comparison) |
-
-### PlayerInRegionCondition
-
-Checks whether the triggering player is currently inside a named region.
-
-**Source:** `spigot/src/main/java/fr/perrier/dungeons/spigot/workflow/condition/PlayerInRegionCondition.java`
+Checks the entity involved in the event.
 
 | Field | Default | Description |
 |-------|---------|-------------|
-| Region name | — | Name of the region (matches step names defined in the floor config) |
+| Entity type | `ZOMBIE` | Type to compare against |
+| Comparison | is | *is* or *is not* |
 
-### PlayerPermissionCondition
+### 🧱 Block Is of Type
 
-Checks whether the triggering player has a specific permission node.
-
-**Source:** `spigot/src/main/java/fr/perrier/dungeons/spigot/workflow/condition/PlayerPermissionCondition.java`
-
-| Field | Default | Description |
-|-------|---------|-------------|
-| Permission | — | Permission node string (e.g. `nextdungeons.admin`) |
-
-### TimeOfDayCondition
-
-Checks whether the current in-game time is within a specified range.
-
-**Source:** `spigot/src/main/java/fr/perrier/dungeons/spigot/workflow/condition/TimeOfDayCondition.java`
+Checks the block at a set of coordinates.
 
 | Field | Default | Description |
 |-------|---------|-------------|
-| Min time | `0` | Minimum world time in ticks (0 = midnight, 6000 = noon) |
-| Max time | `24000` | Maximum world time in ticks |
+| X / Y / Z | 0 / 64 / 0 | Block coordinates |
+| Block type | `STONE` | Type to compare against |
+| Comparison | is | *is* or *is not* |
+
+### 📍 Player Is in Region
+
+Checks whether the player is inside a region defined by two corners.
+
+| Field | Default | Description |
+|-------|---------|-------------|
+| Position 1 / Position 2 | — | The two corners of the region |
+| Comparison | inside | *inside* or *outside* |
+
+### 🔐 Player Has Permission
+
+Checks a permission node.
+
+| Field | Default | Description |
+|-------|---------|-------------|
+| Permission | `dungeons.admin` | The permission node to check |
+| Comparison | has | *has* or *has not* |
+
+### 🌞 Time Is
+
+Checks the in-game time.
+
+| Field | Default | Description |
+|-------|---------|-------------|
+| Period | Day | Day, Night, Dawn, Dusk, or Custom |
+| Custom time (ticks) | 6000 | Used when Period is *Custom* (0 = midnight, 6000 = noon) |
+| Operator | `==` | How to compare against the custom time |
+
+### 🛡️ Location Is Safe
+
+Checks whether a spot is safe to teleport to (enough room, solid ground, no hazards). Useful before a Teleport action.
+
+| Field | Default | Description |
+|-------|---------|-------------|
+| Location | — | The spot to check |
+| Check solid ground | On | Require solid ground below |
+| Check dangerous blocks | On | Reject lava, fire, cactus, etc. |
 
 ---
 
-## Control-Flow Blocks
+## Loops
 
-### ForLoopAction
+### 🔁 For
 
-Repeats a list of actions a configurable number of times, exposing a loop variable that actions can read via `{player.varName}` placeholders.
-
-**Source:** `spigot/src/main/java/fr/perrier/dungeons/spigot/workflow/condition/ForLoopAction.java`
-
-> Despite being in the `condition` package, `ForLoopAction` is a **control-flow action** and appears in the **Logic** category in the Blockly editor.
+Repeats its inner actions, counting a variable from a start value to an end value.
 
 | Field | Default | Description |
 |-------|---------|-------------|
-| Variable name | `i` | Name of the loop counter variable (available as `{player.varName}`) |
-| Start value | `0` | Initial counter value (inclusive) |
-| End value | `10` | Final counter value (exclusive) |
-| Step | `1` | Amount by which the counter increments each iteration |
-| Loop actions | — | Actions to execute on every iteration |
+| Loop variable | `i` | Counter name — read it as `{player.i}` inside the loop |
+| Initial value | 0 | Where the counter starts |
+| Final value | 10 | Where the counter stops |
+| Increment | 1 | How much the counter grows each pass |
 
-**Example:** Spawn 5 particles one second apart:
+**Example — spawn 5 flame bursts, one second apart:**
 
 ```
-ForLoopAction (var: i, start: 0, end: 5, step: 1)
-  -- SpawnParticleAction (particle: FLAME, count: 1, location: ...)
-  -- DelayAction (ticks: 20)
+For (variable: i, 0 → 5, step 1)
+  ├─ Spawn Particles (Flame, at trigger location)
+  └─ Delay (20 ticks)
 ```
 
 ---
 
-## Variable System
+## Variables
 
-Variables are managed by `VariableRegistry` (`fr.perrier.dungeons.spigot.workflow.registry.VariableRegistry`). They allow action sequences to store, retrieve, and manipulate state.
+Variables store values during a run so your workflows can share and remember state.
 
-### Variable Scopes
+### Scopes
 
-| Scope | Prefix | Description |
-|-------|--------|-------------|
-| Global | `global.` | Shared across all players in the current instance |
-| Per-player | `player.` | Scoped to a specific player |
+| Scope | Prefix | Meaning |
+|-------|--------|---------|
+| Global | `global.` | Shared by everyone in the run |
+| Per-player | `player.` | Separate value for each player |
 
-### Variable Placeholders in Strings
+### Placeholders in Text
 
-Use these inside any text field of message/title actions:
+Use these inside any message, title, or command text:
 
-| Placeholder | Resolved Value |
-|-------------|---------------|
-| `{global.varName}` | Value of the global variable named `varName` |
-| `{player.varName}` | Value of the per-player variable named `varName` for the triggering player |
-| `{player}` | Name of the triggering player |
-| `{trigger}` | Name of the trigger that fired |
+| Placeholder | Becomes |
+|-------------|---------|
+| `{player}` | The name of the player who triggered the action |
+| `{trigger}` | The name of the trigger that fired |
+| `{global.name}` | The value of the global variable `name` |
+| `{player.name}` | The value of the per-player variable `name` |
 
 ### Variable Actions
 
-| Action | Description |
-|--------|-------------|
-| `SetVariableAction` | Set a variable to a specific value |
-| `GetVariableAction` | Copy a variable's value into another variable |
-| `AddToVariableAction` | Add a numeric value to a variable |
-| `SubtractFromVariableAction` | Subtract a numeric value from a variable |
-| `MathOperationAction` | Perform arithmetic (`+`, `-`, `*`, `/`, `%`) on two values and store the result |
+| Action | What it does |
+|--------|--------------|
+| 📝 **Set Variable** | Sets a variable to a value — fields: variable name, value, scope |
+| 🔍 **Get Variable** | Copies one variable into another — fields: source, destination, and a scope for each |
+| ➕ **Add to Variable** | Adds a value to a variable (numbers add, text joins) — fields: variable name, value to add, scope |
+| ➖ **Subtract from Variable** | Subtracts a value from a numeric variable — fields: variable name, value to subtract, scope |
+| 🎲 **Random Number** | Stores a random number in a variable — fields: variable name, min, max, scope |
+| 🧮 **Math Operation** | Combines two values and stores the result — fields: first value, operation (add, subtract, multiply, divide, concatenate), second value, result variable, scope |
 
-### Example: Score Counter
-
-Track how many mobs a player has killed in a run:
+### Example — a kill counter
 
 ```
-EntityDeathTrigger (type: ZOMBIE)
-  -- AddToVariableAction (variable: player.zombieKills, amount: 1)
-  -- IfCondition (left: {player.zombieKills}, op: >=, right: 10)
-       then:
-         -- SendMessageAction (message: "You killed 10 zombies!")
-         -- EndDungeonAction (success: true)
-```---
+When an Entity Dies (ZOMBIE)
+  ├─ Add to Variable (player.zombieKills += 1)
+  └─ If ({player.zombieKills} >= 10)
+       Then:
+         ├─ Send Message ("You cleared the horde!")
+         └─ End Dungeon
+```
 
-## Persistence
-
-Variables are **in-memory only** for the duration of the dungeon instance. They are not persisted to Redis or the database when the instance ends. For persistent player data, use the `ProfileService` (which tracks completed floors and per-run statistics automatically).
+> **Variables reset each run.** They live only for the duration of a dungeon instance and are not saved afterwards. Completed floors and per-run stats *are* saved to each player's profile automatically.

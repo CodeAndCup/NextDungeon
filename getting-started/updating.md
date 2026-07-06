@@ -25,8 +25,7 @@ cp -r plugins/NextDungeon/ plugins/NextDungeon-backup-$(date +%Y%m%d)/
 Review the release notes for the new version. Pay special attention to:
 
 * New required configuration keys in `config.yml`
-* Database schema changes
-* New or renamed Redis keys
+* Database or storage changes
 * Removed or renamed commands and permissions
 
 ### 3. Verify Dependency Compatibility
@@ -59,7 +58,9 @@ Common areas to check between versions:
 
 | Section                     | What to look for                                |
 | --------------------------- | ----------------------------------------------- |
-| `RedisConfiguration`        | New keys (e.g. `database` field added in 1.0.4) |
+| `RedisConfiguration`        | New connection keys                             |
+| `WebEditor`                 | New editor host/port keys                       |
+| `InstanceSettings`          | New instance timeout keys                       |
 | `InstanceProvider`          | New provider types or renamed options           |
 | `PartyProvider`             | New provider options                            |
 | `ReviveSystem`              | New revive/ghost configuration keys             |
@@ -79,7 +80,7 @@ Start the server and check the console for:
 Run the following checks:
 
 ```
-/dungeon list
+/dungeon admin list
 /dungeon admin status
 /dungeon admin queue status
 ```
@@ -109,5 +110,5 @@ If the update introduces issues:
 | ------------------------ | ----------------------------------------------- | --------------------------------------------------------- |
 | Plugin fails to load     | Missing hard dependency (MMOCore, packetevents) | Install/update the missing dependency                     |
 | Redis connection error   | Host/port/password changed or wrong             | Update `RedisConfiguration` in `config.yml`               |
-| Commands not found       | New command alias added/removed                 | Check `plugin.yml` in the new release                     |
-| Database errors on start | Schema change in new version                    | Check release notes for migration SQL or MongoDB commands |
+| Commands not found       | A command was renamed or removed                | Check the release notes and [Commands & Permissions](../introduction/commands-and-permissions.md) |
+| Database errors on start | Storage change in the new version               | Check the release notes for any migration steps           |

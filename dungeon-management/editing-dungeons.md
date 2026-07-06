@@ -1,120 +1,78 @@
 ---
-description: How to modify existing dungeons, update floor configurations, and manage workflows.
+description: How to modify existing dungeons — floor settings, world builds, and trigger workflows.
 icon: pencil
 ---
 
 # Editing Dungeons
 
-This page covers how to modify an existing dungeon — changing floor settings, updating the world, and editing the trigger-action workflow.
+This page covers changing a dungeon that already exists: its floor settings, its world, and its trigger workflows.
 
 ---
 
-## Editing Floor Configuration
+## Editing Floor Settings
 
-### Via Web Dashboard
-
-1. Open the dashboard in your browser.
-2. Navigate to the dungeon and select the floor you want to edit.
-3. Modify any field (name, requirements, rules, steps, etc.).
-4. Click **Save**. The change is pushed to the `{topic}:sync` Redis channel and all connected lobby servers reload the floor automatically.
-
-<!-- INSERT HERE: screenshot of the dashboard floor edit form -->
-
-### Via YAML + Redis Migration
-
-1. Edit the YAML file in `plugins/NextDungeon/dungeons/`.
-2. Run `/dungeon admin load <config>` to reload the file into memory.
-3. Run `/dungeon admin migrate-to-redis <config>` to persist the changes to Redis.
-
-> **Note:** If `DungeonLoader` is set to `redis`, the in-memory changes from `/dungeon admin load` will be lost on the next server restart unless you also migrate to Redis.
+Open the web dashboard, select the dungeon and floor, change any setting (name, requirements, rules, steps…), and click **Save**. Every lobby server picks up the change automatically — no restart needed.
 
 ---
 
-## Editing the World (Build Changes)
+## Editing the World
 
-To make changes to the physical dungeon world:
+To change the actual build (add rooms, move structures, fix terrain):
 
-### Step 1: Enter Edit Mode
-
-From a lobby server:
+**1. Enter edit mode** from a lobby server:
 
 ```
-/dungeon admin edit start <dungeonId> <floorId>
+/dungeon admin edit start <floorId>
 ```
 
-You are sent to a dedicated CloudNet instance in edit mode. The `editMode` property is set on the service, so the instance server initialises in edit mode (`ServerUtil.isInEditMode()` returns `true`).
+You're sent to a private edit server. No live players are affected.
 
-### Step 2: Make World Changes
+**2. Make your changes** — build normally.
 
-Build, remove, or rearrange structures freely in the world. No players will be affected.
-
-### Step 3: Save and Exit
+**3. Save and exit:**
 
 ```
 /dungeon admin edit stop --confirm
 ```
 
-This calls `InstanceProvider.saveEditWorldToTemplate(floor)`, which saves the current world back to the CloudNet task template. The edit server then shuts down.
+This saves the world back to the floor's template and shuts the edit server down.
 
-> **Warning:** If you run `/dungeon admin edit stop` without `--confirm`, the plugin first checks whether triggers exist in the database for this floor. If no triggers are found it warns you. If triggers exist it asks for confirmation before proceeding. This prevents accidental saves.
+> Running `/dungeon admin edit stop` **without** `--confirm` first checks whether the floor already has triggers and asks you to confirm — a safety net against accidentally overwriting a floor.
 
 ---
 
-## Editing Workflows (Triggers and Actions)
+## Editing Triggers & Actions
 
-Workflows are edited via the **Blockly web editor** while in edit mode.
+Trigger workflows are edited in the **visual editor** while you're in edit mode.
 
-### Starting the Web Editor
-
-While on the edit server:
+**Open it** (on the edit server):
 
 ```
 /dungeon admin webeditor start
 ```
 
-The plugin:
-1. Starts an HTTP server on the proxy (via `DungeonWebEditorManager`)
-2. Sends you a clickable URL in chat
-3. Maintains the editor session in `EditorSessionManager`
+The plugin sends you a clickable link. Open it in your browser to see the workspace, organised into categories:
 
-### Using the Editor
+| Category | What's inside |
+|----------|---------------|
+| **Triggers** | Everything that can start a workflow — see [Triggers](../workflow/triggers.md) |
+| **Actions** | Everything a trigger can do — see [Actions](../workflow/actions.md) |
+| **Logic** | *If* and *For* blocks — see [Conditions & Variables](../workflow/conditions-and-variables.md) |
+| **Conditions** | Checks like *Player has item*, *Player in region*… |
+| **Variables** | Set, add, subtract, random, and math blocks |
+| **Cinematic / WorldEdit** | Extra blocks added by [modules](../modules/overview.md), when installed |
 
-The Blockly workspace is divided into categories:
+**Build a workflow:**
 
-| Category | Contents |
-|----------|---------|
-| **Triggers** | `BlockClickTrigger`, `ChatMessageTrigger`, `EntityDeathTrigger`, `FunctionTrigger`, `ItemPickupTrigger`, `PlayerDamageTrigger`, `PlayerJumpTrigger`, `RegionTrigger` |
-| **Actions** | All action blocks (`SendMessageAction`, `TeleportLocationAction`, `SummonMobAction`, etc.) |
-| **Logic** | `IfCondition` and other conditional blocks |
-| **Variables** | `SetVariableAction`, `GetVariableAction`, `AddToVariableAction`, etc. |
-| **WorldEdit** | WorldEdit-based actions |
+1. Drag a trigger onto the workspace and set its fields (region corners, block type, etc.).
+2. Attach action blocks inside the trigger.
+3. Fill in each action (message text, target, coordinates…).
+4. Optionally wrap actions in a condition so they only run when your rule is met.
+5. Click **Save**. The workflow is saved immediately — you don't need to leave edit mode.
 
-**Configuring a Trigger:**
+**Text placeholders.** In any message, title, or command you can use `{player}`, `{trigger}`, `{global.name}`, and `{player.name}` — see [Conditions & Variables](../workflow/conditions-and-variables.md#placeholders-in-text).
 
-1. Drag a trigger block onto the workspace (e.g. `RegionTrigger`).
-2. Set the trigger parameters (region name, enter/exit, etc.).
-3. Attach action blocks inside the trigger block.
-4. Configure each action (message text, target player, coordinates, etc.).
-5. (Optional) Add condition blocks to gate the actions.
-
-**Variable Placeholders in Messages:**
-
-Use these in any message or title text:
-
-| Placeholder | Value |
-|-------------|-------|
-| `{player}` | Name of the triggering player |
-| `{global.varName}` | Value of a global variable |
-| `{player.varName}` | Value of a player-scoped variable |
-| `{trigger}` | Name of the triggering trigger |
-
-### Saving the Workflow
-
-Click the **Save** button in the editor. The workflow is serialised to JSON by `EditorSerializer`, sent to the Spigot server via Redis messaging, and persisted to the database by `DatabaseTriggersManager`.
-
-> Changes are saved to the database immediately. You do not need to stop edit mode to persist workflow changes.
-
-### Stopping the Web Editor
+**Close the editor** when finished:
 
 ```
 /dungeon admin webeditor stop
@@ -122,40 +80,23 @@ Click the **Save** button in the editor. The workflow is serialised to JSON by `
 
 ---
 
-## Live Trigger Refresh
-
-On lobby servers, triggers are cached in `TriggersRegistry`. When a floor is updated via the dashboard sync channel, the registry is refreshed automatically:
-
-```
-[DashboardSync] Rechargement floor : example_floor1
-```
-
-On instance servers, triggers are loaded when the instance initialises (`TriggersRegistry.refreshTriggerCache()`).
-
----
-
 ## Renaming or Deleting a Dungeon
 
-### Via Code / Dashboard
-
-The `Dungeon.rename(String newName)` method updates the name and syncs to Redis. `Dungeon.delete()` removes the dungeon from Redis storage.
-
-### Via Admin Commands
-
-Currently there are no in-game rename/delete commands. Use the dashboard or direct Redis management for these operations.
+Use the web dashboard to rename or delete a dungeon. There are no in-game commands for these actions.
 
 ---
 
 ## Verifying Your Changes
 
-After editing:
+After editing, launch the floor and watch it run:
 
 ```
+/dungeon admin run <floorId>
 /dungeon admin status
-/dungeon admin test <dungeonId> <floorId>
 ```
 
 Confirm that:
-* The new floor configuration is loaded (`/dungeon list`)
-* Triggers fire at the expected moments during the test run
-* The dungeon completes correctly
+
+* The floor loads and appears in `/dungeon admin list`
+* Triggers fire at the right moments during the run
+* The floor completes correctly

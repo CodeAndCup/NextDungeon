@@ -1,105 +1,101 @@
 ---
-description: The WorldEdit Module provides WorldEdit-based workflow actions for dungeon floors.
+description: The WorldEdit Module adds region-editing actions to dungeon workflows.
 icon: cube
 ---
 
 # WorldEdit Module
 
-The **WorldEdit Module** (`module-worldedit`) adds WorldEdit-powered workflow actions to NextDungeon. These actions allow you to manipulate the dungeon world programmatically from the Blockly workflow editor — fill regions, replace blocks, paste schematics, and more.
+The **WorldEdit Module** adds actions that reshape the dungeon world from your workflows — fill regions, clear them, replace blocks, copy areas, and paste schematics.
 
 **Module ID:** `worldedit`
-**Source:** `module-worldedit/src/main/java/fr/perrier/dungeons/module/worldedit/`
 
-> **Prerequisite:** WorldEdit (or FAWE) must be installed on the instance server for these actions to work.
+> **Prerequisite:** WorldEdit (or FastAsyncWorldEdit) must be installed on the dungeon instance servers for these actions to work.
 
 ---
 
 ## Installation
 
-1. Ensure **WorldEdit** or **FastAsyncWorldEdit (FAWE)** is installed on every dungeon instance server.
+1. Install **WorldEdit** or **FastAsyncWorldEdit (FAWE)** on every dungeon instance server.
 2. Place `module-worldedit.jar` in `plugins/NextDungeon/modules/`.
 3. Restart the server, **or** run `/dungeon admin module load module-worldedit.jar`.
-4. A new **WorldEdit** category appears in the Blockly editor toolbox.
+4. A new **WorldEdit** category appears in the editor toolbox.
 
 ---
 
-## Workflow Blocks
+## Blocks
 
-### Set Blocks
+### 🧱 WE Set Region
 
-Fills a cuboid region with a specified block material.
+Fills a region between two corners with a block or a mix of blocks.
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| Region pos1 | (0,64,0) | First corner of the target region |
-| Region pos2 | (10,74,10) | Opposite corner of the target region |
-| Material | `STONE` | Minecraft material name (e.g. `AIR`, `STONE`, `OAK_PLANKS`) |
+| Field | Default | Description |
+|-------|---------|-------------|
+| Pos1 / Pos2 | — | The two corners of the region |
+| Pattern | `stone` | A single block, or a weighted mix like `70%stone,30%gravel` |
 
-**Use case:** Clearing a room after a puzzle is completed, filling a pit with lava.
+**Use it for:** clearing a room after a puzzle, filling a pit.
 
-### Cut Blocks
+### ✂️ WE Cut Region
 
-Removes all blocks inside a cuboid region by replacing them with `AIR`.
+Clears a region (replaces everything with air).
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| Region pos1 | (0,64,0) | First corner |
-| Region pos2 | (10,74,10) | Opposite corner |
+| Field | Default | Description |
+|-------|---------|-------------|
+| Pos1 / Pos2 | — | The two corners of the region |
 
-**Use case:** Opening a secret passage, collapsing a ceiling.
+**Use it for:** opening a passage, collapsing a ceiling.
 
-### Replace Blocks
+### 🔄 WE Replace Region
 
-Replaces all blocks of one type with another inside a region.
+Swaps one set of blocks for another inside a region.
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| Region pos1 | (0,64,0) | First corner |
-| Region pos2 | (10,74,10) | Opposite corner |
-| From material | `STONE` | Block material to search for and replace |
-| To material | `AIR` | Replacement material |
+| Field | Default | Description |
+|-------|---------|-------------|
+| Pos1 / Pos2 | — | The two corners of the region |
+| Blocks to replace | `stone` | One or more block types to look for (e.g. `stone,cobblestone`) |
+| Replace with | `gravel` | A block or weighted mix, like `70%stone,30%gravel` |
 
-**Use case:** Revealing hidden structures, switching a puzzle floor's material.
+**Use it for:** revealing hidden structures, changing a floor's look.
 
-### Paste Schematic
+### 📋 Paste Schematic
 
-Pastes a saved WorldEdit schematic at a specific location.
+Pastes a saved WorldEdit schematic.
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| Schematic name | — | File name without path or extension (file must exist in the WorldEdit schematics folder) |
-| Location | (0,64,0) | Anchor point for the paste operation |
-| Include air | `false` | If `true`, air blocks from the schematic overwrite existing blocks |
+| Field | Default | Description |
+|-------|---------|-------------|
+| Schematic name | `schematic.schem` | The schematic file to paste |
+| X / Y / Z | 0 / 64 / 0 | Where to paste it |
 
-**Use case:** Spawning a pre-built structure mid-dungeon, opening a boss room gate.
+**Use it for:** dropping in a prebuilt structure, opening a boss gate.
+
+### 📦 WE Copy Region Between Worlds
+
+Copies a cuboid from one world to a spot in another.
+
+| Field | Default | Description |
+|-------|---------|-------------|
+| Source world | `world` | World to copy from |
+| Source Pos1 / Pos2 | — | The area to copy |
+| Destination world | `world` | World to paste into |
+| Destination X / Y / Z | 200 / 64 / 0 | Where to paste it |
 
 ---
 
-## Example: Opening a Secret Door on Puzzle Completion
+## Example: Open a Secret Door When a Horde Is Cleared
 
 ```
-EntityDeathTrigger (type: ZOMBIE, count: 10)
-  -- SendTitleAction (title: "Puzzle Complete!", subtitle: "The path opens...")
-  -- PlaySoundAction (sound: BLOCK_ANVIL_LAND, volume: 1.0)
-  -- WorldEdit Replace Blocks (pos1: ..., pos2: ..., from: STONE_BRICKS, to: AIR)
+Entity Death (ZOMBIE)
+  ├─ Send Title ("Puzzle Complete!", "The path opens...")
+  ├─ Play Sound (anvil land)
+  └─ WE Replace Region (the doorway: STONE_BRICKS → air)
 ```
 
-<!-- INSERT HERE: gif or screenshot of a WorldEdit Set/Replace action opening a doorway in-game -->
-
----
-
-## Architecture
-
-| Class | Description |
-|-------|-------------|
-| `WorldEditModule` | Module entry point — registers all blocks and action handlers |
-| `WorldEditManager` | Implements the WorldEdit operations using the WorldEdit API |
+<!-- INSERT HERE: screenshot of a WorldEdit action opening a doorway in-game -->
 
 ---
 
 ## Notes
 
-* All WorldEdit operations run **synchronously** on the main server thread. For large regions (> 50,000 blocks), consider using **FastAsyncWorldEdit (FAWE)**, which processes operations asynchronously and avoids tick-lag.
-* Schematic files must be accessible from the instance server's `plugins/WorldEdit/schematics/` folder (or FAWE equivalent). When using CloudNet for instance management, make sure schematic files are included in your CloudNet task template; for other deployment setups, ensure the files are present on each instance server directly.
-* Regions are defined as plain coordinate pairs — the module internally constructs a `CuboidRegion` to perform the operation.
-* If WorldEdit is not installed on the instance server, action handlers will log an error and return `false` without crashing the workflow.
+* Operations run on the main server thread. For very large regions, use **FastAsyncWorldEdit (FAWE)** to avoid lag.
+* Schematic files must be present on the instance server (in the WorldEdit schematics folder). When using CloudNet, include them in your floor's task template.
+* If WorldEdit isn't installed on the instance server, these actions do nothing (they won't crash the workflow).

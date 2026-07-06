@@ -12,7 +12,7 @@ This guide assumes you have already completed the [Installation](installation.md
 Run the following command in-game or from the console:
 
 ```
-/dungeon list
+/dungeon admin list
 ```
 
 You should see an empty dungeon list (or the example dungeon if it was pre-loaded). If the plugin reports an error, check [Installation](installation.md) again.
@@ -56,7 +56,7 @@ This creates a new CloudNet instance in edit mode and teleports you to it. You c
 
 This saves the world template back to CloudNet and shuts down the edit server.
 
-## Step 6: Test the Dungeon (as admin)
+## Step 5: Test the Dungeon (as admin)
 
 You can now test the dungeon.
 
