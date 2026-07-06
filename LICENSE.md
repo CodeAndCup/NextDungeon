@@ -83,27 +83,49 @@ use for Your own confidential information, to protect it from unauthorized acces
 
 This License and all rights granted under it terminate automatically and immediately upon any
 breach, without notice. Upon termination You must cease all use of the Software and destroy all
-copies within Your possession or control. Sections 2, 4, 5, 6, 8, 9, and 10 survive termination.
+copies within Your possession or control. Sections 2, 4, 5, 6, 8, 9, 10, and 11 survive
+termination.
 
-## 8. Disclaimer of Warranty
+## 8. No Support or Maintenance Obligation; Effect of Unauthorized Modification
+
+The Licensor is under **no obligation** to provide any support, maintenance, updates, upgrades,
+bug fixes, patches, error corrections, or continued compatibility for the Software, whether
+under this License or otherwise, except as expressly set out in a separate signed written
+agreement.
+
+Without limiting the foregoing, if the Software is modified, adapted, edited, tampered with,
+decompiled, deobfuscated, reverse engineered, or otherwise altered in breach of this License, or
+is combined with unauthorized code, or run in an unauthorized or altered environment, then:
+
+a. any and all support, maintenance, update, upgrade, and fix obligations of the Licensor —
+   **including any that would otherwise exist under a separate agreement** — are immediately and
+   permanently void with respect to the affected copy and to any deployment derived from it;
+b. the Licensor has no duty to correct, update, secure, restore, or make compatible any such
+   modified or altered version, and bears no responsibility for any defect, malfunction,
+   incompatibility, data loss, security vulnerability, or damage arising from or after the
+   unauthorized modification; and
+c. the warranty disclaimer and liability limitation in Sections 9 and 10 apply in full to any
+   such modified or altered version.
+
+## 9. Disclaimer of Warranty
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
 NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND
 NON-INFRINGEMENT.
 
-## 9. Limitation of Liability
+## 10. Limitation of Liability
 
 IN NO EVENT SHALL THE LICENSOR BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN
 AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-## 10. Governing Law
+## 11. Governing Law
 
 This License is governed by the laws of France, without regard to its conflict-of-law rules. The
 competent courts of France shall have exclusive jurisdiction over any dispute arising out of or
 relating to this License, to the extent permitted by applicable law.
 
-## 11. Entire Agreement; Revocation of Prior Licenses
+## 12. Entire Agreement; Revocation of Prior Licenses
 
 This License constitutes the entire agreement between the parties regarding the Software and
 supersedes and **revokes any prior open-source or public license** — including the MIT License
