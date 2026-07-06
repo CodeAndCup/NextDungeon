@@ -19,7 +19,6 @@ public class QueueLeaveListener implements Listener {
             return;
         }
 
-        // Use the player membership map to remove from only the queues they're in (O(1) lookup)
         for (String floorId : Main.getInstance().getDungeonQueueService().getPlayerQueueFloors(player.getUniqueId())) {
             Main.getInstance().getDungeonQueueService().removeFromQueue(player.getUniqueId(), floorId);
         }

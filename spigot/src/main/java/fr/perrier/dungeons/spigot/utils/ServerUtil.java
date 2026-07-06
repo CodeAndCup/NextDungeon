@@ -11,11 +11,6 @@ import org.bukkit.entity.Player;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-/**
- * Utilitaire pour gérer les serveurs et instances de donjons.
- * Cette classe agit maintenant comme une façade (Facade Pattern)
- * pour l'InstanceProvider abstrait.
- */
 public class ServerUtil {
 
     /**
@@ -121,37 +116,15 @@ public class ServerUtil {
     /**
      * Connects a party to a cloud service with the given name.
      * @param party The party to connect to the cloud service.
-     * @param server The name of the cloud service to connect to.
-     */
-    public static void sendToServer(Party party, String server) {
-        // Cette méthode dépend de CloudNet spécifiquement
-        // Pour une abstraction complète, il faudrait créer une interface PartyProvider
-        // Pour l'instant, on garde la compatibilité CloudNet
-        Main.getLoggerUtil().warning("sendToServer(Party, String) n'est supporté qu'avec CloudNet");
-    }
-
-    /**
-     * Connects a party to a cloud service with the given name.
-     * @param party The party to connect to the cloud service.
      * @param serviceId The UUID of the cloud service to connect to.
      */
     public static void sendToServer(Party party, UUID serviceId) {
-        // Pour les providers non-CloudNet, on téléporte chaque membre individuellement
         for (UUID uuid : party.getMembers()) {
             Player player = org.bukkit.Bukkit.getPlayer(uuid);
             if (player != null) {
                 sendToServer(player, serviceId);
             }
         }
-    }
-
-    /**
-     * Connects a player to a cloud service with the given name.
-     * @param player The player to connect to the cloud service.
-     * @param server The name of the cloud service to connect to.
-     */
-    public static void sendToServer(Player player, String server) {
-        Main.getLoggerUtil().warning("sendToServer(Player, String) n'est supporté qu'avec CloudNet");
     }
 
     /**

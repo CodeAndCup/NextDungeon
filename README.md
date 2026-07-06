@@ -78,7 +78,13 @@ Main Documentation: [https://cupcode-1.gitbook.io/nextdungeon/](https://cupcode-
 - No API available for now.
 
 ## Contributing
-Contributions are welcome! Please open an issue or pull request on the GitHub repository.
+This is proprietary, closed-source software. External contributions, modifications, and
+derivative works are not accepted or permitted without a signed written agreement from the
+Licensor.
 
 ## License
-This project is licensed under the MIT License. See `LICENSE.md` for more information.
+**Proprietary — All Rights Reserved.** Copyright © 2025–2026 PerrierBottle (CupCode).
+This software may not be used, copied, decompiled, reverse engineered, modified, redistributed,
+resold, or used as AI/ML training data without a signed written license from the Licensor. It
+supersedes any prior MIT or Creative Commons license previously referenced. See `LICENSE.md` for
+the full terms.

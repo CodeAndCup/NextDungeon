@@ -18,13 +18,15 @@ public class PlayerCommands {
     public static void onDungeonCommand(CommandSender sender) {
         sender.sendMessage(ChatUtil.getBar());
         sender.sendMessage(ChatUtil.translate("<gradient:#8B0000:bold>NextDungeon</gradient:#D10000> &8| &fPlayer Commands"));
+        sender.sendMessage(ChatUtil.translate("&7Pick a dungeon and a difficulty from the menu, then:"));
         sender.sendMessage("");
-        sender.sendMessage(ChatUtil.translate("&#D10000/dungeon &8- &fGet the list of available commands"));
-        sender.sendMessage(ChatUtil.translate("&#D10000/dungeon join <floor_id> &8- &fJoin a dungeon queue"));
-        sender.sendMessage(ChatUtil.translate("&#D10000/dungeon leave <floor_id> &8- &fLeave a dungeon queue"));
-        sender.sendMessage(ChatUtil.translate("&#D10000/dungeon status &8- &fCheck your queue status"));
-        sender.sendMessage(ChatUtil.translate("&#D10000/dungeon list &8- &fList available dungeons"));
+        sender.sendMessage(ChatUtil.translate("&#D10000/nd &8» &fShow this help"));
+        sender.sendMessage(ChatUtil.translate("&#D10000/nd status &8» &fCheck your position in the queues"));
+        sender.sendMessage(ChatUtil.translate("&#D10000/nd leave &8<&7floor_id&8> &8» &fLeave a dungeon queue"));
+        sender.sendMessage(ChatUtil.translate("&#D10000/nd party &8» &fManage your party &7(see &#D10000/nd party help&7)"));
+        sender.sendMessage(ChatUtil.translate("&#D10000/nd plugin &8» &fPlugin information"));
         sender.sendMessage("");
+        sender.sendMessage(ChatUtil.translate("&8Aliases: &7/dungeon&8, &7/dungeons&8, &7/nextdungeon"));
         sender.sendMessage(ChatUtil.getBar());
     }
 
@@ -45,41 +47,6 @@ public class PlayerCommands {
         sender.sendMessage("");
         sender.sendMessage(ChatUtil.getBar());
     }
-
-    /*@Command(names = {"dungeon join", "dungeons join", "nd join"})
-    public static void onDungeonJoinCommand(CommandSender sender, @Param(name = "Floor ID", tabCompleteFlags = {"floors"}) FloorData floorData) {
-        if(isSenderNotAPlayer(sender)) return;
-        Player player = (Player) sender;
-
-        if (Main.getInstance().getQueueManager() == null) {
-            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Queue system is not available on this server"));
-            return;
-        }
-
-        if (floorData == null) {
-            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000FloorData not found."));
-            return;
-        }
-
-        Floor floor = Floor.getFloor(floorData.getId());
-        if (floor == null) {
-            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Floor not found: " + floorData.getId()));
-            return;
-        }
-
-        // Create a temporary party for the player if they don't have one, so they can join the queue as a solo player.
-        if(DungeonPartyImpl.getDungeonPartyOf(player) == null) {
-            new DungeonPartyImpl.Builder()
-                    .setDungeonId(floorData.getDungeonId())
-                    .setFloorId(floorData.getId())
-                    .setMinLevel(0)
-                    .setDescription("")
-                    .setLeader(player)
-                    .build();
-        }
-
-        Main.getInstance().getQueueManager().requestInstance(player, floor);
-    }*/
 
     @Command(names = {"dungeon leave", "dungeons leave", "nextdungeon leave", "nextdungeons leave", "nd leave"})
     public static void onDungeonLeaveCommand(CommandSender sender, @Param(name = "Floor ID", tabCompleteFlags = {"floors"}) FloorData floorData) {
@@ -135,36 +102,6 @@ public class PlayerCommands {
 
         if (!foundInQueue) {
             sender.sendMessage(ChatUtil.translate("&7You are not in any queue"));
-        }
-
-        sender.sendMessage("");
-        sender.sendMessage(ChatUtil.getBar());
-    }
-
-    @Command(names = {"dungeon list", "dungeons list", "nextdungeon list", "nextdungeons list", "nd list"})
-    public static void onDungeonListCommand(CommandSender sender) {
-        sender.sendMessage(ChatUtil.getBar());
-        sender.sendMessage(ChatUtil.translate("<gradient:#8B0000:bold>NextDungeon</gradient:#D10000> &8| &fAvailable Dungeons"));
-        sender.sendMessage("");
-
-        var queueService = Main.getInstance().getDungeonQueueService();
-        
-        for (Dungeon dungeon : Dungeon.getDungeons()) {
-            sender.sendMessage(ChatUtil.translate("&#D10000" + dungeon.getName() + " &7(" + dungeon.getId() + ")"));
-            for (Floor floor : dungeon.getFloors()) {
-                int queueSize = queueService != null ? queueService.getQueueSize(floor.getId()) : 0;
-                int activeInstances = queueService != null ? queueService.getActiveInstanceCount(floor.getId()) : 0;
-                int maxInstances = floor.getRules() != null ? floor.getRules().getMaxInstance() : 0;
-                
-                sender.sendMessage(ChatUtil.translate(String.format(
-                    "  &8• &f%s &7(ID: %s) - &eQueue: %d &7| &eInstances: %d/%s",
-                    floor.getName(),
-                    floor.getId(),
-                    queueSize,
-                    activeInstances,
-                    maxInstances > 0 ? String.valueOf(maxInstances) : "∞"
-                )));
-            }
         }
 
         sender.sendMessage("");

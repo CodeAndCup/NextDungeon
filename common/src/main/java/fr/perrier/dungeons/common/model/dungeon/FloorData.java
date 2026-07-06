@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import fr.perrier.dungeons.common.model.dungeon.config.Requirements;
 import fr.perrier.dungeons.common.model.dungeon.config.Rules;
 import fr.perrier.dungeons.common.model.dungeon.config.WorldConfig;
+import fr.perrier.dungeons.common.model.labyrinth.LabyrinthFloorConfig;
 import fr.perrier.dungeons.common.workflow.trigger.TriggerData;
 import lombok.Getter;
 import lombok.Setter;
@@ -17,7 +18,10 @@ import java.util.List;
 @Setter
 public class FloorData {
 
-    public static final int CURRENT_SCHEMA_VERSION = 2;
+    // v3: WorldConfig.spawn (Position) gained yaw/pitch — changes the
+    // checksum shape, so existing rows go stale and self-heal on load
+    // (RedisConfigLoader.healLegacyChecksums + DAO return-with-warning).
+    public static final int CURRENT_SCHEMA_VERSION = 4;
     private static final Gson CHECKSUM_GSON = new Gson();
 
     private String id;
@@ -32,6 +36,19 @@ public class FloorData {
     private Rules rules;
     private List<Step> steps;
     private List<TriggerData> triggers;
+
+    /**
+     * Discriminator for the runtime engine that picks up this floor.
+     * Defaults to {@link FloorType#CLASSIC} so legacy rows in DB
+     * deserialize with the historical behavior.
+     */
+    private FloorType floorType = FloorType.CLASSIC;
+
+    /**
+     * Per-difficulty config when {@link #floorType} is
+     * {@link FloorType#LABYRINTH}. Null otherwise.
+     */
+    private LabyrinthFloorConfig labyrinthFloorConfig;
 
     private long version = 1L;
     private int schemaVersion = CURRENT_SCHEMA_VERSION;
@@ -97,6 +114,8 @@ public class FloorData {
         copy.rules = this.rules;
         copy.steps = this.steps;
         copy.triggers = null;
+        copy.floorType = this.floorType;
+        copy.labyrinthFloorConfig = this.labyrinthFloorConfig;
         copy.version = this.version;
         copy.schemaVersion = this.schemaVersion;
         copy.updatedAt = this.updatedAt;

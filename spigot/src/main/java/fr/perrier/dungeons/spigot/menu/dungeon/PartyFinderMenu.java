@@ -7,6 +7,7 @@ import fr.perrier.cupcodeapi.menuapi.pagination.PaginatedMenu;
 import fr.perrier.cupcodeapi.utils.ChatUtil;
 import fr.perrier.cupcodeapi.utils.ItemBuilder;
 import fr.perrier.dungeons.spigot.Main;
+import fr.perrier.dungeons.spigot.menu.utils.MenuTitle;
 import fr.perrier.dungeons.spigot.menu.utils.PartyButton;
 import fr.perrier.dungeons.spigot.model.Dungeon;
 import fr.perrier.dungeons.spigot.parties.IDungeonParty;
@@ -19,6 +20,7 @@ import org.bukkit.inventory.ItemStack;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -33,7 +35,7 @@ public class PartyFinderMenu extends PaginatedMenu {
 
     @Override
     public String getPrePaginatedTitle(Player player) {
-        return "&#8B0000&l" + ChatUtil.toSmallCaps("party finder");
+        return MenuTitle.ofRows(5, "&#8B0000&l" + ChatUtil.toSmallCaps("party finder"));
     }
 
     @Override
@@ -100,7 +102,7 @@ public class PartyFinderMenu extends PaginatedMenu {
                             "&#9C9C9CChange your search settings to",
                             "&7parties suited to you!",
                             "",
-                            "&7Floor&f: &#90FFFF" + (config.getFloorFilter().isEmpty() ? "&#FF0000None" : Main.getInstance().getDungeonService().getFloor(config.getFloorFilter()).getName()),
+                            "&7Floor&f: &#90FFFF" + (config.getFloorFilter().isEmpty() ? "&#FF0000None" : Objects.requireNonNull(Main.getInstance().getDungeonService().getFloor(config.getFloorFilter())).getName()),
                             "&7Description&f &#90FFFF" + (config.getDescriptionFilter().isEmpty() ? "&#FF0000None" : config.getDescriptionFilter()),
                             "&7Minimum Level&f: &#90FFFF" + config.getMinimumLevelFilter(),
                             "",

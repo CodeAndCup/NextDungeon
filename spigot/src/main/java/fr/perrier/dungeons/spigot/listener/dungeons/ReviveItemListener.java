@@ -30,25 +30,20 @@ public class ReviveItemListener implements Listener {
         Player player = event.getPlayer();
         ItemStack item = player.getInventory().getItemInMainHand();
 
-        // Vérifier si c'est un item de résurrection
         if(isReviveItem(item)) {
             event.setCancelled(true);
 
-            // Chercher un joueur fantôme dans les alentours (radius de 10 blocs)
             Player deadPlayer = findNearestGhostPlayer(player);
 
             if(deadPlayer != null) {
-                // Consommer l'item
                 if(item.getAmount() > 1) {
                     item.setAmount(item.getAmount() - 1);
                 } else {
                     player.getInventory().setItemInMainHand(null);
                 }
 
-                // Ressusciter le joueur
                 InstancePlayerDeathListener.revivePlayer(deadPlayer);
 
-                // Message de confirmation
                 String reviveMessage = Objects.requireNonNull(Main.getInstance().getConfig().getString("ReviveSystem.reviveMessage"));
                 player.sendMessage(ChatUtil.translate("&#00FF00✓ " + reviveMessage.replace("{player}", deadPlayer.getName())));
             } else {
@@ -68,19 +63,16 @@ public class ReviveItemListener implements Listener {
             return false;
         }
 
-        // Vérifier le type d'item
         String configuredType = Objects.requireNonNull(Main.getInstance().getConfig().getString("ReviveSystem.ReviveItem.type"));
         if(!item.getType().name().equalsIgnoreCase(configuredType)) {
             return false;
         }
 
-        // Vérifier le nom de l'item (optionnel)
         ItemMeta meta = item.getItemMeta();
         if(meta != null && meta.hasDisplayName()) {
             String configuredName = Objects.requireNonNull(Main.getInstance().getConfig().getString("ReviveSystem.ReviveItem.displayName"));
             String translatedConfigName = ChatUtil.translate(configuredName);
 
-            // Comparer les noms après traduction
             return meta.getDisplayName().equals(translatedConfigName);
         }
 

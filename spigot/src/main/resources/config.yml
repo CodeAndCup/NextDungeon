@@ -28,6 +28,7 @@ RedisConfiguration:
 # ─────────────────────────────────────────────────────
 # Configuration du serveur web proxy pour l'éditeur
 WebEditor:
+    proxy-host: "localhost" # IP/hôte du proxy (Velocity/BungeeCord). À changer si le proxy est sur une autre machine (cluster, etc.)
     proxy-port: 7734 # Port du serveur web proxy (Velocity/BungeeCord)
 
 # ─────────────────────────────────────────────────────
@@ -73,6 +74,7 @@ DatabaseConfiguration:
 
 InstanceSettings:
     loadingTimeout: 120  # Temps en secondes avant qu'une instance en chargement n'échoue
+    emptyShutdownTimeout: 120  # Temps en secondes sans aucun joueur avant que le serveur d'instance ne se ferme
 
 # ─────────────────────────────────────────────────────
 # ☁️  CONFIGURATION DU PROVIDER D'INSTANCES

@@ -14,6 +14,7 @@ import fr.perrier.dungeons.common.model.dungeon.FloorData;
 import fr.perrier.dungeons.spigot.commands.AdminCommands;
 import fr.perrier.dungeons.spigot.commands.ConsoleCommands;
 import fr.perrier.dungeons.spigot.commands.DebugCommands;
+import fr.perrier.dungeons.spigot.commands.PartyCommands;
 import fr.perrier.dungeons.spigot.commands.PlayerCommands;
 import fr.perrier.dungeons.spigot.commands.params.DungeonParameterType;
 import fr.perrier.dungeons.spigot.commands.params.FloorParameterType;
@@ -34,11 +35,13 @@ import fr.perrier.dungeons.spigot.listener.global.GlobalPartyListener;
 import fr.perrier.dungeons.spigot.manager.GhostFactory;
 import fr.perrier.dungeons.spigot.messaging.packets.CancelInstancePacket;
 import fr.perrier.dungeons.spigot.messaging.packets.CrossServerSendToInstancePacket;
+import fr.perrier.dungeons.spigot.messaging.packets.ConsumeRequirementsRequestPacket;
 import fr.perrier.dungeons.spigot.messaging.packets.DungeonPartyJoinRequestPacket;
 import fr.perrier.dungeons.spigot.messaging.packets.ValidateRequirementsRequestPacket;
 import fr.perrier.dungeons.spigot.messaging.packets.ValidateRequirementsResponsePacket;
 import fr.perrier.dungeons.spigot.messaging.subscribers.CancelInstanceSubscriber;
 import fr.perrier.dungeons.spigot.messaging.subscribers.CrossServerSendToInstanceSubscriber;
+import fr.perrier.dungeons.spigot.messaging.subscribers.ConsumeRequirementsRequestSubscriber;
 import fr.perrier.dungeons.spigot.messaging.subscribers.DungeonPartyJoinRequestSubscriber;
 import fr.perrier.dungeons.spigot.messaging.subscribers.ValidateRequirementsRequestSubscriber;
 import fr.perrier.dungeons.spigot.messaging.subscribers.ValidateRequirementsResponseSubscriber;
@@ -69,6 +72,7 @@ import fr.perrier.dungeons.spigot.webeditor.DungeonWebEditorManager;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Bukkit;
+import org.bukkit.GameRule;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -173,8 +177,14 @@ public final class Main extends JavaPlugin {
                 .setPassword(Objects.requireNonNull(Main.getInstance().getConfig().getString("RedisConfiguration.password")))
                 .setDatabase(Main.getInstance().getConfig().getInt("RedisConfiguration.database"));
 
-        // Create Redis client
+        // Create Redis client. Wrap the rest of onEnable() in a try/finally
+        // so that if any subsequent init step fails (and we disable the
+        // plugin via early return / throws), we still shut the Redisson
+        // client down — otherwise its Netty threads keep the JVM busy and
+        // leak connections to Redis.
         RedissonClient redissonClient = Redisson.create(config);
+        boolean redissonHandedOff = false;
+        try {
 
         try {
             // Initialize Redis storage service
@@ -273,6 +283,7 @@ public final class Main extends JavaPlugin {
         this.messaging.registerAdapter(DungeonPartyJoinRequestPacket.class, new DungeonPartyJoinRequestSubscriber());
         this.messaging.registerAdapter(ValidateRequirementsRequestPacket.class, new ValidateRequirementsRequestSubscriber());
         this.messaging.registerAdapter(ValidateRequirementsResponsePacket.class, new ValidateRequirementsResponseSubscriber());
+        this.messaging.registerAdapter(ConsumeRequirementsRequestPacket.class, new ConsumeRequirementsRequestSubscriber());
         this.messaging.registerAdapter(CrossServerSendToInstancePacket.class, new CrossServerSendToInstanceSubscriber());
 
         // Cross-server validation service — shared between lobbies and instance servers; the
@@ -330,6 +341,12 @@ public final class Main extends JavaPlugin {
         }
 
         getLogger().info("NextDungeon " + this.getDescription().getVersion()  + " started in " + (System.currentTimeMillis() - startTime) + " ms");
+        redissonHandedOff = true;
+        } finally {
+            if (!redissonHandedOff) {
+                try { redissonClient.shutdown(); } catch (Exception ignored) {}
+            }
+        }
     }
 
     @Override
@@ -529,6 +546,7 @@ public final class Main extends JavaPlugin {
         commandHandler.registerCommands(AdminCommands.class);
         commandHandler.registerCommands(DebugCommands.class);
         commandHandler.registerCommands(PlayerCommands.class);
+        commandHandler.registerCommands(PartyCommands.class);
         commandHandler.registerCommands(ConsoleCommands.class);
     }
 
@@ -564,8 +582,10 @@ public final class Main extends JavaPlugin {
         PluginManager pluginManager = getServer().getPluginManager();
         pluginManager.registerEvents(new InstanceJoinListener(), this);
         pluginManager.registerEvents(new InstanceMobKillListener(), this);
+        pluginManager.registerEvents(new fr.perrier.dungeons.spigot.listener.dungeons.NaturalSpawnBlockListener(), this);
         pluginManager.registerEvents(new InstancePlayerDeathListener(), this);
         pluginManager.registerEvents(new ReviveItemListener(), this);
+        pluginManager.registerEvents(new fr.perrier.dungeons.spigot.listener.dungeons.LootChestListener(), this);
     }
 
     /**
@@ -612,14 +632,44 @@ public final class Main extends JavaPlugin {
         // Initialize instance in Redis
         dungeonService.initializeInstance(info.getInstanceId(), info.getFloorId());
 
+        // Make sure every dungeon world keeps inventory on death — players must
+        // never drop their gear inside an instance. An instance server only
+        // hosts the dungeon, so every loaded world is a dungeon world.
+        enforceKeepInventory();
+
         // Register instance with queue system
         if (dungeonQueueService != null) {
             dungeonQueueService.registerInstance(info.getFloorId(), info.getInstanceId());
             getLogger().info(String.format("Registered instance %s with queue system", info.getInstanceId()));
         }
 
+        // Reclaim this cloud service once it has sat empty for too long — players
+        // all left, the run wiped, or nobody ever joined. Drops the Redis record
+        // and shuts the server down so CloudNet can tear the service back down.
+        new fr.perrier.dungeons.spigot.monitoring.EmptyInstanceWatchdog(this, info.getInstanceId()).start();
+
         // Schedule ready state
         putServerReady();
+    }
+
+    /**
+     * Ensures every loaded world on this instance server has the
+     * {@code keepInventory} gamerule enabled, setting it when it isn't.
+     *
+     * <p>Dungeon deaths must never drop the player's items. This is a safety
+     * net in case a world template ships without the gamerule. Runs on the
+     * main thread (called from {@link #initializeInstanceServer()} during
+     * {@code onEnable}) — {@link World#setGameRule} requires it.</p>
+     */
+    private void enforceKeepInventory() {
+        for (World world : Bukkit.getWorlds()) {
+            Boolean current = world.getGameRuleValue(GameRule.KEEP_INVENTORY);
+            if (current == null || !current) {
+                world.setGameRule(GameRule.KEEP_INVENTORY, true);
+                getLogger().info("[Dungeon] keepInventory was off in world '"
+                        + world.getName() + "' — forced to true.");
+            }
+        }
     }
 
     /**
@@ -653,13 +703,23 @@ public final class Main extends JavaPlugin {
     private void initializeLobbyServer() {
         getLogger().info("Initializing lobby server");
 
-        // Charger tous les donjons depuis Redis (dashboard web)
+        // Subscribe au canal de synchronisation dashboard pour recharger les floors en live.
+        // Fait en premier (synchrone, non bloquant) afin de ne manquer aucun event dashboard
+        // qui pourrait survenir pendant l'hydratation asynchrone ci-dessous.
+        subscribeDashboardSyncChannel();
+
+        // Charger tous les donjons depuis Redis (dashboard web) HORS du main thread :
+        // cette hydratation touche la BDD (triggers, dungeons) et Redis et ne doit jamais
+        // bloquer onEnable (risque watchdog sur un gros catalogue de floors).
         // Plus de chargement YAML — tout passe par Redis désormais
         // Pour migrer d'anciens donjons YAML: /dungeon admin migrate-all
-        RedisConfigLoader.loadAllDungeonsFromRedis();
-
-        // Subscribe au canal de synchronisation dashboard pour recharger les floors en live
-        subscribeDashboardSyncChannel();
+        Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
+            try {
+                RedisConfigLoader.loadAllDungeonsFromRedis();
+            } catch (Exception e) {
+                getLogger().severe("[initializeLobbyServer] Async dungeon hydration failed: " + e.getMessage());
+            }
+        });
     }
 
     /**

@@ -185,6 +185,7 @@
         <div class="card">
             <div class="tab-header">
                 <button class="tab-btn active" onclick="switchTab('tab-info')">📋 Informations</button>
+                <button class="tab-btn" id="tab-btn-labyrinth" onclick="switchTab('tab-labyrinth')" style="display:none;">🌀 Labyrinth</button>
                 <button class="tab-btn" onclick="switchTab('tab-floors')">🏗️ Floors</button>
             </div>
 
@@ -205,9 +206,48 @@
                     <label>Description</label>
                     <textarea id="dungeon-desc" class="form-control" rows="3" placeholder="Description du donjon..."></textarea>
                 </div>
+                <div class="form-group">
+                    <label>Type de donjon *</label>
+                    <select id="dungeon-type" class="form-control" onchange="onDungeonTypeChange()">
+                        <option value="CLASSIC">Classic — flow standard NextDungeon</option>
+                        <option value="LABYRINTH">Labyrinth — boucle procédurale type Hades</option>
+                    </select>
+                    <div class="form-hint">Le type détermine quel moteur runtime prend la main une fois l'instance lancée.</div>
+                </div>
                 <div style="display:flex;gap:10px;">
                     <button class="btn btn-success" onclick="saveDungeon()">💾 Sauvegarder</button>
                     <button class="btn btn-danger" id="delete-dungeon-btn" onclick="deleteDungeon()" style="display:none;">🗑️ Supprimer</button>
+                </div>
+            </div>
+
+            <!-- Tab Labyrinth (visible uniquement si dungeon-type == LABYRINTH) -->
+            <div id="tab-labyrinth" class="tab-pane">
+                <div class="section-title">Monde du pool de salles</div>
+                <div class="form-group">
+                    <label>World ID *</label>
+                    <input type="text" id="lab-worldId" class="form-control" placeholder="ex: labyrinth_pool">
+                    <div class="form-hint">Nom du monde Bukkit où les rooms sont pré-construites.</div>
+                </div>
+                <div class="section-title">Dungeon spawn point</div>
+                <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr;">
+                    <div class="form-group"><label>X</label><input type="number" id="lab-spawn-x" class="form-control" value="0" step="0.5"></div>
+                    <div class="form-group"><label>Y</label><input type="number" id="lab-spawn-y" class="form-control" value="64" step="0.5"></div>
+                    <div class="form-group"><label>Z</label><input type="number" id="lab-spawn-z" class="form-control" value="0" step="0.5"></div>
+                </div>
+                <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+                    <div class="form-group"><label>Yaw (rotation horizontale)</label><input type="number" id="lab-spawn-yaw" class="form-control" value="0" step="1"></div>
+                    <div class="form-group"><label>Pitch (rotation verticale)</label><input type="number" id="lab-spawn-pitch" class="form-control" value="0" step="1"></div>
+                </div>
+                <div class="form-hint" style="margin-bottom:16px;">Point où les joueurs sont TP au start du run, avant le prompt save/new ou le TP au lobby. Yaw 0 = sud, -90 = est. Pitch 0 = horizontal.</div>
+
+                <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;">
+                    <span>Pool de rooms</span>
+                    <button class="btn btn-primary btn-sm" onclick="openRoomModal()">+ Ajouter une room</button>
+                </div>
+                <div id="lab-rooms-list"><div class="empty-state">Aucune room. Ajoutez-en !</div></div>
+
+                <div style="margin-top:20px;display:flex;gap:10px;">
+                    <button class="btn btn-success" onclick="saveDungeon()">💾 Sauvegarder Donjon</button>
                 </div>
             </div>
 
@@ -245,6 +285,13 @@
             <label>Description</label>
             <textarea id="new-dungeon-desc" class="form-control" rows="3" placeholder="Description..."></textarea>
         </div>
+        <div class="form-group">
+            <label>Type *</label>
+            <select id="new-dungeon-type" class="form-control">
+                <option value="CLASSIC">Classic</option>
+                <option value="LABYRINTH">Labyrinth</option>
+            </select>
+        </div>
         <div class="modal-footer">
             <button class="btn btn-secondary" onclick="closeModal('modal-dungeon')">Annuler</button>
             <button class="btn btn-success" onclick="createDungeon()">✓ Créer</button>
@@ -267,6 +314,7 @@
             <button class="tab-btn" onclick="switchModalTab('ftab-requirements')">📋 Prérequis</button>
             <button class="tab-btn" onclick="switchModalTab('ftab-rules')">⚖️ Règles</button>
             <button class="tab-btn" onclick="switchModalTab('ftab-steps')">🎯 Étapes</button>
+            <button class="tab-btn" id="ftab-btn-labyrinth" onclick="switchModalTab('ftab-labyrinth')" style="display:none;">🌀 Labyrinth</button>
         </div>
 
         <!-- Basic -->
@@ -286,6 +334,14 @@
                 <label>Description</label>
                 <textarea id="floor-desc" class="form-control" rows="2" placeholder="Description du floor..."></textarea>
             </div>
+            <div class="form-group">
+                <label>Type de floor *</label>
+                <select id="floor-type" class="form-control" onchange="onFloorTypeChange()">
+                    <option value="CLASSIC">Classic — flow standard NextDungeon</option>
+                    <option value="LABYRINTH">Labyrinth — difficulté d'un donjon Labyrinth (easy / normal / hard / infinite…)</option>
+                </select>
+                <div class="form-hint">Doit matcher le type du donjon parent.</div>
+            </div>
         </div>
 
         <!-- World -->
@@ -304,6 +360,10 @@
                 <div class="form-group"><label>X</label><input type="number" id="spawn-x" class="form-control" value="0" step="0.5"></div>
                 <div class="form-group"><label>Y</label><input type="number" id="spawn-y" class="form-control" value="64" step="0.5"></div>
                 <div class="form-group"><label>Z</label><input type="number" id="spawn-z" class="form-control" value="0" step="0.5"></div>
+            </div>
+            <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+                <div class="form-group"><label>Yaw (rotation horizontale)</label><input type="number" id="spawn-yaw" class="form-control" value="0" step="1"></div>
+                <div class="form-group"><label>Pitch (rotation verticale)</label><input type="number" id="spawn-pitch" class="form-control" value="0" step="1"></div>
             </div>
         </div>
 
@@ -415,10 +475,156 @@
             <button class="btn btn-secondary" onclick="addStep()">+ Ajouter l'étape</button>
         </div>
 
+        <!-- Labyrinth Floor config -->
+        <div id="ftab-labyrinth" class="tab-pane">
+            <div class="section-title">Difficulté & paramètres</div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Max rooms</label>
+                    <input type="number" id="lab-floor-maxrooms" class="form-control" value="30" min="0">
+                    <div class="form-hint">0 ou vide = infini (Infinite Labyrinth).</div>
+                </div>
+                <div class="form-group">
+                    <label>Tag filter</label>
+                    <input type="text" id="lab-floor-tagfilter" class="form-control" placeholder="ex: easy">
+                    <div class="form-hint">Tag que les rooms doivent porter pour être éligibles.</div>
+                </div>
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>HP scaling per tier</label>
+                    <input type="number" id="lab-floor-hpscale" class="form-control" value="0" step="0.05" min="0">
+                    <div class="form-hint">0 = défaut module (HP × 1.30 / tier).</div>
+                </div>
+                <div class="form-group">
+                    <label>DMG scaling per tier</label>
+                    <input type="number" id="lab-floor-dmgscale" class="form-control" value="0" step="0.05" min="0">
+                    <div class="form-hint">0 = défaut module (DMG × 1.15 / tier).</div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                    <input type="checkbox" id="lab-floor-saveenabled" style="width:16px;height:16px;cursor:pointer;">
+                    Save activée (Infinite checkpoints)
+                </label>
+            </div>
+
+            <hr class="divider">
+            <div class="section-title">Loot table</div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Base gold</label>
+                    <input type="number" id="loot-basegold" class="form-control" value="100" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Gold per icon</label>
+                    <input type="number" id="loot-goldpericon" class="form-control" value="0.15" step="0.05" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Base item rolls</label>
+                    <input type="number" id="loot-baserolls" class="form-control" value="1" min="0">
+                </div>
+            </div>
+            <div class="section-title">Items</div>
+            <div id="loot-items-list"></div>
+            <div class="form-row" style="margin-top:8px;">
+                <div class="form-group"><label>Item ID</label><input type="text" id="loot-item-id" class="form-control" placeholder="ex: GOLD_INGOT"></div>
+                <div class="form-group"><label>Weight</label><input type="number" id="loot-item-weight" class="form-control" value="1" min="0"></div>
+                <div class="form-group"><label>Min tier</label><input type="number" id="loot-item-mintier" class="form-control" value="1" min="0"></div>
+                <button class="btn btn-secondary" onclick="addLootItem()">+</button>
+            </div>
+        </div>
+
         <div class="modal-footer">
             <button class="btn btn-danger btn-sm" id="delete-floor-btn" onclick="deleteCurrentFloor()" style="display:none;">🗑️ Supprimer</button>
             <button class="btn btn-secondary" onclick="closeModal('modal-floor')">Annuler</button>
             <button class="btn btn-success" onclick="saveFloor()">💾 Sauvegarder Floor</button>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     MODAL: Room editor (sous-modal du Labyrinth tab)
+============================================================ -->
+<div id="modal-room" class="modal-overlay">
+    <div class="modal" style="max-width:850px;">
+        <button class="modal-close" onclick="closeModal('modal-room')">×</button>
+        <h3 id="modal-room-title">Room du pool</h3>
+        <input type="hidden" id="edit-room-index">
+
+        <div class="form-grid">
+            <div class="form-group">
+                <label>ID *</label>
+                <input type="text" id="room-id" class="form-control" placeholder="ex: combat_t1_skeletons">
+            </div>
+            <div class="form-group">
+                <label>Type *</label>
+                <select id="room-type" class="form-control" onchange="onRoomTypeChange()">
+                    <option value="LOBBY">LOBBY</option>
+                    <option value="COMBAT" selected>COMBAT</option>
+                    <option value="BOSS">BOSS</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>World ID *</label>
+            <input type="text" id="room-worldId" class="form-control" placeholder="ex: labyrinth_pool">
+            <div class="form-hint">Si vide, hérite du dungeonConfig.worldId.</div>
+        </div>
+
+        <div class="section-title">Region (cuboïde)</div>
+        <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr;">
+            <div class="form-group"><label>Min X</label><input type="number" id="room-min-x" class="form-control" value="0"></div>
+            <div class="form-group"><label>Min Y</label><input type="number" id="room-min-y" class="form-control" value="60"></div>
+            <div class="form-group"><label>Min Z</label><input type="number" id="room-min-z" class="form-control" value="0"></div>
+            <div class="form-group"><label>Max X</label><input type="number" id="room-max-x" class="form-control" value="16"></div>
+            <div class="form-group"><label>Max Y</label><input type="number" id="room-max-y" class="form-control" value="80"></div>
+            <div class="form-group"><label>Max Z</label><input type="number" id="room-max-z" class="form-control" value="16"></div>
+        </div>
+
+        <div class="section-title">Player spawn (point d'entrée des joueurs)</div>
+        <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr;">
+            <div class="form-group"><label>X</label><input type="number" id="room-spawn-x" class="form-control" value="8" step="0.5"></div>
+            <div class="form-group"><label>Y</label><input type="number" id="room-spawn-y" class="form-control" value="61" step="0.5"></div>
+            <div class="form-group"><label>Z</label><input type="number" id="room-spawn-z" class="form-control" value="2" step="0.5"></div>
+        </div>
+
+        <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;">
+            <span>Portes de sortie (anchors)</span>
+            <button class="btn btn-secondary btn-sm" onclick="addRoomDoor()">+ Porte</button>
+        </div>
+        <div id="room-doors-list"></div>
+        <div class="form-hint" style="margin-bottom:16px;">1 porte (BOSS / lobby) ou 2 portes (COMBAT) — gauche puis droite.</div>
+
+        <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;">
+            <span>Mob spawns</span>
+            <button class="btn btn-secondary btn-sm" onclick="addRoomMobSpawn()">+ Spawn</button>
+        </div>
+        <div id="room-mobspawns-list"></div>
+        <div class="form-hint" style="margin-bottom:16px;">mobId résolu via MythicMobs en priorité, fallback EntityType vanilla.</div>
+
+        <div class="form-grid">
+            <div class="form-group">
+                <label>Tags (csv)</label>
+                <input type="text" id="room-tags" class="form-control" placeholder="ex: easy,t1,combat">
+                <div class="form-hint">Le tag-filter du floor doit matcher au moins un tag de la room.</div>
+            </div>
+            <div class="form-group">
+                <label>Fixed icon</label>
+                <select id="room-fixedIcon" class="form-control">
+                    <option value="">(roll automatique pour COMBAT)</option>
+                    <option value="NONE">NONE (forcé pour LOBBY)</option>
+                    <option value="GOLD">GOLD</option>
+                    <option value="BLESSING">BLESSING (v2)</option>
+                </select>
+                <div class="form-hint">BOSS → fixe ; COMBAT → laisser vide pour roll.</div>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn btn-danger btn-sm" id="delete-room-btn" onclick="deleteCurrentRoom()" style="display:none;">🗑️ Supprimer</button>
+            <button class="btn btn-secondary" onclick="closeModal('modal-room')">Annuler</button>
+            <button class="btn btn-success" onclick="saveRoom()">💾 Sauvegarder Room</button>
         </div>
     </div>
 </div>
@@ -451,10 +657,18 @@
 //  State
 // ============================================================
 let dungeons = [];
-let currentDungeon = null; // { id, name, description, floors }
+let currentDungeon = null; // { id, name, description, floors, dungeonType, labyrinthDungeonConfig }
 let isEditMode = false;
 let stepsData = []; // for modal
 let modalListData = { 'req-floors-list': [], 'remove-completion-list': [], 'req-items-list': [], 'req-forbidden-list': [] };
+// Per required-item consume flag: item id -> bool. Absent/true = consumed at launch (historical default).
+let reqItemConsume = {};
+
+// Labyrinth-specific state
+let labRooms = [];      // current dungeon's room pool (LabyrinthRoom[])
+let labRoomDoors = [];  // current room editor: array of {x,y,z}
+let labRoomMobSpawns = []; // current room editor: array of {mobId,x,y,z,count}
+let lootItems = [];     // current floor editor: array of {itemId,weight,minTier}
 
 // ============================================================
 //  API
@@ -491,7 +705,10 @@ function goToEditor(dungeon) {
     document.getElementById('dungeon-id').disabled = true;
     document.getElementById('dungeon-name').value = dungeon.name;
     document.getElementById('dungeon-desc').value = dungeon.description || '';
+    document.getElementById('dungeon-type').value = dungeon.dungeonType || 'CLASSIC';
     document.getElementById('delete-dungeon-btn').style.display = '';
+    loadDungeonLabyrinthConfig(dungeon.labyrinthDungeonConfig);
+    onDungeonTypeChange();
     setSaveIndicator(true);
     renderFloorsList();
 }
@@ -522,7 +739,7 @@ async function loadDungeons() {
     try {
         const data = await API.getDungeons();
         if (!data.success) { el.innerHTML = `<div class="error-msg">Erreur: ${data.error}</div>`; return; }
-        dungeons = data.dungeons || [];
+        dungeons = (data.dungeons || []).sort((a, b) => (a.name || a.id).localeCompare(b.name || b.id, undefined, { sensitivity: 'base' }));
         renderDungeonsList(dungeons);
     } catch(e) { el.innerHTML = `<div class="error-msg">Erreur de connexion: ${e.message}</div>`; }
 }
@@ -570,6 +787,7 @@ function openCreateDungeonModal() {
     document.getElementById('new-dungeon-id').value = '';
     document.getElementById('new-dungeon-name').value = '';
     document.getElementById('new-dungeon-desc').value = '';
+    document.getElementById('new-dungeon-type').value = 'CLASSIC';
     openModal('modal-dungeon');
 }
 
@@ -577,9 +795,16 @@ async function createDungeon() {
     const id = document.getElementById('new-dungeon-id').value.trim();
     const name = document.getElementById('new-dungeon-name').value.trim();
     const description = document.getElementById('new-dungeon-desc').value;
+    const dungeonType = document.getElementById('new-dungeon-type').value;
     if (!name) { toast('Le nom est requis', 'error'); return; }
+    const body = { id, name, description, dungeonType };
+    if (dungeonType === 'LABYRINTH') {
+        // Seed an empty labyrinth config so the dashboard's edit view has
+        // something to bind on (admin fills in the details after).
+        body.labyrinthDungeonConfig = { worldId: '', dungeonSpawn: { x: 0, y: 64, z: 0, yaw: 0, pitch: 0 }, rooms: [] };
+    }
     try {
-        const data = await API.createDungeon({ id, name, description });
+        const data = await API.createDungeon(body);
         if (!data.success) { toast(data.error, 'error'); return; }
         closeModal('modal-dungeon');
         toast('Donjon créé !', 'success');
@@ -601,12 +826,19 @@ async function editDungeon(id) {
 async function saveDungeon() {
     const name = document.getElementById('dungeon-name').value.trim();
     const description = document.getElementById('dungeon-desc').value;
+    const dungeonType = document.getElementById('dungeon-type').value;
     if (!name) { toast('Le nom est requis', 'error'); return; }
+    const body = { id: currentDungeon.id, name, description, dungeonType };
+    if (dungeonType === 'LABYRINTH') {
+        body.labyrinthDungeonConfig = collectDungeonLabyrinthConfig();
+    }
     try {
-        const data = await API.updateDungeon(currentDungeon.id, { id: currentDungeon.id, name, description });
+        const data = await API.updateDungeon(currentDungeon.id, body);
         if (!data.success) { toast(data.error, 'error'); return; }
         currentDungeon.name = name;
         currentDungeon.description = description;
+        currentDungeon.dungeonType = dungeonType;
+        if (dungeonType === 'LABYRINTH') currentDungeon.labyrinthDungeonConfig = body.labyrinthDungeonConfig;
         document.getElementById('editor-title').textContent = '✏️ ' + name;
         setSaveIndicator(true);
         toast('Donjon sauvegardé !', 'success');
@@ -645,6 +877,7 @@ function renderFloorsList() {
 function resetFloorModal() {
     stepsData = [];
     for (const k in modalListData) modalListData[k] = [];
+    reqItemConsume = {};
     ['req-floors-list','remove-completion-list','req-items-list','req-forbidden-list','steps-list'].forEach(id => { const el=document.getElementById(id); if(el) el.innerHTML=''; });
     document.getElementById('floor-id').value = '';
     document.getElementById('floor-id').disabled = false;
@@ -654,6 +887,8 @@ function resetFloorModal() {
     document.getElementById('spawn-x').value = 0;
     document.getElementById('spawn-y').value = 64;
     document.getElementById('spawn-z').value = 0;
+    document.getElementById('spawn-yaw').value = 0;
+    document.getElementById('spawn-pitch').value = 0;
     document.getElementById('req-minlevel').value = 0;
     document.getElementById('req-cooldown').value = 0;
     document.getElementById('req-party-min').value = 1;
@@ -665,6 +900,12 @@ function resetFloorModal() {
     document.getElementById('rules-flight').checked = false;
     document.getElementById('edit-floor-id').value = '';
     document.getElementById('delete-floor-btn').style.display = 'none';
+    // Default floor type follows the dungeon's type so the admin doesn't
+    // have to flip it manually for a Labyrinth dungeon.
+    const defaultType = (currentDungeon && currentDungeon.dungeonType === 'LABYRINTH') ? 'LABYRINTH' : 'CLASSIC';
+    document.getElementById('floor-type').value = defaultType;
+    loadFloorLabyrinthConfig(null);
+    onFloorTypeChange();
     // Reset tabs
     document.querySelectorAll('#modal-floor .tab-pane').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('#modal-floor .tab-btn').forEach(b => b.classList.remove('active'));
@@ -700,6 +941,8 @@ function editFloor(fullFloorId) {
             document.getElementById('spawn-x').value = floor.world.spawn.x || 0;
             document.getElementById('spawn-y').value = floor.world.spawn.y || 64;
             document.getElementById('spawn-z').value = floor.world.spawn.z || 0;
+            document.getElementById('spawn-yaw').value = floor.world.spawn.yaw || 0;
+            document.getElementById('spawn-pitch').value = floor.world.spawn.pitch || 0;
         }
     }
     if (floor.requirements) {
@@ -711,6 +954,7 @@ function editFloor(fullFloorId) {
         }
          (floor.requirements.requiredFloorsId || []).forEach(v => addToList('req-floors-list', v));
          (floor.requirements.removeCompletion || []).forEach(v => addToList('remove-completion-list', v));
+         (floor.requirements.nonConsumedItems || []).forEach(v => { reqItemConsume[v] = false; });
          (floor.requirements.requiredItems || []).forEach(v => addToList('req-items-list', v));
         (floor.requirements.forbiddenItems || []).forEach(v => addToList('req-forbidden-list', v));
     }
@@ -725,6 +969,9 @@ function editFloor(fullFloorId) {
         floor.steps.forEach(s => { stepsData.push({...s}); });
         renderSteps();
     }
+    document.getElementById('floor-type').value = floor.floorType || 'CLASSIC';
+    loadFloorLabyrinthConfig(floor.labyrinthFloorConfig);
+    onFloorTypeChange();
     openModal('modal-floor');
 }
 
@@ -745,7 +992,9 @@ async function saveFloor() {
             spawn: {
                 x: parseFloat(document.getElementById('spawn-x').value),
                 y: parseFloat(document.getElementById('spawn-y').value),
-                z: parseFloat(document.getElementById('spawn-z').value)
+                z: parseFloat(document.getElementById('spawn-z').value),
+                yaw: parseFloat(document.getElementById('spawn-yaw').value) || 0,
+                pitch: parseFloat(document.getElementById('spawn-pitch').value) || 0
             }
         },
         requirements: {
@@ -758,6 +1007,7 @@ async function saveFloor() {
             requiredFloorsId: getListData('req-floors-list'),
             removeCompletion: getListData('remove-completion-list'),
             requiredItems: getListData('req-items-list'),
+            nonConsumedItems: getListData('req-items-list').filter(v => reqItemConsume[v] === false),
             forbiddenItems: getListData('req-forbidden-list')
         },
         rules: {
@@ -767,8 +1017,12 @@ async function saveFloor() {
             maxInstance: parseInt(document.getElementById('rules-maxinstance').value),
             allowFlight: document.getElementById('rules-flight').checked
         },
-        steps: stepsData
+        steps: stepsData,
+        floorType: document.getElementById('floor-type').value
     };
+    if (body.floorType === 'LABYRINTH') {
+        body.labyrinthFloorConfig = collectFloorLabyrinthConfig();
+    }
 
     try {
         let data;
@@ -855,6 +1109,307 @@ async function confirmDeleteDungeon(id, name) {
 }
 
 // ============================================================
+//  Labyrinth: Dungeon-level config (rooms pool + spawn)
+// ============================================================
+function onDungeonTypeChange() {
+    const t = document.getElementById('dungeon-type').value;
+    document.getElementById('tab-btn-labyrinth').style.display = (t === 'LABYRINTH') ? '' : 'none';
+}
+
+function loadDungeonLabyrinthConfig(cfg) {
+    cfg = cfg || {};
+    document.getElementById('lab-worldId').value = cfg.worldId || '';
+    const sp = cfg.dungeonSpawn || {};
+    document.getElementById('lab-spawn-x').value = sp.x ?? 0;
+    document.getElementById('lab-spawn-y').value = sp.y ?? 64;
+    document.getElementById('lab-spawn-z').value = sp.z ?? 0;
+    document.getElementById('lab-spawn-yaw').value = sp.yaw ?? 0;
+    document.getElementById('lab-spawn-pitch').value = sp.pitch ?? 0;
+    labRooms = Array.isArray(cfg.rooms) ? cfg.rooms.map(r => deepClone(r)) : [];
+    renderLabRooms();
+}
+
+function collectDungeonLabyrinthConfig() {
+    return {
+        worldId: document.getElementById('lab-worldId').value.trim(),
+        dungeonSpawn: {
+            x: parseFloat(document.getElementById('lab-spawn-x').value) || 0,
+            y: parseFloat(document.getElementById('lab-spawn-y').value) || 0,
+            z: parseFloat(document.getElementById('lab-spawn-z').value) || 0,
+            yaw: parseFloat(document.getElementById('lab-spawn-yaw').value) || 0,
+            pitch: parseFloat(document.getElementById('lab-spawn-pitch').value) || 0
+        },
+        rooms: labRooms.map(r => deepClone(r))
+    };
+}
+
+function renderLabRooms() {
+    const el = document.getElementById('lab-rooms-list');
+    if (!labRooms.length) { el.innerHTML = '<div class="empty-state">Aucune room. Ajoutez-en !</div>'; return; }
+    let html = '';
+    labRooms.forEach((r, i) => {
+        const tags = (r.tags || []).join(',');
+        const icon = r.fixedIcon ? r.fixedIcon : (r.type === 'COMBAT' ? '(roll)' : '');
+        html += `<div class="list-item">
+            <div>
+                <div style="font-weight:600;">${escapeHtml(r.id)} <span style="color:var(--text-muted);font-size:0.8rem;">${r.type}</span></div>
+                <div class="list-item-id">world=${escapeHtml(r.worldId || '(inherit)')} · tags=[${escapeHtml(tags)}] · icon=${escapeHtml(icon)}</div>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-warning btn-sm" onclick="openRoomModal(${i})">✏️</button>
+                <button class="btn btn-danger btn-sm" onclick="removeLabRoom(${i})">🗑️</button>
+            </div>
+        </div>`;
+    });
+    el.innerHTML = html;
+}
+
+function removeLabRoom(index) {
+    labRooms.splice(index, 1);
+    renderLabRooms();
+    setSaveIndicator(false);
+}
+
+// ============================================================
+//  Labyrinth: Room editor sub-modal
+// ============================================================
+function openRoomModal(index) {
+    const editing = (typeof index === 'number') && labRooms[index];
+    document.getElementById('modal-room-title').textContent = editing ? 'Éditer Room' : 'Nouvelle Room';
+    document.getElementById('edit-room-index').value = editing ? index : '';
+    document.getElementById('delete-room-btn').style.display = editing ? '' : 'none';
+
+    const r = editing ? labRooms[index] : {
+        id: '', type: 'COMBAT', worldId: '',
+        region: { min: { x: 0, y: 60, z: 0 }, max: { x: 16, y: 80, z: 16 } },
+        playerSpawn: { x: 8, y: 61, z: 2 },
+        exitDoors: [], mobSpawns: [], tags: [], fixedIcon: null
+    };
+    document.getElementById('room-id').value = r.id || '';
+    document.getElementById('room-type').value = r.type || 'COMBAT';
+    document.getElementById('room-worldId').value = r.worldId || '';
+    const min = (r.region && r.region.min) || { x: 0, y: 60, z: 0 };
+    const max = (r.region && r.region.max) || { x: 16, y: 80, z: 16 };
+    document.getElementById('room-min-x').value = min.x; document.getElementById('room-min-y').value = min.y; document.getElementById('room-min-z').value = min.z;
+    document.getElementById('room-max-x').value = max.x; document.getElementById('room-max-y').value = max.y; document.getElementById('room-max-z').value = max.z;
+    const ps = r.playerSpawn || { x: 8, y: 61, z: 2 };
+    document.getElementById('room-spawn-x').value = ps.x; document.getElementById('room-spawn-y').value = ps.y; document.getElementById('room-spawn-z').value = ps.z;
+    document.getElementById('room-tags').value = (r.tags || []).join(',');
+    document.getElementById('room-fixedIcon').value = r.fixedIcon || '';
+    labRoomDoors = (r.exitDoors || []).map(d => deepClone(d));
+    labRoomMobSpawns = (r.mobSpawns || []).map(m => deepClone(m));
+    renderRoomDoors();
+    renderRoomMobSpawns();
+    onRoomTypeChange();
+    openModal('modal-room');
+}
+
+function onRoomTypeChange() {
+    // Light hint — the icon select gets a different default placeholder.
+    // Concrete validation happens at saveRoom().
+}
+
+function addRoomDoor() {
+    // Java model = LabyrinthRoom.Door { id, anchor: Vec3 }. Sending a flat
+    // {x,y,z} like the old code did leaves Door.anchor null on deserialize.
+    labRoomDoors.push({ id: 'door_' + (labRoomDoors.length + 1), anchor: { x: 0, y: 61, z: 14 } });
+    renderRoomDoors();
+}
+
+function renderRoomDoors() {
+    const el = document.getElementById('room-doors-list');
+    if (!labRoomDoors.length) { el.innerHTML = '<div class="empty-state" style="padding:12px;">Aucune porte définie.</div>'; return; }
+    // Migrate legacy {x,y,z} entries on the fly so old data shows up.
+    labRoomDoors = labRoomDoors.map((d, i) => {
+        if (d && d.anchor) return d;
+        return { id: (d && d.id) || ('door_' + (i + 1)),
+                 anchor: { x: (d && d.x) || 0, y: (d && d.y) || 61, z: (d && d.z) || 0 } };
+    });
+    let html = '';
+    labRoomDoors.forEach((d, i) => {
+        const ic = d.iconAnchor;
+        const icx = (ic && ic.x != null) ? ic.x : '';
+        const icy = (ic && ic.y != null) ? ic.y : '';
+        const icz = (ic && ic.z != null) ? ic.z : '';
+        // onchange lazily creates iconAnchor so doors left blank keep the
+        // null fallback (icon above the anchor). Reset (↺) removes it.
+        const setIc = (axis) => `if(!labRoomDoors[${i}].iconAnchor)labRoomDoors[${i}].iconAnchor={x:0,y:0,z:0};labRoomDoors[${i}].iconAnchor.${axis}=parseFloat(this.value)||0`;
+        html += `<div class="list-item" style="padding:8px 12px;gap:8px;flex-wrap:wrap;">
+            <input type="text" class="form-control" style="width:120px;" value="${d.id || ''}" onchange="labRoomDoors[${i}].id=this.value" placeholder="id">
+            <div style="display:flex;gap:8px;flex:1;align-items:center;">
+                <span style="width:54px;color:#8a93a6;font-size:12px;">porte</span>
+                <input type="number" class="form-control" style="width:84px;" value="${d.anchor.x}" onchange="labRoomDoors[${i}].anchor.x=parseFloat(this.value)||0" placeholder="X">
+                <input type="number" class="form-control" style="width:84px;" value="${d.anchor.y}" onchange="labRoomDoors[${i}].anchor.y=parseFloat(this.value)||0" placeholder="Y">
+                <input type="number" class="form-control" style="width:84px;" value="${d.anchor.z}" onchange="labRoomDoors[${i}].anchor.z=parseFloat(this.value)||0" placeholder="Z">
+            </div>
+            <button class="btn btn-danger btn-sm" onclick="labRoomDoors.splice(${i},1);renderRoomDoors();">🗑️</button>
+            <div style="display:flex;gap:8px;flex:1 1 100%;align-items:center;margin-top:4px;">
+                <span style="width:54px;color:#8a93a6;font-size:12px;" title="Optionnel — laissez vide pour placer l'icône au-dessus de la porte (+2 Y).">icône</span>
+                <input type="number" class="form-control" style="width:84px;" value="${icx}" onchange="${setIc('x')}" placeholder="X">
+                <input type="number" class="form-control" style="width:84px;" value="${icy}" onchange="${setIc('y')}" placeholder="Y">
+                <input type="number" class="form-control" style="width:84px;" value="${icz}" onchange="${setIc('z')}" placeholder="Z">
+                <button class="btn btn-secondary btn-sm" title="Réinitialiser (icône au-dessus de la porte)" onclick="labRoomDoors[${i}].iconAnchor=null;renderRoomDoors();">↺</button>
+            </div>
+        </div>`;
+    });
+    el.innerHTML = html;
+}
+
+function addRoomMobSpawn() {
+    labRoomMobSpawns.push({ mobId: '', x: 0, y: 61, z: 0, count: 1 });
+    renderRoomMobSpawns();
+}
+
+function renderRoomMobSpawns() {
+    const el = document.getElementById('room-mobspawns-list');
+    if (!labRoomMobSpawns.length) { el.innerHTML = '<div class="empty-state" style="padding:12px;">Aucun mob spawn.</div>'; return; }
+    let html = '';
+    labRoomMobSpawns.forEach((m, i) => {
+        html += `<div class="list-item" style="padding:8px 12px;gap:8px;">
+            <div style="display:flex;gap:8px;flex:1;flex-wrap:wrap;">
+                <input type="text" class="form-control" style="flex:2;min-width:140px;" value="${escapeHtml(m.mobId || '')}" oninput="labRoomMobSpawns[${i}].mobId=this.value" placeholder="mobId (Mythic ou EntityType)">
+                <input type="number" class="form-control" style="width:80px;" value="${m.x}" onchange="labRoomMobSpawns[${i}].x=parseFloat(this.value)||0" placeholder="X">
+                <input type="number" class="form-control" style="width:80px;" value="${m.y}" onchange="labRoomMobSpawns[${i}].y=parseFloat(this.value)||0" placeholder="Y">
+                <input type="number" class="form-control" style="width:80px;" value="${m.z}" onchange="labRoomMobSpawns[${i}].z=parseFloat(this.value)||0" placeholder="Z">
+                <input type="number" class="form-control" style="width:70px;" value="${m.count}" min="1" onchange="labRoomMobSpawns[${i}].count=parseInt(this.value)||1" placeholder="N">
+            </div>
+            <button class="btn btn-danger btn-sm" onclick="labRoomMobSpawns.splice(${i},1);renderRoomMobSpawns();">🗑️</button>
+        </div>`;
+    });
+    el.innerHTML = html;
+}
+
+function saveRoom() {
+    const id = document.getElementById('room-id').value.trim();
+    if (!id) { toast('L\'ID de la room est requis', 'error'); return; }
+    const fixedIcon = document.getElementById('room-fixedIcon').value;
+    const tagsCsv = document.getElementById('room-tags').value.trim();
+    const room = {
+        id,
+        type: document.getElementById('room-type').value,
+        worldId: document.getElementById('room-worldId').value.trim(),
+        region: {
+            min: {
+                x: parseFloat(document.getElementById('room-min-x').value) || 0,
+                y: parseFloat(document.getElementById('room-min-y').value) || 0,
+                z: parseFloat(document.getElementById('room-min-z').value) || 0
+            },
+            max: {
+                x: parseFloat(document.getElementById('room-max-x').value) || 0,
+                y: parseFloat(document.getElementById('room-max-y').value) || 0,
+                z: parseFloat(document.getElementById('room-max-z').value) || 0
+            }
+        },
+        playerSpawn: {
+            x: parseFloat(document.getElementById('room-spawn-x').value) || 0,
+            y: parseFloat(document.getElementById('room-spawn-y').value) || 0,
+            z: parseFloat(document.getElementById('room-spawn-z').value) || 0
+        },
+        exitDoors: labRoomDoors.map(d => deepClone(d)),
+        mobSpawns: labRoomMobSpawns.map(m => deepClone(m)),
+        tags: tagsCsv ? tagsCsv.split(',').map(s => s.trim()).filter(Boolean) : [],
+        fixedIcon: fixedIcon || null
+    };
+    const editIdx = document.getElementById('edit-room-index').value;
+    if (editIdx === '' || editIdx === null) {
+        labRooms.push(room);
+    } else {
+        labRooms[parseInt(editIdx)] = room;
+    }
+    renderLabRooms();
+    setSaveIndicator(false);
+    closeModal('modal-room');
+    toast('Room enregistrée — pensez à sauvegarder le donjon', 'info');
+}
+
+function deleteCurrentRoom() {
+    const editIdx = document.getElementById('edit-room-index').value;
+    if (editIdx === '' || editIdx === null) return;
+    labRooms.splice(parseInt(editIdx), 1);
+    renderLabRooms();
+    setSaveIndicator(false);
+    closeModal('modal-room');
+}
+
+// ============================================================
+//  Labyrinth: Floor-level config (loot table + scaling)
+// ============================================================
+function onFloorTypeChange() {
+    // The floor type is dictated by the parent dungeon: a floor inside a
+    // LABYRINTH dungeon is always LABYRINTH, and vice-versa. Locking the
+    // select here mirrors the backend override and prevents inconsistent
+    // states the runtime cannot honor.
+    const sel = document.getElementById('floor-type');
+    const forced = (currentDungeon && currentDungeon.dungeonType === 'LABYRINTH')
+            ? 'LABYRINTH' : 'CLASSIC';
+    sel.value = forced;
+    sel.disabled = true;
+    sel.title = 'Forcé par le type du donjon parent (' + forced + ')';
+    document.getElementById('ftab-btn-labyrinth').style.display = (forced === 'LABYRINTH') ? '' : 'none';
+}
+
+function loadFloorLabyrinthConfig(cfg) {
+    cfg = cfg || {};
+    document.getElementById('lab-floor-maxrooms').value = cfg.maxRooms ?? 30;
+    document.getElementById('lab-floor-tagfilter').value = cfg.tagFilter || '';
+    document.getElementById('lab-floor-hpscale').value = cfg.hpScalingPerTier ?? 0;
+    document.getElementById('lab-floor-dmgscale').value = cfg.dmgScalingPerTier ?? 0;
+    document.getElementById('lab-floor-saveenabled').checked = !!cfg.saveEnabled;
+    const lt = cfg.lootTable || {};
+    document.getElementById('loot-basegold').value = lt.baseGold ?? 100;
+    document.getElementById('loot-goldpericon').value = lt.goldPerIcon ?? 0.15;
+    document.getElementById('loot-baserolls').value = lt.baseItemRolls ?? 1;
+    lootItems = Array.isArray(lt.items) ? lt.items.map(i => deepClone(i)) : [];
+    renderLootItems();
+}
+
+function collectFloorLabyrinthConfig() {
+    return {
+        maxRooms: parseInt(document.getElementById('lab-floor-maxrooms').value) || 0,
+        tagFilter: document.getElementById('lab-floor-tagfilter').value.trim(),
+        hpScalingPerTier: parseFloat(document.getElementById('lab-floor-hpscale').value) || 0,
+        dmgScalingPerTier: parseFloat(document.getElementById('lab-floor-dmgscale').value) || 0,
+        saveEnabled: document.getElementById('lab-floor-saveenabled').checked,
+        lootTable: {
+            baseGold: parseInt(document.getElementById('loot-basegold').value) || 0,
+            goldPerIcon: parseFloat(document.getElementById('loot-goldpericon').value) || 0,
+            baseItemRolls: parseInt(document.getElementById('loot-baserolls').value) || 0,
+            items: lootItems.map(i => deepClone(i))
+        }
+    };
+}
+
+function addLootItem() {
+    const itemId = document.getElementById('loot-item-id').value.trim();
+    if (!itemId) { toast('Item ID requis', 'error'); return; }
+    const weight = parseInt(document.getElementById('loot-item-weight').value) || 1;
+    const minTier = parseInt(document.getElementById('loot-item-mintier').value) || 1;
+    lootItems.push({ itemId, weight, minTier });
+    document.getElementById('loot-item-id').value = '';
+    document.getElementById('loot-item-weight').value = 1;
+    document.getElementById('loot-item-mintier').value = 1;
+    renderLootItems();
+}
+
+function renderLootItems() {
+    const el = document.getElementById('loot-items-list');
+    if (!lootItems.length) { el.innerHTML = '<div class="empty-state" style="padding:12px;">Aucun item.</div>'; return; }
+    let html = '';
+    lootItems.forEach((it, i) => {
+        html += `<div class="list-item" style="padding:8px 12px;">
+            <div>
+                <div style="font-weight:600;">${escapeHtml(it.itemId)}</div>
+                <div class="list-item-id">weight=${it.weight} · minTier=${it.minTier}</div>
+            </div>
+            <button class="btn btn-danger btn-sm" onclick="lootItems.splice(${i},1);renderLootItems();">🗑️</button>
+        </div>`;
+    });
+    el.innerHTML = html;
+}
+
+function deepClone(obj) { return obj == null ? obj : JSON.parse(JSON.stringify(obj)); }
+
+// ============================================================
 //  Confirm delete modal helper
 // ============================================================
 function showConfirmDelete(targetLabel, warningMsg, onConfirm) {
@@ -929,6 +1484,7 @@ function addToList(listId, value) {
 function removeFromList(listId, value) {
     if (!modalListData[listId]) return;
     modalListData[listId] = modalListData[listId].filter(v => v !== value);
+    if (listId === 'req-items-list') delete reqItemConsume[value];
     renderList(listId);
 }
 
@@ -936,10 +1492,28 @@ function renderList(listId) {
     const el = document.getElementById(listId);
     if (!el) return;
     const items = modalListData[listId] || [];
+    if (listId === 'req-items-list') {
+        el.innerHTML = items.map(v => {
+            const consumed = reqItemConsume[v] !== false; // default: consumed
+            return `<div class="list-item" style="padding:8px 12px;">
+        <span>${v}</span>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.85em;margin-left:auto;">
+            <input type="checkbox" ${consumed ? 'checked' : ''} onchange="setReqItemConsume('${escapeHtml(v)}', this.checked)" style="width:14px;height:14px;cursor:pointer;">
+            Consommé
+        </label>
+        <button class="btn btn-danger btn-sm" onclick="removeFromList('${listId}','${escapeHtml(v)}')">×</button>
+    </div>`;
+        }).join('');
+        return;
+    }
     el.innerHTML = items.map(v => `<div class="list-item" style="padding:8px 12px;">
         <span>${v}</span>
         <button class="btn btn-danger btn-sm" onclick="removeFromList('${listId}','${escapeHtml(v)}')">×</button>
     </div>`).join('');
+}
+
+function setReqItemConsume(value, checked) {
+    reqItemConsume[value] = checked;
 }
 
 function getListData(listId) {

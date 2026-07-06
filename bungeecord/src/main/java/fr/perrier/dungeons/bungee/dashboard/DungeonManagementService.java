@@ -390,7 +390,8 @@ public class DungeonManagementService {
             Position spawn = new Position(0, 64, 0);
             if (w.has("spawn") && !w.get("spawn").isJsonNull()) {
                 JsonObject sp = w.getAsJsonObject("spawn");
-                spawn = new Position(sp.has("x")?sp.get("x").getAsDouble():0, sp.has("y")?sp.get("y").getAsDouble():64, sp.has("z")?sp.get("z").getAsDouble():0);
+                spawn = new Position(sp.has("x")?sp.get("x").getAsDouble():0, sp.has("y")?sp.get("y").getAsDouble():64, sp.has("z")?sp.get("z").getAsDouble():0,
+                        sp.has("yaw")?sp.get("yaw").getAsFloat():0f, sp.has("pitch")?sp.get("pitch").getAsFloat():0f);
             }
             fd.setWorldConfig(new WorldConfig(folderName, difficulty.toUpperCase(), spawn));
         }
@@ -402,6 +403,7 @@ public class DungeonManagementService {
             if (r.has("requiredFloorsId") && r.get("requiredFloorsId").isJsonArray()) { List<String> l=new ArrayList<>(); r.getAsJsonArray("requiredFloorsId").forEach(e->l.add(e.getAsString())); req.setRequiredFloorsId(l); }
             if (r.has("removeCompletion") && r.get("removeCompletion").isJsonArray()) { List<String> l=new ArrayList<>(); r.getAsJsonArray("removeCompletion").forEach(e->l.add(e.getAsString())); req.setRemoveCompletion(l); }
             if (r.has("requiredItems")    && r.get("requiredItems").isJsonArray())    { List<String> l=new ArrayList<>(); r.getAsJsonArray("requiredItems").forEach(e->l.add(e.getAsString())); req.setRequiredItems(l); }
+            if (r.has("nonConsumedItems") && r.get("nonConsumedItems").isJsonArray()) { List<String> l=new ArrayList<>(); r.getAsJsonArray("nonConsumedItems").forEach(e->l.add(e.getAsString())); req.setNonConsumedItems(l); }
             if (r.has("forbiddenItems")   && r.get("forbiddenItems").isJsonArray())   { List<String> l=new ArrayList<>(); r.getAsJsonArray("forbiddenItems").forEach(e->l.add(e.getAsString())); req.setForbiddenItems(l); }
             if (r.has("party") && !r.get("party").isJsonNull()) {
                 JsonObject p = r.getAsJsonObject("party");
@@ -494,6 +496,8 @@ public class DungeonManagementService {
                 sp.addProperty("x", fd.getWorldConfig().getSpawn().getX());
                 sp.addProperty("y", fd.getWorldConfig().getSpawn().getY());
                 sp.addProperty("z", fd.getWorldConfig().getSpawn().getZ());
+                sp.addProperty("yaw", fd.getWorldConfig().getSpawn().getYaw());
+                sp.addProperty("pitch", fd.getWorldConfig().getSpawn().getPitch());
                 w.add("spawn", sp);
             }
             obj.add("world", w);
@@ -506,6 +510,7 @@ public class DungeonManagementService {
             JsonArray rfi=new JsonArray(); if(r.getRequiredFloorsId()!=null) r.getRequiredFloorsId().forEach(rfi::add); rj.add("requiredFloorsId",rfi);
             JsonArray rmc=new JsonArray(); if(r.getRemoveCompletion()!=null) r.getRemoveCompletion().forEach(rmc::add); rj.add("removeCompletion",rmc);
             JsonArray ri=new JsonArray();  if(r.getRequiredItems()!=null) r.getRequiredItems().forEach(ri::add); rj.add("requiredItems",ri);
+            JsonArray nci=new JsonArray(); if(r.getNonConsumedItems()!=null) r.getNonConsumedItems().forEach(nci::add); rj.add("nonConsumedItems",nci);
             JsonArray fi=new JsonArray();  if(r.getForbiddenItems()!=null) r.getForbiddenItems().forEach(fi::add); rj.add("forbiddenItems",fi);
             if (r.getPartyRequirements()!=null) { JsonObject p=new JsonObject(); p.addProperty("minSize",r.getPartyRequirements().getMinSize()); p.addProperty("maxSize",r.getPartyRequirements().getMaxSize()); rj.add("party",p); }
             obj.add("requirements", rj);
@@ -555,6 +560,22 @@ public class DungeonManagementService {
         private String name;
         private String description;
         private List<String> floorIds;
+
+        /**
+         * Discriminator for the dungeon kind. Defaults to {@code CLASSIC}.
+         */
+        private String dungeonType;
+
+        /**
+         * Inline {@link fr.perrier.dungeons.common.model.labyrinth.LabyrinthDungeonConfig}
+         * payload when {@code dungeonType == "LABYRINTH"}.
+         */
+        private fr.perrier.dungeons.common.model.labyrinth.LabyrinthDungeonConfig labyrinthDungeonConfig;
+
+        /** Legacy four-arg constructor — defaults to a CLASSIC dungeon. */
+        public DungeonEntry(String id, String name, String description, List<String> floorIds) {
+            this(id, name, description, floorIds, "CLASSIC", null);
+        }
     }
 
     @Data @AllArgsConstructor

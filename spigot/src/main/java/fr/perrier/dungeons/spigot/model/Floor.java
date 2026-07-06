@@ -4,15 +4,20 @@ import fr.perrier.dungeons.common.model.dungeon.FloorData;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.database.DatabaseTriggersManager;
 import fr.perrier.dungeons.spigot.utils.ServerUtil;
+import io.lumine.mythic.lib.api.item.NBTItem;
 import lombok.Getter;
 import lombok.Setter;
 import net.Indyuce.mmocore.api.player.PlayerData;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Objects;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 @Getter
@@ -30,13 +35,30 @@ public class Floor extends FloorData {
     }
 
     public Floor(FloorData floorData) {
+        this(floorData, true);
+    }
+
+    /**
+     * @param floorData    the source floor data (triggers are stripped from the shared Redis map)
+     * @param loadTriggers when {@code true}, lazily hydrates triggers from the
+     *                     {@code floor_triggers} table if {@code floorData} carries none — what an
+     *                     instance server needs to execute the workflow. Lobby boot passes
+     *                     {@code false}: it only needs floor metadata for menus / queue and must
+     *                     not fire a DB trigger query per floor (Phase 2 of
+     *                     DUNGEON_LOADING_OPTIMIZATION — triggers are loaded lazily at the real
+     *                     point of use, i.e. when an instance server builds its Floor).
+     */
+    public Floor(FloorData floorData, boolean loadTriggers) {
         super(floorData.getId(), floorData.getName(), floorData.getDescription(),
                 floorData.getWorldConfig(), floorData.getRequirements(),
                 floorData.getRules(), floorData.getSteps(), floorData.getTriggers());
-        // The 8-arg FloorData constructor does NOT copy versioning metadata — replay it
-        // explicitly, otherwise every Floor wrapper resets version=1/checksum=null and
-        // wipes the heal work done upstream when it syncs back through updateMap().
+        // The 8-arg FloorData constructor does NOT copy versioning metadata or the
+        // labyrinth discriminator — replay them explicitly, otherwise every Floor wrapper
+        // resets version=1/checksum=null/floorType=CLASSIC and wipes the data upstream
+        // when it syncs back through updateMap().
         setDungeonId(floorData.getDungeonId());
+        setFloorType(floorData.getFloorType());
+        setLabyrinthFloorConfig(floorData.getLabyrinthFloorConfig());
         setVersion(floorData.getVersion());
         setSchemaVersion(floorData.getSchemaVersion());
         setUpdatedAt(floorData.getUpdatedAt());
@@ -45,7 +67,7 @@ public class Floor extends FloorData {
         // Triggers are stripped from the shared Redis map (they contain Spigot-only classes
         // that blow up on the proxy). Load them from floor_triggers on demand so the
         // instance server always has its trigger set, matching the other Floor constructors.
-        if (getTriggers() == null && getId() != null) {
+        if (loadTriggers && getTriggers() == null && getId() != null) {
             super.setTriggers(DatabaseTriggersManager.loadTriggers(getId()));
         }
     }
@@ -102,6 +124,8 @@ public class Floor extends FloorData {
                 getTriggers()
         );
         data.setDungeonId(getDungeonId());
+        data.setFloorType(getFloorType());
+        data.setLabyrinthFloorConfig(getLabyrinthFloorConfig());
         data.setVersion(getVersion());
         data.setSchemaVersion(getSchemaVersion());
         data.setUpdatedAt(getUpdatedAt());
@@ -145,7 +169,7 @@ public class Floor extends FloorData {
         if (this.getRequirements().getRequiredItems() != null && !this.getRequirements().getRequiredItems().isEmpty()) {
             for (String requiredItem : this.getRequirements().getRequiredItems()) {
                 boolean hasItem = Arrays.stream(player.getInventory().getContents())
-                        .anyMatch(itemStack -> itemStack != null && Objects.requireNonNull(itemStack.getItemMeta()).getDisplayName().equals(requiredItem));
+                        .anyMatch(itemStack -> itemMatches(itemStack, requiredItem));
                 if (!hasItem) {
                     return false;
                 }
@@ -155,7 +179,7 @@ public class Floor extends FloorData {
         if (this.getRequirements().getForbiddenItems() != null && !this.getRequirements().getForbiddenItems().isEmpty()) {
             for (String forbiddenItem : this.getRequirements().getForbiddenItems()) {
                 boolean hasItem = Arrays.stream(player.getInventory().getContents())
-                        .anyMatch(itemStack -> itemStack != null && Objects.requireNonNull(itemStack.getItemMeta()).getDisplayName().equals(forbiddenItem));
+                        .anyMatch(itemStack -> itemMatches(itemStack, forbiddenItem));
                 if (hasItem) {
                     return false;
                 }
@@ -163,6 +187,106 @@ public class Floor extends FloorData {
         }
         // Si tout est respecté
         return true;
+    }
+
+    /**
+     * Vérifie si un {@link ItemStack} correspond à un identifiant de requirement.
+     *
+     * <p>La correspondance est tolérante : un item satisfait le requirement si son identifiant
+     * MMOItems ({@code MMOITEMS_ITEM_ID}) <em>ou</em> son nom d'affichage est égal à la valeur
+     * attendue. L'identifiant MMOItems est lu via l'API NBT de MythicLib (la couche sur laquelle
+     * MMOItems stocke ses items), ce qui permet de cibler un item par son ID logique plutôt que
+     * par un displayname qui peut varier (couleur, reforge, gemmes…).</p>
+     *
+     * @param itemStack   l'item de l'inventaire (peut être null)
+     * @param requirement l'identifiant attendu (ID MMOItems ou displayname)
+     * @return true si l'item correspond au requirement
+     */
+    private boolean itemMatches(@Nullable ItemStack itemStack, String requirement) {
+        if (itemStack == null || itemStack.getType() == Material.AIR || requirement == null) {
+            return false;
+        }
+
+        // Correspondance par ID MMOItems (insensible à la casse — les IDs sont en majuscules)
+        NBTItem nbtItem = NBTItem.get(itemStack);
+        if (nbtItem.hasType()) {
+            String mmoId = nbtItem.getString("MMOITEMS_ITEM_ID");
+            if (mmoId != null && !mmoId.isEmpty() && mmoId.equalsIgnoreCase(requirement)) {
+                return true;
+            }
+        }
+
+        // Correspondance par nom d'affichage (fallback / items vanilla)
+        ItemMeta meta = itemStack.getItemMeta();
+        return meta != null && meta.hasDisplayName() && meta.getDisplayName().equals(requirement);
+    }
+
+    /**
+     * Indique si le joueur possède au moins un item correspondant à {@code requirement}, en
+     * utilisant la même logique de matching que la validation des requirements
+     * ({@link #itemMatches} : ID MMOItems ou displayname). Exposé pour que l'affichage du lore
+     * (✔/✘) reste cohérent avec la validation réelle au lieu de matcher uniquement le displayname.
+     *
+     * @param player      le joueur dont on inspecte l'inventaire
+     * @param requirement l'identifiant attendu (ID MMOItems ou displayname)
+     * @return true si l'inventaire contient un item correspondant
+     */
+    public boolean playerHasItemMatching(Player player, String requirement) {
+        if (player == null) return false;
+        return Arrays.stream(player.getInventory().getContents())
+                .anyMatch(itemStack -> itemMatches(itemStack, requirement));
+    }
+
+    /**
+     * Consomme un exemplaire (N-1) de chaque item requis dans l'inventaire du joueur.
+     *
+     * <p>Appelé au lancement du donjon, côté lobby, avant tout chargement de l'instance : les
+     * requirements ayant déjà été validés, on retire ici une unité de chacun des
+     * {@code requiredItems} (matché par ID MMOItems ou displayname via {@link #itemMatches}). Si
+     * un item requis a une pile {@code > 1}, seule une unité est décrémentée ; sinon la pile est
+     * entièrement retirée. Doit être exécuté sur le thread principal (accès inventaire Bukkit).</p>
+     *
+     * <p>Chaque unité retirée est clonée et renvoyée : si le lancement est abandonné après la
+     * consommation (échec de création de l'instance), l'appelant peut rendre ces items au joueur.</p>
+     *
+     * @param player le joueur dont on décrémente les items requis (no-op si null)
+     * @return la liste des unités retirées (clones, quantité 1) pour un éventuel remboursement
+     */
+    public List<ItemStack> consumeRequiredItems(Player player) {
+        List<ItemStack> removed = new ArrayList<>();
+        if (player == null || this.getRequirements() == null) return removed;
+
+        List<String> requiredItems = this.getRequirements().getRequiredItems();
+        if (requiredItems == null || requiredItems.isEmpty()) return removed;
+
+        // Items flagged as non-consumable on the web panel are a pure "must have it" check —
+        // validated but kept in the inventory. Everything else keeps the historical behaviour.
+        List<String> nonConsumed = this.getRequirements().getNonConsumedItems();
+
+        ItemStack[] contents = player.getInventory().getContents();
+        for (String requiredItem : requiredItems) {
+            if (nonConsumed != null && nonConsumed.contains(requiredItem)) continue;
+            for (int i = 0; i < contents.length; i++) {
+                ItemStack itemStack = contents[i];
+                if (!itemMatches(itemStack, requiredItem)) continue;
+
+                // Snapshot d'une unité (pour remboursement si le lancement échoue ensuite).
+                ItemStack refundUnit = itemStack.clone();
+                refundUnit.setAmount(1);
+                removed.add(refundUnit);
+
+                int amount = itemStack.getAmount();
+                if (amount <= 1) {
+                    player.getInventory().setItem(i, null);
+                    contents[i] = null;
+                } else {
+                    itemStack.setAmount(amount - 1);
+                }
+                break; // une seule unité retirée par item requis
+            }
+        }
+        player.updateInventory();
+        return removed;
     }
 
 

@@ -185,12 +185,12 @@ public class PlayerHasItemCondition extends Action implements BlocklyAction {
 
                             actions.push({
                                 type: 'player_has_item_condition',
-                                itemmaterial: itemMaterial,
-                                minamount: parseInt(minAmount),
-                                checkname: actionBlock.getFieldValue('CHECKNAME') === 'TRUE',
-                                itemname: itemName,
-                                ifactions: ifActions,
-                                elseactions: elseActions
+                                itemMaterial: itemMaterial,
+                                minAmount: parseInt(minAmount),
+                                checkName: actionBlock.getFieldValue('CHECKNAME') === 'TRUE',
+                                itemName: itemName,
+                                ifActions: ifActions,
+                                elseActions: elseActions
                             });
                         }
         """);
@@ -202,38 +202,38 @@ public class PlayerHasItemCondition extends Action implements BlocklyAction {
                             if (action.type === 'player_has_item_condition') {
                                 actionBlock = workspace.newBlock('player_has_item_condition');
                                 
-                                if (action.itemmaterial) {
+                                if (action.itemMaterial) {
                                     const materialBlock = workspace.newBlock('text');
-                                    materialBlock.setFieldValue(action.itemmaterial, 'TEXT');
+                                    materialBlock.setFieldValue(action.itemMaterial, 'TEXT');
                                     materialBlock.initSvg();
                                     materialBlock.render();
                                     actionBlock.getInput('ITEMMATERIAL').connection.connect(materialBlock.outputConnection);
                                 }
-                                
-                                if (action.minamount !== undefined) {
+
+                                if (action.minAmount !== undefined) {
                                     const amountBlock = workspace.newBlock('math_number');
-                                    amountBlock.setFieldValue(action.minamount.toString(), 'NUM');
+                                    amountBlock.setFieldValue(action.minAmount.toString(), 'NUM');
                                     amountBlock.initSvg();
                                     amountBlock.render();
                                     actionBlock.getInput('MINAMOUNT').connection.connect(amountBlock.outputConnection);
                                 }
-                                
-                                actionBlock.setFieldValue(action.checkname ? 'TRUE' : 'FALSE', 'CHECKNAME');
-                                
-                                if (action.itemname) {
+
+                                actionBlock.setFieldValue(action.checkName ? 'TRUE' : 'FALSE', 'CHECKNAME');
+
+                                if (action.itemName) {
                                     const nameBlock = workspace.newBlock('text');
-                                    nameBlock.setFieldValue(action.itemname, 'TEXT');
+                                    nameBlock.setFieldValue(action.itemName, 'TEXT');
                                     nameBlock.initSvg();
                                     nameBlock.render();
                                     actionBlock.getInput('ITEMNAME').connection.connect(nameBlock.outputConnection);
                                 }
-                                
-                                if (action.ifactions && action.ifactions.length > 0) {
-                                    loadActionsIntoStatement(actionBlock, action.ifactions, 'IFACTIONS');
+
+                                if (action.ifActions && action.ifActions.length > 0) {
+                                    loadActionsIntoStatement(actionBlock, action.ifActions, 'IFACTIONS');
                                 }
-                                
-                                if (action.elseactions && action.elseactions.length > 0) {
-                                    loadActionsIntoStatement(actionBlock, action.elseactions, 'ELSEACTIONS');
+
+                                if (action.elseActions && action.elseActions.length > 0) {
+                                    loadActionsIntoStatement(actionBlock, action.elseActions, 'ELSEACTIONS');
                                 }
                             }
         """);

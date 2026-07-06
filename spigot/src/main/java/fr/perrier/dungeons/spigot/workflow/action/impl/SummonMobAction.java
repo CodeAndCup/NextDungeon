@@ -51,6 +51,11 @@ public class SummonMobAction extends Action implements BlocklyAction {
             defaultValue = "", order = 2)
     private LocationBlock location;
 
+    public SummonMobAction() {
+        super("SummonMob", "summon_mob_action");
+        this.mobType = "ZOMBIE";
+    }
+
     public SummonMobAction(String mobType, LocationBlock location) {
         super("SummonMob", "summon_mob_action");
         this.mobType = mobType;

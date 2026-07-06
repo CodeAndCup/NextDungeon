@@ -17,11 +17,19 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import org.bukkit.scheduler.BukkitTask;
 
 @Getter
 public class FloorInstance extends FloorInstanceData {
+
+    // Loading-bar tasks scheduled by sendToServer(Player), keyed by player
+    // UUID so cancelInstance() (or a repeated send) can cancel them and
+    // avoid leaking an async timer that references a player who may have
+    // already disconnected.
+    private final transient Map<UUID, BukkitTask> pendingLoadTasks = new ConcurrentHashMap<>();
 
     @Getter
     private enum LoadingBar {
@@ -71,12 +79,28 @@ public class FloorInstance extends FloorInstanceData {
         }
     }
 
+    // Maximum number of cancel-packet broadcasts before cancelInstance() gives up and
+    // forcibly drops the Redis record. At one attempt per 20 ticks (~1s) this is ~30s.
+    private static final int CANCEL_MAX_ATTEMPTS = 30;
+
+    // Handle to the repeating cancel-broadcast task so it can be stopped (it self-cancels
+    // once the instance is gone or the attempt budget is exhausted) and never leaks.
+    private transient BukkitTask cancelTask;
+
     private FloorInstance(String floorId, Set<UUID> players, boolean editMode) {
         super(floorId,players);
         this.instanceId = generateFloorServer(getFloor(), editMode);
         this.ready = false;
 
-        syncInstance();
+        // makeFloorInstance() returns null when the cloud service could not be created.
+        // Only persist the instance when it actually exists — syncing a null-keyed record
+        // would write corrupt state to Redis with no rollback path.
+        if (this.instanceId != null) {
+            syncInstance();
+        } else {
+            Main.getLoggerUtil().severe(String.format(
+                    "Failed to create a cloud service for floor %s — instance not synced", floorId));
+        }
     }
 
     public FloorInstance(FloorInstanceData floorInstanceData) {
@@ -90,11 +114,20 @@ public class FloorInstance extends FloorInstanceData {
         }
     }
 
+    /**
+     * Asynchronously creates a new instance and invokes {@code callback} on the main thread.
+     * <p>
+     * The callback receives {@code null} when instance creation failed (the underlying cloud
+     * service could not be provisioned). Callers must null-check before using the instance.
+     */
     public static void generateNewInstanceAsync(String floorId, Set<UUID> players, boolean editMode, Consumer<FloorInstance> callback) {
         Bukkit.getScheduler().runTaskAsynchronously(Main.getInstance(), () -> {
             FloorInstance floorInstance = new FloorInstance(floorId, players, editMode);
+            // Surface creation failure to the caller instead of handing back a half-built
+            // instance with a null id that would NPE on the first sendToServer().
+            FloorInstance result = floorInstance.getInstanceId() != null ? floorInstance : null;
             Bukkit.getScheduler().runTask(Main.getInstance(), () ->
-                callback.accept(floorInstance)
+                callback.accept(result)
             );
         });
     }
@@ -135,8 +168,21 @@ public class FloorInstance extends FloorInstanceData {
      */
     @Override
     public void setReady(boolean ready) {
+        boolean wasReady = this.ready;
         this.ready = ready;
         syncInstance();
+        // Fire FloorInstanceReadyEvent on the false→true edge so modules
+        // (e.g. memory-labyrinth) can take over a fresh instance without
+        // polling. Always dispatched on the main thread.
+        if (ready && !wasReady) {
+            Runnable fire = () -> Bukkit.getPluginManager().callEvent(
+                    new fr.perrier.dungeons.spigot.event.FloorInstanceReadyEvent(this));
+            if (Bukkit.isPrimaryThread()) {
+                fire.run();
+            } else {
+                Bukkit.getScheduler().runTask(Main.getInstance(), fire);
+            }
+        }
     }
 
     /**
@@ -194,13 +240,19 @@ public class FloorInstance extends FloorInstanceData {
         AtomicInteger timerDelay = new AtomicInteger(0);
         AtomicInteger currentLoad = new AtomicInteger(0);
         List<String> loadingBar = LoadingBar.getRandom().getFrames();
+        UUID playerId = player.getUniqueId();
 
-        new BukkitRunnable() {
+        BukkitTask task = new BukkitRunnable() {
             private final long startTime = System.currentTimeMillis();
             private final long timeout = Main.getInstance().getConfig().getInt("InstanceSettings.loadingTimeout",120) * 1000L;
 
             @Override
             public void run() {
+                if (!player.isOnline()) {
+                    this.cancel();
+                    pendingLoadTasks.remove(playerId);
+                    return;
+                }
                 Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
                     Titles.sendTitle(player, 0, 3, 0, ChatUtil.translate("&f" + ChatUtil.toSmallCaps("Loading Dungeon..")), ChatUtil.translate(loadingBar.get(currentLoad.get())));
                     if(currentLoad.get() +1 >= loadingBar.size()) {
@@ -215,8 +267,10 @@ public class FloorInstance extends FloorInstanceData {
 
                     if (instance == null) {
                         Main.getLoggerUtil().warning("Instance " + instanceId + "no longer exists.");
+                        Main.getInstance().getDungeonService().removeInstance(instanceId);
                         player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000This dungeon instance no longer exists!"));
                         this.cancel();
+                        pendingLoadTasks.remove(playerId);
                         return;
                     }
 
@@ -224,12 +278,15 @@ public class FloorInstance extends FloorInstanceData {
                         player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&fInstance is &#00FF00ready&f! Sending you to the dungeon..."));
                         ServerUtil.sendToServer(player, instanceId);
                         this.cancel();
+                        pendingLoadTasks.remove(playerId);
                     } else {
                         if (System.currentTimeMillis() - startTime > timeout) {
                             Main.getLoggerUtil().warning("Timed out waiting for instance " + instanceId + " to be ready. (Now try cancelling instance..)");
                             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Timed out waiting for dungeon instance to be ready!"));
+                            Main.getInstance().getDungeonService().removeInstance(instanceId);
                             instance.cancelInstance();
                             this.cancel();
+                            pendingLoadTasks.remove(playerId);
                         }
                     }
                     timerDelay.set(0);
@@ -238,6 +295,11 @@ public class FloorInstance extends FloorInstanceData {
                 }
             }
         }.runTaskTimerAsynchronously(Main.getInstance(), 0L, 2L);
+
+        // If a previous loading task for the same player is still pending
+        // (rapid re-send), cancel it so we don't accumulate orphan timers.
+        BukkitTask previous = pendingLoadTasks.put(playerId, task);
+        if (previous != null) previous.cancel();
     }
 
     /**
@@ -289,9 +351,15 @@ public class FloorInstance extends FloorInstanceData {
             );
             Main.getInstance().getProfileService().saveProfileData(player.getUniqueId());
 
-            Titles.sendTitle(player, 10, 70, 20,
-                    ChatUtil.translate("&f&l" + ChatUtil.toSmallCaps("Congratulations!!")),
-                    ChatUtil.translate("&#FFBB00&l" + ChatUtil.toSmallCaps("Dungeon Complete")));
+            if(success) {
+                Titles.sendTitle(player, 10, 70, 20,
+                        ChatUtil.translate("&f&l" + ChatUtil.toSmallCaps("Congratulations!!")),
+                        ChatUtil.translate("&#FFBB00&l" + ChatUtil.toSmallCaps("Dungeon Complete")));
+            } else {
+                Titles.sendTitle(player, 10, 70, 20,
+                        ChatUtil.translate("&f&l" + ChatUtil.toSmallCaps("Dungeon Failed!")),
+                        ChatUtil.translate("&#FF0000&l" + ChatUtil.toSmallCaps("Better luck next time!")));
+            }
 
             Dungeon currentDungeon = Dungeon.getDungeon(floorId.split("_")[0]);
 
@@ -302,9 +370,23 @@ public class FloorInstance extends FloorInstanceData {
             player.sendMessage(ChatUtil.translate("&#D10000Enemies killed: &f" + playerStats.getEnemiesKilled()));
             player.sendMessage(ChatUtil.translate("&#D10000Deaths: &f" + playerStats.getDeaths()));
             player.sendMessage(ChatUtil.getBar());
+
+            if(Main.getInstance().getGhostFactory().isGhost(player)) {
+                Main.getInstance().getGhostFactory().removePlayer(player);
+            }
         }
 
         Bukkit.broadcastMessage(ChatUtil.translate(Main.getPrefix() + "&fThe dungeon instance &e" + getInstanceName() + " &fwill shut down in &#FF000030 &fseconds."));
+
+        // Per-player stats have been flushed to profiles above and are no longer needed.
+        // Clear them and re-sync now so that, if shutdown is interrupted before the final
+        // removeInstance() below, Redis is left with a small terminal blob instead of the
+        // full per-player payload. originInstances is kept — it is still needed to send
+        // players back to their lobby in the 20s task.
+        playerStats.clear();
+        playerCurrentLives.clear();
+        players.clear();
+        syncInstance();
 
         Bukkit.getScheduler().runTaskLater(Main.getInstance(), () ->
             Bukkit.getOnlinePlayers().forEach(this::returnPlayerToOriginOrKick)
@@ -401,12 +483,52 @@ public class FloorInstance extends FloorInstanceData {
      * servers that the instance should be cancelled and removed.</p>
      */
     public void cancelInstance() {
-        Bukkit.getScheduler().runTaskTimerAsynchronously(Main.getInstance(), () -> {
-            FloorInstance instance = Main.getInstance().getDungeonService().getInstance(instanceId);
-            if(instance != null && instance.isReady()) {
-                Main.getInstance().getMessaging().sendPacket(new CancelInstancePacket(this.instanceId));
+        // Cancel any pending sendToServer loading bars so we don't leak
+        // async timers referencing players that will never join.
+        for (BukkitTask task : pendingLoadTasks.values()) task.cancel();
+        pendingLoadTasks.clear();
+
+        final UUID targetInstanceId = this.instanceId;
+        if (targetInstanceId == null) return;
+
+        // Stop a previously started cancel loop on this object before starting a new one.
+        if (cancelTask != null) {
+            cancelTask.cancel();
+            cancelTask = null;
+        }
+
+        cancelTask = new BukkitRunnable() {
+            private int attempts = 0;
+
+            @Override
+            public void run() {
+                attempts++;
+                FloorInstance instance = Main.getInstance().getDungeonService().getInstance(targetInstanceId);
+
+                // Instance already gone from Redis — nothing left to cancel.
+                if (instance == null) {
+                    this.cancel();
+                    cancelTask = null;
+                    return;
+                }
+
+                // Broadcast the cancel regardless of ready state: a stuck/preparing instance
+                // must still be told to shut down. The instance server acts on the packet as
+                // soon as it can process messages.
+                Main.getInstance().getMessaging().sendPacket(new CancelInstancePacket(targetInstanceId));
+
+                // Bounded retries: if the instance never disappears, forcibly drop the Redis
+                // record so a never-ready instance cannot leak forever, then stop the loop.
+                if (attempts >= CANCEL_MAX_ATTEMPTS) {
+                    Main.getLoggerUtil().warning(String.format(
+                            "cancelInstance: giving up after %d attempts for %s — removing stale Redis record",
+                            attempts, targetInstanceId));
+                    Main.getInstance().getDungeonService().removeInstance(targetInstanceId);
+                    this.cancel();
+                    cancelTask = null;
+                }
             }
-        }, 20L, 20L);
+        }.runTaskTimerAsynchronously(Main.getInstance(), 0L, 20L);
     }
 
     /**

@@ -110,6 +110,7 @@ public class TriggerFactory {
         TRIGGER_CLASSES.put("item_pickup_trigger", ItemPickupTrigger.class);
         TRIGGER_CLASSES.put("chat_message_trigger", ChatMessageTrigger.class);
         TRIGGER_CLASSES.put("player_jump_trigger", PlayerJumpTrigger.class);
+        TRIGGER_CLASSES.put("console_command_trigger", ConsoleCommandTrigger.class);
     }
 
     /**

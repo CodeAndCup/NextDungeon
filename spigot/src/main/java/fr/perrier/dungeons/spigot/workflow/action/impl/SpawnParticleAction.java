@@ -21,7 +21,7 @@ import java.util.Map;
 @Getter
 @BlocklyInfo(
         name = "spawn_particle_action",
-        color = "#673AB7",
+        color = "#2196F3",
         displayText = "✨ Faire apparaître des particules",
         tooltip = "Fait apparaître des particules à une position",
         category = "Actions"

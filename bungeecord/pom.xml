@@ -8,7 +8,7 @@
     <parent>
         <groupId>fr.perrier</groupId>
         <artifactId>NextDungeon</artifactId>
-        <version>1.0.4-SNAPSHOT</version>
+        <version>1.0.5-SNAPSHOT</version>
     </parent>
     <artifactId>NextDungeon-BungeeCord</artifactId>
     <packaging>jar</packaging>
@@ -17,9 +17,10 @@
 
     <licenses>
         <license>
-            <name>The MIT License</name>
-            <url>https://opensource.org/licenses/MIT</url>
-            <distribution>repo</distribution>
+            <name>NextDungeon Proprietary License — All Rights Reserved</name>
+            <url>https://cupcode.fr/</url>
+            <distribution>manual</distribution>
+            <comments>Proprietary and confidential. No use, decompilation, modification, redistribution, resale, or AI/ML training use without a signed written license. See LICENSE.md.</comments>
         </license>
     </licenses>
 
@@ -64,7 +65,7 @@
         <dependency>
             <groupId>fr.perrier</groupId>
             <artifactId>NextDungeon-Common</artifactId>
-            <version>1.0.4-SNAPSHOT</version>
+            <version>1.0.5-SNAPSHOT</version>
         </dependency>
     </dependencies>
 

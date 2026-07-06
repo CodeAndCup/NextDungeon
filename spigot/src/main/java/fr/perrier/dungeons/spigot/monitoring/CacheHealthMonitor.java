@@ -286,9 +286,9 @@ public class CacheHealthMonitor {
                                        + "/" + report.checked + " floor(s) have NO checksum (legacy, will self-heal on next dashboard save): "
                                        + report.missing);
         }
-        if (report.mismatched.isEmpty() && report.missing.isEmpty() && report.checked > 0) {
+        /*if (report.mismatched.isEmpty() && report.missing.isEmpty() && report.checked > 0) {
             plugin.getLogger().info("[CacheHealthMonitor] Sample OK (" + report.checked + " floor(s) verified)");
-        }
+        }*/
     }
 
     /**

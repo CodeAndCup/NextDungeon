@@ -1,10 +1,8 @@
 package fr.perrier.dungeons.spigot.configuration;
 
 import fr.perrier.dungeons.common.model.dungeon.FloorData;
-import fr.perrier.dungeons.common.workflow.trigger.TriggerData;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.database.DatabaseManager;
-import fr.perrier.dungeons.spigot.database.DatabaseTriggersManager;
 import fr.perrier.dungeons.spigot.model.Dungeon;
 import fr.perrier.dungeons.spigot.model.Floor;
 import org.redisson.api.RMap;
@@ -102,6 +100,50 @@ public class RedisConfigLoader {
 
         Main.getLoggerUtil().info("[RedisConfigLoader] " + dungeonCount + " donjon(s) et " +
                 floorCount + " floor(s) chargés.");
+
+        repopulateDashboardDungeonEntries(dbManager);
+    }
+
+    /**
+     * Re-populates the dashboard's {@code <topic>:dd:<id>} Redis buckets from
+     * the {@code dungeons} DB table when they are missing.
+     *
+     * <p>Without this, flushing Redis (a frequent debug operation) leaves the
+     * dashboard reading an empty entry on the next reload — the user sees a
+     * 'reset' dungeon while the DB still holds the real configuration
+     * (dungeonType, labyrinthDungeonConfig, …). This mirrors what
+     * {@link #loadFloorsFromDatabase} does for floors.</p>
+     */
+    private static void repopulateDashboardDungeonEntries(DatabaseManager dbManager) {
+        if (dbManager == null) return;
+        String topic = Main.getInstance().getConfig().getString("RedisConfiguration.topic");
+        if (topic == null || topic.isEmpty()) {
+            Main.getLoggerUtil().warning("[RedisConfigLoader] RedisConfiguration.topic missing — cannot repopulate dd: entries");
+            return;
+        }
+        String ddPrefix = topic + ":dd:";
+        org.redisson.api.RedissonClient client = Main.getInstance().getDungeonService().getRedissonClient();
+        try {
+            java.util.List<String[]> rows = dbManager.listAllDungeons().get();
+            int written = 0;
+            int skipped = 0;
+            for (String[] row : rows) {
+                if (row == null || row.length < 2 || row[0] == null || row[1] == null) continue;
+                String key = ddPrefix + row[0];
+                org.redisson.api.RBucket<String> bucket = client.getBucket(key,
+                        org.redisson.client.codec.StringCodec.INSTANCE);
+                if (bucket.get() != null) {
+                    skipped++;
+                    continue; // Redis already has the entry, don't overwrite (dashboard may have unsynced edits).
+                }
+                bucket.set(row[1]);
+                written++;
+            }
+            Main.getLoggerUtil().info("[RedisConfigLoader] dashboard dd:* repopulated — "
+                    + written + " written, " + skipped + " already present");
+        } catch (Exception e) {
+            Main.getLoggerUtil().warning("[RedisConfigLoader] failed to repopulate dd:* entries: " + e.getMessage());
+        }
     }
 
     /**
@@ -126,9 +168,12 @@ public class RedisConfigLoader {
             for (FloorData fd : all) {
                 String dungeonId = fd.getDungeonId() != null ? fd.getDungeonId() : extractDungeonId(fd.getId());
                 if (fd.getDungeonId() == null) fd.setDungeonId(dungeonId);
-                if (fd.getChecksum() == null || fd.getChecksum().isEmpty()) {
+                String stored = fd.getChecksum();
+                boolean missing = stored == null || stored.isEmpty();
+                boolean stale = !missing && !stored.equals(fd.calculateChecksum());
+                if (missing || stale) {
                     if (fd.getUpdatedAt() <= 0L) fd.setUpdatedAt(System.currentTimeMillis());
-                    if (fd.getUpdatedBy() == null) fd.setUpdatedBy("legacy-heal");
+                    if (fd.getUpdatedBy() == null) fd.setUpdatedBy(missing ? "legacy-heal" : "schema-heal");
                     fd.setChecksum(fd.calculateChecksum());
                     healed++;
                     try {
@@ -141,7 +186,7 @@ public class RedisConfigLoader {
                 grouped.computeIfAbsent(dungeonId, k -> new ArrayList<>()).add(fd);
             }
             Main.getLoggerUtil().info("[RedisConfigLoader] " + all.size() + " floor(s) chargés depuis la BDD"
-                    + (healed > 0 ? " (" + healed + " checksum(s) legacy régénéré(s))." : "."));
+                    + (healed > 0 ? " (" + healed + " checksum(s) régénéré(s))." : "."));
         } catch (Exception e) {
             Main.getLoggerUtil().severe("[RedisConfigLoader] Échec du chargement BDD : " + e.getMessage());
         }
@@ -191,28 +236,33 @@ public class RedisConfigLoader {
     }
 
     /**
-     * Construit un Floor depuis un FloorData, l'enregistre dans Redis (updateMap)
-     * et génère le template monde si nécessaire.
-     * Les triggers sont toujours chargés depuis la BDD afin de ne pas écraser
-     * les triggers existants lors d'un rechargement Redis.
+     * Hydrates the local cache for a single {@link FloorData} during boot / dashboard
+     * reload. This path runs ONLY on lobby servers, so it does the strict minimum needed
+     * for menus / queue — <em>metadata only</em>:
+     * <ul>
+     *   <li>builds the {@link Floor} wrapper with {@code loadTriggers=false}: the lobby
+     *       never executes triggers (those run on instance servers during a run), so we
+     *       skip the per-floor DB trigger query entirely. Triggers are loaded lazily at the
+     *       real point of use, when an instance server builds its Floor;</li>
+     *   <li>refreshes the Redis floor + metadata maps WITHOUT publishing a sync event,
+     *       so booting a lobby no longer emits a per-floor {@code FLOOR_UPDATE} storm
+     *       across the cluster;</li>
+     *   <li>does NOT generate the CloudNet world template — that is a provisioning
+     *       concern now handled lazily when an instance is actually created
+     *       ({@code CloudNetProvider.createInstance}), not on every lobby boot.</li>
+     * </ul>
+     * The returned trigger-less {@link Floor} is added to its {@link Dungeon} and synced to
+     * the shared {@code dungeons} map; that is safe because {@code syncDungeon} strips
+     * triggers from the Redis copy anyway, so menus already read trigger-less floors.
      */
     private static Floor loadFloor(FloorData fd) {
         try {
-            Floor floor = new Floor(fd);
-
-            // Charger les triggers depuis la BDD (source de vérité pour les triggers)
-            List<TriggerData> triggers =
-                    DatabaseTriggersManager.loadTriggers(fd.getId());
-            if (!triggers.isEmpty()) {
-                floor.setTriggers(triggers);
-                Main.getLoggerUtil().info("[RedisConfigLoader] " + triggers.size() +
-                        " trigger(s) chargé(s) depuis la BDD pour : " + fd.getId());
-            }
-
-            // Re-synchroniser vers Redis avec les triggers inclus
-            floor.updateMap();
-            floor.generateTemplate();
-            Main.getLoggerUtil().info("[RedisConfigLoader] Floor chargé : " + fd.getId());
+            Floor floor = new Floor(fd, false);
+            // Cache locally without re-broadcasting: the data already lives in Redis
+            // (or was just rebuilt from the DB), so a publish here would only flood the
+            // cluster with redundant pub/sub + Kryo deserialization on every server.
+            Main.getInstance().getDungeonService().cacheFloorLocalNoPublish(fd);
+            Main.getLoggerUtil().info("[RedisConfigLoader] Floor metadata chargée : " + fd.getId());
             return floor;
         } catch (Exception e) {
             Main.getLoggerUtil().severe("[RedisConfigLoader] Erreur chargement floor " +
@@ -220,10 +270,6 @@ public class RedisConfigLoader {
             return null;
         }
     }
-
-    // =========================================================
-    //  Helpers
-    // =========================================================
 
     /** Extrait le dungeonId depuis un floorId de format "dungeonId_floorRawId". */
     public static String extractDungeonId(String floorId) {

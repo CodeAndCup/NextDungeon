@@ -5,6 +5,7 @@ import com.google.gson.JsonParser;
 import fr.perrier.dungeons.common.model.dungeon.FloorData;
 import fr.perrier.dungeons.common.model.dungeon.FloorMetadata;
 import fr.perrier.dungeons.common.model.dungeon.config.FloorInstanceData;
+import fr.perrier.dungeons.common.workflow.trigger.TriggerData;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.database.DatabaseManager;
 import fr.perrier.dungeons.spigot.model.Dungeon;
@@ -20,8 +21,7 @@ import org.redisson.api.RMap;
 import org.redisson.api.RTopic;
 import org.redisson.api.RedissonClient;
 
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 @RequiredArgsConstructor
@@ -143,8 +143,29 @@ public class DungeonService {
      * @param dungeon the dungeon to synchronize.
      */
     public void syncDungeon(Dungeon dungeon) {
-        // Update Redis
-        dungeonsMap.fastPut(dungeon.getId(),dungeon);
+        if (dungeon == null) return;
+        // Floor.triggers carries Spigot-only TriggerData subclasses that blow up
+        // Kryo on the proxy or on a node whose classpath drifted (KryoBufferUnderflow
+        // on the deserialize path). Stash → clear → fastPut → restore so the live
+        // in-memory Dungeon keeps its triggers while the Redis copy is sanitised.
+        Map<Floor, List<TriggerData>> stash
+                = new IdentityHashMap<>();
+        if (dungeon.getFloors() != null) {
+            for (Floor f : dungeon.getFloors()) {
+                if (f != null && f.getTriggers() != null) {
+                    stash.put(f, f.getTriggers());
+                    f.setTriggers(null);
+                }
+            }
+        }
+        try {
+            dungeonsMap.fastPut(dungeon.getId(), dungeon);
+        } finally {
+            for (Map.Entry<Floor, List<TriggerData>> e
+                    : stash.entrySet()) {
+                e.getKey().setTriggers(e.getValue());
+            }
+        }
 
         if (Main.getLoggerUtil().isDebugEnabled()) {
             Main.getLoggerUtil().info(
@@ -197,6 +218,34 @@ public class DungeonService {
         Main.getLoggerUtil().info(
                 String.format("Synced floor %s to Redis", floorData.getId())
         );
+    }
+
+    /**
+     * Hydrates the local Redis cache for a floor WITHOUT publishing a sync event.
+     *
+     * <p>Used by the boot-time / dashboard-reload hydration path
+     * ({@code RedisConfigLoader.loadFloor}): that data already comes from Redis (or was
+     * just rebuilt from the DB), so re-broadcasting a {@code FLOOR_UPDATE} per floor per
+     * lobby would only flood the cluster with redundant pub/sub + Kryo deserialization.</p>
+     *
+     * <p>Behaviour mirrors {@link #syncFloor} EXCEPT it never touches {@link #syncTopic}:
+     * it keeps {@link #currentFloor} in sync when the id matches, strips triggers for the
+     * shared map, and refreshes both {@link #floorsMap} and {@link #floorMetadataMap}
+     * (idempotent) so menus / queue read consistent metadata.</p>
+     *
+     * @param floorData the floor to cache locally
+     */
+    public void cacheFloorLocalNoPublish(FloorData floorData) {
+        if (floorData == null) return;
+
+        FloorData currentLocal = currentFloor.get();
+        if (currentLocal != null && currentLocal.getId().equals(floorData.getId())) {
+            currentFloor.set(floorData);
+        }
+
+        FloorData sharable = stripTriggersForSharedStorage(floorData);
+        floorsMap.fastPut(sharable.getId(), sharable);
+        floorMetadataMap.fastPut(sharable.getId(), FloorMetadata.from(sharable));
     }
 
     /**
@@ -437,6 +486,8 @@ public class DungeonService {
                 src.getWorldConfig(), src.getRequirements(), src.getRules(),
                 src.getSteps(), null);
         copy.setDungeonId(src.getDungeonId());
+        copy.setFloorType(src.getFloorType());
+        copy.setLabyrinthFloorConfig(src.getLabyrinthFloorConfig());
         copy.setVersion(src.getVersion());
         copy.setSchemaVersion(src.getSchemaVersion());
         copy.setUpdatedAt(src.getUpdatedAt());
@@ -579,6 +630,37 @@ public class DungeonService {
     }
 
     /**
+     * Removes a single player from this server's active instance state and re-syncs.
+     * <p>
+     * Called when a player leaves an instance (quit / kick / return) so their per-player
+     * entries in {@code players}, {@code playerStats}, {@code playerCurrentLives} and
+     * {@code originInstances} do not linger in Redis after they are gone. Safe to call on
+     * lobby servers and when no instance is active — it is a no-op in those cases, and
+     * idempotent if the player was already removed.
+     *
+     * @param playerId the UUID of the player to drop from the instance state
+     */
+    public void removePlayerFromInstanceState(UUID playerId) {
+        if (playerId == null) return;
+
+        FloorInstanceData data = currentInstanceData.get();
+        if (data == null) return; // lobby, or instance already torn down
+
+        boolean changed = data.getPlayers().remove(playerId);
+        if (data.getPlayerStats().remove(playerId) != null) changed = true;
+        if (data.getPlayerCurrentLives().remove(playerId) != null) changed = true;
+        if (data.getOriginInstances().remove(playerId) != null) changed = true;
+
+        if (changed) {
+            syncInstance(data);
+            if (Main.getLoggerUtil().isDebugEnabled()) {
+                Main.getLoggerUtil().info(String.format(
+                        "Removed player %s from instance %s state", playerId, data.getInstanceId()));
+            }
+        }
+    }
+
+    /**
      * Check if an instance exists in Redis
      * @param instanceId the ID to check
      * @return true if the instance exists
@@ -621,6 +703,22 @@ public class DungeonService {
             throw new IllegalStateException("No current instance available");
         }
         return new FloorInstance(instanceData);
+    }
+
+    /**
+     * Checks whether the given player is a member of the floor instance hosted on <em>this</em>
+     * server. Membership is the roster passed at launch (the dungeon party / admin), not mere
+     * presence in the world: a player who reached the instance without going through the launch
+     * flow (e.g. a staff {@code /server} teleport) is absent from the roster. Reads only the local
+     * cached instance — never blocks on Redis.
+     *
+     * @param playerId the UUID of the player to check
+     * @return true if this server hosts an instance and the player belongs to it
+     */
+    public boolean isPlayerInCurrentInstance(UUID playerId) {
+        if (playerId == null) return false;
+        FloorInstanceData local = currentInstanceData.get();
+        return local != null && local.getPlayers() != null && local.getPlayers().contains(playerId);
     }
 
     /**

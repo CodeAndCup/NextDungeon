@@ -3,6 +3,7 @@ package fr.perrier.dungeons.spigot.listener.dungeons;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.common.model.player.PlayerStats;
 import fr.perrier.dungeons.spigot.model.FloorInstance;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -29,14 +30,12 @@ public class InstanceMobKillListener implements Listener {
         if (entity instanceof Player) return;
 
         if (killer != null) {
-            // getCurrentInstance() now reads from local cache — no Redis call on server thread
             FloorInstance instance = Main.getInstance().getDungeonService().getCurrentInstance();
             PlayerStats stats = instance.getPlayerStats().get(killer.getUniqueId());
             if (stats != null) {
                 stats.incrementEnemiesKilled();
             }
-            // syncInstance() pushes to Redis — must run async to avoid blocking the server thread
-            org.bukkit.Bukkit.getScheduler().runTaskAsynchronously(
+            Bukkit.getScheduler().runTaskAsynchronously(
                     Main.getInstance(), instance::syncInstance);
         }
     }

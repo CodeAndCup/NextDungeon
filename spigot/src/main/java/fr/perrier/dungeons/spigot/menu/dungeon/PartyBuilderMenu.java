@@ -9,6 +9,7 @@ import fr.perrier.cupcodeapi.menuapi.buttons.ConversationButton;
 import fr.perrier.cupcodeapi.menuapi.buttons.DisplayButton;
 import fr.perrier.cupcodeapi.utils.ChatUtil;
 import fr.perrier.cupcodeapi.utils.ItemBuilder;
+import fr.perrier.dungeons.spigot.menu.utils.MenuTitle;
 import fr.perrier.dungeons.spigot.model.Dungeon;
 import fr.perrier.dungeons.spigot.model.Floor;
 import fr.perrier.dungeons.spigot.parties.impl.DungeonPartyImpl;
@@ -22,6 +23,7 @@ import org.bukkit.inventory.ItemStack;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class PartyBuilderMenu extends GlassMenu {
     private final Menu oldMenu;
@@ -34,15 +36,14 @@ public class PartyBuilderMenu extends GlassMenu {
         this.oldMenu = oldMenu;
         this.dungeonId = dungeonId;
 
-        // Set by default the first floor of the dungeon
         this.floorId = Dungeon.getDungeon(dungeonId).getFloors().getFirst().getId();
 
-        this.minLevel = Floor.getFloor(floorId).getRequirements().getMinLevel();
+        this.minLevel = Objects.requireNonNull(Floor.getFloor(floorId)).getRequirements().getMinLevel();
     }
 
     @Override
     public String getTitle(Player player) {
-        return "&#8B0000&l" + ChatUtil.toSmallCaps("party builder");
+        return MenuTitle.ofRows(4, "&#8B0000&l" + ChatUtil.toSmallCaps("party builder"));
     }
 
     @Override
@@ -139,7 +140,7 @@ public class PartyBuilderMenu extends GlassMenu {
                                 player.sendRawMessage(ChatUtil.translate("&#FF0000You can not have a negative minimum player level."));
                                 return;
                             }
-                            if (minLevelInt < Floor.getFloor(floorId).getRequirements().getMinLevel()) {
+                            if (minLevelInt < Objects.requireNonNull(Floor.getFloor(floorId)).getRequirements().getMinLevel()) {
                                 player.sendRawMessage(ChatUtil.translate("&#FF0000You can not have a minimum player level lower than the floor minimum level: &f" + Floor.getFloor(floorId).getRequirements().getMinLevel()));
                                 return;
                             }
@@ -251,7 +252,8 @@ public class PartyBuilderMenu extends GlassMenu {
 
         @Override
         public String getTitle(Player player) {
-            return "&#8B0000&l" + ChatUtil.toSmallCaps("select a floor");
+            int rows = dungeon.getFloors().size() <= 5 ? 5 : 6;
+            return MenuTitle.ofRows(rows, "&#8B0000&l" + ChatUtil.toSmallCaps("select a floor"));
         }
 
         @RequiredArgsConstructor

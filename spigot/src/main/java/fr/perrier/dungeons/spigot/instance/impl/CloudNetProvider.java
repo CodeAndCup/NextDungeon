@@ -21,23 +21,20 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Implémentation du provider utilisant CloudNet pour gérer les instances.
  * Cette classe encapsule toute la logique spécifique à CloudNet.
  */
 public class CloudNetProvider implements InstanceProvider {
+
+    private static final String TEMPLATE_PREFIX = "Dungeon";
 
     @Override
     public CompletableFuture<Boolean> initialize() {
@@ -62,15 +59,31 @@ public class CloudNetProvider implements InstanceProvider {
 
         Bukkit.getScheduler().runTaskAsynchronously(Main.getInstance(), () -> {
             try {
-                String templateName = floor.getId();
+                String floorId = floor.getId();
 
                 CloudServiceFactory cloudService = InjectionLayer.boot().instance(CloudServiceFactory.class);
-                ServiceTask serviceTask = InjectionLayer.boot().instance(ServiceTaskProvider.class).serviceTask(templateName);
+                ServiceTaskProvider serviceTaskProvider = InjectionLayer.boot().instance(ServiceTaskProvider.class);
+                ServiceTask serviceTask = serviceTaskProvider.serviceTask(floorId);
 
                 if (serviceTask == null) {
-                    Main.getLoggerUtil().severe("Cannot create task for " + templateName);
-                    future.complete(null);
-                    return;
+                    Main.getLoggerUtil().info("No ServiceTask for " + floorId
+                                              + " — generating world template on demand.");
+                    boolean created;
+                    try {
+                        created = Boolean.TRUE.equals(createTemplate(floor).get());
+                    } catch (Exception e) {
+                        Main.getLoggerUtil().severe("On-demand template generation failed for "
+                                                    + floorId + ": " + e.getMessage());
+                        future.complete(null);
+                        return;
+                    }
+                    serviceTask = serviceTaskProvider.serviceTask(floorId);
+                    if (!created || serviceTask == null) {
+                        Main.getLoggerUtil().severe("Cannot create task for " + floorId
+                                                    + " (template provisioning failed)");
+                        future.complete(null);
+                        return;
+                    }
                 }
 
                 ServiceConfiguration config = ServiceConfiguration.builder(serviceTask)
@@ -83,15 +96,48 @@ public class CloudNetProvider implements InstanceProvider {
                 ServiceCreateResult service = cloudService.createCloudService(config);
 
                 if (service.state() != ServiceCreateResult.State.CREATED) {
-                    Main.getLoggerUtil().severe("Cannot create a service for " + templateName);
+                    Main.getLoggerUtil().severe("Cannot create a service for " + floorId);
                     future.complete(null);
                     return;
                 }
 
-                service.serviceInfo().provider().startAsync();
-                Main.getLoggerUtil().info("Service started for " + templateName + " (editMode=" + editMode + ")");
+                ServiceInfoSnapshot serviceInfoSnapshot = service.serviceInfo();
 
-                future.complete(service.serviceInfo().serviceId().uniqueId());
+                serviceInfoSnapshot.provider().start();
+
+                AtomicInteger failedStartCout = new AtomicInteger();
+
+                Bukkit.getScheduler().runTaskTimerAsynchronously(Main.getInstance(), task -> {
+                    CloudServiceProvider cloudServiceProvider = InjectionLayer.ext().instance(CloudServiceProvider.class);
+                    ServiceInfoSnapshot serviceInfoSnapshotFromServiceName = cloudServiceProvider.serviceByName(serviceInfoSnapshot.name());
+
+                    // serviceByName returns null when the service is no longer known to CloudNet
+                    // (crashed/removed after start(), or a transient lookup gap). Dereferencing it
+                    // would NPE every tick forever since this branch never cancels — count it as a
+                    // failed start and bail out after the retry budget so future always completes.
+                    if (serviceInfoSnapshotFromServiceName == null) {
+                        if (failedStartCout.incrementAndGet() >= 5) {
+                            task.cancel();
+                            Main.getLoggerUtil().severe("Service " + floorId + " vanished from CloudNet before reaching RUNNING.");
+                            future.complete(null);
+                        }
+                        return;
+                    }
+
+                    if (serviceInfoSnapshotFromServiceName.lifeCycle() == ServiceLifeCycle.RUNNING) {
+                        task.cancel();
+                        Main.getLoggerUtil().info("Service started for " + floorId + " (editMode=" + editMode + ")");
+                        future.complete(serviceInfoSnapshotFromServiceName.serviceId().uniqueId());
+                    } else if (serviceInfoSnapshotFromServiceName.lifeCycle() == ServiceLifeCycle.PREPARED) {
+                        Main.getLoggerUtil().warning("As failed to start and is still in PREPARED life cycle, retrying start for " + floorId + "(retry N°" + (failedStartCout.incrementAndGet()) + ")");
+                        serviceInfoSnapshotFromServiceName.provider().start();
+                    }
+                    if (failedStartCout.get() >= 5 && serviceInfoSnapshotFromServiceName.lifeCycle() != ServiceLifeCycle.RUNNING) {
+                        task.cancel();
+                        Main.getLoggerUtil().severe("Service failed to start for " + floorId + " after 5 attempts.");
+                        future.complete(null);
+                    }
+                }, 60L, 20L);
             } catch (Exception e) {
                 Main.getLoggerUtil().severe("An error occurred during the instance creation: " + e.getMessage());
                 future.complete(null);
@@ -210,77 +256,62 @@ public class CloudNetProvider implements InstanceProvider {
     public CompletableFuture<Boolean> createTemplate(@NonNull Floor floor) {
         CompletableFuture<Boolean> future = new CompletableFuture<>();
 
-        ServiceTemplate sourceTemplate = new ServiceTemplate.Builder()
-                .prefix("Global")
-                .name("Global-Dungeon")
-                .storage("local")
-                .priority(0)
-                .alwaysCopyToStaticServices(false)
-                .build();
+        Bukkit.getScheduler().runTaskAsynchronously(Main.getInstance(), () -> {
+            Main.getLoggerUtil().info("Creating template for " + floor.getId() + " (CloudNet)...");
 
-        ServiceTemplate targetTemplate = new ServiceTemplate.Builder()
-                .prefix(floor.getId().split("_")[0])
-                .name(floor.getId().split("_")[1])
-                .storage("local")
-                .priority(0)
-                .alwaysCopyToStaticServices(false)
-                .build();
+            new ServiceTemplate.Builder()
+                    .prefix(TEMPLATE_PREFIX)
+                    .name(floor.getId())
+                    .storage("local")
+                    .priority(0)
+                    .alwaysCopyToStaticServices(false)
+                    .build();
 
-        copyTemplateFiles(sourceTemplate, targetTemplate)
-                .thenAccept(success -> {
-                    if (Boolean.TRUE.equals(success)) {
-                        Main.getLoggerUtil().info("Template for " + floor.getId() + " copied successfully.");
+            Main.getLoggerUtil().info("Template created for " + floor.getId() + " (CloudNet). Adding ServiceTask...");
 
-                        ServiceTaskProvider serviceTaskProvider = InjectionLayer.boot().instance(ServiceTaskProvider.class);
-                        ServiceTask serviceTask = new ServiceTask.Builder()
-                                .name(floor.getId())
-                                .runtime("jvm")
-                                .hostAddress(null)
-                                .javaCommand("java")
-                                .nameSplitter("-")
-                                .disableIpRewrite(false)
-                                .maintenance(false)
-                                .autoDeleteOnStop(true)
-                                .staticServices(false)
-                                .associatedNodes(Collections.emptyList())
-                                .deletedFilesAfterStop(Collections.emptyList())
-                                .processConfiguration(
-                                        new ProcessConfiguration.Builder()
-                                                .environment("MINECRAFT_SERVER")
-                                                .maxHeapMemorySize(4096)
-                                                .jvmOptions(Collections.emptyList())
-                                                .processParameters(Collections.emptyList())
-                                                .environmentVariables(Collections.emptyMap())
-                                )
-                                .startPort(44955)
-                                .minServiceCount(0)
-                                .templates(
-                                        Collections.singletonList(
-                                                new ServiceTemplate.Builder()
-                                                        .prefix(floor.getId().split("_")[0])
-                                                        .name(floor.getId().split("_")[1])
-                                                        .storage("local")
-                                                        .priority(0)
-                                                        .alwaysCopyToStaticServices(false)
-                                                        .build()
-                                        )
-                                )
-                                .deployments(Collections.emptyList())
-                                .inclusions(Collections.emptyList())
-                                .build();
+            ServiceTaskProvider serviceTaskProvider = InjectionLayer.boot().instance(ServiceTaskProvider.class);
+            ServiceTask serviceTask = new ServiceTask.Builder()
+                    .name(floor.getId())
+                    .runtime("jvm")
+                    .hostAddress(null)
+                    .javaCommand("java")
+                    .nameSplitter("-")
+                    .disableIpRewrite(false)
+                    .maintenance(false)
+                    .autoDeleteOnStop(true)
+                    .staticServices(false)
+                    .associatedNodes(Collections.emptyList())
+                    .deletedFilesAfterStop(Collections.emptyList())
+                    .processConfiguration(
+                            new ProcessConfiguration.Builder()
+                                    .environment("MINECRAFT_SERVER")
+                                    .maxHeapMemorySize(8192)
+                                    .jvmOptions(Collections.emptyList())
+                                    .processParameters(Collections.emptyList())
+                                    .environmentVariables(Collections.emptyMap())
+                    )
+                    .startPort(31500)
+                    .minServiceCount(0)
+                    .templates(
+                            Collections.singletonList(
+                                    new ServiceTemplate.Builder()
+                                            .prefix(TEMPLATE_PREFIX)
+                                            .name(floor.getId())
+                                            .storage("local")
+                                            .priority(0)
+                                            .alwaysCopyToStaticServices(false)
+                                            .build()
+                            )
+                    )
+                    .deployments(Collections.emptyList())
+                    .inclusions(Collections.emptyList())
+                    .build();
 
-                        serviceTaskProvider.addServiceTask(serviceTask);
-                        future.complete(true);
-                    } else {
-                        Main.getLoggerUtil().severe("Unable to copy the template for " + floor.getId());
-                        future.complete(false);
-                    }
-                })
-                .exceptionally(throwable -> {
-                    Main.getLoggerUtil().severe("Error copying template: " + throwable.getMessage());
-                    future.complete(false);
-                    return null;
-                });
+            serviceTaskProvider.addServiceTask(serviceTask);
+
+            Main.getLoggerUtil().info("ServiceTask added for " + floor.getId() + " (CloudNet). Template creation complete.");
+            future.complete(true);
+        });
 
         return future;
     }
@@ -301,8 +332,8 @@ public class CloudNetProvider implements InstanceProvider {
                 }
 
                 ServiceTemplate template = new ServiceTemplate.Builder()
-                        .prefix(floorId.split("_")[0])
-                        .name(floorId.split("_")[1])
+                        .prefix(TEMPLATE_PREFIX)
+                        .name(floorId)
                         .storage("local")
                         .priority(0)
                         .alwaysCopyToStaticServices(false)
@@ -386,7 +417,7 @@ public class CloudNetProvider implements InstanceProvider {
 
                 // Chemins spécifiques à CloudNet
                 File worldSource = new File(Main.getInstance().getDataFolder() + "/../../world");
-                File templateDest = new File(Main.getInstance().getDataFolder() + "/../../../../../local/templates/" + floor.getId().split("_")[0] + "/" + floor.getId().split("_")[1] +  "/world");
+                File templateDest = new File(Main.getInstance().getDataFolder() + "/../../../../../local/templates/" + TEMPLATE_PREFIX + "/" + floor.getId() + "/world");
 
                 // Copier les fichiers du monde vers le template CloudNet
                 jodd.io.FileUtil.copyDir(new File(worldSource, "data"), new File(templateDest, "data"));
@@ -411,88 +442,5 @@ public class CloudNetProvider implements InstanceProvider {
     public void shutdown() {
         Main.getLoggerUtil().info("CloudNet provider shutdown");
         // Rien de spécial à faire pour CloudNet
-    }
-
-    /**
-     * Copie les fichiers d'un template source vers un template cible.
-     */
-    private CompletableFuture<Boolean> copyTemplateFiles(ServiceTemplate sourceTemplate, ServiceTemplate targetTemplate) {
-        CompletableFuture<Boolean> future = new CompletableFuture<>();
-        long startTime = System.currentTimeMillis();
-
-        Bukkit.getScheduler().runTaskAsynchronously(Main.getInstance(), () -> {
-            TemplateStorage sourceTemplateStorage = sourceTemplate.storage();
-            TemplateStorage targetTemplateStorage = targetTemplate.storage();
-
-            targetTemplateStorage.delete(targetTemplate);
-            targetTemplateStorage.create(targetTemplate);
-
-            try {
-                ZipInputStream zipInputStream = sourceTemplateStorage.openZipInputStream(sourceTemplate);
-                if (zipInputStream == null) {
-                    Main.getLoggerUtil().severe("Unable to open the template zip file " + sourceTemplate.name());
-                    future.complete(false);
-                    return;
-                }
-
-                try {
-                    var localStoragePath = Path.of("../../../local/templates/");
-                    var templatePath = localStoragePath.resolve(targetTemplate.prefix()).resolve(targetTemplate.name());
-
-                    if (Main.getLoggerUtil().isDebugEnabled()) {
-                        Main.getLoggerUtil().info("Template path: " + templatePath.toAbsolutePath());
-                    }
-
-                    Files.createDirectories(templatePath);
-
-                    ZipEntry entryDeploy;
-                    while ((entryDeploy = zipInputStream.getNextEntry()) != null) {
-                        var file = templatePath.resolve(entryDeploy.getName());
-
-                        if (Main.getLoggerUtil().isDebugEnabled()) {
-                            Main.getLoggerUtil().info("Copy of " + entryDeploy.getName() + " to " + file);
-                        }
-
-                        if (entryDeploy.isDirectory()) {
-                            if (Files.notExists(file)) {
-                                try {
-                                    Files.createDirectories(file);
-                                } catch (IOException e) {
-                                    Main.getLoggerUtil().severe("Unable to create the folder " + file);
-                                }
-                            }
-                        } else {
-                            try {
-                                Files.createDirectories(file.getParent());
-                                try (OutputStream out = Files.newOutputStream(file)) {
-                                    if (out != null) {
-                                        long transferred = zipInputStream.transferTo(out);
-                                        if (Main.getLoggerUtil().isDebugEnabled()) {
-                                            Main.getLoggerUtil().info(transferred + " bytes copied");
-                                        }
-                                    }
-                                }
-                            } catch (IOException e) {
-                                Main.getLoggerUtil().severe("Copying was not possible. " + entryDeploy.getName());
-                            }
-                        }
-                        zipInputStream.closeEntry();
-                    }
-                } catch (Exception e) {
-                    future.complete(false);
-                    throw new RuntimeException(e);
-                }
-
-                Main.getLoggerUtil().info("Creating the template " + targetTemplate.name() +
-                                          " has been finished in " + (System.currentTimeMillis() - startTime) + " ms");
-                zipInputStream.close();
-                future.complete(true);
-            } catch (IOException e) {
-                future.complete(false);
-                throw new RuntimeException(e);
-            }
-        });
-
-        return future;
     }
 }

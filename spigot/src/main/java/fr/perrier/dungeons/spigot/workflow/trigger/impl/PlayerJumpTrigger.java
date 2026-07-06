@@ -20,8 +20,8 @@ import java.util.Map;
 @Setter
 @BlocklyInfo(
         name = "player_jump_trigger",
-        color = "#00BCD4",
-        displayText = "🦘 Quand le joueur saute",
+        color = "#059000",
+        displayText = "Quand le joueur saute",
         tooltip = "Déclenche quand un joueur saute",
         category = "Triggers"
 )
@@ -35,18 +35,28 @@ public class PlayerJumpTrigger extends Trigger implements BlocklyTrigger {
             defaultValue = "false", order = 2)
     private boolean onlyOnce;
 
+    @BlocklyField(type = BlocklyField.FieldType.CHECKBOX, label = "Une seule fois (global):",
+            defaultValue = "false", order = 3)
+    private boolean onlyOnceGlobal;
+
     private final Map<String, Long> playerTriggerHistory = new HashMap<>();
+
+    // History key used for the instance-wide "once" gate (onlyOnceGlobal). Distinct from any
+    // player-UUID key so the two gates never collide.
+    private static final String GLOBAL_ONCE_KEY = "__global_once";
 
     public PlayerJumpTrigger(String name) {
         super(name);
         this.cooldownSeconds = 0;
         this.onlyOnce = false;
+        this.onlyOnceGlobal = false;
     }
 
     public PlayerJumpTrigger() {
         super("Player Jump Trigger");
         this.cooldownSeconds = 0;
         this.onlyOnce = false;
+        this.onlyOnceGlobal = false;
     }
 
     @Override
@@ -82,6 +92,15 @@ public class PlayerJumpTrigger extends Trigger implements BlocklyTrigger {
                 return false;
             }
             playerTriggerHistory.put(playerId, System.currentTimeMillis());
+        }
+
+        // Global "once": fires a single time for the whole instance, regardless of which player
+        // triggered it. Takes precedence — once consumed, no other player can fire it.
+        if (onlyOnceGlobal) {
+            if (playerTriggerHistory.containsKey(GLOBAL_ONCE_KEY)) {
+                return false;
+            }
+            playerTriggerHistory.put(GLOBAL_ONCE_KEY, System.currentTimeMillis());
         }
 
         return executeActions(player, location, data);

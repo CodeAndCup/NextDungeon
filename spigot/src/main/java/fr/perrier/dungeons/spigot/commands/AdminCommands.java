@@ -41,6 +41,7 @@ public class AdminCommands {
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin queue &8- &fQueue management"));
         // Status commands
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin status &#D63333<dungeon> [floor]"));
+        player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin list"));
         // Module commands
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin module list"));
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon admin module load &#D63333<file.jar>"));
@@ -49,7 +50,6 @@ public class AdminCommands {
         player.sendMessage(ChatUtil.getBar());
     }
 
-    // ======================= Edit Commands =======================
 
     @Command(
             names = {"dungeon admin edit start", "dungeons admin edit start", "nextdungeon admin edit start", "nextdungeons admin edit start", "nd admin edit start"},
@@ -71,7 +71,13 @@ public class AdminCommands {
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000You are already in an instance or it is being prepared."));
             return;
         }
-        FloorInstance.generateNewInstanceAsync(floor.getId(), Set.of(player.getUniqueId()), true, floorInstance -> floorInstance.sendToServer(player));
+        FloorInstance.generateNewInstanceAsync(floor.getId(), Set.of(player.getUniqueId()), true, floorInstance -> {
+            if (floorInstance == null) {
+                player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Failed to create the edit instance. Please try again."));
+                return;
+            }
+            floorInstance.sendToServer(player);
+        });
         player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#00FF00✓ &fEdit mode started for floor &e" + floor.getId() + "&f."));
         player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&fPlease wait while the instance is being prepared..."));
     }
@@ -216,7 +222,36 @@ public class AdminCommands {
         Main.getInstance().getWebEditorManager().stopWebEditor(player);
     }
 
-    // ======================= Utils Commands =======================
+    @Command(names = {"dungeon admin list", "dungeons admin list", "nextdungeon admin list", "nextdungeons admin list", "nd admin list"},
+            permission = "nextdungeon.admin")
+    public static void onDungeonListCommand(CommandSender sender) {
+        sender.sendMessage(ChatUtil.getBar());
+        sender.sendMessage(ChatUtil.translate("<gradient:#8B0000:bold>NextDungeon</gradient:#D10000> &8| &fAvailable Dungeons"));
+        sender.sendMessage("");
+
+        var queueService = Main.getInstance().getDungeonQueueService();
+
+        for (Dungeon dungeon : Dungeon.getDungeons()) {
+            sender.sendMessage(ChatUtil.translate("&#D10000" + dungeon.getName() + " &7(" + dungeon.getId() + ")"));
+            for (Floor floor : dungeon.getFloors()) {
+                int queueSize = queueService != null ? queueService.getQueueSize(floor.getId()) : 0;
+                int activeInstances = queueService != null ? queueService.getActiveInstanceCount(floor.getId()) : 0;
+                int maxInstances = floor.getRules() != null ? floor.getRules().getMaxInstance() : 0;
+
+                sender.sendMessage(ChatUtil.translate(String.format(
+                        "  &8• &f%s &7(ID: %s) - &eQueue: %d &7| &eInstances: %d/%s",
+                        floor.getName(),
+                        floor.getId(),
+                        queueSize,
+                        activeInstances,
+                        maxInstances > 0 ? String.valueOf(maxInstances) : "∞"
+                )));
+            }
+        }
+
+        sender.sendMessage("");
+        sender.sendMessage(ChatUtil.getBar());
+    }
 
     @Command(
             names = {"dungeon admin status", "dungeons admin status", "nextdungeon admin status", "nextdungeons admin status", "nd admin status"},
@@ -224,6 +259,14 @@ public class AdminCommands {
     public static void adminDungeonStatusParamCommand(Player player, @Param(name = "Instance ID", baseValue = "00000000-0000-0000-0000-000000000000") String instanceId) {
         player.sendMessage(ChatUtil.getBar());
         player.sendMessage(ChatUtil.translate("&6Dungeon Status"));
+
+        if(instanceId.matches("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")) {
+            instanceId = instanceId.toLowerCase();
+        } else {
+            player.sendMessage(ChatUtil.translate("&#FF0000Invalid instance ID format. Expected UUID."));
+            player.sendMessage(ChatUtil.getBar());
+            return;
+        }
 
         boolean isDefaultInstance = instanceId.equals("00000000-0000-0000-0000-000000000000");
         if (isDefaultInstance && ServerUtil.isInstanceServer()) {
@@ -259,8 +302,6 @@ public class AdminCommands {
         }
         player.sendMessage(ChatUtil.getBar());
     }
-
-    // ======================= Queue Commands =======================
 
     @Command(names = {"dungeon admin queue", "dungeons admin queue", "nextdungeon admin queue", "nextdungeons admin queue", "nd admin queue"}, permission = "nextdungeons.admin")
     public static void adminQueueCommand(Player player) {

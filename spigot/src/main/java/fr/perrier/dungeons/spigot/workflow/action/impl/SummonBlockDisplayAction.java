@@ -31,7 +31,7 @@ import java.util.Objects;
 @Getter
 @BlocklyInfo(
         name = "summon_block_display_action",
-        color = "#FF9800",
+        color = "#2196F3",
         displayText = "🧱 Invoquer un affichage de bloc",
         tooltip = "Permet d'invoquer un BlockDisplay avec des transformations personnalisées.",
         category = "Actions"

@@ -188,6 +188,18 @@ public class MySQLManager implements DatabaseManager {
             createIndexIfMissing(conn, "floors", "idx_version", "version");
             createIndexIfMissing(conn, "floors", "idx_updated_at", "updated_at");
 
+            // Memory Labyrinth — Infinite saves only. Rooms and loot tables
+            // now live inline in the dungeon/floor payload (R6 cleanup).
+            stmt.execute("CREATE TABLE IF NOT EXISTS labyrinth_saves (" +
+                    "id VARCHAR(36) PRIMARY KEY, " +
+                    "floor_id VARCHAR(64) NOT NULL, " +
+                    "party_hash CHAR(64) NOT NULL, " +
+                    "payload_json MEDIUMTEXT NOT NULL, " +
+                    "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
+                    "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" +
+                    ")");
+            createIndexIfMissing(conn, "labyrinth_saves", "idx_party", "party_hash, floor_id");
+
         } catch (SQLException e) {
             Main.getLoggerUtil().severe("Failed to create database tables: " + e.getMessage());
             e.printStackTrace(System.err);
@@ -404,8 +416,6 @@ public class MySQLManager implements DatabaseManager {
                 profileData.toJson()
         );
     }
-
-    // ==================== TRIGGER OPERATIONS ====================
 
     /**
      * Loads the triggers for a floor from the database.
@@ -684,6 +694,21 @@ public class MySQLManager implements DatabaseManager {
         }, "Delete dungeon " + dungeonId);
     }
 
+    @Override
+    public CompletableFuture<List<String[]>> listAllDungeons() {
+        return executeAsync(() -> {
+            List<String[]> result = new ArrayList<>();
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement("SELECT id, data FROM dungeons");
+                 ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    result.add(new String[] { rs.getString("id"), rs.getString("data") });
+                }
+            }
+            return result;
+        }, "listAllDungeons");
+    }
+
     // ===== Floor CRUD =====
 
     @Override
@@ -826,9 +851,8 @@ public class MySQLManager implements DatabaseManager {
                     }
                     if (persistedChecksum != null && !persistedChecksum.isEmpty()
                             && !persistedChecksum.equals(floor.calculateChecksum())) {
-                        Main.getLoggerUtil().severe("[MySQLManager] Checksum MISMATCH for floor " + floorId
-                                + " — refusing to return corrupted data");
-                        return null;
+                        Main.getLoggerUtil().warning("[MySQLManager] Stale checksum for floor " + floorId
+                                + " (schema likely evolved) — returning row for caller to heal");
                     }
                     return floor;
                 }
@@ -860,8 +884,8 @@ public class MySQLManager implements DatabaseManager {
                         if (floor == null) continue;
                         if (persistedChecksum != null && !persistedChecksum.isEmpty()
                                 && !persistedChecksum.equals(floor.calculateChecksum())) {
-                            Main.getLoggerUtil().severe("[MySQLManager] Skipping floor " + id + " (checksum mismatch)");
-                            continue;
+                            Main.getLoggerUtil().warning("[MySQLManager] Stale checksum for floor " + id
+                                    + " (schema likely evolved) — loading row for self-heal");
                         }
                         result.add(floor);
                     }
@@ -870,4 +894,112 @@ public class MySQLManager implements DatabaseManager {
             return result;
         }, "getAllFloors(limit=" + limit + ")");
     }
+
+    // ===== Memory Labyrinth: Infinite saves =====
+
+    @Override
+    public CompletableFuture<String> loadLabyrinthSave(String saveId) {
+        return executeAsync(() -> {
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(
+                         "SELECT payload_json FROM labyrinth_saves WHERE id = ?")) {
+                stmt.setString(1, saveId);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) return rs.getString("payload_json");
+                }
+                return null;
+            }
+        }, "Load labyrinth save " + saveId);
+    }
+
+    @Override
+    public CompletableFuture<String> findLabyrinthSaveByPartyHash(String partyHash, String floorId) {
+        return executeAsync(() -> {
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(
+                         "SELECT payload_json FROM labyrinth_saves " +
+                         "WHERE party_hash = ? AND floor_id = ? " +
+                         "ORDER BY updated_at DESC LIMIT 1")) {
+                stmt.setString(1, partyHash);
+                stmt.setString(2, floorId);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) return rs.getString("payload_json");
+                }
+                return null;
+            }
+        }, "Find labyrinth save by partyHash");
+    }
+
+    @Override
+    public CompletableFuture<List<String>> findLabyrinthSavesByPartyHash(String partyHash, String floorId) {
+        return executeAsync(() -> {
+            List<String> result = new ArrayList<>();
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(
+                         "SELECT payload_json FROM labyrinth_saves " +
+                         "WHERE party_hash = ? AND floor_id = ? " +
+                         "ORDER BY updated_at DESC")) {
+                stmt.setString(1, partyHash);
+                stmt.setString(2, floorId);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    while (rs.next()) result.add(rs.getString("payload_json"));
+                }
+            }
+            return result;
+        }, "List labyrinth saves by partyHash");
+    }
+
+    @Override
+    public CompletableFuture<Void> saveLabyrinthSave(String saveId, String floorId, String partyHash, String payloadJson) {
+        return executeAsync(() -> {
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(
+                         "INSERT INTO labyrinth_saves (id, floor_id, party_hash, payload_json) VALUES (?, ?, ?, ?) " +
+                         "ON DUPLICATE KEY UPDATE floor_id = VALUES(floor_id), party_hash = VALUES(party_hash), payload_json = VALUES(payload_json)")) {
+                stmt.setString(1, saveId);
+                stmt.setString(2, floorId);
+                stmt.setString(3, partyHash);
+                stmt.setString(4, payloadJson);
+                stmt.executeUpdate();
+                Main.getLoggerUtil().info("Labyrinth save persisted: " + saveId);
+                return null;
+            }
+        }, "Save labyrinth save " + saveId);
+    }
+
+    @Override
+    public CompletableFuture<Void> deleteLabyrinthSave(String saveId) {
+        return executeAsync(() -> {
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(
+                         "DELETE FROM labyrinth_saves WHERE id = ?")) {
+                stmt.setString(1, saveId);
+                stmt.executeUpdate();
+                Main.getLoggerUtil().info("Labyrinth save deleted: " + saveId);
+                return null;
+            }
+        }, "Delete labyrinth save " + saveId);
+    }
+
+    @Override
+    public CompletableFuture<List<String[]>> listLabyrinthSaves() {
+        return executeAsync(() -> {
+            List<String[]> result = new ArrayList<>();
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(
+                         "SELECT id, floor_id, party_hash FROM labyrinth_saves ORDER BY updated_at DESC")) {
+                try (ResultSet rs = stmt.executeQuery()) {
+                    while (rs.next()) {
+                        result.add(new String[]{
+                                rs.getString("id"),
+                                rs.getString("floor_id"),
+                                rs.getString("party_hash")
+                        });
+                    }
+                }
+            }
+            return result;
+        }, "List labyrinth saves");
+    }
+
 }

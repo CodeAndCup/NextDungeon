@@ -39,25 +39,25 @@ public class DropItemAction extends Action implements BlocklyAction {
 
     @BlocklyField(type = BlocklyField.FieldType.LOCATION_INPUT, label = "Location:",
             defaultValue = "", order = 3)
-    private LocationBlock locationBlock;
+    private LocationBlock location;
 
     public DropItemAction() {
         super("Drop Item", "drop_item_action");
         this.item = "STONE";
         this.quantity = 1;
-        this.locationBlock = new LocationBlock();
+        this.location = new LocationBlock();
     }
 
     public DropItemAction(String item, int quantity, LocationBlock location) {
         super("Drop Item", "drop_item_action");
         this.item = item;
         this.quantity = quantity;
-        this.locationBlock = location;
+        this.location = location;
     }
 
     @Override
     public boolean execute(Player triggerPlayer, Location location, Map<String, Object> data) {
-        Location dropLocation = this.locationBlock.toLocation();
+        Location dropLocation = this.location.toLocation();
         if (dropLocation == null) {
             return false;
         }

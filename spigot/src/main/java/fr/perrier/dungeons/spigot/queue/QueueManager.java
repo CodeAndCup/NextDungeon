@@ -13,10 +13,12 @@ import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -199,7 +201,17 @@ public class QueueManager {
                         return;
                     }
 
+                    // Consume the required items now — on the lobby, before any instance loading —
+                    // so a member can't drop the item during provisioning to dodge the cost.
+                    Map<UUID, List<ItemStack>> consumedItems =
+                            CrossServerValidationService.consumeForAllMembers(floor, memberIds);
                     FloorInstance.generateNewInstanceAsync(floor.getId(), memberIds, false, floorInstance -> {
+                        if (floorInstance == null) {
+                            // Launch aborted after consumption: refund the local members.
+                            CrossServerValidationService.refundLocalMembers(consumedItems);
+                            notifyPlayer(player, "Failed to create the dungeon instance. Please try again.");
+                            return;
+                        }
                         // Pull the party out of the finder as soon as the dungeon starts —
                         // the party itself stays alive so members return together afterwards.
                         party.setListed(false);
@@ -273,7 +285,17 @@ public class QueueManager {
                     return;
                 }
                 Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
+                    // Consume the required items now — on the lobby, before any instance loading —
+                    // so a member can't drop the item during provisioning to dodge the cost.
+                    Map<UUID, List<ItemStack>> consumedItems =
+                            CrossServerValidationService.consumeForAllMembers(floor, memberIds);
                     FloorInstance.generateNewInstanceAsync(floor.getId(), memberIds, false, floorInstance -> {
+                        if (floorInstance == null) {
+                            // Launch aborted after consumption: refund the local members.
+                            CrossServerValidationService.refundLocalMembers(consumedItems);
+                            notifyPlayer(player, "Failed to create the dungeon instance. Please try again.");
+                            return;
+                        }
                         notifyPlayer(player, "Your turn! Creating dungeon instance...");
                         party.setListed(false);
                         floorInstance.sendToServer(party);

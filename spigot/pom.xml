@@ -7,7 +7,7 @@
     <parent>
         <groupId>fr.perrier</groupId>
         <artifactId>NextDungeon</artifactId>
-        <version>1.0.4-SNAPSHOT</version>
+        <version>1.0.5-SNAPSHOT</version>
     </parent>
     <artifactId>NextDungeon-Spigot</artifactId>
     <packaging>jar</packaging>
@@ -16,9 +16,10 @@
 
     <licenses>
         <license>
-            <name>The MIT License</name>
-            <url>https://opensource.org/licenses/MIT</url>
-            <distribution>repo</distribution>
+            <name>NextDungeon Proprietary License — All Rights Reserved</name>
+            <url>https://cupcode.fr/</url>
+            <distribution>manual</distribution>
+            <comments>Proprietary and confidential. No use, decompilation, modification, redistribution, resale, or AI/ML training use without a signed written license. See LICENSE.md.</comments>
         </license>
     </licenses>
 
@@ -81,6 +82,63 @@
             </resource>
         </resources>
     </build>
+
+    <profiles>
+        <!--
+          Release-only obfuscation. Normal `mvn package` is unaffected; run
+          `mvn package -Pobfuscate` to produce the renamed jar. ProGuard runs in the `package`
+          phase AFTER maven-shade-plugin (profile plugins execute after base-build plugins for
+          the same phase) and rewrites the shaded jar in place, keeping the deploy filename.
+          Rules live in spigot/proguard.conf (rename-only, conservative whitelist).
+        -->
+        <profile>
+            <id>obfuscate</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>com.github.wvengen</groupId>
+                        <artifactId>proguard-maven-plugin</artifactId>
+                        <version>2.7.0</version>
+                        <executions>
+                            <execution>
+                                <id>obfuscate</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>proguard</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <proguardVersion>7.6.0</proguardVersion>
+                            <obfuscate>true</obfuscate>
+                            <!-- In/out are the shaded jar (custom finalName set by the shade
+                                 execution). injar == outjar → obfuscate in place. -->
+                            <!--suppress UnresolvedMavenProperty -->
+                            <injar>${project.artifactId}-${project.version}-${git.commit.id.abbrev}.jar</injar>
+                            <!--suppress UnresolvedMavenProperty -->
+                            <outjar>${project.artifactId}-${project.version}-${git.commit.id.abbrev}.jar</outjar>
+                            <outputDirectory>${project.build.directory}</outputDirectory>
+                            <proguardInclude>${project.basedir}/proguard.conf</proguardInclude>
+                            <!-- Java 21: rt.jar no longer exists; point ProGuard at the JDK
+                                 modules instead. Add more jmods here only if warnings surface. -->
+                            <libs>
+                                <lib>${java.home}/jmods/java.base.jmod</lib>
+                            </libs>
+                        </configuration>
+                        <dependencies>
+                            <!-- Pin a ProGuard that supports Java 21 bytecode. -->
+                            <dependency>
+                                <groupId>com.guardsquare</groupId>
+                                <artifactId>proguard-base</artifactId>
+                                <version>7.6.0</version>
+                            </dependency>
+                        </dependencies>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
     <pluginRepositories>
         <pluginRepository>
             <id>central</id>
@@ -321,7 +379,7 @@
         <dependency>
             <groupId>fr.perrier</groupId>
             <artifactId>NextDungeon-Common</artifactId>
-            <version>1.0.4-SNAPSHOT</version>
+            <version>1.0.5-SNAPSHOT</version>
         </dependency>
 
         <!-- Test Dependencies -->

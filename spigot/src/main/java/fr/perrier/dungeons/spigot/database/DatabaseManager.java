@@ -45,6 +45,14 @@ public interface DatabaseManager {
     CompletableFuture<Void> saveDungeon(String dungeonId, String name, String description, String dataJson);
     CompletableFuture<Void> deleteDungeon(String dungeonId);
 
+    /**
+     * Lists every dungeon stored in the dashboard table as a {@code [id, dataJson]}
+     * pair. Used by the lobby boot to repopulate the {@code <topic>:dd:<id>} Redis
+     * buckets the dashboard reads from when Redis has been flushed but the DB
+     * still holds the source of truth.
+     */
+    CompletableFuture<List<String[]>> listAllDungeons();
+
     // Floor CRUD operations (for dashboard)
     CompletableFuture<String> loadFloor(String floorId);
     CompletableFuture<Void> saveFloor(String floorId, String dungeonId, String name, String dataJson);
@@ -75,4 +83,32 @@ public interface DatabaseManager {
     CompletableFuture<List<FloorData>> getAllFloors(int limit);
 
     <T> CompletableFuture<T> handleAsyncOperation(CompletableFuture<T> future, String operationName);
+
+    /**
+     * Loads a save by primary key. Returns the JSON or {@code null}.
+     */
+    CompletableFuture<String> loadLabyrinthSave(String saveId);
+
+    /**
+     * Looks up a save by its (partyHash, floorId) compound key. Returns the
+     * most recent {@code payload_json} or {@code null}. There is normally at
+     * most one save per couple — see CDC §1.4 / §6.3.
+     */
+    CompletableFuture<String> findLabyrinthSaveByPartyHash(String partyHash, String floorId);
+
+    /**
+     * Lists every save for a {@code (partyHash, floorId)} couple as
+     * {@code payload_json}, most recently updated first. Used to present the
+     * resumable-run list for the infinite labyrinth.
+     */
+    CompletableFuture<List<String>> findLabyrinthSavesByPartyHash(String partyHash, String floorId);
+
+    CompletableFuture<Void> saveLabyrinthSave(String saveId, String floorId, String partyHash, String payloadJson);
+
+    CompletableFuture<Void> deleteLabyrinthSave(String saveId);
+
+    /**
+     * Lists all saves as {@code [id, floorId, partyHash]} (admin / debug usage).
+     */
+    CompletableFuture<List<String[]>> listLabyrinthSaves();
 }

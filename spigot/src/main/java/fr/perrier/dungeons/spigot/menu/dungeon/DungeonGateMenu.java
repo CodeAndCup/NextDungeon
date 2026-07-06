@@ -4,12 +4,16 @@ import fr.perrier.cupcodeapi.menuapi.Button;
 import fr.perrier.cupcodeapi.menuapi.GlassMenu;
 import fr.perrier.cupcodeapi.utils.ChatUtil;
 import fr.perrier.cupcodeapi.utils.ItemBuilder;
+import fr.perrier.dungeons.common.model.dungeon.FloorType;
 import fr.perrier.dungeons.spigot.Main;
 import fr.perrier.dungeons.spigot.model.Dungeon;
 import fr.perrier.dungeons.spigot.model.Floor;
+import fr.perrier.dungeons.spigot.menu.utils.MenuTitle;
 import fr.perrier.dungeons.spigot.model.FloorInstance;
 import fr.perrier.dungeons.spigot.model.ProfileData;
 import fr.perrier.dungeons.spigot.parties.CrossServerValidationService;
+import fr.perrier.dungeons.spigot.parties.IParty;
+import fr.perrier.dungeons.spigot.parties.PartyService;
 import fr.perrier.dungeons.spigot.parties.impl.DungeonPartyImpl;
 import lombok.RequiredArgsConstructor;
 import net.Indyuce.mmocore.api.player.PlayerData;
@@ -21,6 +25,7 @@ import org.bukkit.inventory.ItemStack;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 @RequiredArgsConstructor
 public class DungeonGateMenu extends GlassMenu {
@@ -43,7 +48,13 @@ public class DungeonGateMenu extends GlassMenu {
 
     @Override
     public String getTitle(Player player) {
-        return "&#8B0000&l" + ChatUtil.toSmallCaps(dungeon.getName());
+        String name = "&#8B0000&l" + ChatUtil.toSmallCaps(dungeon.getName());
+        if(dungeon.getFloors().getFirst().getFloorType() == FloorType.LABYRINTH) {
+            return MenuTitle.of(MenuTitle.LABYRINTH, name);
+        }
+        // Footer buttons sit at slot 42 (<=5 floors) or 51 (>5), giving a 5- or 6-row inventory.
+        int rows = dungeon.getFloors().size() <= 5 ? 5 : 6;
+        return MenuTitle.ofRows(rows, name);
     }
 
     @Override
@@ -78,6 +89,18 @@ public class DungeonGateMenu extends GlassMenu {
 
     @RequiredArgsConstructor
     public static class FloorButton extends Button {
+        /**
+         * Party leaders whose dungeon launch is mid-flight — between the click and the instance
+         * actually registering in Redis. Instance creation is fully async (party validation +
+         * cloud service spin-up), so during that window {@code isPlayerInAnyInstance}
+         * still returns {@code false} and every extra click would spawn a separate instance.
+         * Acquiring the leader's slot here closes that race.
+         */
+        private static final Set<UUID> launchingLeaders = ConcurrentHashMap.newKeySet();
+
+        /** Safety net (in ticks) after which the launch lock is released even if no callback fired. */
+        private static final long LAUNCH_LOCK_TIMEOUT_TICKS = 200L; // 10 seconds
+
         private final Floor floor;
 
         @Override
@@ -90,53 +113,128 @@ public class DungeonGateMenu extends GlassMenu {
 
         @Override
         public void clicked(Player player, int slot, ClickType clickType, int hotbarButton) {
-            //TODO: Warning player that don't have create a party can't play solo, they need to create a party builder first, need to be fixed
+            PartyService partyService = PartyService.getInstance();
+            boolean hasLead = DungeonPartyImpl.hasLeadParty(player);
 
-            // Prevent clicking if any player of that party is already in an instance or being prepared
-            if (DungeonPartyImpl.hasLeadParty(player)) {
-                UUID leaderId = DungeonPartyImpl.getDungeonPartyOf(player).getLeaderId();
-                if (Main.getInstance().getDungeonService().isPlayerInAnyInstance(leaderId)) {
-                    player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000An instance for your party is already being prepared or active. Please wait..."));
+            // Bug 2 — only the party leader may start a dungeon. A player who is a member of a
+            // party but not its leader is rejected here. Membership is detected both via the
+            // active provider (external plugin / internal) and via an existing dungeon party the
+            // player already belongs to (finder flow), so non-leaders are blocked in every case.
+            if (!hasLead) {
+                boolean nonLeaderInProvider = partyService != null && partyService.isInParty(player)
+                        && !partyService.isPartyLeader(player);
+                boolean memberOfOtherParty = DungeonPartyImpl.getDungeonPartyContaining(player.getUniqueId()) != null;
+                if (nonLeaderInProvider || memberOfOtherParty) {
+                    player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Only your party leader can start the dungeon."));
                     return;
                 }
             }
 
-            // Original requirement checks
+            // Past this point the launcher is always the (solo or party) leader, so the leader
+            // UUID is the clicking player's own UUID.
+            UUID leaderId = player.getUniqueId();
+
+            // Bug 3 — refuse if an instance for this leader is already active or being prepared.
+            if (Main.getInstance().getDungeonService().isPlayerInAnyInstance(leaderId)) {
+                player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000An instance for your party is already being prepared or active. Please wait..."));
+                return;
+            }
+
+            // Requirement checks for the clicking player.
             if(Objects.requireNonNull(Objects.requireNonNull(getButtonItem(player).getItemMeta()).getLore()).stream().anyMatch(s -> s.contains("✘"))) {
                 player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000You do not meet the requirements to enter this floor."));
                 return;
             }
-            if(DungeonPartyImpl.hasLeadParty(player)) {
-                DungeonPartyImpl party = DungeonPartyImpl.getDungeonPartyOf(player);
-                if(party.getMembers().size() > floor.getRequirements().getPartyRequirements().getMaxSize()) {
-                    player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Your party is too big to enter this floor."));
-                    return;
-                }
-                if (party.getMembers().size() < floor.getRequirements().getPartyRequirements().getMinSize()) {
-                    player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Your party is too small to enter this floor."));
-                    return;
-                }
 
-                player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&fChecking party requirements..."));
-                Set<UUID> memberIds = party.getMemberIds();
-                validateAllMembersAsync(floor, memberIds).thenAccept(allPassed -> {
-                    if (!allPassed) {
-                        Bukkit.getScheduler().runTask(Main.getInstance(), () ->
-                                player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000One or more players in your party break the requirements to enter this floor.")));
-                        return;
-                    }
-
-                    Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
-                        FloorInstance.generateNewInstanceAsync(floor.getId(), memberIds, false, floorInstance -> {
-                            // Pull the party out of the finder as soon as the dungeon starts —
-                            // the party itself stays alive so members return together afterwards.
-                            party.setListed(false);
-                            floorInstance.sendToServer(party);
-                        });
-                        player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&fPlease wait while the instance is being prepared..."));
-                    });
-                });
+            // Party-size checks, evaluated without creating a party yet. A solo player (no party)
+            // counts as a party of 1, so solo launches are only allowed when the floor's minimum
+            // size is 1 — otherwise the "too small" branch below rejects them.
+            int minSize = floor.getRequirements().getPartyRequirements().getMinSize();
+            int maxSize = floor.getRequirements().getPartyRequirements().getMaxSize();
+            int partySize;
+            if (hasLead) {
+                partySize = DungeonPartyImpl.getDungeonPartyOf(player).getMembers().size();
+            } else if (partyService != null && partyService.isInParty(player)) {
+                partySize = partyService.getPartyOf(player).map(IParty::getSize).orElse(1);
+            } else {
+                partySize = 1; // solo
             }
+            if (partySize > maxSize) {
+                player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Your party is too big to enter this floor."));
+                return;
+            }
+            if (partySize < minSize) {
+                player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Your party is too small to enter this floor."));
+                return;
+            }
+
+            // Bug 3 — acquire the launch lock. add() returns false when a launch is already in
+            // flight, so rapid double-clicks are rejected before any async work or party creation.
+            if (!launchingLeaders.add(leaderId)) {
+                player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000A dungeon launch is already in progress for your party. Please wait..."));
+                return;
+            }
+            // Safety net: never strand the leader behind the lock if a callback is somehow lost.
+            Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> launchingLeaders.remove(leaderId), LAUNCH_LOCK_TIMEOUT_TICKS);
+
+            // Bug 4 — materialize the dungeon party. When the player already leads one (party
+            // finder flow) it is reused; otherwise we wrap their existing external/internal party
+            // (or create a solo party) directly, without requiring the party builder/finder.
+            DungeonPartyImpl resolved;
+            try {
+                resolved = hasLead
+                        ? DungeonPartyImpl.getDungeonPartyOf(player)
+                        : new DungeonPartyImpl.Builder()
+                            .setDungeonId(floor.getDungeonId())
+                            .setFloorId(floor.getId())
+                            .setMinLevel(0)
+                            .setDescription("")
+                            .setLeader(player)
+                            .build();
+            } catch (Exception e) {
+                launchingLeaders.remove(leaderId);
+                player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Failed to prepare your party. Please try again."));
+                return;
+            }
+            // A directly-launched party (not built via the finder) never needs to be advertised.
+            if (!hasLead) {
+                resolved.setListed(false);
+            }
+            final DungeonPartyImpl party = resolved;
+
+            player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&fChecking party requirements..."));
+            Set<UUID> memberIds = party.getMemberIds();
+            validateAllMembersAsync(floor, memberIds).thenAccept(allPassed -> {
+                if (!allPassed) {
+                    launchingLeaders.remove(leaderId);
+                    Bukkit.getScheduler().runTask(Main.getInstance(), () ->
+                            player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000One or more players in your party break the requirements to enter this floor.")));
+                    return;
+                }
+
+                Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
+                    // Consume the required items now — on the lobby, before any instance loading —
+                    // so a member can't drop the item during provisioning to dodge the cost.
+                    Map<UUID, List<ItemStack>> consumedItems =
+                            CrossServerValidationService.consumeForAllMembers(floor, memberIds);
+                    FloorInstance.generateNewInstanceAsync(floor.getId(), memberIds, false, floorInstance -> {
+                        if (floorInstance == null) {
+                            // Launch aborted after consumption: refund the local members.
+                            CrossServerValidationService.refundLocalMembers(consumedItems);
+                            launchingLeaders.remove(leaderId);
+                            player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Failed to create the dungeon instance. Please try again."));
+                            return;
+                        }
+                        // Pull the party out of the finder as soon as the dungeon starts —
+                        // the party itself stays alive so members return together afterwards.
+                        party.setListed(false);
+                        floorInstance.sendToServer(party);
+                        // Keep the lock held: by the time the safety-net timeout releases it the
+                        // instance is registered in Redis, so isPlayerInAnyInstance takes over.
+                    });
+                    player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&fPlease wait while the instance is being prepared..."));
+                });
+            });
         }
 
         /**
@@ -259,7 +357,7 @@ public class DungeonGateMenu extends GlassMenu {
         }
         if(floor.getRequirements().getRequiredItems() != null && !floor.getRequirements().getRequiredItems().isEmpty()) {
             for(String requiredItem : floor.getRequirements().getRequiredItems()) {
-                boolean hasItem = Arrays.stream(player.getInventory().getContents()).anyMatch(itemStack -> itemStack != null && Objects.requireNonNull(itemStack.getItemMeta()).getDisplayName().equals(requiredItem));
+                boolean hasItem = floor.playerHasItemMatching(player, requiredItem);
                 if(hasItem) {
                     lore.add("&#00FF00✔ Possess " + requiredItem);
                 } else {
@@ -269,7 +367,7 @@ public class DungeonGateMenu extends GlassMenu {
         }
         if(floor.getRequirements().getForbiddenItems() != null && !floor.getRequirements().getForbiddenItems().isEmpty()) {
             for(String forbiddenItem : floor.getRequirements().getForbiddenItems()) {
-                boolean hasItem = Arrays.stream(player.getInventory().getContents()).anyMatch(itemStack -> itemStack != null && Objects.requireNonNull(itemStack.getItemMeta()).getDisplayName().equals(forbiddenItem));
+                boolean hasItem = floor.playerHasItemMatching(player, forbiddenItem);
                 if(hasItem) {
                     lore.add("&#FF0000✘ Do not possess " + forbiddenItem);
                 } else {

@@ -10,14 +10,22 @@ import fr.perrier.dungeons.spigot.workflow.trigger.handler.impl.BlockClickTrigge
 import fr.perrier.dungeons.spigot.workflow.trigger.handler.impl.PlayerDamageTriggerHandler;
 import fr.perrier.dungeons.spigot.workflow.trigger.handler.impl.ItemPickupTriggerHandler;
 import fr.perrier.dungeons.spigot.workflow.trigger.handler.impl.ChatMessageTriggerHandler;
+import fr.perrier.dungeons.spigot.workflow.trigger.handler.impl.ConsoleCommandTriggerHandler;
+import fr.perrier.dungeons.spigot.workflow.trigger.handler.impl.ConsoleServerCommandTriggerHandler;
 import fr.perrier.dungeons.spigot.workflow.trigger.handler.impl.PlayerJumpTriggerHandler;
+import fr.perrier.dungeons.spigot.workflow.trigger.impl.ConsoleCommandTrigger;
 import fr.perrier.dungeons.spigot.workflow.trigger.impl.FunctionTrigger;
 import org.bukkit.Bukkit;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandMap;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.EventExecutor;
 
+import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -41,6 +49,13 @@ public class TriggersRegistry implements Listener {
     // Reference to RegionTriggerHandler for player cleanup
     private RegionTriggerHandler regionTriggerHandler;
 
+    // --- Dynamic Bukkit command registration (for ConsoleCommandTrigger) ---
+    // Allows MythicMobs / plugin-dispatched commands (Bukkit.dispatchCommand) to fire triggers,
+    // since dispatchCommand bypasses ServerCommandEvent / PlayerCommandPreprocessEvent.
+    private final Map<String, List<ConsoleCommandTrigger>> dynamicCommandTriggers = new HashMap<>();
+    private final Set<String> registeredCommandLabels = new HashSet<>();
+    private final Set<UUID> recentlyFiredTriggerIds = ConcurrentHashMap.newKeySet();
+    private CommandMap cachedCommandMap;
 
     public TriggersRegistry() {
         registerDefaultHandlers();
@@ -80,6 +95,8 @@ public class TriggersRegistry implements Listener {
         registerHandler(new ItemPickupTriggerHandler());
         registerHandler(new ChatMessageTriggerHandler());
         registerHandler(new PlayerJumpTriggerHandler());
+        registerHandler(new ConsoleCommandTriggerHandler());
+        registerHandler(new ConsoleServerCommandTriggerHandler());
     }
 
     /**
@@ -103,11 +120,13 @@ public class TriggersRegistry implements Listener {
         triggersByType.clear();
         triggersByEventType.clear();
         clearFunctions(); // Clear old functions before re-registering
+        unregisterAllDynamicCommands(); // Drop previously-registered Bukkit commands
 
         try {
             List<TriggerData> allTriggers = Main.getInstance().getDungeonService().getCurrentFloor().getTriggers();
             if (allTriggers == null) {
                 Main.getLoggerUtil().info("Triggers cache refresh: current floor has no triggers");
+                syncCommandsToClients();
                 return;
             }
 
@@ -122,6 +141,14 @@ public class TriggersRegistry implements Listener {
                 // Register FunctionTriggers to the registry
                 if (trigger instanceof FunctionTrigger functionTrigger) {
                     registerFunction(functionTrigger);
+                }
+
+                // Register a dynamic Bukkit command for every ConsoleCommandTrigger so that
+                // Bukkit.dispatchCommand (used by MythicMobs, plugins, Player.performCommand)
+                // can also fire the trigger — which neither ServerCommandEvent nor
+                // PlayerCommandPreprocessEvent catch.
+                if (trigger instanceof ConsoleCommandTrigger consoleTrigger) {
+                    registerDynamicCommand(consoleTrigger);
                 }
 
                 // Cache par type de trigger
@@ -139,9 +166,142 @@ public class TriggersRegistry implements Listener {
             }
 
             Main.getLoggerUtil().info("Triggers cache refresh complete: " + allTriggers.size() + " triggers");
+            syncCommandsToClients();
 
         } catch (Exception e) {
             Main.getLoggerUtil().severe("Error refreshing cache: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Marks a trigger as having been fired by an event handler in the current tick.
+     * The dynamic Bukkit command path consumes this marker to avoid double-firing.
+     */
+    public void markTriggerFiredFromEvent(UUID triggerId) {
+        if (triggerId == null) return;
+        recentlyFiredTriggerIds.add(triggerId);
+        // Fallback cleanup next tick in case the dispatch path is skipped (e.g. event cancelled).
+        Main.getInstance().getServer().getScheduler().runTask(Main.getInstance(),
+                () -> recentlyFiredTriggerIds.remove(triggerId));
+    }
+
+    /**
+     * Consumes the "fired from event" marker for a trigger; returns true if it was set.
+     */
+    public boolean consumeTriggerFiredFromEvent(UUID triggerId) {
+        return triggerId != null && recentlyFiredTriggerIds.remove(triggerId);
+    }
+
+    private CommandMap getCommandMap() {
+        if (cachedCommandMap == null) {
+            try {
+                cachedCommandMap = (CommandMap) Bukkit.getServer().getClass()
+                        .getMethod("getCommandMap").invoke(Bukkit.getServer());
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Cannot access CommandMap: " + e.getMessage());
+            }
+        }
+        return cachedCommandMap;
+    }
+
+    private void registerDynamicCommand(ConsoleCommandTrigger trigger) {
+        String rawCommand = trigger.getCommand();
+        if (rawCommand == null || rawCommand.isEmpty()) return;
+
+        int sp = rawCommand.indexOf(' ');
+        String commandName = (sp < 0 ? rawCommand : rawCommand.substring(0, sp)).trim().toLowerCase(Locale.ROOT);
+        if (commandName.isEmpty()) return;
+
+        dynamicCommandTriggers.computeIfAbsent(commandName, k -> new ArrayList<>()).add(trigger);
+
+        // One Bukkit Command per label; subsequent triggers with the same label share it.
+        if (registeredCommandLabels.contains(commandName)) return;
+
+        CommandMap commandMap = getCommandMap();
+        if (commandMap == null) return;
+
+        final String label = commandName;
+        Command bukkitCommand = new Command(label) {
+            @Override
+            public boolean execute(CommandSender sender, String usedLabel, String[] args) {
+                String fullCommand = (args.length > 0)
+                        ? label + " " + String.join(" ", args)
+                        : label;
+
+                List<ConsoleCommandTrigger> matches = dynamicCommandTriggers.get(label);
+                if (matches == null || matches.isEmpty()) return true;
+
+                Player player = (sender instanceof Player p) ? p : null;
+
+                for (ConsoleCommandTrigger t : matches) {
+                    if (!t.matchesCommand(fullCommand)) continue;
+                    // Skip if an event handler already scheduled this trigger this tick
+                    if (consumeTriggerFiredFromEvent(t.getTriggerId())) continue;
+
+                    Map<String, Object> data = new HashMap<>();
+                    data.put("command", fullCommand);
+                    data.put("sender", sender.getName());
+                    data.put("matched_command", fullCommand);
+                    data.put("command_name", label);
+                    data.put("command_args", args.length > 0 ? String.join(" ", args) : "");
+
+                    Main.getInstance().getServer().getScheduler().runTask(Main.getInstance(),
+                            () -> t.execute(player, null, data));
+                }
+                return true;
+            }
+        };
+        bukkitCommand.setDescription("NextDungeon trigger command (dynamic)");
+
+        commandMap.register("nextdungeon", bukkitCommand);
+        registeredCommandLabels.add(commandName);
+
+        if (Main.getLoggerUtil().isDebugEnabled()) {
+            Main.getLoggerUtil().info("Registered dynamic Bukkit command '" + commandName
+                    + "' for ConsoleCommandTrigger: " + trigger.getName());
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void unregisterAllDynamicCommands() {
+        CommandMap commandMap = getCommandMap();
+        if (commandMap == null) {
+            dynamicCommandTriggers.clear();
+            registeredCommandLabels.clear();
+            return;
+        }
+
+        try {
+            Field knownCommandsField = commandMap.getClass().getDeclaredField("knownCommands");
+            knownCommandsField.setAccessible(true);
+            Map<String, Command> knownCommands = (Map<String, Command>) knownCommandsField.get(commandMap);
+            for (String label : registeredCommandLabels) {
+                knownCommands.remove(label);
+                knownCommands.remove("nextdungeon:" + label);
+            }
+        } catch (NoSuchFieldException e) {
+            // 'knownCommands' lives on SimpleCommandMap; on non-CraftBukkit servers this may differ.
+            Main.getLoggerUtil().warning("Dynamic command cleanup: 'knownCommands' field not found on "
+                    + commandMap.getClass().getName());
+        } catch (Exception e) {
+            Main.getLoggerUtil().warning("Could not clean up dynamic commands: " + e.getMessage());
+        }
+
+        dynamicCommandTriggers.clear();
+        registeredCommandLabels.clear();
+    }
+
+    private void syncCommandsToClients() {
+        // Server#syncCommands() rebuilds the brigadier tree sent to players' tab-completion.
+        // It exists on Paper/recent CraftBukkit; missing on older Spigot — silently skip in that case.
+        try {
+            Bukkit.getServer().getClass().getMethod("syncCommands").invoke(Bukkit.getServer());
+        } catch (NoSuchMethodException ignored) {
+            // Older Spigot — clients won't see updated tab-completion but server-side dispatch still works.
+        } catch (Exception e) {
+            if (Main.getLoggerUtil().isDebugEnabled()) {
+                Main.getLoggerUtil().info("syncCommands failed: " + e.getMessage());
+            }
         }
     }
 
@@ -249,6 +409,24 @@ public class TriggersRegistry implements Listener {
                         Main.getLoggerUtil().info("Invoking handler: " + handler.getClass().getSimpleName() + " for event: " + event.getEventName());
                     }
                     TriggerEventHandler<T> typedHandler = (TriggerEventHandler<T>) handler;
+                    // Events with no associated player (e.g. console commands) return null here
+                    // and are server-driven, so they bypass the player-bound gates below.
+                    Player subject = typedHandler.getPlayerFromEvent(event);
+                    if (subject != null) {
+                        // Ghost players (dead, awaiting revive) fly freely through the
+                        // instance and must not fire any player-bound trigger (block click,
+                        // item pickup, jump, region, damage, ...).
+                        if (Main.getInstance().getGhostFactory().isGhost(subject)) {
+                            continue;
+                        }
+                        // Only players on this server's instance roster may drive its triggers.
+                        // Someone who reached the instance world without going through the dungeon
+                        // launch (e.g. a staff /server teleport) is absent from the roster and must
+                        // not be able to fire floor triggers.
+                        if (!Main.getInstance().getDungeonService().isPlayerInCurrentInstance(subject.getUniqueId())) {
+                            continue;
+                        }
+                    }
                     typedHandler.handleEvent(event, triggers);
                 }
             }

@@ -13,6 +13,7 @@ import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -22,7 +23,7 @@ import java.util.Map;
 @Getter
 @BlocklyInfo(
         name = "block_click_trigger",
-        color = "#795548",
+        color = "#059000",
         displayText = "🖱️ Clic sur bloc",
         tooltip = "Déclenché quand un joueur clique sur un bloc spécifique",
         category = "Triggers"
@@ -43,7 +44,7 @@ public class BlockClickTrigger extends Trigger implements BlocklyTrigger {
     private String blockMaterial;
 
     // Transient cached enum to avoid Material.valueOf() parse on every trigger check
-    private transient org.bukkit.Material cachedMaterialEnum;
+    private transient Material cachedMaterialEnum;
 
     public void setBlockMaterial(String blockMaterial) {
         this.blockMaterial = blockMaterial;
@@ -57,6 +58,20 @@ public class BlockClickTrigger extends Trigger implements BlocklyTrigger {
             defaultValue = "false", order = 8)
     private boolean exactPositionOnly;
 
+    @BlocklyField(type = BlocklyField.FieldType.CHECKBOX, label = "Une seule fois:",
+            defaultValue = "false", order = 9)
+    private boolean onlyOnce = false;
+
+    @BlocklyField(type = BlocklyField.FieldType.CHECKBOX, label = "Une seule fois (global):",
+            defaultValue = "false", order = 10)
+    private boolean onlyOnceGlobal = false;
+
+    private transient Map<String, Long> playerTriggerHistory;
+
+    // History key used for the instance-wide "once" gate (onlyOnceGlobal). Distinct from any
+    // player-UUID key so the two gates never collide.
+    private static final String GLOBAL_ONCE_KEY = "__global_once";
+
     public BlockClickTrigger() {
         super("Block Click Trigger");
         this.clickType = "right_click";
@@ -64,6 +79,9 @@ public class BlockClickTrigger extends Trigger implements BlocklyTrigger {
         this.blockMaterial = "STONE";
         this.locationBlock = new LocationBlock(0, 64, 0, "world");
         this.exactPositionOnly = false;
+        this.onlyOnce = false;
+        this.onlyOnceGlobal = false;
+        this.playerTriggerHistory = new HashMap<>();
     }
 
     public BlockClickTrigger(String name) {
@@ -73,6 +91,15 @@ public class BlockClickTrigger extends Trigger implements BlocklyTrigger {
         this.blockMaterial = "STONE";
         this.locationBlock = new LocationBlock(0, 64, 0, "world");
         this.exactPositionOnly = false;
+        this.onlyOnce = false;
+        this.onlyOnceGlobal = false;
+        this.playerTriggerHistory = new HashMap<>();
+    }
+
+    private void ensurePlayerTriggerHistoryInitialized() {
+        if (this.playerTriggerHistory == null) {
+            this.playerTriggerHistory = new HashMap<>();
+        }
     }
 
     @Override
@@ -81,8 +108,45 @@ public class BlockClickTrigger extends Trigger implements BlocklyTrigger {
             return false;
         }
 
+        ensurePlayerTriggerHistoryInitialized();
+
+        if (onlyOnce) {
+            String playerId = player.getUniqueId().toString() + "_once";
+            if (playerTriggerHistory.containsKey(playerId)) {
+                return false;
+            }
+            playerTriggerHistory.put(playerId, System.currentTimeMillis());
+        }
+
+        // Global "once": fires a single time for the whole instance, regardless of which player
+        // triggered it. Takes precedence — once consumed, no other player can fire it.
+        if (onlyOnceGlobal) {
+            if (playerTriggerHistory.containsKey(GLOBAL_ONCE_KEY)) {
+                return false;
+            }
+            playerTriggerHistory.put(GLOBAL_ONCE_KEY, System.currentTimeMillis());
+        }
+
         // Exécuter les actions associées
         return executeActions(player, location, data);
+    }
+
+    /**
+     * Remet à zéro l'historique d'un joueur pour ce trigger
+     */
+    public void resetPlayerHistory(Player player) {
+        if (playerTriggerHistory != null) {
+            playerTriggerHistory.remove(player.getUniqueId().toString() + "_once");
+        }
+    }
+
+    /**
+     * Remet à zéro tout l'historique du trigger
+     */
+    public void resetAllHistory() {
+        if (playerTriggerHistory != null) {
+            playerTriggerHistory.clear();
+        }
     }
 
     @Override

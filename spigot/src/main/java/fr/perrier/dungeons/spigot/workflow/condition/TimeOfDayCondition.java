@@ -204,11 +204,11 @@ public class TimeOfDayCondition extends Action implements BlocklyAction {
 
                             actions.push({
                                 type: 'time_of_day_condition',
-                                timeperiod: actionBlock.getFieldValue('TIMEPERIOD'),
-                                customtime: parseInt(customTime),
+                                timePeriod: actionBlock.getFieldValue('TIMEPERIOD'),
+                                customTime: parseInt(customTime),
                                 operator: actionBlock.getFieldValue('OPERATOR'),
-                                ifactions: ifActions,
-                                elseactions: elseActions
+                                ifActions: ifActions,
+                                elseActions: elseActions
                             });
                         }
         """);
@@ -220,23 +220,23 @@ public class TimeOfDayCondition extends Action implements BlocklyAction {
                             if (action.type === 'time_of_day_condition') {
                                 actionBlock = workspace.newBlock('time_of_day_condition');
                                 
-                                actionBlock.setFieldValue(action.timeperiod || 'day', 'TIMEPERIOD');
+                                actionBlock.setFieldValue(action.timePeriod || 'day', 'TIMEPERIOD');
                                 actionBlock.setFieldValue(action.operator || '==', 'OPERATOR');
                                 
-                                if (action.customtime !== undefined) {
+                                if (action.customTime !== undefined) {
                                     const timeBlock = workspace.newBlock('math_number');
-                                    timeBlock.setFieldValue(action.customtime.toString(), 'NUM');
+                                    timeBlock.setFieldValue(action.customTime.toString(), 'NUM');
                                     timeBlock.initSvg();
                                     timeBlock.render();
                                     actionBlock.getInput('CUSTOMTIME').connection.connect(timeBlock.outputConnection);
                                 }
                                 
-                                if (action.ifactions && action.ifactions.length > 0) {
-                                    loadActionsIntoStatement(actionBlock, action.ifactions, 'IFACTIONS');
+                                if (action.ifActions && action.ifActions.length > 0) {
+                                    loadActionsIntoStatement(actionBlock, action.ifActions, 'IFACTIONS');
                                 }
                                 
-                                if (action.elseactions && action.elseactions.length > 0) {
-                                    loadActionsIntoStatement(actionBlock, action.elseactions, 'ELSEACTIONS');
+                                if (action.elseActions && action.elseActions.length > 0) {
+                                    loadActionsIntoStatement(actionBlock, action.elseActions, 'ELSEACTIONS');
                                 }
                             }
         """);

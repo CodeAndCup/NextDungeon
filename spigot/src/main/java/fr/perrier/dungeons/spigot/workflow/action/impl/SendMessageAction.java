@@ -39,6 +39,12 @@ public class SendMessageAction extends Action implements BlocklyAction {
             defaultValue = "&#00FF00Bonjour {player}!", order = 2)
     private String message;
 
+    public SendMessageAction() {
+        super("SendMessage", "send_message_action");
+        this.targetPlayer = "player";
+        this.message = "&#00FF00Bonjour {player}!";
+    }
+
     public SendMessageAction(String targetPlayer, String message) {
         super("SendMessage", "send_message_action");
         this.targetPlayer = targetPlayer;

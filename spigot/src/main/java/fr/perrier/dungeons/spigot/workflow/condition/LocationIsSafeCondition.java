@@ -185,10 +185,10 @@ public class LocationIsSafeCondition extends Action implements BlocklyAction {
                             actions.push({
                                 type: 'location_is_safe_condition',
                                 location: location,
-                                checksolidground: actionBlock.getFieldValue('CHECKSOLIDGROUND') === 'TRUE',
-                                checkdangerousblocks: actionBlock.getFieldValue('CHECKDANGEROUSBLOCKS') === 'TRUE',
-                                ifactions: ifActions,
-                                elseactions: elseActions
+                                checkSolidGround: actionBlock.getFieldValue('CHECKSOLIDGROUND') === 'TRUE',
+                                checkDangerousBlocks: actionBlock.getFieldValue('CHECKDANGEROUSBLOCKS') === 'TRUE',
+                                ifActions: ifActions,
+                                elseActions: elseActions
                             });
                         }
         """);
@@ -205,15 +205,15 @@ public class LocationIsSafeCondition extends Action implements BlocklyAction {
                                     actionBlock.getInput('LOCATION').connection.connect(locationBlock.outputConnection);
                                 }
                                 
-                                actionBlock.setFieldValue(action.checksolidground ? 'TRUE' : 'FALSE', 'CHECKSOLIDGROUND');
-                                actionBlock.setFieldValue(action.checkdangerousblocks ? 'TRUE' : 'FALSE', 'CHECKDANGEROUSBLOCKS');
+                                actionBlock.setFieldValue(action.checkSolidGround ? 'TRUE' : 'FALSE', 'CHECKSOLIDGROUND');
+                                actionBlock.setFieldValue(action.checkDangerousBlocks ? 'TRUE' : 'FALSE', 'CHECKDANGEROUSBLOCKS');
                                 
-                                if (action.ifactions && action.ifactions.length > 0) {
-                                    loadActionsIntoStatement(actionBlock, action.ifactions, 'IFACTIONS');
+                                if (action.ifActions && action.ifActions.length > 0) {
+                                    loadActionsIntoStatement(actionBlock, action.ifActions, 'IFACTIONS');
                                 }
                                 
-                                if (action.elseactions && action.elseactions.length > 0) {
-                                    loadActionsIntoStatement(actionBlock, action.elseactions, 'ELSEACTIONS');
+                                if (action.elseActions && action.elseActions.length > 0) {
+                                    loadActionsIntoStatement(actionBlock, action.elseActions, 'ELSEACTIONS');
                                 }
                             }
         """);

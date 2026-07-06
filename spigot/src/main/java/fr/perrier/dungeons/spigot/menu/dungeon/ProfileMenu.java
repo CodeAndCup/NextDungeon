@@ -8,6 +8,7 @@ import fr.perrier.cupcodeapi.utils.ChatUtil;
 import fr.perrier.cupcodeapi.utils.ItemBuilder;
 import fr.perrier.cupcodeapi.utils.TimeUtil;
 import fr.perrier.dungeons.spigot.Main;
+import fr.perrier.dungeons.spigot.menu.utils.MenuTitle;
 import fr.perrier.dungeons.spigot.model.Dungeon;
 import fr.perrier.dungeons.spigot.model.Floor;
 import fr.perrier.dungeons.spigot.model.ProfileData;
@@ -48,7 +49,9 @@ public class ProfileMenu extends GlassMenu {
 
     @Override
     public String getTitle(Player player) {
-        return "&#8B0000&l" + ChatUtil.toSmallCaps("Profile Menu");
+        // Back button sits at slot 40 (<=5 floors) or 49 (>5), giving a 5- or 6-row inventory.
+        int rows = dungeon.getFloors().size() <= 5 ? 5 : 6;
+        return MenuTitle.ofRows(rows, "&#8B0000&l" + ChatUtil.toSmallCaps("Profile Menu"));
     }
 
     @Override

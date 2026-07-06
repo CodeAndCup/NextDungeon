@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>fr.perrier</groupId>
+        <artifactId>NextDungeon</artifactId>
+        <version>1.0.5-SNAPSHOT</version>
+    </parent>
+    <artifactId>NextDungeon-Module-MemoryLabyrinth</artifactId>
+    <packaging>jar</packaging>
+
+    <name>NextDungeon Module Memory Labyrinth</name>
+    <description>Procedural labyrinth dungeon module for NextDungeon — Hades/Archero-inspired room loop with branching doors, reward icons, infinite mode and checkpoints</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>fr.perrier</groupId>
+            <artifactId>NextDungeon-Common</artifactId>
+            <version>1.0.5-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>fr.perrier</groupId>
+            <artifactId>NextDungeon-Spigot</artifactId>
+            <version>1.0.5-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Spigot API (provided by server at runtime) -->
+        <dependency>
+            <groupId>org.spigotmc</groupId>
+            <artifactId>spigot-api</artifactId>
+            <version>1.21.4-R0.1-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- WorldEdit API — provided by the WorldEdit plugin at runtime.
+             The room paste calls it directly (no reflection / module hop) ;
+             resolves through the NextDungeon plugin classloader like every
+             other soft plugin dependency. -->
+        <dependency>
+            <groupId>com.sk89q.worldedit</groupId>
+            <artifactId>worldedit-bukkit</artifactId>
+            <version>7.4.0-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+        </dependency>
+
+        <!-- Gson (provided by host) -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- CupCodeAPI — ChatUtil for the NextDungeon color scheme (gradient
+             prefix, hex colors). Provided by the host plugin at runtime;
+             reachable because the module classloader parents to it. -->
+        <dependency>
+            <groupId>fr.perrier</groupId>
+            <artifactId>cupcodeapi</artifactId>
+            <version>1.21.3-v1.1.6</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Test scope -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+        </dependency>
+    </dependencies>
+
+    <repositories>
+        <repository>
+            <id>spigotmc-repo</id>
+            <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
+        </repository>
+        <repository>
+            <id>sk89q-repo</id>
+            <url>https://maven.enginehub.org/repo/</url>
+        </repository>
+        <repository>
+            <id>CupCodeMaven</id>
+            <url>https://maven.pkg.github.com/CodeAndCup/CupCodeAPI</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+
+    <build>
+        <defaultGoal>clean package</defaultGoal>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <source>21</source>
+                    <target>21</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

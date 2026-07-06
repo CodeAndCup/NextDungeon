@@ -18,7 +18,7 @@ import java.util.Map;
 @Getter
 @BlocklyInfo(
         name = "broadcast_command_action",
-        color = "#FF9800",
+        color = "#2196F3",
         displayText = "⌨️ Exécuter commande console",
         tooltip = "Exécute une commande en tant que console serveur.",
         category = "Actions"
@@ -29,6 +29,11 @@ public class BroadcastCommandAction extends Action implements BlocklyAction {
 
     @BlocklyField(type = BlocklyField.FieldType.TEXT_INPUT, label = "Commande:", defaultValue = "say Hello World!", order = 1)
     private String command;
+
+    public BroadcastCommandAction() {
+        super("BroadcastCommand", "broadcast_command_action");
+        this.command = "say Hello World!";
+    }
 
     public BroadcastCommandAction(String command) {
         super("BroadcastCommand", "broadcast_command_action");

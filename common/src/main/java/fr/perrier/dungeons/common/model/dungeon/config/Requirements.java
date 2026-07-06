@@ -13,6 +13,13 @@ public class Requirements {
     private List<String> removeCompletion;
     private PartyRequirements partyRequirements;
     private List<String> requiredItems;
+    /**
+     * Subset of {@link #requiredItems} whose items must <em>not</em> be consumed at launch — i.e.
+     * they are checked as "the player must have it" but kept in the inventory. Any required item
+     * not listed here keeps the historical behaviour of being consumed. {@code null}/empty means
+     * every required item is consumed, so existing floors are unaffected.
+     */
+    private List<String> nonConsumedItems;
     private List<String> forbiddenItems;
     private int minLevel;
 
@@ -39,6 +46,7 @@ public class Requirements {
                ", removeCompletion=" + removeCompletion +
                ", partyRequirements=" + partyRequirements +
                ", requiredItems=" + requiredItems +
+               ", nonConsumedItems=" + nonConsumedItems +
                ", forbiddenItems=" + forbiddenItems +
                ", minLevel=" + minLevel +
                '}';

@@ -20,7 +20,7 @@ import java.util.Map;
 @Getter
 @BlocklyInfo(
         name = "get_variable_action",
-        color = "#2196F3",
+        color = "#FF5722",
         displayText = "🔍 Récupérer variable",
         tooltip = "Récupère la valeur d'une variable et la stocke dans une nouvelle variable",
         category = "Actions"

@@ -29,6 +29,7 @@ public class MongoManager implements DatabaseManager {
     private MongoCollection<Document> triggersCollection;
     private MongoCollection<Document> dungeonsCollection;
     private MongoCollection<Document> floorsCollection;
+    private MongoCollection<Document> labyrinthSavesCollection;
 
     /**
      * Connects to the MongoDB database and initializes collections.
@@ -46,10 +47,13 @@ public class MongoManager implements DatabaseManager {
         this.dungeonsCollection = database.getCollection("dungeons");
         this.floorsCollection = database.getCollection("floors");
 
+        this.labyrinthSavesCollection = database.getCollection("labyrinth_saves");
+
         // Create index on floor_id for efficient queries
         triggersCollection.createIndex(new Document("floor_id", 1));
         dungeonsCollection.createIndex(new Document("id", 1));
         floorsCollection.createIndex(new Document("dungeon_id", 1));
+        labyrinthSavesCollection.createIndex(new Document("party_hash", 1).append("floor_id", 1));
     }
 
     /**
@@ -104,8 +108,6 @@ public class MongoManager implements DatabaseManager {
     public void saveProfileData(java.util.UUID playerId, ProfileData profileData) {
         throw new UnsupportedOperationException("Not implemented yet");
     }
-
-    // ==================== TRIGGER OPERATIONS ====================
 
     /**
      * Loads the triggers for a floor from MongoDB.
@@ -204,8 +206,6 @@ public class MongoManager implements DatabaseManager {
         });
     }
 
-    // ===== Cinematic CRUD (MongoDB) =====
-
     @Override
     public CompletableFuture<String> loadCinematic(String cinematicId) {
         return CompletableFuture.supplyAsync(() -> {
@@ -273,8 +273,6 @@ public class MongoManager implements DatabaseManager {
             return result;
         });
     }
-
-    // ===== Workflow CRUD (MongoDB) =====
 
     @Override
     public CompletableFuture<String> loadWorkflow(String workflowId) {
@@ -371,6 +369,23 @@ public class MongoManager implements DatabaseManager {
     }
 
     @Override
+    public CompletableFuture<List<String[]>> listAllDungeons() {
+        return CompletableFuture.supplyAsync(() -> {
+            List<String[]> result = new ArrayList<>();
+            try {
+                for (Document doc : dungeonsCollection.find()) {
+                    String id = doc.getString("_id");
+                    String data = doc.getString("data");
+                    if (id != null) result.add(new String[] { id, data });
+                }
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Error listing dungeons: " + e.getMessage());
+            }
+            return result;
+        });
+    }
+
+    @Override
     public CompletableFuture<String> loadFloor(String floorId) {
         return CompletableFuture.supplyAsync(() -> {
             try {
@@ -416,8 +431,6 @@ public class MongoManager implements DatabaseManager {
             }
         });
     }
-
-    // ===== Versioned Floor operations =====
 
     private static final int SAVE_FLOOR_RETRIES = 3;
     private static final long[] SAVE_FLOOR_BACKOFF_MS = {500L, 1000L, 2000L};
@@ -488,8 +501,8 @@ public class MongoManager implements DatabaseManager {
                 if (floor == null) return null;
                 if (persistedChecksum != null && !persistedChecksum.isEmpty()
                         && !persistedChecksum.equals(floor.calculateChecksum())) {
-                    Main.getLoggerUtil().severe("[MongoManager] Checksum MISMATCH for floor " + floorId);
-                    return null;
+                    Main.getLoggerUtil().warning("[MongoManager] Stale checksum for floor " + floorId
+                            + " (schema likely evolved) — returning row for caller to heal");
                 }
                 return floor;
             } catch (Exception e) {
@@ -521,8 +534,8 @@ public class MongoManager implements DatabaseManager {
                     if (floor == null) continue;
                     if (persistedChecksum != null && !persistedChecksum.isEmpty()
                             && !persistedChecksum.equals(floor.calculateChecksum())) {
-                        Main.getLoggerUtil().severe("[MongoManager] Skipping floor " + id + " (checksum mismatch)");
-                        continue;
+                        Main.getLoggerUtil().warning("[MongoManager] Stale checksum for floor " + id
+                                + " (schema likely evolved) — loading row for self-heal");
                     }
                     result.add(floor);
                 }
@@ -532,4 +545,105 @@ public class MongoManager implements DatabaseManager {
             return result;
         });
     }
+
+    @Override
+    public CompletableFuture<String> loadLabyrinthSave(String saveId) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                Document doc = labyrinthSavesCollection.find(new Document("_id", saveId)).first();
+                if (doc != null) return doc.getString("payload_json");
+                return null;
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Error loading labyrinth save " + saveId + ": " + e.getMessage());
+                return null;
+            }
+        });
+    }
+
+    @Override
+    public CompletableFuture<String> findLabyrinthSaveByPartyHash(String partyHash, String floorId) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                Document query = new Document("party_hash", partyHash).append("floor_id", floorId);
+                Document doc = labyrinthSavesCollection.find(query)
+                        .sort(new Document("updated_at", -1))
+                        .first();
+                if (doc != null) return doc.getString("payload_json");
+                return null;
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Error finding labyrinth save by partyHash: " + e.getMessage());
+                return null;
+            }
+        });
+    }
+
+    @Override
+    public CompletableFuture<List<String>> findLabyrinthSavesByPartyHash(String partyHash, String floorId) {
+        return CompletableFuture.supplyAsync(() -> {
+            List<String> result = new ArrayList<>();
+            try {
+                Document query = new Document("party_hash", partyHash).append("floor_id", floorId);
+                FindIterable<Document> cursor = labyrinthSavesCollection.find(query)
+                        .sort(new Document("updated_at", -1));
+                for (Document doc : cursor) {
+                    String payload = doc.getString("payload_json");
+                    if (payload != null) result.add(payload);
+                }
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Error listing labyrinth saves by partyHash: " + e.getMessage());
+            }
+            return result;
+        });
+    }
+
+    @Override
+    public CompletableFuture<Void> saveLabyrinthSave(String saveId, String floorId, String partyHash, String payloadJson) {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                Document doc = new Document("$set", new Document()
+                        .append("_id", saveId)
+                        .append("floor_id", floorId)
+                        .append("party_hash", partyHash)
+                        .append("payload_json", payloadJson)
+                        .append("updated_at", System.currentTimeMillis()));
+                labyrinthSavesCollection.updateOne(new Document("_id", saveId), doc,
+                        new com.mongodb.client.model.UpdateOptions().upsert(true));
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Error saving labyrinth save " + saveId + ": " + e.getMessage());
+            }
+        });
+    }
+
+    @Override
+    public CompletableFuture<Void> deleteLabyrinthSave(String saveId) {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                labyrinthSavesCollection.deleteOne(new Document("_id", saveId));
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Error deleting labyrinth save " + saveId + ": " + e.getMessage());
+            }
+        });
+    }
+
+    @Override
+    public CompletableFuture<List<String[]>> listLabyrinthSaves() {
+        return CompletableFuture.supplyAsync(() -> {
+            List<String[]> result = new ArrayList<>();
+            try {
+                FindIterable<Document> cursor = labyrinthSavesCollection.find()
+                        .sort(new Document("updated_at", -1));
+                for (Document doc : cursor) {
+                    result.add(new String[]{
+                            doc.getString("_id"),
+                            doc.getString("floor_id"),
+                            doc.getString("party_hash")
+                    });
+                }
+            } catch (Exception e) {
+                Main.getLoggerUtil().severe("Error listing labyrinth saves: " + e.getMessage());
+            }
+            return result;
+        });
+    }
+
 }

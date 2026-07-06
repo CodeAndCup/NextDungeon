@@ -188,6 +188,12 @@ public class DungeonManagementService {
             dungeonObject.addProperty("id", dungeonEntry.getId());
             dungeonObject.addProperty("name", dungeonEntry.getName() != null ? dungeonEntry.getName() : dungeonEntry.getId());
             dungeonObject.addProperty("description", dungeonEntry.getDescription() != null ? dungeonEntry.getDescription() : "");
+            dungeonObject.addProperty("dungeonType",
+                    dungeonEntry.getDungeonType() != null ? dungeonEntry.getDungeonType() : "CLASSIC");
+            if (dungeonEntry.getLabyrinthDungeonConfig() != null) {
+                dungeonObject.add("labyrinthDungeonConfig",
+                        gson.toJsonTree(dungeonEntry.getLabyrinthDungeonConfig()));
+            }
             JsonArray fa = new JsonArray();
             for (String fid : floorIds) {
                 FloorData fd = floorsMap.get(fid);
@@ -234,12 +240,23 @@ public class DungeonManagementService {
                 entry = new DungeonEntry(id, name, desc, new ArrayList<>());
             }
 
+            // Labyrinth fields — optional, only set when the dashboard
+            // sends them (CLASSIC dungeons leave them null).
+            if (body.has("dungeonType") && !body.get("dungeonType").isJsonNull()) {
+                entry.setDungeonType(body.get("dungeonType").getAsString());
+            }
+            if (body.has("labyrinthDungeonConfig") && !body.get("labyrinthDungeonConfig").isJsonNull()) {
+                entry.setLabyrinthDungeonConfig(gson.fromJson(
+                        body.get("labyrinthDungeonConfig"),
+                        fr.perrier.dungeons.common.model.labyrinth.LabyrinthDungeonConfig.class));
+            }
+
             writeEntry(entry);
             logger.info("{} dungeon: {}", isUpdate ? "Updated" : "Created", id);
-            JsonObject dungeonDataJson = new JsonObject();
-            dungeonDataJson.addProperty("id", entry.getId());
-            dungeonDataJson.addProperty("name", entry.getName() != null ? entry.getName() : id);
-            dungeonDataJson.addProperty("description", entry.getDescription() != null ? entry.getDescription() : "");
+            // Spigot persists this payload verbatim into the dungeons table; send the full
+            // entry so dungeonType and labyrinthDungeonConfig survive the round trip.
+            // Without this LabyrinthRunManager.parseDungeonConfig() returns null and the run aborts.
+            JsonObject dungeonDataJson = entryToJson(entry);
             notifySyncChannel("DUNGEON_UPDATE", id, name, desc, dungeonDataJson.toString());
 
             JsonObject response = new JsonObject();
@@ -432,7 +449,8 @@ public class DungeonManagementService {
             Position spawn = new Position(0, 64, 0);
             if (worldObject.has("spawn") && !worldObject.get("spawn").isJsonNull()) {
                 JsonObject spawnObject = worldObject.getAsJsonObject("spawn");
-                spawn = new Position(spawnObject.has("x") ? spawnObject.get("x").getAsDouble() : 0, spawnObject.has("y") ? spawnObject.get("y").getAsDouble() : 64, spawnObject.has("z") ? spawnObject.get("z").getAsDouble() : 0);
+                spawn = new Position(spawnObject.has("x") ? spawnObject.get("x").getAsDouble() : 0, spawnObject.has("y") ? spawnObject.get("y").getAsDouble() : 64, spawnObject.has("z") ? spawnObject.get("z").getAsDouble() : 0,
+                        spawnObject.has("yaw") ? spawnObject.get("yaw").getAsFloat() : 0f, spawnObject.has("pitch") ? spawnObject.get("pitch").getAsFloat() : 0f);
             }
             floorData.setWorldConfig(new WorldConfig(folderName, difficulty.toUpperCase(), spawn));
         }
@@ -455,6 +473,11 @@ public class DungeonManagementService {
                 List<String> requiredItemsList = new ArrayList<>();
                 requirementsObject.getAsJsonArray("requiredItems").forEach(e -> requiredItemsList.add(e.getAsString()));
                 req.setRequiredItems(requiredItemsList);
+            }
+            if (requirementsObject.has("nonConsumedItems") && requirementsObject.get("nonConsumedItems").isJsonArray()) {
+                List<String> nonConsumedItemsList = new ArrayList<>();
+                requirementsObject.getAsJsonArray("nonConsumedItems").forEach(e -> nonConsumedItemsList.add(e.getAsString()));
+                req.setNonConsumedItems(nonConsumedItemsList);
             }
             if (requirementsObject.has("forbiddenItems") && requirementsObject.get("forbiddenItems").isJsonArray()) {
                 List<String> forbiddenItemsList = new ArrayList<>();
@@ -489,6 +512,25 @@ public class DungeonManagementService {
                 steps.add(new Step(stepId, stepName, new CuboidRegion(readPosition(stepObject.has("pos1") ? stepObject.getAsJsonObject("pos1") : null), readPosition(stepObject.has("pos2") ? stepObject.getAsJsonObject("pos2") : null))));
             });
             floorData.setSteps(steps);
+        }
+        // Labyrinth fields — discriminator + per-difficulty inline config.
+        // Authoritative source is the parent dungeon's type, not the body: a floor inside
+        // a LABYRINTH dungeon is always LABYRINTH (and vice-versa). This prevents the UI
+        // from accidentally downgrading a labyrinth floor to CLASSIC and matches the
+        // runtime invariant LabyrinthInstanceReadyListener relies on.
+        DungeonEntry parentDungeon = readEntry(dungeonId);
+        boolean parentIsLabyrinth = parentDungeon != null
+                && "LABYRINTH".equalsIgnoreCase(parentDungeon.getDungeonType());
+        if (parentIsLabyrinth) {
+            floorData.setFloorType(fr.perrier.dungeons.common.model.dungeon.FloorType.LABYRINTH);
+            if (body.has("labyrinthFloorConfig") && !body.get("labyrinthFloorConfig").isJsonNull()) {
+                floorData.setLabyrinthFloorConfig(gson.fromJson(
+                        body.get("labyrinthFloorConfig"),
+                        fr.perrier.dungeons.common.model.labyrinth.LabyrinthFloorConfig.class));
+            }
+        } else {
+            floorData.setFloorType(fr.perrier.dungeons.common.model.dungeon.FloorType.CLASSIC);
+            floorData.setLabyrinthFloorConfig(null);
         }
         floorData.setTriggers(null);
         return floorData;
@@ -541,6 +583,12 @@ public class DungeonManagementService {
             dungeonEntry.getFloorIds().forEach(fids::add);
         }
         jsonObject.add("floorIds", fids);
+        jsonObject.addProperty("dungeonType",
+                dungeonEntry.getDungeonType() != null ? dungeonEntry.getDungeonType() : "CLASSIC");
+        if (dungeonEntry.getLabyrinthDungeonConfig() != null) {
+            jsonObject.add("labyrinthDungeonConfig",
+                    gson.toJsonTree(dungeonEntry.getLabyrinthDungeonConfig()));
+        }
         return jsonObject;
     }
 
@@ -576,6 +624,12 @@ public class DungeonManagementService {
                 requirements.getRequiredItems().forEach(requirementsItemsArray::add);
             }
             requirementsObject.add("requiredItems", requirementsItemsArray);
+
+            JsonArray nonConsumedItemsArray = new JsonArray();
+            if (requirements.getNonConsumedItems() != null) {
+                requirements.getNonConsumedItems().forEach(nonConsumedItemsArray::add);
+            }
+            requirementsObject.add("nonConsumedItems", nonConsumedItemsArray);
 
             JsonArray forbiddenItemsArray = new JsonArray();
             if (requirements.getForbiddenItems() != null) {
@@ -615,6 +669,11 @@ public class DungeonManagementService {
             }
             obj.add("steps", stepsArray);
         }
+        obj.addProperty("floorType",
+                floorData.getFloorType() != null ? floorData.getFloorType().name() : "CLASSIC");
+        if (floorData.getLabyrinthFloorConfig() != null) {
+            obj.add("labyrinthFloorConfig", gson.toJsonTree(floorData.getLabyrinthFloorConfig()));
+        }
         return obj;
     }
 
@@ -628,6 +687,8 @@ public class DungeonManagementService {
             spawnObject.addProperty("x", fd.getWorldConfig().getSpawn().getX());
             spawnObject.addProperty("y", fd.getWorldConfig().getSpawn().getY());
             spawnObject.addProperty("z", fd.getWorldConfig().getSpawn().getZ());
+            spawnObject.addProperty("yaw", fd.getWorldConfig().getSpawn().getYaw());
+            spawnObject.addProperty("pitch", fd.getWorldConfig().getSpawn().getPitch());
             worldObject.add("spawn", spawnObject);
         }
         return worldObject;
@@ -662,6 +723,25 @@ public class DungeonManagementService {
         private String name;
         private String description;
         private List<String> floorIds;
+
+        /**
+         * Discriminator for the dungeon kind. Defaults to {@code CLASSIC}
+         * (string, not enum, so the dashboard JSON stays
+         * forward-compatible across modules).
+         */
+        private String dungeonType;
+
+        /**
+         * Inline {@link fr.perrier.dungeons.common.model.labyrinth.LabyrinthDungeonConfig}
+         * payload when {@code dungeonType == "LABYRINTH"}. Stored as the
+         * concrete POJO so Gson roundtrips it transparently.
+         */
+        private fr.perrier.dungeons.common.model.labyrinth.LabyrinthDungeonConfig labyrinthDungeonConfig;
+
+        /** Legacy four-arg constructor — defaults to a CLASSIC dungeon. */
+        public DungeonEntry(String id, String name, String description, List<String> floorIds) {
+            this(id, name, description, floorIds, "CLASSIC", null);
+        }
     }
 
     @Data

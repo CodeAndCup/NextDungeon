@@ -48,8 +48,8 @@ public class CinematicPlayer {
     // Track elapsed time since start to calculate tick progression
     private long startTimeNanos = 0;
 
-    // ========== TIMING CONFIGURATION ==========
-    /** How many real-world milliseconds per cinematic tick
+    /**
+     * How many real-world milliseconds per cinematic tick
      *  Default Bukkit tick = 50ms
      *  This allows the cinematic to progress at the original speed
      */

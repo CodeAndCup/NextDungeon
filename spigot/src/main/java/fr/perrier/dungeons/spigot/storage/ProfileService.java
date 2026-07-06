@@ -14,10 +14,8 @@ import java.util.UUID;
 public class ProfileService {
     private final RedissonClient redissonClient;
 
-    // Redis Maps and Topics
     private static final String PROFILE_MAP = Objects.requireNonNull(Main.getInstance().getConfig().getString("RedisConfiguration.topic")) + ":profiles";
 
-    // Redis Maps
     @Getter
     private RMap<UUID, ProfileData> profilesMap;
 

@@ -7,8 +7,6 @@ import fr.perrier.dungeons.spigot.utils.GsonProvider;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
-import org.checkerframework.checker.units.qual.A;
-import org.checkerframework.checker.units.qual.N;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Type;
@@ -222,7 +220,6 @@ public class ProfileData {
         }
     }
 
-    /** Serialization / Deserialization */
     /**
      * Serialize the ProfileData object to a JSON string.
      *

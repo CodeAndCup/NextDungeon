@@ -26,7 +26,7 @@ import java.util.Map;
 @Getter
 @BlocklyInfo(
         name = "modify_block_display_action",
-        color = "#FFC107",
+        color = "#2196F3",
         displayText = "🔧 Modifier un affichage de bloc",
         tooltip = "Permet de modifier un BlockDisplay existant via son ID.",
         category = "Actions"

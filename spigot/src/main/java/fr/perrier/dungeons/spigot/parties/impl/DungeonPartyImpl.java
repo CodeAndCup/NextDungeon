@@ -311,8 +311,6 @@ public class DungeonPartyImpl implements IDungeonParty {
         if (registry != null) registry.remove(leaderId);
     }
 
-    // ==================== Static methods ====================
-
     /**
      * Gets every dungeon party in the cluster, including those hosted on peer servers. Local
      * parties return as {@link DungeonPartyImpl} (with live {@link IParty}); remote parties
@@ -354,6 +352,22 @@ public class DungeonPartyImpl implements IDungeonParty {
 
     public static DungeonPartyImpl getDungeonPartyOf(Player leader) {
         return getDungeonPartyOf(leader.getUniqueId());
+    }
+
+    /**
+     * Returns the local dungeon party that contains the given member, or null if none does.
+     * Unlike {@link #getDungeonPartyOf(UUID)} (keyed by leader) this scans membership, so it
+     * finds the party of a non-leader member — used to leader-gate dungeon launches even when the
+     * underlying provider doesn't track membership for finder-joined players.
+     */
+    public static DungeonPartyImpl getDungeonPartyContaining(UUID memberId) {
+        if (memberId == null) return null;
+        for (DungeonPartyImpl party : localParties.values()) {
+            if (party.getMemberIds().contains(memberId)) {
+                return party;
+            }
+        }
+        return null;
     }
 
     /**

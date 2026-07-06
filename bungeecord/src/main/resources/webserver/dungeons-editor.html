@@ -283,6 +283,10 @@
                 <div class="form-group"><label>Y</label><input type="number" id="spawn-y" class="form-control" value="64" step="0.5"></div>
                 <div class="form-group"><label>Z</label><input type="number" id="spawn-z" class="form-control" value="0" step="0.5"></div>
             </div>
+            <div class="form-grid" style="grid-template-columns:1fr 1fr;">
+                <div class="form-group"><label>Yaw (rotation horizontale)</label><input type="number" id="spawn-yaw" class="form-control" value="0" step="1"></div>
+                <div class="form-group"><label>Pitch (rotation verticale)</label><input type="number" id="spawn-pitch" class="form-control" value="0" step="1"></div>
+            </div>
         </div>
 
         <!-- Requirements -->
@@ -432,6 +436,8 @@ let currentDungeon = null; // { id, name, description, floors }
 let isEditMode = false;
 let stepsData = []; // for modal
 let modalListData = { 'req-floors-list': [], 'remove-completion-list': [], 'req-items-list': [], 'req-forbidden-list': [] };
+// Per required-item consume flag: item id -> bool. Absent/true = consumed at launch (historical default).
+let reqItemConsume = {};
 
 // ============================================================
 //  API
@@ -499,7 +505,7 @@ async function loadDungeons() {
     try {
         const data = await API.getDungeons();
         if (!data.success) { el.innerHTML = `<div class="error-msg">Erreur: ${data.error}</div>`; return; }
-        dungeons = data.dungeons || [];
+        dungeons = (data.dungeons || []).sort((a, b) => (a.name || a.id).localeCompare(b.name || b.id, undefined, { sensitivity: 'base' }));
         renderDungeonsList(dungeons);
     } catch(e) { el.innerHTML = `<div class="error-msg">Erreur de connexion: ${e.message}</div>`; }
 }
@@ -650,6 +656,7 @@ function renderFloorsList() {
 function resetFloorModal() {
     stepsData = [];
     for (const k in modalListData) modalListData[k] = [];
+    reqItemConsume = {};
     ['req-floors-list','remove-completion-list','req-items-list','req-forbidden-list','steps-list'].forEach(id => { const el=document.getElementById(id); if(el) el.innerHTML=''; });
     document.getElementById('floor-id').value = '';
     document.getElementById('floor-id').disabled = false;
@@ -659,6 +666,8 @@ function resetFloorModal() {
     document.getElementById('spawn-x').value = 0;
     document.getElementById('spawn-y').value = 64;
     document.getElementById('spawn-z').value = 0;
+    document.getElementById('spawn-yaw').value = 0;
+    document.getElementById('spawn-pitch').value = 0;
     document.getElementById('req-minlevel').value = 0;
     document.getElementById('req-cooldown').value = 0;
     document.getElementById('req-party-min').value = 1;
@@ -705,6 +714,8 @@ function editFloor(fullFloorId) {
             document.getElementById('spawn-x').value = floor.world.spawn.x || 0;
             document.getElementById('spawn-y').value = floor.world.spawn.y || 64;
             document.getElementById('spawn-z').value = floor.world.spawn.z || 0;
+            document.getElementById('spawn-yaw').value = floor.world.spawn.yaw || 0;
+            document.getElementById('spawn-pitch').value = floor.world.spawn.pitch || 0;
         }
     }
     if (floor.requirements) {
@@ -716,6 +727,7 @@ function editFloor(fullFloorId) {
         }
          (floor.requirements.requiredFloorsId || []).forEach(v => addToList('req-floors-list', v));
          (floor.requirements.removeCompletion || []).forEach(v => addToList('remove-completion-list', v));
+         (floor.requirements.nonConsumedItems || []).forEach(v => { reqItemConsume[v] = false; });
          (floor.requirements.requiredItems || []).forEach(v => addToList('req-items-list', v));
         (floor.requirements.forbiddenItems || []).forEach(v => addToList('req-forbidden-list', v));
     }
@@ -750,7 +762,9 @@ async function saveFloor() {
             spawn: {
                 x: parseFloat(document.getElementById('spawn-x').value),
                 y: parseFloat(document.getElementById('spawn-y').value),
-                z: parseFloat(document.getElementById('spawn-z').value)
+                z: parseFloat(document.getElementById('spawn-z').value),
+                yaw: parseFloat(document.getElementById('spawn-yaw').value) || 0,
+                pitch: parseFloat(document.getElementById('spawn-pitch').value) || 0
             }
         },
         requirements: {
@@ -763,6 +777,7 @@ async function saveFloor() {
             requiredFloorsId: getListData('req-floors-list'),
             removeCompletion: getListData('remove-completion-list'),
             requiredItems: getListData('req-items-list'),
+            nonConsumedItems: getListData('req-items-list').filter(v => reqItemConsume[v] === false),
             forbiddenItems: getListData('req-forbidden-list')
         },
         rules: {
@@ -880,6 +895,7 @@ function addToList(listId, value) {
 function removeFromList(listId, value) {
     if (!modalListData[listId]) return;
     modalListData[listId] = modalListData[listId].filter(v => v !== value);
+    if (listId === 'req-items-list') delete reqItemConsume[value];
     renderList(listId);
 }
 
@@ -887,10 +903,28 @@ function renderList(listId) {
     const el = document.getElementById(listId);
     if (!el) return;
     const items = modalListData[listId] || [];
+    if (listId === 'req-items-list') {
+        el.innerHTML = items.map(v => {
+            const consumed = reqItemConsume[v] !== false; // default: consumed
+            return `<div class="list-item" style="padding:8px 12px;">
+        <span>${v}</span>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.85em;margin-left:auto;">
+            <input type="checkbox" ${consumed ? 'checked' : ''} onchange="setReqItemConsume('${escapeHtml(v)}', this.checked)" style="width:14px;height:14px;cursor:pointer;">
+            Consommé
+        </label>
+        <button class="btn btn-danger btn-sm" onclick="removeFromList('${listId}','${escapeHtml(v)}')">×</button>
+    </div>`;
+        }).join('');
+        return;
+    }
     el.innerHTML = items.map(v => `<div class="list-item" style="padding:8px 12px;">
         <span>${v}</span>
         <button class="btn btn-danger btn-sm" onclick="removeFromList('${listId}','${escapeHtml(v)}')">×</button>
     </div>`).join('');
+}
+
+function setReqItemConsume(value, checked) {
+    reqItemConsume[value] = checked;
 }
 
 function getListData(listId) {
