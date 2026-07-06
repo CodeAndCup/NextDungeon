@@ -115,7 +115,7 @@ The `DungeonQueueService` (Redis-backed) maintains a FIFO queue per floor. When 
 
 ## 6. Revive and Ghost System
 
-On death inside a dungeon the player becomes a ghost for a configurable duration (`ghostDuration`). Teammates can use the **revive item** to bring them back. When the timer expires without a revive the player loses a life. Exhausting all lives triggers the configurable `banCommand`.
+On death inside a dungeon the player becomes a ghost for a configurable duration (`ghostDuration`) and is placed at their fallen body (the corpse) rather than being sent to spectate. Teammates can use the **revive item** to bring them back at that spot. When the timer expires without a revive the player loses a life. Exhausting all lives triggers the configurable `banCommand`.
 
 ## 7. Party Integration
 
@@ -125,6 +125,8 @@ Two party backends are supported via `PartyService`:
 * **Internal Party System** — Built-in lightweight group management
 
 Provider selection is controlled by `PartyProvider.type` in `config.yml` (`AUTO`, `AlessioDPParties`, `Internal`).
+
+Only the **party leader** can start a dungeon, and a leader can launch **directly from any existing party** (external or internal) without going through the Party Finder first. See [Parties Integration → Launching a Dungeon](../integrations/parties.md#launching-a-dungeon) for the full launch rules.
 
 ## 8. Player Profiles and Statistics
 

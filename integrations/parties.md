@@ -56,7 +56,7 @@ The `AlessioDPPartyProvider` calls `Parties.getApi()` at startup to obtain the `
 When no external party plugin is available (or `type: "Internal"` is set), NextDungeon uses its own party implementation:
 
 * `InternalParty` — lightweight party data object (leader + members)
-* Parties are created automatically when a player uses `/dungeon join` without a party (a solo party is created)
+* A solo party is created automatically when a player launches a floor without being in a party — subject to the floor's minimum party size (see [Launching a Dungeon](#launching-a-dungeon))
 * Party data is **not** persisted to Redis or the database — parties are in-memory only
 
 ---
@@ -91,9 +91,22 @@ The `PartyBuilderMenu`, `PartyFinderMenu`, and `PartyFilterMenu` provide in-game
 
 ---
 
+## Launching a Dungeon
+
+Players start a dungeon from the **Dungeon Gate menu** — the GUI that lists a dungeon's floors (opened from the lobby, e.g. via an NPC). Clicking a floor attempts to launch it for the player's party. The following rules apply:
+
+* **Only the party leader can start a dungeon.** If a member who is not the leader clicks a floor, they are told that only their leader may launch it. Leadership is read from the active party backend (AlessioDP or Internal).
+* **You can launch directly from any existing party** — there is no need to build a party through the Party Finder first. If you are already grouped (for example, an AlessioDP party formed with `/party create`, or an internal party), the leader clicks a floor and the whole party is taken in. A `DungeonPartyImpl` is created on the fly to wrap the existing party.
+* **Solo play** is allowed only when the floor's `min_size` is `1`. A player with no party counts as a party of one; if the floor requires two or more players, the launch is rejected with a "party too small" message.
+* **No double launches.** A dungeon cannot be started while a launch is already in progress for your party, or while an instance for your party is being prepared or is already active. Rapid double-clicks and duplicate requests are rejected.
+
+The **Party Finder** and **Party Builder** menus remain available for players who want to advertise a listed party and recruit members before starting — they are now optional rather than required.
+
+---
+
 ## Party Queue Flow
 
-1. Player runs `/dungeon join <dungeonId> <floorId>` — if they have no party, a solo `DungeonPartyImpl` is created automatically.
+1. The party leader launches a floor from the Dungeon Gate menu (or an admin uses `/dungeon admin run <floorId>`). If the leader has no party, a solo `DungeonPartyImpl` is created automatically.
 2. `QueueManager.requestInstance(player, floor)` is called.
 3. The instance is created for all party members.
 4. `FloorInstance.sendToServer(IDungeonParty party)` checks `party.areAllMembersOnline()` before transferring every member.
