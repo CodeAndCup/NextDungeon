@@ -14,6 +14,7 @@ import net.Indyuce.mmocore.api.player.PlayerData;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
@@ -84,7 +85,7 @@ public class PartyButton extends Button {
         String displayName = leaderName != null ? leaderName : "this";
 
         if (dungeonParty.getMemberIds().contains(player.getUniqueId())) {
-            Button.playFail(player);
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
             player.sendMessage(ChatUtil.translate("&#FF0000You are already in this party!"));
             return;
         }
@@ -106,11 +107,11 @@ public class PartyButton extends Button {
                     ourClass,
                     ourLevel
             ));
-            Button.playSuccess(player);
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 20.0F, 1.0F);
             player.sendMessage(ChatUtil.translate("&#00FF00Join request sent to " + displayName + "'s party!"));
         } else {
             dungeonParty.addMember(player);
-            Button.playSuccess(player);
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 20.0F, 1.0F);
             player.sendMessage(ChatUtil.translate("&#00FF00You have been added to " + displayName + "'s party!"));
         }
         player.closeInventory();

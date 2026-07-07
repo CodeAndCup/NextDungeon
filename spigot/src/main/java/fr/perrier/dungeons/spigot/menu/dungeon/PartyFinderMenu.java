@@ -14,6 +14,7 @@ import fr.perrier.dungeons.spigot.parties.IDungeonParty;
 import fr.perrier.dungeons.spigot.parties.impl.DungeonPartyImpl;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
@@ -166,12 +167,12 @@ public class PartyFinderMenu extends PaginatedMenu {
             if (remainingMs > 0) {
                 long seconds = (remainingMs + 999) / 1000;
                 player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Please wait " + seconds + "s before refreshing again."));
-                Button.playFail(player);
+                player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
                 return;
             }
             LAST_REFRESH.put(player.getUniqueId(), now);
             player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#00FF00Refreshing party list..."));
-            Button.playSuccess(player);
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 20.0F, 1.0F);
             PartyFinderMenu.this.openMenu(player);
         }
     }

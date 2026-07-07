@@ -20,6 +20,7 @@ import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
+import org.bukkit.Sound;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -71,6 +72,7 @@ public class DebugCommands {
         try {
             logBroadcastType = LoggerUtil.LogBroadcastType.valueOf(type.toUpperCase());
         } catch (IllegalArgumentException e) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
             player.sendMessage(ChatUtil.translate("&#FF0000Invalid log broadcast type. Valid types are: CONSOLE, IN_GAME, BOTH."));
             return;
         }
@@ -121,6 +123,7 @@ public class DebugCommands {
     public static void debugDungeonFloorCommand(Player player,  @Param(name = "Floor ID", tabCompleteFlags = {"floors"}) FloorData floorData) {
         Floor floor = Floor.getFloor(floorData.getId());
         if (floor == null) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
             player.sendMessage(ChatUtil.translate("&#FF0000Floor with ID '" + floorData.getId() + "' not found."));
             return;
         }
@@ -138,6 +141,7 @@ public class DebugCommands {
     public static void debugDungeonTriggerCommand(Player player, @Param(name = "Floor ID", tabCompleteFlags = {"floors"}) FloorData floorData) {
         Floor floor = Floor.getFloor(floorData.getId());
         if (floor == null) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
             player.sendMessage(ChatUtil.translate("&#FF0000Floor with ID '" + floorData.getId() + "' not found."));
             return;
         }
@@ -183,12 +187,14 @@ public class DebugCommands {
     public static void debugItemReqCommand(Player player, @Param(name = "Floor ID", tabCompleteFlags = {"floors"}) FloorData floorData) {
         Floor floor = Floor.getFloor(floorData.getId());
         if (floor == null) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
             player.sendMessage(ChatUtil.translate("&#FF0000Floor with ID '" + floorData.getId() + "' not found."));
             return;
         }
 
         ItemStack item = player.getInventory().getItemInMainHand();
         if (item == null || item.getType().isAir()) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
             player.sendMessage(ChatUtil.translate("&#FF0000Hold the item you want to test in your main hand."));
             return;
         }

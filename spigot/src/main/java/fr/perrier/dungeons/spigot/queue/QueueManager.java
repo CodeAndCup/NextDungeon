@@ -12,6 +12,7 @@ import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
@@ -187,8 +188,10 @@ public class QueueManager {
 
         validateAllMembersAsync(floor, memberIds).thenAccept(allPassed -> {
             if (!allPassed) {
-                Bukkit.getScheduler().runTask(Main.getInstance(), () ->
-                        player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000One or more players in your party break the requirements to enter this floor.")));
+                Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
+                    player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
+                    player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000One or more players in your party break the requirements to enter this floor."));
+                });
                 return;
             }
 
@@ -280,8 +283,10 @@ public class QueueManager {
             Set<UUID> memberIds = party.getMemberIds();
             validateAllMembersAsync(floor, memberIds).thenAccept(allPassed -> {
                 if (!allPassed) {
-                    Bukkit.getScheduler().runTask(Main.getInstance(), () ->
-                            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000One or more players in your party break the requirements during the loading phase. The instance has been cancelled.")));
+                    Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
+                        player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
+                        player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000One or more players in your party break the requirements during the loading phase. The instance has been cancelled."));
+                    });
                     return;
                 }
                 Bukkit.getScheduler().runTask(Main.getInstance(), () -> {

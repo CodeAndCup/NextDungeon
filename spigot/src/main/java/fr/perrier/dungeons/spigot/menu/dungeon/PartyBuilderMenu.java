@@ -16,6 +16,7 @@ import fr.perrier.dungeons.spigot.parties.impl.DungeonPartyImpl;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
@@ -107,11 +108,11 @@ public class PartyBuilderMenu extends GlassMenu {
                     String description = result.getRight();
                     if(description.length() <= 32) {
                         this.description = description;
-                        Button.playSuccess(player);
+                        player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 20.0F, 1.0F);
                         player.sendRawMessage(ChatUtil.translate("&#00FF00Description updated to: &f" + description));
                         this.openMenu(player);
                     } else {
-                        Button.playFail(player);
+                        player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
                         player.sendRawMessage(ChatUtil.translate("&#FF0000You can not have more than 32 characters in the description."));
                     }
                 }
@@ -140,25 +141,25 @@ public class PartyBuilderMenu extends GlassMenu {
                         try {
                             int minLevelInt = Integer.parseInt(minLevel);
                             if (minLevelInt < 0) {
-                                Button.playFail(player);
+                                player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
                                 player.sendRawMessage(ChatUtil.translate("&#FF0000You can not have a negative minimum player level."));
                                 return;
                             }
                             if (minLevelInt < Objects.requireNonNull(Floor.getFloor(floorId)).getRequirements().getMinLevel()) {
-                                Button.playFail(player);
+                                player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
                                 player.sendRawMessage(ChatUtil.translate("&#FF0000You can not have a minimum player level lower than the floor minimum level: &f" + Floor.getFloor(floorId).getRequirements().getMinLevel()));
                                 return;
                             }
                             this.minLevel = Integer.parseInt(minLevel);
-                            Button.playSuccess(player);
+                            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 20.0F, 1.0F);
                             player.sendRawMessage(ChatUtil.translate("&#00FF00Minimum player level updated to: &f" + minLevel));
                             this.openMenu(player);
                         }catch (NumberFormatException e) {
-                            Button.playFail(player);
+                            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
                             player.sendRawMessage(ChatUtil.translate("&#FF0000You must enter a valid number."));
                         }
                     } else {
-                        Button.playFail(player);
+                        player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
                         player.sendRawMessage(ChatUtil.translate("&#FF0000You must enter a number."));
                     }
                 }
@@ -201,7 +202,7 @@ public class PartyBuilderMenu extends GlassMenu {
 
         @Override
         public void clicked(Player player, int slot, ClickType clickType, int hotbarButton) {
-            Button.playSuccess(player);
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 20.0F, 1.0F);
             new DungeonPartyImpl.Builder()
                     .setDungeonId(dungeonId)
                     .setFloorId(floorId)

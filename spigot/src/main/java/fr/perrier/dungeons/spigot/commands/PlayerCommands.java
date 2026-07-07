@@ -9,6 +9,7 @@ import fr.perrier.dungeons.spigot.model.Dungeon;
 import fr.perrier.dungeons.spigot.model.Floor;
 import fr.perrier.dungeons.spigot.parties.impl.DungeonPartyImpl;
 import fr.perrier.dungeons.spigot.queue.QueuePosition;
+import org.bukkit.Sound;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -53,11 +54,13 @@ public class PlayerCommands {
         Player player = (Player) sender;
 
         if (Main.getInstance().getQueueManager() == null) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Queue system is not available on this server"));
             return;
         }
 
         if (floorData == null) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000FloorData not found."));
             return;
         }
@@ -65,6 +68,7 @@ public class PlayerCommands {
         if (Main.getInstance().getQueueManager().removePlayerFromQueue(player, floorData.getId())) {
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "Removed from queue for floor: " + floorData.getId()));
         } else {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000You are not in the queue for this floor"));
         }
     }
@@ -75,6 +79,7 @@ public class PlayerCommands {
         Player player = (Player) sender;
 
         if (Main.getInstance().getQueueManager() == null) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Queue system is not available on this server"));
             return;
         }

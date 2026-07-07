@@ -14,6 +14,7 @@ import fr.perrier.dungeons.spigot.module.ModuleLoader;
 import fr.perrier.dungeons.spigot.parties.impl.DungeonPartyImpl;
 import fr.perrier.dungeons.spigot.utils.ServerUtil;
 import org.bukkit.Bukkit;
+import org.bukkit.Sound;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -59,23 +60,27 @@ public class AdminCommands {
             permission = "nextdungeon.admin")
     public static void onAdminDungeonEditCommand(Player player, @Param(name = "Floor ID", tabCompleteFlags = {"floors"}) FloorData floorData) {
         if(floorData == null) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000FloorData not found."));
             return;
         }
 
         Floor floor = Floor.getFloor(floorData.getId());
         if (floor == null) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Floor not found."));
             return;
         }
 
         // Prevent starting edit instance if player already in an instance
         if (Main.getInstance().getDungeonService().isPlayerInAnyInstance(player.getUniqueId())) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000You are already in an instance or it is being prepared."));
             return;
         }
         FloorInstance.generateNewInstanceAsync(floor.getId(), Set.of(player.getUniqueId()), true, floorInstance -> {
             if (floorInstance == null) {
+                player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
                 player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Failed to create the edit instance. Please try again."));
                 return;
             }
@@ -90,12 +95,14 @@ public class AdminCommands {
             permission = "nextdungeon.admin")
     public static void onAdminDungeonSaveCommand(Player player, @Param(name = "Confirm", baseValue = "none")String confirm) {
         if(!ServerUtil.isInEditMode()) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000This server is not in edit mode."));
             return;
         }
 
         InstanceInfo info = ServerUtil.getInstanceInfo();
         if(info == null || info.getFloorId() == null) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000You are not in a floor instance."));
             return;
         }
@@ -103,6 +110,7 @@ public class AdminCommands {
         Floor currentFloor = Floor.getFloor(info.getFloorId());
 
         if (currentFloor == null) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Floor not found."));
             return;
         }
@@ -122,6 +130,7 @@ public class AdminCommands {
                 saveAndShutdown(player, currentFloor);
             }
         }).exceptionally(ex -> {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Error checking triggers: " + ex.getMessage()));
             return null;
         });
@@ -132,17 +141,20 @@ public class AdminCommands {
         Player player = (Player) sender;
 
         if (Main.getInstance().getQueueManager() == null) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Queue system is not available on this server"));
             return;
         }
 
         if (floorData == null) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000FloorData not found."));
             return;
         }
 
         Floor floor = Floor.getFloor(floorData.getId());
         if (floor == null) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Floor not found: " + floorData.getId()));
             return;
         }
@@ -178,11 +190,13 @@ public class AdminCommands {
 
                 Bukkit.getScheduler().runTaskLater(Main.getInstance(), Bukkit::shutdown, 100L);
             } else {
+                player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
                 player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Error while saving the world changes."));
                 player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Check the console for details."));
             }
         }).exceptionally(ex -> {
-            player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Error while saving the world changes: " + ex.getMessage()));
+                player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
+                player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Error while saving the world changes: " + ex.getMessage()));
             return null;
         });
     }
@@ -193,16 +207,19 @@ public class AdminCommands {
     public static void onAdminDungeonWebEditorStartCommand(Player player) {
         InstanceInfo info = ServerUtil.getInstanceInfo();
         if(info == null || info.getFloorId() == null) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000You are not in a floor instance."));
             return;
         }
 
         if(!ServerUtil.isInEditMode()) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000This server is not in edit mode."));
             return;
         }
 
         if(Main.getInstance().getWebEditorManager().hasActiveEditor(player)) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000You already have an active web editor session."));
             return;
         }
@@ -211,6 +228,7 @@ public class AdminCommands {
         Floor currentFloor = Floor.getFloor(info.getFloorId());
 
         if (currentFloor == null) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Floor not found."));
             return;
         }
@@ -266,6 +284,7 @@ public class AdminCommands {
         if(instanceId.matches("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")) {
             instanceId = instanceId.toLowerCase();
         } else {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
             player.sendMessage(ChatUtil.translate("&#FF0000Invalid instance ID format. Expected UUID."));
             player.sendMessage(ChatUtil.getBar());
             return;
@@ -285,6 +304,7 @@ public class AdminCommands {
                     player.sendMessage(ChatUtil.translate("&7Ready: &f" + instance.isReady()));
                 }
             } else {
+                player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
                 player.sendMessage(ChatUtil.translate("&#FF0000Instance info introuvable."));
             }
         } else if (isDefaultInstance) {
@@ -293,6 +313,7 @@ public class AdminCommands {
         } else {
             FloorInstance instance = Main.getInstance().getDungeonService().getInstance(UUID.fromString(instanceId));
             if (instance == null) {
+                player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
                 player.sendMessage(ChatUtil.translate("&#FF0000Instance not found"));
             } else {
                 InstanceInfo info = ServerUtil.getInstanceInfo(instance.getInstanceId());
@@ -321,6 +342,7 @@ public class AdminCommands {
     @Command(names = {"dungeon admin queue status", "dungeons admin queue status", "nd admin queue status"}, permission = "nextdungeons.admin")
     public static void onAdminDungeonQueueStatusCommand(Player player) {
         if (Main.getInstance().getDungeonQueueService() == null) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Queue service not available"));
             return;
         }
@@ -356,11 +378,13 @@ public class AdminCommands {
     @Command(names = {"dungeon admin queue clear", "dungeons admin queue clear", "nextdungeon admin queue clear", "nextdungeons admin queue clear", "nd admin queue clear"}, permission = "nextdungeons.admin")
     public static void onAdminDungeonQueueClearCommand(Player player, @Param(name = "Floor ID", tabCompleteFlags = {"floors"}) FloorData floorData) {
         if(floorData == null) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000FloorData not found."));
             return;
         }
 
         if (Main.getInstance().getDungeonQueueService() == null) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Queue service not available"));
             return;
         }
@@ -372,17 +396,20 @@ public class AdminCommands {
     @Command(names = {"dungeon admin queue list", "dungeons admin queue list", "nd admin queue list"}, permission = "nextdungeons.admin")
     public static void onAdminDungeonQueueListCommand(Player player, @Param(name = "Floor ID", tabCompleteFlags = {"floors"}) FloorData floorData) {
         if(floorData == null) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000FloorData not found."));
             return;
         }
 
         if (Main.getInstance().getDungeonQueueService() == null) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Queue service not available"));
             return;
         }
 
         Floor floor = Floor.getFloor(floorData.getId());
         if (floor == null) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Floor not found: " + floorData.getId()));
             return;
         }

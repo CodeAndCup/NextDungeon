@@ -8,6 +8,7 @@ import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 
 import java.util.HashMap;
@@ -39,11 +40,13 @@ public class DungeonWebEditorManager {
         UUID playerId = player.getUniqueId();
 
         if (activeEditorSessions.containsKey(playerId)) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000You already have an active web editor. Please stop it before starting a new one."));
             return;
         }
 
         if(!ServerUtil.isInEditMode()) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000You can only start the web editor on an editing server."));
             return;
         }
@@ -81,14 +84,17 @@ public class DungeonWebEditorManager {
                     player.sendMessage(ChatUtil.getBar());
 
                 } else {
+                    player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
                     player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Impossible de créer la session sur le proxy. Vérifiez que le proxy est démarré."));
                 }
             }).exceptionally(e -> {
+                player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
                 Main.getLoggerUtil().severe("An error occurred while requesting the web editor session: " + e.getMessage());
                 player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000An error occurred while starting the web editor. Check the server console for details."));
                 return null;
             });
         } catch (Exception e) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
             Main.getLoggerUtil().severe("&#00FF00An error occurred while starting the web editor: " + e.getMessage());
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000An error occurred while starting the web editor. Check the server console for details."));
         }
@@ -106,6 +112,7 @@ public class DungeonWebEditorManager {
             bridgeService.requestSessionStop(sessionId);
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#00FF00✓ Web editor stopped."));
         } else {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000No web editor is currently active."));
         }
     }

@@ -9,6 +9,7 @@ import fr.perrier.dungeons.spigot.parties.IPartyMember;
 import fr.perrier.dungeons.spigot.parties.PartyService;
 import fr.perrier.dungeons.spigot.parties.impl.internal.InternalPartyProvider;
 import org.bukkit.Bukkit;
+import org.bukkit.Sound;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -83,6 +84,7 @@ public class PartyCommands {
         if (service == null) return;
 
         if (service.isInParty(player)) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000You are already in a party. Leave it first."));
             return;
         }
@@ -90,6 +92,7 @@ public class PartyCommands {
         String partyName = NAME_SENTINEL.equals(name.trim()) ? player.getName() + "'s Party" : name.trim();
         Optional<IParty> created = service.createParty(player, partyName);
         if (created.isEmpty()) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Could not create the party."));
             return;
         }
@@ -105,6 +108,7 @@ public class PartyCommands {
 
         Optional<IParty> partyOpt = service.getPartyOf(player);
         if (partyOpt.isEmpty()) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 20.0F, 1.0F);
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000You are not in a party. Use &e/party create&#FF0000 first."));
             return;
         }

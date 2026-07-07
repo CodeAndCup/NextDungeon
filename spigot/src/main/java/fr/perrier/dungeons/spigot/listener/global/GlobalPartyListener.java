@@ -26,8 +26,9 @@ public class GlobalPartyListener implements Listener {
         Party party = event.getParty();
         party.getMembers().forEach(uuid -> {
             Player member = Bukkit.getPlayer(uuid);
-            if (member != null)
-                member.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Your party has been removed from the party finder!"));
+            if (member != null) {
+                member.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#00FF00Your party has been removed from the party finder!"));
+            }
         });
 
         DungeonPartyImpl dp = DungeonPartyImpl.getDungeonPartyOf(party.getLeader());
@@ -52,7 +53,7 @@ public class GlobalPartyListener implements Listener {
                 party.getMembers().forEach(uuid -> {
                     Player member = Bukkit.getPlayer(uuid);
                     if (member != null)
-                        member.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Your party has been removed from the party finder!"));
+                        member.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#00FF00Your party has been removed from the party finder!"));
                 });
                 dp.disband();
             }
