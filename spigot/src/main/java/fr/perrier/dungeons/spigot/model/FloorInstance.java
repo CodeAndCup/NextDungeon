@@ -349,6 +349,15 @@ public class FloorInstance extends FloorInstanceData {
 
                     )
             );
+
+            // Feed the per-floor leaderboards from the freshly merged snapshot (cumulative
+            // totals / personal bests). Cheap ZADDs; keeps the ranking shown in ProfileMenu current.
+            profileData.getFloorStats().stream()
+                    .filter(fs -> fs.getFloorId().equals(floorId))
+                    .findFirst()
+                    .ifPresent(merged -> Main.getInstance().getLeaderboardService()
+                            .submitAll(player.getUniqueId(), merged));
+
             Main.getInstance().getProfileService().saveProfileData(player.getUniqueId());
 
             if(success) {

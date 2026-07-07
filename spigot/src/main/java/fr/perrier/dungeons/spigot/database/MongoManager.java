@@ -109,6 +109,11 @@ public class MongoManager implements DatabaseManager {
         throw new UnsupportedOperationException("Not implemented yet");
     }
 
+    @Override
+    public java.util.concurrent.CompletableFuture<java.util.List<ProfileData>> getAllProfiles() {
+        throw new UnsupportedOperationException("Not implemented yet");
+    }
+
     /**
      * Loads the triggers for a floor from MongoDB.
      * @param floorId the floor ID

@@ -895,6 +895,30 @@ public class MySQLManager implements DatabaseManager {
         }, "getAllFloors(limit=" + limit + ")");
     }
 
+    @Override
+    public CompletableFuture<List<ProfileData>> getAllProfiles() {
+        return executeAsync(() -> {
+            List<ProfileData> result = new ArrayList<>();
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement("SELECT id, data FROM profiles",
+                         ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
+                stmt.setFetchSize(100);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    while (rs.next()) {
+                        String id = rs.getString("id");
+                        try {
+                            ProfileData profile = ProfileData.fromJson(rs.getString("data"));
+                            if (profile != null) result.add(profile);
+                        } catch (Exception e) {
+                            Main.getLoggerUtil().severe("[MySQLManager] Skipping unparseable profile " + id + ": " + e.getMessage());
+                        }
+                    }
+                }
+            }
+            return result;
+        }, "getAllProfiles");
+    }
+
     // ===== Memory Labyrinth: Infinite saves =====
 
     @Override

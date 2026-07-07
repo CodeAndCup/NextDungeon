@@ -63,6 +63,7 @@ import fr.perrier.dungeons.spigot.messaging.subscribers.WebEditorRequestSubscrib
 import fr.perrier.dungeons.spigot.model.Floor;
 import fr.perrier.dungeons.spigot.model.FloorInstance;
 import fr.perrier.dungeons.spigot.storage.ProfileService;
+import fr.perrier.dungeons.spigot.storage.LeaderboardService;
 import fr.perrier.dungeons.spigot.storage.DungeonService;
 import fr.perrier.dungeons.spigot.queue.DungeonQueueService;
 import fr.perrier.dungeons.spigot.queue.QueueManager;
@@ -114,6 +115,7 @@ public final class Main extends JavaPlugin {
     private Pidgin messaging;
     private DungeonService dungeonService;
     private ProfileService profileService;
+    private LeaderboardService leaderboardService;
     private DatabaseManager databaseManager;
     private ServerNameService serverNameService;
 
@@ -218,6 +220,10 @@ public final class Main extends JavaPlugin {
             profileService = new ProfileService(redissonClient);
             profileService.initialize();
             getLogger().info("Profile service initialized successfully");
+
+            // Initialize Leaderboard service (per-floor Redis sorted sets)
+            leaderboardService = new LeaderboardService(redissonClient);
+            getLogger().info("Leaderboard service initialized successfully");
 
             // Initialize Dungeon Queue Service
             dungeonQueueService = new DungeonQueueService(redissonClient);
@@ -718,6 +724,15 @@ public final class Main extends JavaPlugin {
                 RedisConfigLoader.loadAllDungeonsFromRedis();
             } catch (Exception e) {
                 getLogger().severe("[initializeLobbyServer] Async dungeon hydration failed: " + e.getMessage());
+            }
+            // Rebuild the leaderboard sorted sets from the profiles table when missing
+            // (first deploy / after a Redis flush). No-op once the sentinel is set.
+            try {
+                if (leaderboardService != null) {
+                    leaderboardService.backfillIfEmpty(databaseManager);
+                }
+            } catch (Exception e) {
+                getLogger().severe("[initializeLobbyServer] Leaderboard backfill failed: " + e.getMessage());
             }
         });
     }

@@ -39,10 +39,16 @@ public class DebugCommands {
         player.sendMessage(ChatUtil.translate("<gradient:#8B0000:bold>NextDungeon</gradient:#D10000> &8| &fDebug Commands"));
         player.sendMessage("");
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon debug help &8- &fGet the list of available commands"));
+        player.sendMessage(ChatUtil.translate("&#D10000/dungeon debug log toggle &8- &fToggle debug logging"));
+        player.sendMessage(ChatUtil.translate("&#D10000/dungeon debug log broadcaster <type> &8- &fSet log broadcast type (CONSOLE, IN_GAME, BOTH)"));
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon debug list dungeons &8- &fList all dungeons"));
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon debug list floors &8- &fList all floors"));
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon debug list instances &8- &fList all instances"));
-        player.sendMessage(ChatUtil.translate("&#D10000/dungeon debug openmenu &8- &fOpen the dungeon example menu"));
+        player.sendMessage(ChatUtil.translate("&#D10000/dungeon debug floor <floorId> &8- &fShow detailed floor info"));
+        player.sendMessage(ChatUtil.translate("&#D10000/dungeon debug trigger <floorId> &8- &fShow triggers for a floor"));
+        player.sendMessage(ChatUtil.translate("&#D10000/dungeon debug party list &8- &fList all local parties"));
+        player.sendMessage(ChatUtil.translate("&#D10000/dungeon debug party clean &8- &fDisband all local parties"));
+        player.sendMessage(ChatUtil.translate("&#D10000/dungeon debug itemreq <floorId> &8- &fCheck held item against floor requirements"));
         player.sendMessage("");
         player.sendMessage(ChatUtil.getBar());
     }

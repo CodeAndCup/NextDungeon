@@ -23,6 +23,14 @@ public interface DatabaseManager {
     ProfileData loadProfileData(UUID playerId);
     void saveProfileData(UUID playerId, ProfileData profileData);
 
+    /**
+     * Streams every stored profile. Used once at boot to (re)build the Redis
+     * leaderboard sorted sets when they are missing (first deploy / Redis flush).
+     * Implementations must iterate the result set (never materialise the whole
+     * table as a map) to avoid OOM, mirroring {@link #getAllFloors(int)}.
+     */
+    CompletableFuture<List<ProfileData>> getAllProfiles();
+
     // Trigger operations (for dungeon floors)
     CompletableFuture<List<TriggerData>> loadTriggers(String floorId);
     CompletableFuture<Void> saveTriggers(String floorId, List<TriggerData> triggers);
