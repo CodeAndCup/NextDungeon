@@ -62,12 +62,30 @@ public class PartyFinderMenu extends PaginatedMenu {
     public Map<Integer, Button> getGlobalButtons(Player player) {
         HashMap<Integer, Button> buttons = new HashMap<>();
 
+        if(DungeonPartyImpl.getDungeonParties().isEmpty()) {
+            buttons.put(22, new NoPartyFoundButton());
+        }
+
         buttons.put(38, new PartyBuilderButton());
         buttons.put(40, new BackButton(oldMenu));
         buttons.put(42, new FilterButton());
         buttons.put(44, new RefreshButton());
 
         return buttons;
+    }
+
+    private static class NoPartyFoundButton extends Button {
+        @Override
+        public ItemStack getButtonItem(Player player) {
+            return new ItemBuilder(Material.BEDROCK)
+                    .setName("<gradient:#8B0000:bold>" + ChatUtil.toSmallCaps("no parties found") + "</gradient:#D10000>")
+                    .setLore(
+                            "&7There are no parties currently",
+                            "&7looking for members.",
+                            "",
+                            "&#FFC700Refresh or try again later."
+                    ).toItemStack();
+        }
     }
 
     public class PartyBuilderButton extends Button {

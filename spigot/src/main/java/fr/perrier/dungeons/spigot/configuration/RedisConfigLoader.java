@@ -74,6 +74,11 @@ public class RedisConfigLoader {
         int dungeonCount = 0;
         int floorCount   = 0;
 
+        // Boot rebuilds Dungeon objects by grouping floors on dungeonId, which only yields the
+        // ID — the human-readable name lives in the `dungeons` table. Fetch id → name once so the
+        // in-memory Dungeon carries its real name instead of falling back to name == id.
+        Map<String, String> dungeonNames = loadDungeonNames(dbManager);
+
         for (Map.Entry<String, List<FloorData>> entry : byDungeon.entrySet()) {
             String dungeonId         = entry.getKey();
             List<FloorData> floors   = entry.getValue();
@@ -90,12 +95,13 @@ public class RedisConfigLoader {
                 }
             }
 
-            Dungeon dungeon = new Dungeon(dungeonId, dungeonId);
+            String dungeonName = dungeonNames.getOrDefault(dungeonId, dungeonId);
+            Dungeon dungeon = new Dungeon(dungeonId, dungeonName);
             dungeon.setFloors(loadedFloors);
             dungeonCount++;
 
             Main.getLoggerUtil().info("[RedisConfigLoader] Donjon chargé : " + dungeonId +
-                    " (" + loadedFloors.size() + " floor(s))");
+                    " (name=" + dungeonName + ", " + loadedFloors.size() + " floor(s))");
         }
 
         Main.getLoggerUtil().info("[RedisConfigLoader] " + dungeonCount + " donjon(s) et " +
@@ -114,6 +120,28 @@ public class RedisConfigLoader {
      * (dungeonType, labyrinthDungeonConfig, …). This mirrors what
      * {@link #loadFloorsFromDatabase} does for floors.</p>
      */
+    /**
+     * Loads the {@code id → name} mapping from the {@code dungeons} DB table.
+     *
+     * <p>The boot loop rebuilds {@link Dungeon} objects from floors grouped by {@code dungeonId},
+     * so it only ever sees IDs. Without this lookup every dungeon would be named after its ID.
+     * Returns an empty map on any failure so callers cleanly fall back to {@code name == id}.</p>
+     */
+    private static Map<String, String> loadDungeonNames(DatabaseManager dbManager) {
+        Map<String, String> names = new HashMap<>();
+        if (dbManager == null) return names;
+        try {
+            List<String[]> rows = dbManager.listAllDungeons().get();
+            for (String[] row : rows) {
+                if (row == null || row.length < 2 || row[0] == null || row[1] == null) continue;
+                names.put(row[0], row[1]);
+            }
+        } catch (Exception e) {
+            Main.getLoggerUtil().warning("[RedisConfigLoader] failed to load dungeon names: " + e.getMessage());
+        }
+        return names;
+    }
+
     private static void repopulateDashboardDungeonEntries(DatabaseManager dbManager) {
         if (dbManager == null) return;
         String topic = Main.getInstance().getConfig().getString("RedisConfiguration.topic");

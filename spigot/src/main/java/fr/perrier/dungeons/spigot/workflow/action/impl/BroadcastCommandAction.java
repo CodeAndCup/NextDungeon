@@ -46,24 +46,32 @@ public class BroadcastCommandAction extends Action implements BlocklyAction {
             return false;
         }
 
+        if(Main.getLoggerUtil().isDebugEnabled())
+            Main.getLoggerUtil().info("Executing command: " + command);
+
         if (command.contains("@player") && command.contains("@all")) {
             Main.getLoggerUtil().warning("Warning: The command cannot contain both @player and @all placeholders.");
             return false;
         }
 
         if (command.contains("@player")) {
-            if (player != null) {
-                command = command.replace("@player", player.getName());
-                Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), command);
-            } else {
+            if (player == null) {
                 Main.getLoggerUtil().warning("Warning: The command contains @player placeholder but the player is null.");
                 return false;
             }
+            String resolved = command.replace("@player", player.getName());
+            if(Main.getLoggerUtil().isDebugEnabled())
+                Main.getLoggerUtil().info("Executing command '" + resolved + "' for player: " + player.getName());
+            Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), resolved);
         } else if (command.contains("@all")) {
             for (Player target : Bukkit.getOnlinePlayers()) {
-                command = command.replace("@all", target.getName());
-                Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), command);
+                String resolved = command.replace("@all", target.getName());
+                if(Main.getLoggerUtil().isDebugEnabled())
+                    Main.getLoggerUtil().info("Executing command '" + resolved + "' for player: " + target.getName());
+                Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), resolved);
             }
+        } else {
+            Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), command);
         }
 
         return true;

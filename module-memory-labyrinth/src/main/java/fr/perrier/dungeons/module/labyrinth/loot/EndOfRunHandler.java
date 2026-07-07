@@ -1,5 +1,6 @@
 package fr.perrier.dungeons.module.labyrinth.loot;
 
+import fr.perrier.dungeons.module.labyrinth.blessing.BlessingBridge;
 import fr.perrier.dungeons.module.labyrinth.lifecycle.DoorController;
 import fr.perrier.dungeons.module.labyrinth.manager.LabyrinthRunManager;
 import fr.perrier.dungeons.module.labyrinth.manager.LabyrinthSaveManager;
@@ -143,7 +144,7 @@ public class EndOfRunHandler {
         // Close the external blessing session for the party — completed on a
         // win, abandoned otherwise. Fired while players are still in the
         // instance (before endRun releases it).
-        fr.perrier.dungeons.module.labyrinth.blessing.BlessingBridge.endSession(recipients, success);
+        BlessingBridge.endSession(recipients, success);
 
         if (doorController != null) doorController.closeDoors(run.getInstanceId());
         runManager.endRun(run.getInstanceId());

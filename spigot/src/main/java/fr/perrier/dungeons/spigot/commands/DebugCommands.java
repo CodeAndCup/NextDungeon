@@ -47,14 +47,14 @@ public class DebugCommands {
         player.sendMessage(ChatUtil.getBar());
     }
 
-    @Command(names = {"dungeon debug toggle", "dungeons debug toggle", "nextdungeon debug toggle", "nextdungeons debug toggle", "nd debug toggle"})
+    @Command(names = {"dungeon debug log toggle", "dungeons debug log toggle", "nextdungeon debug log toggle", "nextdungeons debug log toggle", "nd debug log toggle"})
     public static void debugDungeonToggleCommand(Player player) {
         boolean newState = !Main.getLoggerUtil().isDebugEnabled();
         Main.getLoggerUtil().setDebugEnabled(newState);
-        player.sendMessage(ChatUtil.translate("&#D10000Debug mode is now " + (newState ? "enabled" : "disabled") + "."));
+        player.sendMessage(ChatUtil.translate("&#D10000Debug log is now " + (newState ? "enabled" : "disabled") + "."));
     }
 
-    @Command(names = {"dungeon debug setlogbroadcast", "dungeons debug setlogbroadcast", "nextdungeon debug setlogbroadcast", "nextdungeons debug setlogbroadcast", "nd debug setlogbroadcast"}, permission = "nextdungeon.debug")
+    @Command(names = {"dungeon debug log broadcaster", "dungeons debug log broadcaster", "nextdungeon debug log broadcaster", "nextdungeons debug log broadcaster", "nd debug log broadcaster"}, permission = "nextdungeon.debug")
     public static void debugDungeonSetLogBroadcastCommand(Player player, @Param(name = "type") String type) {
         LoggerUtil.LogBroadcastType logBroadcastType;
         try {
@@ -104,17 +104,6 @@ public class DebugCommands {
             player.spigot().sendMessage(dungeonComponent);
         }
         player.sendMessage(ChatUtil.getBar());
-    }
-
-    @Command(names = {"dungeon debug openmenu", "dungeons debug openmenu", "nextdungeon debug openmenu", "nextdungeons debug openmenu", "nd debug openmenu"}, permission = "nextdungeon.debug")
-    public static void debugDungeonOpenMenuCommand(Player player) {
-
-        Dungeon dungeon = Dungeon.getDungeon("example");
-        if(dungeon == null) {
-            player.sendMessage(ChatUtil.translate("&#FF0000Dungeon 'example' not found."));
-            return;
-        }
-        new DungeonGateMenu(dungeon).openMenu(player);
     }
 
     @Command(names = {"dungeon debug floor", "dungeons debug floor", "nextdungeon debug floor", "nextdungeons debug floor", "nd debug floor"}, permission = "nextdungeon.debug")

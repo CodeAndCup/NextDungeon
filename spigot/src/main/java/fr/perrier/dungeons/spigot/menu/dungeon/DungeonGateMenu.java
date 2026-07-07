@@ -116,10 +116,6 @@ public class DungeonGateMenu extends GlassMenu {
             PartyService partyService = PartyService.getInstance();
             boolean hasLead = DungeonPartyImpl.hasLeadParty(player);
 
-            // Bug 2 — only the party leader may start a dungeon. A player who is a member of a
-            // party but not its leader is rejected here. Membership is detected both via the
-            // active provider (external plugin / internal) and via an existing dungeon party the
-            // player already belongs to (finder flow), so non-leaders are blocked in every case.
             if (!hasLead) {
                 boolean nonLeaderInProvider = partyService != null && partyService.isInParty(player)
                         && !partyService.isPartyLeader(player);
@@ -130,25 +126,18 @@ public class DungeonGateMenu extends GlassMenu {
                 }
             }
 
-            // Past this point the launcher is always the (solo or party) leader, so the leader
-            // UUID is the clicking player's own UUID.
             UUID leaderId = player.getUniqueId();
 
-            // Bug 3 — refuse if an instance for this leader is already active or being prepared.
             if (Main.getInstance().getDungeonService().isPlayerInAnyInstance(leaderId)) {
                 player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000An instance for your party is already being prepared or active. Please wait..."));
                 return;
             }
 
-            // Requirement checks for the clicking player.
             if(Objects.requireNonNull(Objects.requireNonNull(getButtonItem(player).getItemMeta()).getLore()).stream().anyMatch(s -> s.contains("✘"))) {
                 player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000You do not meet the requirements to enter this floor."));
                 return;
             }
 
-            // Party-size checks, evaluated without creating a party yet. A solo player (no party)
-            // counts as a party of 1, so solo launches are only allowed when the floor's minimum
-            // size is 1 — otherwise the "too small" branch below rejects them.
             int minSize = floor.getRequirements().getPartyRequirements().getMinSize();
             int maxSize = floor.getRequirements().getPartyRequirements().getMaxSize();
             int partySize;
@@ -157,7 +146,7 @@ public class DungeonGateMenu extends GlassMenu {
             } else if (partyService != null && partyService.isInParty(player)) {
                 partySize = partyService.getPartyOf(player).map(IParty::getSize).orElse(1);
             } else {
-                partySize = 1; // solo
+                partySize = 1;
             }
             if (partySize > maxSize) {
                 player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Your party is too big to enter this floor."));
@@ -168,18 +157,13 @@ public class DungeonGateMenu extends GlassMenu {
                 return;
             }
 
-            // Bug 3 — acquire the launch lock. add() returns false when a launch is already in
-            // flight, so rapid double-clicks are rejected before any async work or party creation.
             if (!launchingLeaders.add(leaderId)) {
                 player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000A dungeon launch is already in progress for your party. Please wait..."));
                 return;
             }
-            // Safety net: never strand the leader behind the lock if a callback is somehow lost.
+
             Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> launchingLeaders.remove(leaderId), LAUNCH_LOCK_TIMEOUT_TICKS);
 
-            // Bug 4 — materialize the dungeon party. When the player already leads one (party
-            // finder flow) it is reused; otherwise we wrap their existing external/internal party
-            // (or create a solo party) directly, without requiring the party builder/finder.
             DungeonPartyImpl resolved;
             try {
                 resolved = hasLead
@@ -196,7 +180,7 @@ public class DungeonGateMenu extends GlassMenu {
                 player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Failed to prepare your party. Please try again."));
                 return;
             }
-            // A directly-launched party (not built via the finder) never needs to be advertised.
+
             if (!hasLead) {
                 resolved.setListed(false);
             }
@@ -307,7 +291,7 @@ public class DungeonGateMenu extends GlassMenu {
 
             return new ItemBuilder(Material.PLAYER_HEAD)
                     .setSkullOwner(player.getName())
-                    .setName("&f" + ChatUtil.toSmallCaps(player.getName()))
+                    .setName("<gradient:#8B0000:bold>" + ChatUtil.toSmallCaps(player.getName().toLowerCase(Locale.ROOT)) + "</gradient:#D10000>")
                     .setLore(
                             "&7View your statistics, best",
                             "&7performances and more.",
@@ -333,8 +317,13 @@ public class DungeonGateMenu extends GlassMenu {
         lore.add("");
 
         String[] description = floor.getDescription().split("\n");
-        for(String line : description)
-            lore.add("&7" + ChatUtil.translate(line));
+        if(description.length == 0) {
+            lore.add("&7&oNo description");
+        } else {
+            for (String line : description) {
+                lore.add("&7" + ChatUtil.translate(line));
+            }
+        }
         lore.add("");
         lore.add("&7Requirements:");
         if(floor.getRequirements().getMinLevel() > 0) {
