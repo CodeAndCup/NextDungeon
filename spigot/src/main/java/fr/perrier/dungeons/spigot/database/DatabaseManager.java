@@ -54,10 +54,11 @@ public interface DatabaseManager {
     CompletableFuture<Void> deleteDungeon(String dungeonId);
 
     /**
-     * Lists every dungeon stored in the dashboard table as a {@code [id, dataJson]}
-     * pair. Used by the lobby boot to repopulate the {@code <topic>:dd:<id>} Redis
-     * buckets the dashboard reads from when Redis has been flushed but the DB
-     * still holds the source of truth.
+     * Lists every dungeon stored in the dashboard table as a {@code [id, dataJson, name]}
+     * triple. {@code row[0]}/{@code row[1]} feed the lobby boot repopulation of the
+     * {@code <topic>:dd:<id>} Redis buckets (source of truth after a Redis flush);
+     * {@code row[2]} carries the human-readable name so boot can rebuild in-memory
+     * {@code Dungeon} objects with their real name instead of the id.
      */
     CompletableFuture<List<String[]>> listAllDungeons();
 

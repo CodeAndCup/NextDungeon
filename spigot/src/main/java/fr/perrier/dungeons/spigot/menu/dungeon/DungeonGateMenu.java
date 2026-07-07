@@ -317,7 +317,7 @@ public class DungeonGateMenu extends GlassMenu {
         lore.add("");
 
         String[] description = floor.getDescription().split("\n");
-        if(description.length == 0) {
+        if(description.length == 0 || (description.length == 1 && description[0].isBlank())) {
             lore.add("&7&oNo description");
         } else {
             for (String line : description) {

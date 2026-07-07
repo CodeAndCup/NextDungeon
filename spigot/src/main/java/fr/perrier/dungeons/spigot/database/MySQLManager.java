@@ -699,10 +699,10 @@ public class MySQLManager implements DatabaseManager {
         return executeAsync(() -> {
             List<String[]> result = new ArrayList<>();
             try (Connection conn = dataSource.getConnection();
-                 PreparedStatement stmt = conn.prepareStatement("SELECT id, data FROM dungeons");
+                 PreparedStatement stmt = conn.prepareStatement("SELECT id, data, name FROM dungeons");
                  ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    result.add(new String[] { rs.getString("id"), rs.getString("data") });
+                    result.add(new String[] { rs.getString("id"), rs.getString("data"), rs.getString("name") });
                 }
             }
             return result;

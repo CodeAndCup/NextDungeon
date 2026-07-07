@@ -131,10 +131,11 @@ public class RedisConfigLoader {
         Map<String, String> names = new HashMap<>();
         if (dbManager == null) return names;
         try {
+            // listAllDungeons() returns [id, dataJson, name]; the name lives at index 2.
             List<String[]> rows = dbManager.listAllDungeons().get();
             for (String[] row : rows) {
-                if (row == null || row.length < 2 || row[0] == null || row[1] == null) continue;
-                names.put(row[0], row[1]);
+                if (row == null || row.length < 3 || row[0] == null || row[2] == null) continue;
+                names.put(row[0], row[2]);
             }
         } catch (Exception e) {
             Main.getLoggerUtil().warning("[RedisConfigLoader] failed to load dungeon names: " + e.getMessage());
