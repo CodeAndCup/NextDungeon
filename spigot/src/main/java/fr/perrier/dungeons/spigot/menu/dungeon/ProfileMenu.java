@@ -136,10 +136,10 @@ public class ProfileMenu extends GlassMenu {
             LeaderboardService.Rank rank = ranks.get(metric);
             if (rank == null || rank.total() <= 0) return "";
             if (rank.position() <= LeaderboardService.ABSOLUTE_RANK_LIMIT) {
-                return " &8(&e#" + rank.position() + "&8/&7" + rank.total() + "&8)";
+                return " &8[&e#" + rank.position() + "&8]";
             }
             int percent = (int) Math.max(1, Math.ceil((double) rank.position() / rank.total() * 100.0));
-            return " &8(&eTop " + percent + "%&8)";
+            return " &8[&eTop " + percent + "%&8]";
         }
     }
 }
