@@ -16,6 +16,7 @@ import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
 @Getter
@@ -29,7 +30,16 @@ public class Pidgin {
     private final HashMap<Class<? extends Packet>, String> types;
     private final HashMap<String, Class<? extends Packet>> cTypes;
 
-    private static final ExecutorService executorService = Executors.newFixedThreadPool(10);
+    /**
+     * Per-instance worker pool. It used to be {@code static}, which meant that once a plugin
+     * disable shut it down it could never be used again — a reload (e.g. via PlugManX) would
+     * keep the old, now-terminated pool and every incoming message rejected into it. Making it
+     * an instance field lets a freshly created Pidgin start with a live pool.
+     */
+    private final ExecutorService executorService = Executors.newFixedThreadPool(10);
+
+    /** Redis listener id, kept so {@link #close()} can unsubscribe on shutdown. */
+    private final int listenerId;
 
     public Pidgin(String topicName, String redisHost, int redisPort, String redisUsername, String redisPassword, int redisDatabase) {
         Config config = new Config();
@@ -44,8 +54,7 @@ public class Pidgin {
         this.adapters = new HashMap<>();
         this.types = new HashMap<>();
         this.cTypes = new HashMap<>();
-        this.topic.addListener(String.class, new MessagingListener());
-
+        this.listenerId = this.topic.addListener(String.class, new MessagingListener());
     }
 
     public Pidgin(String topicName, Config config) {
@@ -55,7 +64,7 @@ public class Pidgin {
         this.adapters = new HashMap<>();
         this.types = new HashMap<>();
         this.cTypes = new HashMap<>();
-        this.topic.addListener(String.class, new MessagingListener());
+        this.listenerId = this.topic.addListener(String.class, new MessagingListener());
     }
 
     /**
@@ -88,28 +97,41 @@ public class Pidgin {
      * @param packet the packet to send
      */
     public void sendPacket(Packet packet) {
-        executorService.submit(() ->
-                this.topic.publish(types.get(packet.getClass()) + ";" + gson.toJson(packet))
-        );
+        if (executorService.isShutdown()) return;
+        try {
+            executorService.submit(() ->
+                    this.topic.publish(types.get(packet.getClass()) + ";" + gson.toJson(packet))
+            );
+        } catch (RejectedExecutionException ignored) {
+            // Pool was shut down concurrently (plugin disabling) — safe to drop the packet.
+        }
     }
 
     /**
-     * Shuts down the Pidgin executor service.
+     * Shuts this Pidgin instance down cleanly: stops receiving messages, drains the worker
+     * pool, and closes the Redis connection.
      * <p>
-     * This method is used to shut down the messaging service.
-     * It is called automatically when the plugin is disabled.
-     * <p>
-     * The method will wait 60 seconds for any active tasks to complete.
-     * If any tasks are still active after that time, they will be interrupted.
+     * Called on plugin disable. Unsubscribing the listener and closing the client is what
+     * makes a reload safe — otherwise the old instance's listener keeps receiving messages
+     * and rejects them into the terminated pool, and each reload leaks a Redis connection.
      */
-    public static void shutdown() {
+    public void close() {
+        try {
+            this.topic.removeListener(listenerId);
+        } catch (Exception ignored) {
+        }
         executorService.shutdown();
         try {
-            if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {
+            if (!executorService.awaitTermination(10, TimeUnit.SECONDS)) {
                 executorService.shutdownNow();
             }
         } catch (InterruptedException e) {
             executorService.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+        try {
+            this.client.shutdown();
+        } catch (Exception ignored) {
         }
     }
 
@@ -128,28 +150,33 @@ public class Pidgin {
          */
         @Override
         public void onMessage(CharSequence charSequence, String s) {
-            executorService.submit(() -> {
-                try {
-                    String[] parts = s.split(";", 2);
-                    String id = parts[0];
-                    Packet packet = gson.fromJson(parts[1], cTypes.get(id));
+            if (executorService.isShutdown()) return;
+            try {
+                executorService.submit(() -> {
+                    try {
+                        String[] parts = s.split(";", 2);
+                        String id = parts[0];
+                        Packet packet = gson.fromJson(parts[1], cTypes.get(id));
 
-                    Class<? extends Packet> clazz = cTypes.get(id);
+                        Class<? extends Packet> clazz = cTypes.get(id);
 
-                    PacketListener listener = adapters.get(clazz);
+                        PacketListener listener = adapters.get(clazz);
 
-                    for (Method m : listener.getClass().getDeclaredMethods()) {
-                        if (m.getDeclaredAnnotation(IncomingPacketHandler.class) != null) {
-                            try {
-                                m.invoke(listener, packet);
-                            } catch (IllegalAccessException | InvocationTargetException e) {
-                                throw new RuntimeException(e);
+                        for (Method m : listener.getClass().getDeclaredMethods()) {
+                            if (m.getDeclaredAnnotation(IncomingPacketHandler.class) != null) {
+                                try {
+                                    m.invoke(listener, packet);
+                                } catch (IllegalAccessException | InvocationTargetException e) {
+                                    throw new RuntimeException(e);
+                                }
                             }
                         }
+                    } catch (Exception ignored) {
                     }
-                } catch (Exception ignored) {
-                }
-            });
+                });
+            } catch (RejectedExecutionException ignored) {
+                // Pool shut down between the guard above and submit — safe to drop.
+            }
         }
     }
 }

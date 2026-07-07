@@ -442,7 +442,7 @@ public final class Main extends JavaPlugin {
         }
 
         CupCodeAPI.disable();
-        Pidgin.shutdown();
+        if (messaging != null) messaging.close();
 
         // Ces objets ne sont initialisés que sur les instances
         if (webEditorManager != null) {

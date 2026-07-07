@@ -117,7 +117,7 @@ public class NextDungeonBungee extends Plugin {
             webEditorServer.stopServer();
         }
         if (messaging != null) {
-            Pidgin.shutdown();
+            messaging.close();
         }
         getLogger().info("🛑 NextDungeon BungeeCord désactivé");
     }

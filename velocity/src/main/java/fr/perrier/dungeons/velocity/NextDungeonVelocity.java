@@ -114,7 +114,7 @@ public class NextDungeonVelocity {
             webEditorServer.stopServer();
         }
         if (messaging != null) {
-            Pidgin.shutdown();
+            messaging.close();
         }
         logger.info("NextDungeon Velocity disabled");
     }
