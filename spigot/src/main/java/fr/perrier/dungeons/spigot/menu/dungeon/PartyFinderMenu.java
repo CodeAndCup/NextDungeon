@@ -112,6 +112,7 @@ public class PartyFinderMenu extends PaginatedMenu {
 
         @Override
         public void clicked(Player player, int slot, ClickType clickType, int hotbarButton) {
+            Button.playNeutral(player);
             new PartyBuilderMenu(PartyFinderMenu.this,dungeon.getId()).openMenu(player);
         }
     }
@@ -138,6 +139,7 @@ public class PartyFinderMenu extends PaginatedMenu {
 
         @Override
         public void clicked(Player player, int slot, ClickType clickType, int hotbarButton) {
+            Button.playNeutral(player);
             new PartyFilterMenu(PartyFinderMenu.this,dungeon).openMenu(player);
         }
     }
@@ -164,10 +166,12 @@ public class PartyFinderMenu extends PaginatedMenu {
             if (remainingMs > 0) {
                 long seconds = (remainingMs + 999) / 1000;
                 player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Please wait " + seconds + "s before refreshing again."));
+                Button.playFail(player);
                 return;
             }
             LAST_REFRESH.put(player.getUniqueId(), now);
             player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#00FF00Refreshing party list..."));
+            Button.playSuccess(player);
             PartyFinderMenu.this.openMenu(player);
         }
     }

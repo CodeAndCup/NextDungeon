@@ -121,6 +121,7 @@ public class DungeonGateMenu extends GlassMenu {
                         && !partyService.isPartyLeader(player);
                 boolean memberOfOtherParty = DungeonPartyImpl.getDungeonPartyContaining(player.getUniqueId()) != null;
                 if (nonLeaderInProvider || memberOfOtherParty) {
+                    Button.playFail(player);
                     player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Only your party leader can start the dungeon."));
                     return;
                 }
@@ -129,11 +130,13 @@ public class DungeonGateMenu extends GlassMenu {
             UUID leaderId = player.getUniqueId();
 
             if (Main.getInstance().getDungeonService().isPlayerInAnyInstance(leaderId)) {
+                Button.playFail(player);
                 player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000An instance for your party is already being prepared or active. Please wait..."));
                 return;
             }
 
             if(Objects.requireNonNull(Objects.requireNonNull(getButtonItem(player).getItemMeta()).getLore()).stream().anyMatch(s -> s.contains("✘"))) {
+                Button.playFail(player);
                 player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000You do not meet the requirements to enter this floor."));
                 return;
             }
@@ -149,15 +152,18 @@ public class DungeonGateMenu extends GlassMenu {
                 partySize = 1;
             }
             if (partySize > maxSize) {
+                Button.playFail(player);
                 player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Your party is too big to enter this floor."));
                 return;
             }
             if (partySize < minSize) {
+                Button.playFail(player);
                 player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Your party is too small to enter this floor."));
                 return;
             }
 
             if (!launchingLeaders.add(leaderId)) {
+                Button.playFail(player);
                 player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000A dungeon launch is already in progress for your party. Please wait..."));
                 return;
             }
@@ -177,6 +183,7 @@ public class DungeonGateMenu extends GlassMenu {
                             .build();
             } catch (Exception e) {
                 launchingLeaders.remove(leaderId);
+                Button.playFail(player);
                 player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Failed to prepare your party. Please try again."));
                 return;
             }
@@ -191,8 +198,10 @@ public class DungeonGateMenu extends GlassMenu {
             validateAllMembersAsync(floor, memberIds).thenAccept(allPassed -> {
                 if (!allPassed) {
                     launchingLeaders.remove(leaderId);
-                    Bukkit.getScheduler().runTask(Main.getInstance(), () ->
-                            player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000One or more players in your party break the requirements to enter this floor.")));
+                    Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
+                        Button.playFail(player);
+                        player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000One or more players in your party break the requirements to enter this floor."));
+                    });
                     return;
                 }
 
@@ -206,6 +215,7 @@ public class DungeonGateMenu extends GlassMenu {
                             // Launch aborted after consumption: refund the local members.
                             CrossServerValidationService.refundLocalMembers(consumedItems);
                             launchingLeaders.remove(leaderId);
+                            Button.playFail(player);
                             player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Failed to create the dungeon instance. Please try again."));
                             return;
                         }
@@ -216,6 +226,7 @@ public class DungeonGateMenu extends GlassMenu {
                         // Keep the lock held: by the time the safety-net timeout releases it the
                         // instance is registered in Redis, so isPlayerInAnyInstance takes over.
                     });
+                    Button.playSuccess(player);
                     player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&fPlease wait while the instance is being prepared..."));
                 });
             });
@@ -262,6 +273,7 @@ public class DungeonGateMenu extends GlassMenu {
 
         @Override
         public void clicked(Player player, int slot, ClickType clickType, int hotbarButton) {
+            Button.playNeutral(player);
             new PartyFinderMenu(DungeonGateMenu.this,dungeon).openMenu(player);
         }
     }
@@ -281,7 +293,8 @@ public class DungeonGateMenu extends GlassMenu {
 
         @Override
         public void clicked(Player player, int slot, ClickType clickType, int hotbarButton) {
-
+            Button.playFail(player);
+            player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000This functionality is not available for now."));
         }
     }
 
@@ -303,6 +316,7 @@ public class DungeonGateMenu extends GlassMenu {
 
         @Override
         public void clicked(Player player, int slot, ClickType clickType, int hotbarButton) {
+            Button.playNeutral(player);
             new ProfileMenu(DungeonGateMenu.this,dungeon).openMenu(player);
         }
     }

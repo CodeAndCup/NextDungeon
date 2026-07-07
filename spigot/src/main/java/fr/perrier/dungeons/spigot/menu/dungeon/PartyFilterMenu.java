@@ -71,6 +71,7 @@ public class PartyFilterMenu extends GlassMenu {
 
         @Override
         public void clicked(Player player, int slot, ClickType clickType, int hotbarButton) {
+            Button.playNeutral(player);
             new FloorSelectorMenu(PartyFilterMenu.this, dungeon).openMenu(player);
         }
     }
@@ -111,6 +112,7 @@ public class PartyFilterMenu extends GlassMenu {
         ) {
             @Override
             public void clicked(Player p, int slot, ClickType clickType, int hotbarButton) {
+                Button.playNeutral(player);
                 if (clickType.isRightClick()) {
                     config.setDescriptionFilter("");
                     p.sendRawMessage(ChatUtil.translate("&#00FF00Description filter cleared."));
@@ -146,16 +148,20 @@ public class PartyFilterMenu extends GlassMenu {
                         try {
                             int minLevelInt = Integer.parseInt(minLevel);
                             if (minLevelInt < 0) {
+                                Button.playFail(player);
                                 player.sendRawMessage(ChatUtil.translate("&#FF0000You can not have a negative minimum player level."));
                                 return;
                             }
                             config.setMinimumLevelFilter(minLevelInt);
+                            Button.playSuccess(player);
                             player.sendRawMessage(ChatUtil.translate("&#00FF00Minimum player level updated to: &f" + minLevel));
                             this.openMenu(player);
                         }catch (NumberFormatException e) {
+                            Button.playFail(player);
                             player.sendRawMessage(ChatUtil.translate("&#FF0000You must enter a valid number."));
                         }
                     } else {
+                        Button.playFail(player);
                         player.sendRawMessage(ChatUtil.translate("&#FF0000You must enter a number."));
                     }
                 }
@@ -243,6 +249,7 @@ public class PartyFilterMenu extends GlassMenu {
 
             @Override
             public void clicked(Player player, int slot, ClickType clickType, int hotbarButton) {
+                Button.playNeutral(player);
                 PartyFinderConfiguration config = PartyFinderConfiguration.getConfigForPlayer(player.getUniqueId(),dungeon.getId());
                 config.setFloorFilter(floor.getId());
                 oldMenu.openMenu(player);

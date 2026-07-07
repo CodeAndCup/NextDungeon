@@ -84,6 +84,7 @@ public class PartyButton extends Button {
         String displayName = leaderName != null ? leaderName : "this";
 
         if (dungeonParty.getMemberIds().contains(player.getUniqueId())) {
+            Button.playFail(player);
             player.sendMessage(ChatUtil.translate("&#FF0000You are already in this party!"));
             return;
         }
@@ -105,9 +106,11 @@ public class PartyButton extends Button {
                     ourClass,
                     ourLevel
             ));
+            Button.playSuccess(player);
             player.sendMessage(ChatUtil.translate("&#00FF00Join request sent to " + displayName + "'s party!"));
         } else {
             dungeonParty.addMember(player);
+            Button.playSuccess(player);
             player.sendMessage(ChatUtil.translate("&#00FF00You have been added to " + displayName + "'s party!"));
         }
         player.closeInventory();
