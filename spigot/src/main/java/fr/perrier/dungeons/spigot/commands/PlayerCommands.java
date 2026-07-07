@@ -18,7 +18,6 @@ public class PlayerCommands {
     public static void onDungeonCommand(CommandSender sender) {
         sender.sendMessage(ChatUtil.getBar());
         sender.sendMessage(ChatUtil.translate("<gradient:#8B0000:bold>NextDungeon</gradient:#D10000> &8| &fPlayer Commands"));
-        sender.sendMessage(ChatUtil.translate("&7Pick a dungeon and a difficulty from the menu, then:"));
         sender.sendMessage("");
         sender.sendMessage(ChatUtil.translate("&#D10000/nd &8» &fShow this help"));
         sender.sendMessage(ChatUtil.translate("&#D10000/nd status &8» &fCheck your position in the queues"));

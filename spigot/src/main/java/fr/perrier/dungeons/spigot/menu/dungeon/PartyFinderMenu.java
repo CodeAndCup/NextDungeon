@@ -18,10 +18,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 @RequiredArgsConstructor
@@ -62,7 +59,18 @@ public class PartyFinderMenu extends PaginatedMenu {
     public Map<Integer, Button> getGlobalButtons(Player player) {
         HashMap<Integer, Button> buttons = new HashMap<>();
 
-        if(DungeonPartyImpl.getDungeonParties().isEmpty()) {
+        List<IDungeonParty> dungeonParties = DungeonPartyImpl.getDungeonParties().values().stream()
+                .filter(dungeonParty -> {
+                    PartyFinderConfiguration config = PartyFinderConfiguration.getConfigForPlayer(player.getUniqueId(), dungeon.getId());
+                    if(!dungeonParty.isListed()) return false;
+                    if(!dungeonParty.getFloorId().contains(config.getFloorFilter())) return false;
+                    if(!dungeonParty.getDungeonId().equals(dungeon.getId())) return false;
+                    if(!config.getDescriptionFilter().isEmpty() && !dungeonParty.getDescription().contains(config.getDescriptionFilter())) return false;
+                    return dungeonParty.getMinLevel() >= config.getMinimumLevelFilter();
+                })
+                .toList();
+
+        if(dungeonParties.isEmpty()) {
             buttons.put(22, new NoPartyFoundButton());
         }
 
@@ -159,6 +167,7 @@ public class PartyFinderMenu extends PaginatedMenu {
                 return;
             }
             LAST_REFRESH.put(player.getUniqueId(), now);
+            player.sendRawMessage(ChatUtil.translate(Main.getPrefix() + "&#00FF00Refreshing party list..."));
             PartyFinderMenu.this.openMenu(player);
         }
     }

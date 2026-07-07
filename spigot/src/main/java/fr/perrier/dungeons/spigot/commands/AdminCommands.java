@@ -23,10 +23,8 @@ import java.util.UUID;
 
 public class AdminCommands {
 
-    private AdminCommands() {}
-
-    @Command(names = {"dungeon admin help", "dungeons admin help", "nextdungeon admin help", "nextdungeons admin help", "nd admin help"}, permission = "nextdungeon.admin")
-    public static void adminDungeonCommand(Player player) {
+    @Command(names = {"dungeon admin", "dungeons admin", "nextdungeon admin", "nextdungeons admin", "nd admin"}, permission = "nextdungeon.admin")
+    public static void onAdminDungeonCommand(Player player) {
         player.sendMessage(ChatUtil.getBar());
         player.sendMessage(ChatUtil.translate("<gradient:#8B0000:bold>NextDungeon</gradient:#D10000> &8| &fAdmin Commands"));
         player.sendMessage("");
@@ -50,11 +48,16 @@ public class AdminCommands {
         player.sendMessage(ChatUtil.getBar());
     }
 
+    @Command(names = {"dungeon admin help", "dungeons admin help", "nextdungeon admin help", "nextdungeons admin help", "nd admin help"}, permission = "nextdungeon.admin")
+    public static void onAdminHelpDungeonCommand(Player player) {
+        onAdminDungeonCommand(player);
+    }
+
 
     @Command(
             names = {"dungeon admin edit start", "dungeons admin edit start", "nextdungeon admin edit start", "nextdungeons admin edit start", "nd admin edit start"},
             permission = "nextdungeon.admin")
-    public static void adminDungeonEditCommand(Player player, @Param(name = "Floor ID", tabCompleteFlags = {"floors"}) FloorData floorData) {
+    public static void onAdminDungeonEditCommand(Player player, @Param(name = "Floor ID", tabCompleteFlags = {"floors"}) FloorData floorData) {
         if(floorData == null) {
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000FloorData not found."));
             return;
@@ -85,7 +88,7 @@ public class AdminCommands {
     @Command(
             names = {"dungeon admin edit stop", "dungeons admin edit stop", "nextdungeon admin edit stop", "nextdungeons admin edit stop", "nd admin edit stop"},
             permission = "nextdungeon.admin")
-    public static void adminDungeonSaveCommand(Player player, @Param(name = "Confirm", baseValue = "none")String confirm) {
+    public static void onAdminDungeonSaveCommand(Player player, @Param(name = "Confirm", baseValue = "none")String confirm) {
         if(!ServerUtil.isInEditMode()) {
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000This server is not in edit mode."));
             return;
@@ -125,7 +128,7 @@ public class AdminCommands {
     }
 
     @Command(names = {"dungeon admin run", "dungeons admin run", "nextdungeon admin run", "nextdungeons admin run", "nd admin run"}, permission = "nextdungeon.admin")
-    public static void onDungeonJoinCommand(CommandSender sender, @Param(name = "Floor ID", tabCompleteFlags = {"floors"}) FloorData floorData) {
+    public static void onAdminDungeonJoinCommand(CommandSender sender, @Param(name = "Floor ID", tabCompleteFlags = {"floors"}) FloorData floorData) {
         Player player = (Player) sender;
 
         if (Main.getInstance().getQueueManager() == null) {
@@ -187,7 +190,7 @@ public class AdminCommands {
     @Command(
             names = {"dungeon admin webeditor start", "dungeons admin webeditor start", "nextdungeon admin webeditor start", "nextdungeons admin webeditor start", "nd admin webeditor start"},
             permission = "nextdungeon.admin")
-    public static void adminDungeonWebEditorStartCommand(Player player) {
+    public static void onAdminDungeonWebEditorStartCommand(Player player) {
         InstanceInfo info = ServerUtil.getInstanceInfo();
         if(info == null || info.getFloorId() == null) {
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000You are not in a floor instance."));
@@ -218,13 +221,13 @@ public class AdminCommands {
     @Command(
             names = {"dungeon admin webeditor stop", "dungeons admin webeditor stop", "nextdungeon admin webeditor stop", "nextdungeons admin webeditor stop", "nd admin webeditor stop"},
             permission = "nextdungeon.admin")
-    public static void adminDungeonWebEditorStopCommand(Player player) {
+    public static void onAdminDungeonWebEditorStopCommand(Player player) {
         Main.getInstance().getWebEditorManager().stopWebEditor(player);
     }
 
     @Command(names = {"dungeon admin list", "dungeons admin list", "nextdungeon admin list", "nextdungeons admin list", "nd admin list"},
             permission = "nextdungeon.admin")
-    public static void onDungeonListCommand(CommandSender sender) {
+    public static void onAdminDungeonListCommand(CommandSender sender) {
         sender.sendMessage(ChatUtil.getBar());
         sender.sendMessage(ChatUtil.translate("<gradient:#8B0000:bold>NextDungeon</gradient:#D10000> &8| &fAvailable Dungeons"));
         sender.sendMessage("");
@@ -256,7 +259,7 @@ public class AdminCommands {
     @Command(
             names = {"dungeon admin status", "dungeons admin status", "nextdungeon admin status", "nextdungeons admin status", "nd admin status"},
             permission = "nextdungeon.admin")
-    public static void adminDungeonStatusParamCommand(Player player, @Param(name = "Instance ID", baseValue = "00000000-0000-0000-0000-000000000000") String instanceId) {
+    public static void onAdminDungeonStatusParamCommand(Player player, @Param(name = "Instance ID", baseValue = "00000000-0000-0000-0000-000000000000") String instanceId) {
         player.sendMessage(ChatUtil.getBar());
         player.sendMessage(ChatUtil.translate("&6Dungeon Status"));
 
@@ -304,7 +307,7 @@ public class AdminCommands {
     }
 
     @Command(names = {"dungeon admin queue", "dungeons admin queue", "nextdungeon admin queue", "nextdungeons admin queue", "nd admin queue"}, permission = "nextdungeons.admin")
-    public static void adminQueueCommand(Player player) {
+    public static void onAdminDungeonQueueCommand(Player player) {
         player.sendMessage(ChatUtil.getBar());
         player.sendMessage(ChatUtil.translate("<gradient:#8B0000:bold>NextDungeon</gradient:#D10000> &8| &fQueue Management"));
         player.sendMessage("");
@@ -316,7 +319,7 @@ public class AdminCommands {
     }
 
     @Command(names = {"dungeon admin queue status", "dungeons admin queue status", "nd admin queue status"}, permission = "nextdungeons.admin")
-    public static void adminQueueStatusCommand(Player player) {
+    public static void onAdminDungeonQueueStatusCommand(Player player) {
         if (Main.getInstance().getDungeonQueueService() == null) {
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Queue service not available"));
             return;
@@ -351,7 +354,7 @@ public class AdminCommands {
     }
 
     @Command(names = {"dungeon admin queue clear", "dungeons admin queue clear", "nextdungeon admin queue clear", "nextdungeons admin queue clear", "nd admin queue clear"}, permission = "nextdungeons.admin")
-    public static void adminQueueClearCommand(Player player, @Param(name = "Floor ID", tabCompleteFlags = {"floors"}) FloorData floorData) {
+    public static void onAdminDungeonQueueClearCommand(Player player, @Param(name = "Floor ID", tabCompleteFlags = {"floors"}) FloorData floorData) {
         if(floorData == null) {
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000FloorData not found."));
             return;
@@ -367,7 +370,7 @@ public class AdminCommands {
     }
 
     @Command(names = {"dungeon admin queue list", "dungeons admin queue list", "nd admin queue list"}, permission = "nextdungeons.admin")
-    public static void adminQueueListCommand(Player player, @Param(name = "Floor ID", tabCompleteFlags = {"floors"}) FloorData floorData) {
+    public static void onAdminDungeonQueueListCommand(Player player, @Param(name = "Floor ID", tabCompleteFlags = {"floors"}) FloorData floorData) {
         if(floorData == null) {
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000FloorData not found."));
             return;
@@ -410,7 +413,7 @@ public class AdminCommands {
     // ======================= Module Commands =======================
 
     @Command(names = {"dungeon admin module list", "dungeons admin module list", "nextdungeon admin module list", "nextdungeons admin module list", "nd admin module list"}, permission = "nextdungeons.admin")
-    public static void adminModuleListCommand(Player player) {
+    public static void onAdminDungeonModuleListCommand(Player player) {
         ModuleLoader loader = Main.getInstance().getModuleLoader();
         if (loader == null) {
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Module system not available."));
@@ -443,7 +446,7 @@ public class AdminCommands {
     }
 
     @Command(names = {"dungeon admin module load", "dungeons admin module load", "nextdungeon admin module load", "nextdungeons admin module load", "nd admin module load"}, permission = "nextdungeons.admin")
-    public static void adminModuleLoadCommand(Player player, @Param(name = "JAR file name") String jarFileName) {
+    public static void onAdminDungeonModuleLoadCommand(Player player, @Param(name = "JAR file name") String jarFileName) {
         ModuleLoader loader = Main.getInstance().getModuleLoader();
         if (loader == null) {
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Module system not available."));
@@ -462,7 +465,7 @@ public class AdminCommands {
     }
 
     @Command(names = {"dungeon admin module unload", "dungeons admin module unload", "nextdungeon admin module unload", "nextdungeons admin module unload", "nd admin module unload"}, permission = "nextdungeons.admin")
-    public static void adminModuleUnloadCommand(Player player,  @Param(name = "Module ID", tabCompleteFlags = {"modules"}) NextDungeonModule module) {
+    public static void onAdminDungeonModuleUnloadCommand(Player player,  @Param(name = "Module ID", tabCompleteFlags = {"modules"}) NextDungeonModule module) {
         if(module == null) {
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Module not found."));
             return;
@@ -482,7 +485,7 @@ public class AdminCommands {
     }
 
     @Command(names = {"dungeon admin module reload", "dungeons admin module reload", "nextdungeon admin module reload", "nextdungeons admin module reload", "nd admin module reload"}, permission = "nextdungeons.admin")
-    public static void adminModuleReloadCommand(Player player, @Param(name = "Module ID", tabCompleteFlags = {"modules"}) NextDungeonModule module) {
+    public static void onAdminDungeonModuleReloadCommand(Player player, @Param(name = "Module ID", tabCompleteFlags = {"modules"}) NextDungeonModule module) {
         if(module == null) {
             player.sendMessage(ChatUtil.translate(Main.getPrefix() + "&#FF0000Module not found."));
             return;

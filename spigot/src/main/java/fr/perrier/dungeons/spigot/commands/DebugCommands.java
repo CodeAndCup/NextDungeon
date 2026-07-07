@@ -33,7 +33,7 @@ public class DebugCommands {
         // Private constructor to prevent from instantiation
     }
 
-    @Command(names = {"dungeon debug help", "dungeons debug help", "nextdungeon debug help", "nextdungeons debug help", "nd debug help"}, permission = "nextdungeon.debug")
+    @Command(names = {"dungeon debug", "dungeons debug", "nextdungeon debug", "nextdungeons debug", "nd debug"}, permission = "nextdungeon.debug")
     public static void debugDungeonCommand(Player player) {
         player.sendMessage(ChatUtil.getBar());
         player.sendMessage(ChatUtil.translate("<gradient:#8B0000:bold>NextDungeon</gradient:#D10000> &8| &fDebug Commands"));
@@ -51,6 +51,11 @@ public class DebugCommands {
         player.sendMessage(ChatUtil.translate("&#D10000/dungeon debug itemreq <floorId> &8- &fCheck held item against floor requirements"));
         player.sendMessage("");
         player.sendMessage(ChatUtil.getBar());
+    }
+
+    @Command(names = {"dungeon debug help", "dungeons debug help", "nextdungeon debug help", "nextdungeons debug help", "nd debug help"}, permission = "nextdungeon.debug")
+    public static void debugHelpDungeonCommand(Player player) {
+        debugDungeonCommand(player);
     }
 
     @Command(names = {"dungeon debug log toggle", "dungeons debug log toggle", "nextdungeon debug log toggle", "nextdungeons debug log toggle", "nd debug log toggle"})
